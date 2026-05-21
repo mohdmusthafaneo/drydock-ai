@@ -1,0 +1,210 @@
+@import "tailwindcss";
+
+/* AIDOS / marketing-aligned design tokens */
+:root,
+[data-theme="dark"] {
+  --bg-base: #090a0b;
+  --bg-sidebar: #0e0f11;
+  --bg-surface: #12141a;
+  --bg-elevated: #181b22;
+  --bg-hover: rgba(255, 255, 255, 0.05);
+  --bg-input: #0f1014;
+
+  --border: #252830;
+  --border-subtle: #1c1f26;
+
+  --text-primary: #f7f7f7;
+  --text-secondary: #a3a3a3;
+  --text-muted: #737373;
+
+  --accent: #ff9900;
+  --accent-hover: #e68a00;
+  --accent-foreground: #090a0b;
+
+  --brand: #06b6d4;
+  --brand-hover: #0891b2;
+  --brand-muted: rgba(6, 182, 212, 0.14);
+  --brand-foreground: #ecfeff;
+
+  --accent-enterprise: #06b6d4;
+  --accent-enterprise-muted: rgba(6, 182, 212, 0.14);
+  --accent-mvp: #8b5cf6;
+  --accent-mvp-muted: rgba(139, 92, 246, 0.15);
+  --accent-mvp-soft: #c4b5fd;
+
+  --success: #10b981;
+  --success-muted: rgba(16, 185, 129, 0.12);
+  --success-soft: #6ee7b7;
+  --warning: #f59e0b;
+  --warning-muted: rgba(245, 158, 11, 0.12);
+  --warning-soft: #fcd34d;
+  --error: #ef4444;
+  --error-muted: rgba(239, 68, 68, 0.12);
+  --error-soft: #fca5a5;
+
+  --metric-track: #131a2a;
+  --ring: #06b6d4;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.03);
+
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  --bg-base: #ffffff;
+  --bg-sidebar: #f8f9fa;
+  --bg-surface: #ffffff;
+  --bg-elevated: #f3f4f6;
+  --bg-hover: rgba(0, 0, 0, 0.04);
+  --bg-input: #ffffff;
+
+  --border: #e5e7eb;
+  --border-subtle: #f0f1f3;
+
+  --text-primary: #090a0b;
+  --text-secondary: #525252;
+  --text-muted: #737373;
+
+  --accent: #ea580c;
+  --accent-hover: #c2410c;
+  --accent-foreground: #ffffff;
+
+  --brand: #0891b2;
+  --brand-hover: #0e7490;
+  --brand-muted: rgba(8, 145, 178, 0.1);
+  --brand-foreground: #164e63;
+
+  --accent-enterprise: #0891b2;
+  --accent-enterprise-muted: rgba(8, 145, 178, 0.1);
+  --accent-mvp: #7c3aed;
+  --accent-mvp-muted: rgba(124, 58, 237, 0.1);
+  --accent-mvp-soft: #8b5cf6;
+
+  --success: #059669;
+  --success-muted: rgba(5, 150, 105, 0.1);
+  --success-soft: #047857;
+  --warning: #d97706;
+  --warning-muted: rgba(217, 119, 6, 0.1);
+  --warning-soft: #b45309;
+  --error: #dc2626;
+  --error-muted: rgba(220, 38, 38, 0.1);
+  --error-soft: #b91c1c;
+
+  --metric-track: #e5e7eb;
+  --ring: #0891b2;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-base: var(--bg-base);
+  --color-sidebar: var(--bg-sidebar);
+  --color-surface: var(--bg-surface);
+  --color-elevated: var(--bg-elevated);
+  --color-hover: var(--bg-hover);
+  --color-input: var(--bg-input);
+
+  --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
+
+  --color-primary: var(--text-primary);
+  --color-secondary: var(--text-secondary);
+  --color-muted: var(--text-muted);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-muted: var(--brand-muted);
+  --color-brand-foreground: var(--brand-foreground);
+
+  --color-enterprise: var(--accent-enterprise);
+  --color-enterprise-muted: var(--accent-enterprise-muted);
+  --color-mvp: var(--accent-mvp);
+  --color-mvp-muted: var(--accent-mvp-muted);
+  --color-mvp-soft: var(--accent-mvp-soft);
+
+  --color-success: var(--success);
+  --color-success-muted: var(--success-muted);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-muted: var(--warning-muted);
+  --color-warning-soft: var(--warning-soft);
+  --color-error: var(--error);
+  --color-error-muted: var(--error-muted);
+  --color-error-soft: var(--error-soft);
+
+  --color-metric-track: var(--metric-track);
+
+  --font-sans: var(--font-figtree);
+  --font-mono: var(--font-mono), ui-monospace, monospace;
+}
+
+body {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  border-color: var(--border-subtle);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--brand) 35%, transparent);
+  color: var(--text-primary);
+}
+
+/* Subtle marketing-style ambient glow for authenticated app surfaces */
+.app-canvas {
+  position: relative;
+  isolation: isolate;
+}
+
+.app-canvas::before {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(6, 182, 212, 0.08), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(255, 153, 0, 0.04), transparent 50%);
+}
+
+.app-canvas > * {
+  position: relative;
+  z-index: 1;
+}
+
+.auth-canvas {
+  position: relative;
+  isolation: isolate;
+  background: var(--bg-base);
+}
+
+.auth-canvas::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 90% 60% at 20% 0%, rgba(6, 182, 212, 0.18), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 80% 100%, rgba(255, 153, 0, 0.1), transparent 50%),
+    radial-gradient(ellipse 50% 40% at 50% 50%, rgba(6, 182, 212, 0.05), transparent 70%);
+}
+
+.auth-canvas::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(180deg, transparent 0%, rgba(9, 10, 11, 0.4) 100%);
+}

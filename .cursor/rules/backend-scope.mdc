@@ -1,0 +1,16 @@
+---
+description: Backend conventions for AIDOS APIs, Prisma, auth, and domain lib
+globs: src/app/api/**/*,src/lib/**/*,prisma/**/*,src/middleware.ts
+alwaysApply: false
+---
+
+# Backend scope
+
+- Validate POST bodies with Zod; return `{ ok }` or `{ error }`.
+- Session cookies via `jsonWithSession` in `src/lib/auth-response.ts`.
+- Prisma client: `@/generated/prisma/client` through `src/lib/prisma.ts`.
+- Wrap multi-step writes in `prisma.$transaction`.
+- Log governance actions to `AuditLog` and `ActivityEvent`.
+
+@src/lib/auth-response.ts
+@prisma/schema.prisma

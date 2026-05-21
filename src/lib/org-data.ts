@@ -1,0 +1,175 @@
+import { prisma } from "@/lib/prisma";
+import { computeCompletedStepIds } from "@/lib/enterprise-workflow";
+
+export async function getOrganizationContext(organizationId: string) {
+  const [
+    org,
+    profile,
+    dna,
+    integrations,
+    recommendations,
+    approvals,
+    events,
+    releases,
+    workflow,
+    agents,
+    incidents,
+    auditLogs,
+    telemetryMetrics,
+    deploymentEvents,
+    telemetryEvents,
+    webhookEvents,
+    governancePolicy,
+  ] = await Promise.all([
+    prisma.organization.findUnique({ where: { id: organizationId } }),
+    prisma.organizationProfile.findUnique({ where: { organizationId } }),
+    prisma.deliveryDNA.findUnique({ where: { organizationId } }),
+    prisma.integration.findMany({
+      where: { organizationId },
+      orderBy: { provider: "asc" },
+    }),
+    prisma.recommendation.findMany({
+      where: { organizationId },
+      orderBy: { createdAt: "desc" },
+      include: { release: true },
+    }),
+    prisma.approval.findMany({
+      where: { organizationId },
+      include: { recommendation: true, approver: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.activityEvent.findMany({
+      where: { organizationId },
+      orderBy: { createdAt: "desc" },
+      take: 12,
+    }),
+    prisma.release.findMany({
+      where: { organizationId },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.deliveryWorkflow.findUnique({ where: { organizationId } }),
+    prisma.agentRegistry.findMany({
+      where: { organizationId },
+      orderBy: { agentType: "asc" },
+    }),
+    prisma.incident.findMany({
+      where: { organizationId },
+      orderBy: { detectedAt: "desc" },
+      take: 20,
+      include: { release: true },
+    }),
+    prisma.auditLog.findMany({
+      where: { organizationId },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      include: { user: true },
+    }),
+    prisma.telemetryMetric.findMany({
+      where: { organizationId },
+      orderBy: { recordedAt: "desc" },
+      take: 48,
+    }),
+    prisma.deploymentEvent.findMany({
+      where: { organizationId },
+      orderBy: { deployedAt: "desc" },
+      take: 10,
+      include: { release: true },
+    }),
+    prisma.telemetryEvent.findMany({
+      where: { organizationId },
+      orderBy: { occurredAt: "desc" },
+      take: 24,
+    }),
+    prisma.webhookEvent.findMany({
+      where: { organizationId },
+      orderBy: { receivedAt: "desc" },
+      take: 12,
+    }),
+    prisma.governancePolicy.findUnique({ where: { organizationId } }),
+  ]);
+
+  const pendingApprovals = approvals.filter((a) => !a.decision);
+  const connectedIntegrations = integrations.filter((i) => i.status === "CONNECTED");
+  const activeReleases = releases.filter(
+    (r) => r.status !== "DEPLOYED" && r.status !== "BLOCKED",
+  );
+  const assessedReleases = releases.filter((r) => r.assessedAt);
+  const deployedReleases = releases.filter((r) => r.status === "DEPLOYED");
+
+  const avgReadiness =
+    assessedReleases.length > 0
+      ? Math.round(
+          assessedReleases.reduce((s, r) => s + (r.readinessScore ?? 0), 0) /
+            assessedReleases.length,
+        )
+      : null;
+
+  const latestMetrics = telemetryMetrics.slice(0, 12);
+  const errorRate =
+    latestMetrics.find((m) => m.metricKey === "http_error_rate")?.value ?? null;
+  const p95 = latestMetrics.find((m) => m.metricKey === "p95_latency_ms")?.value ?? null;
+
+  const workflowConfigured = Boolean(workflow?.configuredAt);
+  const hasTelemetry = telemetryMetrics.length > 0;
+  const completedStepIds = computeCompletedStepIds({
+    hasDna: Boolean(dna),
+    hasProfile: Boolean(profile?.completedAt),
+    connectedCount: connectedIntegrations.length,
+    workflowConfigured,
+    hasAssessedRelease: assessedReleases.length > 0,
+    hasPendingApprovals: pendingApprovals.length > 0,
+    hasDeployedRelease: deployedReleases.length > 0,
+    hasOpenIncident: incidents.some((i) => i.status === "OPEN" || i.status === "INVESTIGATING"),
+    hasTelemetry,
+  });
+
+  const degradedDeployments = deploymentEvents.filter(
+    (d) => d.health === "DEGRADED" || d.health === "FAILED",
+  );
+
+  return {
+    org,
+    profile,
+    dna,
+    integrations,
+    recommendations,
+    approvals,
+    events,
+    releases,
+    workflow,
+    agents,
+    incidents,
+    auditLogs,
+    telemetryMetrics,
+    deploymentEvents,
+    telemetryEvents,
+    webhookEvents,
+    governancePolicy,
+    completedStepIds,
+    stats: {
+      governanceScore: dna?.governanceScore ?? 0,
+      releaseReadiness: avgReadiness ?? (dna ? Math.min(100, dna.governanceScore) : 0),
+      activeReleases: activeReleases.length,
+      governanceRisk: releases[0]?.governanceRiskScore
+        ? Math.round(releases[0].governanceRiskScore)
+        : 0,
+      pendingRecommendations: recommendations.filter((r) => r.status === "PENDING").length,
+      pendingApprovals: pendingApprovals.length,
+      connectedTools: connectedIntegrations.length,
+      openIncidents: incidents.filter((i) => i.status === "OPEN" || i.status === "INVESTIGATING")
+        .length,
+      auditEventCount: auditLogs.length,
+      activeAgents: agents.filter((a) => a.status === "ACTIVE").length,
+      metricCount: telemetryMetrics.length,
+      telemetryEventCount: telemetryEvents.length,
+      webhookEventCount: webhookEvents.length,
+      integrationsHealthy: integrations.filter(
+        (i) => i.status === "CONNECTED" && !i.lastError,
+      ).length,
+      errorRate,
+      p95Latency: p95,
+      degradedDeployments: degradedDeployments.length,
+      rollbackPending: deploymentEvents.filter((d) => d.rollbackRecommended).length,
+    },
+  };
+}
