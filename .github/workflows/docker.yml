@@ -18,6 +18,8 @@ concurrency:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  COOLIFY_DEPLOY_URL: http://15.207.73.151:8000/api/v1/deploy
+  COOLIFY_APP_UUID: udfrj0xlzaref1gdcwd5uk0e
 
 jobs:
   build-and-push:
@@ -69,3 +71,20 @@ jobs:
       - name: Image digest
         run: "echo 'Digest: ${{ steps.build.outputs.digest }}'"
         if: github.event_name != 'pull_request'
+
+      - name: Trigger Coolify Deployment
+        if: github.event_name != 'pull_request'
+        run: |
+          echo "Triggering Coolify deployment..."
+          response=$(curl -s -X POST "${{ env.COOLIFY_DEPLOY_URL }}?uuid=${{ env.COOLIFY_APP_UUID }}&force=true" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.COOLIFY_DEPLOY_API_KEY }}")
+          echo "Response: $response"
+          
+          # Check if deployment was queued successfully
+          if echo "$response" | grep -q "deployment_uuid"; then
+            echo "✅ Coolify deployment triggered successfully"
+          else
+            echo "❌ Failed to trigger Coolify deployment"
+            exit 1
+          fi
