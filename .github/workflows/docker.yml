@@ -60,6 +60,16 @@ jobs:
           provenance: true
           sbom: true
 
+      - name: Make package public
+        if: github.event_name != 'pull_request'
+        run: |
+          gh api \
+            --method PATCH \
+            "repos/${{ github.repository }}/packages/containers/${{ env.IMAGE_NAME }}" \
+            -f visibility=public || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Image digest
         run: "echo 'Digest: ${{ steps.build.outputs.digest }}'"
         if: github.event_name != 'pull_request'
