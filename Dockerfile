@@ -40,8 +40,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Install runtime dependencies for native modules (better-sqlite3)
-RUN apk add --no-cache libc6-compat
+# Install runtime dependencies
+RUN apk add --no-cache --update nodejs
 
 # Create non-root user for security
 RUN addgroup --system --gid 1001 nodejs
