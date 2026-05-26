@@ -61,5 +61,5 @@ jobs:
           sbom: true
 
       - name: Image digest
-        run: echo "Digest: ${{ steps.build.outputs.digest }}"
+        run: "echo 'Digest: ${{ steps.build.outputs.digest }}'"
         if: github.event_name != 'pull_request'
