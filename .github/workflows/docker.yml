@@ -10,6 +10,12 @@ on:
       - main
       - dev
   workflow_dispatch:
+    inputs:
+      skip_deploy:
+        description: 'Skip Coolify deployment'
+        required: false
+        default: 'false'
+        type: boolean
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -22,11 +28,18 @@ env:
   COOLIFY_APP_UUID: udfrj0xlzaref1gdcwd5uk0e
 
 jobs:
+  # ------------------------------------------------------------
+  # Job 1: Build and push Docker image to ghcr.io
+  # ------------------------------------------------------------
   build-and-push:
     runs-on: ubuntu-24.04-arm
     permissions:
       contents: read
       packages: write
+
+    outputs:
+      image-tags: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
 
     steps:
       - name: Checkout repository
@@ -72,18 +85,42 @@ jobs:
         run: "echo 'Digest: ${{ steps.build.outputs.digest }}'"
         if: github.event_name != 'pull_request'
 
+  # ------------------------------------------------------------
+  # Job 2: Trigger Coolify deployment
+  # ------------------------------------------------------------
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    # Only run on push events (not PRs), and not when skipped
+    if: |
+      github.event_name != 'pull_request' &&
+      github.event.inputs.skip_deploy != 'true'
+
+    outputs:
+      deployment_uuid: ${{ steps.deploy.outputs.deployment_uuid }}
+
+    steps:
       - name: Trigger Coolify Deployment
-        if: github.event_name != 'pull_request'
+        id: deploy
         run: |
           echo "Triggering Coolify deployment..."
+          echo "Image tags: ${{ needs.build-and-push.outputs.image-tags }}"
+          echo "Force deploying: true"
+          
           response=$(curl -s -X POST "${{ env.COOLIFY_DEPLOY_URL }}?uuid=${{ env.COOLIFY_APP_UUID }}&force=true" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.COOLIFY_DEPLOY_API_KEY }}")
+          
           echo "Response: $response"
+          
+          # Extract deployment_uuid for output
+          deployment_uuid=$(echo "$response" | grep -o '"deployment_uuid":"[^"]*"' | cut -d'"' -f4)
+          echo "deployment_uuid=$deployment_uuid" >> $GITHUB_OUTPUT
           
           # Check if deployment was queued successfully
           if echo "$response" | grep -q "deployment_uuid"; then
             echo "✅ Coolify deployment triggered successfully"
+            echo "Deployment UUID: $deployment_uuid"
           else
             echo "❌ Failed to trigger Coolify deployment"
             exit 1
