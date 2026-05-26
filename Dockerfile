@@ -55,6 +55,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # Copy Prisma schema and generated client
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 
+# Copy node_modules for runtime (prisma CLI + client needed for migrate)
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
+
 # Set ownership
 USER nextjs
 
