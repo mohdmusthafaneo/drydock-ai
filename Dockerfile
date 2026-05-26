@@ -1,6 +1,6 @@
 # ---- Dependencies Stage ----
 FROM node:22-alpine AS deps
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat python3 make g++
 
 WORKDIR /app
 
@@ -14,6 +14,9 @@ RUN npm ci
 FROM node:22-alpine AS builder
 
 WORKDIR /app
+
+# Install build dependencies for native modules
+RUN apk add --no-cache libc6-compat python3 make g++
 
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
@@ -36,6 +39,9 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+
+# Install runtime dependencies for native modules (better-sqlite3)
+RUN apk add --no-cache libc6-compat
 
 # Create non-root user for security
 RUN addgroup --system --gid 1001 nodejs
