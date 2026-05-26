@@ -22,6 +22,9 @@ RUN apk add --no-cache libc6-compat python3 make g++
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Set DATABASE_URL for prisma generate (Prisma 7+ uses prisma.config.ts)
+ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder?schema=public"
+
 # Generate Prisma client
 RUN npx prisma generate
 
