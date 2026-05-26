@@ -65,7 +65,7 @@ jobs:
         run: |
           gh api \
             --method PATCH \
-            "repos/${{ github.repository }}/packages/containers/${{ env.IMAGE_NAME }}" \
+            "repos/${{ github.repository }}/packages/containers/AIDOS" \
             -f visibility=public || true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
