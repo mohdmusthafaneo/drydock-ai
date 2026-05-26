@@ -52,9 +52,6 @@ docs
 .travis.yml
 appveyor.yml
 
-# Prisma
-prisma/migrations
-
 # Logs
 logs
 *.log

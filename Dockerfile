@@ -55,11 +55,18 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy Prisma schema and generated client
+# Prisma 7: migrate deploy reads DATABASE_URL from prisma.config.ts (not schema.prisma)
+COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+
+# Copy Prisma schema, migrations, and generated client (for migrate + runtime)
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/src/generated/prisma ./src/generated/prisma
 
 # Copy node_modules for runtime (prisma CLI + client needed for migrate)
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
+
+COPY --chmod=755 docker/entrypoint.sh /app/docker/entrypoint.sh
 
 # Set ownership
 USER nextjs
@@ -71,4 +78,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["/bin/sh", "-c", "npx prisma migrate deploy && node server.js"]
+ENTRYPOINT ["/app/docker/entrypoint.sh"]
