@@ -7,8 +7,8 @@ WORKDIR /app
 # Copy package files
 COPY package.json package-lock.json* ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies, skip postinstall (prisma generate needs schema)
+RUN npm ci --ignore-scripts
 
 # ---- Builder Stage ----
 FROM node:22-alpine AS builder
