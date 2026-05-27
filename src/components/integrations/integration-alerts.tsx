@@ -7,6 +7,22 @@ const MESSAGES: Record<string, { tone: "success" | "error"; text: string }> = {
     tone: "success",
     text: "GitHub connected successfully. Read-only access is active for delivery intelligence.",
   },
+  github_app_installed: {
+    tone: "success",
+    text: "GitHub App installed.",
+  },
+  github_app_missing_installation: {
+    tone: "error",
+    text: "GitHub App callback was missing the installation_id. Try installing again.",
+  },
+  github_app_invalid_installation: {
+    tone: "error",
+    text: "GitHub App callback returned an invalid installation_id. Please retry the install.",
+  },
+  github_app_persist_failed: {
+    tone: "error",
+    text: "We received the GitHub App install but couldn't store it. Please try again.",
+  },
   oauth_not_configured: {
     tone: "error",
     text: "GitHub OAuth is not configured. Add GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET to .env (see README).",
@@ -33,7 +49,12 @@ export function IntegrationAlerts() {
   const params = useSearchParams();
   const connected = params.get("connected");
   const error = params.get("error");
-  const key = connected === "github" ? "connected" : error ?? "";
+  const key =
+    connected === "github"
+      ? "connected"
+      : connected === "github_app"
+      ? "github_app_installed"
+      : error ?? "";
 
   if (!key || !MESSAGES[key]) return null;
 

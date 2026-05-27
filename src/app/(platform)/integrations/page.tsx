@@ -2,10 +2,10 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { getOrganizationContext } from "@/lib/org-data";
-import { getGitHubOAuthConfig } from "@/lib/github-oauth";
 import { getGitHubSyncRepoAllowlist } from "@/lib/github-api";
 import { parseIntegrationMeta } from "@/lib/integration-meta";
 import { checkIntegrationHealth } from "@/lib/integration-health";
+import { persistGitHubAppInstallation } from "@/lib/github-app-install";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/rbac";
 import { PageHeader } from "@/components/layout/page-header";
@@ -27,9 +27,47 @@ const PROVIDER_LABELS: Record<string, string> = {
 
 const MVP_PROVIDERS = new Set(["GITHUB", "JIRA"]);
 
-export default async function IntegrationsPage() {
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+function firstParam(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export default async function IntegrationsPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
   const session = await getSession();
   if (!session) redirect("/login");
+
+  const sp = await searchParams;
+  const installationIdRaw = firstParam(sp.installation_id);
+  const setupAction = firstParam(sp.setup_action);
+
+  // GitHub redirects here after the org admin installs the AIDOS GitHub App.
+  // Persist the installation id, then bounce to a clean URL so a refresh
+  // doesn't re-run the upsert and the success alert shows up.
+  if (installationIdRaw && setupAction) {
+    const installationId = Number.parseInt(installationIdRaw, 10);
+    if (!Number.isFinite(installationId)) {
+      redirect("/integrations?error=github_app_invalid_installation");
+    }
+
+    try {
+      await persistGitHubAppInstallation({
+        organizationId: session.organizationId,
+        userId: session.userId,
+        installationId,
+        setupAction,
+      });
+    } catch (err) {
+      console.error("[integrations] persistGitHubAppInstallation failed:", err);
+      redirect("/integrations?error=github_app_persist_failed");
+    }
+
+    redirect("/integrations?connected=github_app");
+  }
 
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
   const githubWebhookUrl = `${appUrl}/api/webhooks/github?organizationId=${session.organizationId}`;
@@ -41,7 +79,7 @@ export default async function IntegrationsPage() {
 
   const isMvp = org?.workspaceMode === "MVP";
   const ctx = await getOrganizationContext(session.organizationId);
-  const githubOAuthConfigured = getGitHubOAuthConfig().configured;
+  const githubAppSlug = process.env.GITHUB_APP_SLUG;
   const githubSyncRepos = getGitHubSyncRepoAllowlist();
   const canManage = hasPermission(session, "integrations", "manage_integrations");
 
@@ -58,7 +96,7 @@ export default async function IntegrationsPage() {
         description={
           isMvp
             ? "Link GitHub and Jira so your MVP package flows into delivery tools."
-            : "Phase 1 — OAuth, webhooks, metadata sync, and health monitoring for your operational stack."
+            : "Phase 1 — GitHub App, webhooks, metadata sync, and health monitoring for your operational stack."
         }
       >
         {!isMvp && canManage && <SyncIntegrationsButton />}
@@ -68,13 +106,13 @@ export default async function IntegrationsPage() {
         <IntegrationAlerts />
       </Suspense>
 
-      {!githubOAuthConfigured && (
+      {!githubAppSlug && (
         <Card className="border-warning/30 bg-warning-muted/50">
           <CardHeader>
-            <CardTitle className="text-base">GitHub OAuth setup required</CardTitle>
+            <CardTitle className="text-base">GitHub App setup required</CardTitle>
             <CardDescription>
-              Create a GitHub OAuth App and add credentials to <code>.env</code> (see checklist
-              below).
+              Set <code>GITHUB_APP_SLUG</code> in <code>.env</code> (e.g.{" "}
+              <code>aidos-neo</code>) so org admins can install the AIDOS GitHub App.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -104,7 +142,6 @@ export default async function IntegrationsPage() {
                 {h.lastSyncAt && (
                   <p className="text-xs text-muted">Last sync: {h.lastSyncAt.toLocaleString()}</p>
                 )}
-                {integration.webhookEnabled && <Badge variant="brand">Webhooks active</Badge>}
 
                 {isGitHub ? (
                   <GitHubIntegrationPanel
@@ -114,19 +151,21 @@ export default async function IntegrationsPage() {
                     repos={meta.repos}
                     syncRepos={githubSyncRepos}
                     webhookUrl={githubWebhookUrl}
-                    oauthConfigured={githubOAuthConfigured}
+                    webhookEnabled={integration.webhookEnabled}
+                    appSlug={githubAppSlug}
+                    installationId={meta.installationId}
+                    installedAt={meta.installedAt}
+                    mode={meta.mode}
+                    canManage={canManage}
                   />
                 ) : (
                   <div className="flex flex-wrap gap-2">
+                    {integration.webhookEnabled && <Badge variant="brand">Webhooks active</Badge>}
                     {!isConnected && <StubConnectButton provider={integration.provider} />}
                     {isConnected && canManage && (
                       <DisconnectButton provider={integration.provider} />
                     )}
                   </div>
-                )}
-
-                {isConnected && isGitHub && canManage && (
-                  <DisconnectButton provider="GITHUB" />
                 )}
               </CardContent>
             </Card>

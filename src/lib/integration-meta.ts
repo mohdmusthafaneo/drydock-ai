@@ -8,6 +8,7 @@ export type GitHubRepoSummary = {
 };
 
 export type GitHubIntegrationMeta = {
+  /** "oauth" | "app" | "dual" — how this integration was connected */
   mode?: string;
   githubLogin?: string;
   githubId?: number;
@@ -17,6 +18,12 @@ export type GitHubIntegrationMeta = {
   repos?: GitHubRepoSummary[];
   lastSyncSummary?: string;
   webhookSecretHint?: string;
+  /** GitHub App installation id — present when the AIDOS App is installed for the org */
+  installationId?: number;
+  /** ISO timestamp of the most recent install / re-install */
+  installedAt?: string;
+  /** User id that completed the install handshake */
+  installedBy?: string;
 };
 
 export function parseIntegrationMeta(metadataJson: string): GitHubIntegrationMeta {
