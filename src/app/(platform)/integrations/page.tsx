@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { getOrganizationContext } from "@/lib/org-data";
 import { getGitHubSyncRepoAllowlist } from "@/lib/github-api";
+import { getJiraOAuthConfig } from "@/lib/jira-oauth";
 import { parseIntegrationMeta } from "@/lib/integration-meta";
+import { parseJiraMeta } from "@/lib/jira-meta";
 import { checkIntegrationHealth } from "@/lib/integration-health";
 import { persistGitHubAppInstallation } from "@/lib/github-app-install";
 import { prisma } from "@/lib/prisma";
@@ -14,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { IntegrationAlerts } from "@/components/integrations/integration-alerts";
 import { SyncIntegrationsButton } from "@/components/integrations/integration-health-actions";
 import { GitHubIntegrationPanel } from "@/components/integrations/github-integration-panel";
+import { JiraIntegrationPanel } from "@/components/integrations/jira-integration-panel";
 import { DisconnectButton, StubConnectButton } from "@/components/integrations/integration-actions";
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -81,6 +84,7 @@ export default async function IntegrationsPage({
   const ctx = await getOrganizationContext(session.organizationId);
   const githubAppSlug = process.env.GITHUB_APP_SLUG;
   const githubSyncRepos = getGitHubSyncRepoAllowlist();
+  const jiraOAuthConfigured = getJiraOAuthConfig().configured;
   const canManage = hasPermission(session, "integrations", "manage_integrations");
 
   const integrations = ctx.integrations.filter(
@@ -121,8 +125,10 @@ export default async function IntegrationsPage({
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {integrations.map((integration, idx) => {
           const meta = parseIntegrationMeta(integration.metadataJson);
+          const jiraMeta = parseJiraMeta(integration.metadataJson);
           const h = health[idx];
           const isGitHub = integration.provider === "GITHUB";
+          const isJira = integration.provider === "JIRA";
           const isConnected = integration.status === "CONNECTED";
 
           return (
@@ -156,6 +162,19 @@ export default async function IntegrationsPage({
                     installationId={meta.installationId}
                     installedAt={meta.installedAt}
                     mode={meta.mode}
+                    canManage={canManage}
+                  />
+                ) : isJira ? (
+                  <JiraIntegrationPanel
+                    connected={isConnected}
+                    configured={jiraOAuthConfigured}
+                    siteName={jiraMeta.siteName}
+                    siteUrl={jiraMeta.siteUrl}
+                    displayName={jiraMeta.displayName}
+                    connectedAt={integration.connectedAt?.toISOString()}
+                    connectionStatus={jiraMeta.connectionStatus}
+                    lastError={jiraMeta.lastError ?? integration.lastError ?? undefined}
+                    availableSitesCount={jiraMeta.availableSites?.length}
                     canManage={canManage}
                   />
                 ) : (

@@ -13,6 +13,14 @@ export function GitHubOAuthConnect() {
   );
 }
 
+export function JiraOAuthConnect() {
+  return (
+    <Button size="sm" asChild>
+      <Link href="/api/integrations/jira/authorize">Connect with Jira</Link>
+    </Button>
+  );
+}
+
 export function StubConnectButton({ provider }: { provider: string }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);

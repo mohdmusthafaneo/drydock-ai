@@ -16,6 +16,13 @@ export async function POST(request: Request) {
   try {
     const { provider } = schema.parse(await request.json());
 
+    if (provider === "JIRA") {
+      return NextResponse.json(
+        { error: "Connect Jira via OAuth on the Integrations page" },
+        { status: 400 },
+      );
+    }
+
     await prisma.integration.upsert({
       where: {
         organizationId_provider: {

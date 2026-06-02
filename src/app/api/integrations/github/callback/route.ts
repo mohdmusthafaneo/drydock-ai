@@ -6,8 +6,8 @@ import { mergeGitHubMeta, parseIntegrationMeta } from "@/lib/integration-meta";
 import {
   exchangeGitHubCode,
   fetchGitHubUser,
-  verifyOAuthState,
 } from "@/lib/github-oauth";
+import { verifyOAuthState } from "@/lib/oauth-state";
 
 export async function GET(request: Request) {
   const session = await getSession();

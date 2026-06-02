@@ -1,11 +1,4 @@
-import { SignJWT, jwtVerify } from "jose";
-
-const STATE_MAX_AGE = 60 * 10;
-
-export type GitHubOAuthState = {
-  organizationId: string;
-  userId: string;
-};
+export { signOAuthState, verifyOAuthState, type OAuthState } from "@/lib/oauth-state";
 
 export function getGitHubOAuthConfig() {
   const clientId = process.env.GITHUB_CLIENT_ID;
@@ -19,26 +12,6 @@ export function getGitHubOAuthConfig() {
     redirectUri,
     configured: Boolean(clientId && clientSecret),
   };
-}
-
-function getSecret() {
-  return new TextEncoder().encode(
-    process.env.AUTH_SECRET ||
-      "aidos-dev-secret-change-me-in-production-32chars",
-  );
-}
-
-export async function signOAuthState(payload: GitHubOAuthState) {
-  return new SignJWT({ ...payload })
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime(`${STATE_MAX_AGE}s`)
-    .sign(getSecret());
-}
-
-export async function verifyOAuthState(token: string) {
-  const { payload } = await jwtVerify(token, getSecret());
-  return payload as unknown as GitHubOAuthState;
 }
 
 export function buildGitHubAuthorizeUrl(state: string) {

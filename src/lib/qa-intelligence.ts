@@ -1,4 +1,5 @@
 import type { DeliveryDNA, Integration, OrganizationProfile } from "@/generated/prisma/client";
+import { isJiraOAuthConnected } from "@/lib/jira-meta";
 
 /** Master FRD §11 — QA Intelligence Workflow */
 export const QA_INTELLIGENCE_WORKFLOW = [
@@ -46,7 +47,7 @@ export function assessQAIntelligence(input: {
   const hasGithub = connected.some((i) => i.provider === "GITHUB") || tools.includes("github");
   const hasGrafana =
     connected.some((i) => i.provider === "GRAFANA") || tools.includes("grafana");
-  const hasJira = connected.some((i) => i.provider === "JIRA") || tools.includes("jira");
+  const hasJira = connected.some((i) => isJiraOAuthConnected(i));
 
   const signals: QASignal[] = [
     {

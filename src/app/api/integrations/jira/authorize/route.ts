@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
-import {
-  buildGitHubAuthorizeUrl,
-  getGitHubOAuthConfig,
-} from "@/lib/github-oauth";
 import { signOAuthState } from "@/lib/oauth-state";
+import { buildJiraAuthorizeUrl, getJiraOAuthConfig } from "@/lib/jira-oauth";
 
 export async function GET(request: Request) {
   const session = await getSession();
@@ -12,10 +9,10 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  const { configured } = getGitHubOAuthConfig();
+  const { configured } = getJiraOAuthConfig();
   if (!configured) {
     return NextResponse.redirect(
-      new URL("/integrations?error=oauth_not_configured", request.url),
+      new URL("/integrations?error=jira_oauth_not_configured", request.url),
     );
   }
 
@@ -24,5 +21,5 @@ export async function GET(request: Request) {
     userId: session.userId,
   });
 
-  return NextResponse.redirect(buildGitHubAuthorizeUrl(state));
+  return NextResponse.redirect(buildJiraAuthorizeUrl(state));
 }
