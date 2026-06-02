@@ -174,6 +174,9 @@ export default async function IntegrationsPage({
                     connectedAt={integration.connectedAt?.toISOString()}
                     connectionStatus={jiraMeta.connectionStatus}
                     lastError={jiraMeta.lastError ?? integration.lastError ?? undefined}
+                    lastSyncSummary={jiraMeta.lastSyncSummary}
+                    selectedProjectKeys={jiraMeta.projectKeys}
+                    deliverySnapshot={jiraMeta.deliverySnapshot}
                     availableSitesCount={jiraMeta.availableSites?.length}
                     canManage={canManage}
                   />

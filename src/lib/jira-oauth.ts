@@ -1,5 +1,19 @@
 const ATLASSIAN_AUTH = "https://auth.atlassian.com";
 
+/** Read-only scopes for connection (PR1) + delivery sync (PR2). Also enable these in the Atlassian developer app. */
+export const JIRA_OAUTH_SCOPES = [
+  "read:jira-work",
+  "read:jira-user",
+  "read:project:jira",
+  "read:board-scope:jira-software",
+  "read:sprint:jira-software",
+  "offline_access",
+] as const;
+
+export function getJiraOAuthScopeString(): string {
+  return JIRA_OAUTH_SCOPES.join(" ");
+}
+
 export function getJiraOAuthConfig() {
   const clientId = process.env.ATLASSIAN_CLIENT_ID;
   const clientSecret = process.env.ATLASSIAN_CLIENT_SECRET;
@@ -21,7 +35,7 @@ export function buildJiraAuthorizeUrl(state: string) {
   const params = new URLSearchParams({
     audience: "api.atlassian.com",
     client_id: clientId,
-    scope: "read:jira-work read:jira-user offline_access",
+    scope: getJiraOAuthScopeString(),
     redirect_uri: redirectUri,
     state,
     response_type: "code",
