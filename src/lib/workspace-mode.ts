@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import { isNavHrefEnabled } from "@/lib/feature-flags";
 import {
   LayoutDashboard,
   Rocket,
@@ -58,7 +59,7 @@ export type NavItem = {
   primary?: boolean;
 };
 
-/** Master FRD §9 — Application Pages */
+/** Master FRD §9 — Application Pages (full catalog) */
 export function getNavForMode(mode: WorkspaceMode): NavItem[] {
   if (mode === "MVP") {
     return [
@@ -88,9 +89,29 @@ export function getNavForMode(mode: WorkspaceMode): NavItem[] {
   ];
 }
 
+/** Sidebar items after nav feature flags */
+export function getEnabledNavForMode(mode: WorkspaceMode): NavItem[] {
+  return getNavForMode(mode).filter((item) => isNavHrefEnabled(item.href));
+}
+
+export function getEnabledHomePath(mode: WorkspaceMode): string {
+  const nav = getEnabledNavForMode(mode);
+  const primary = nav.find((item) => item.primary);
+  if (primary) return primary.href;
+  if (nav.length > 0) return nav[0].href;
+  return "/integrations";
+}
+
 export function getHomePath(mode: WorkspaceMode, hasDna: boolean): string {
-  if (mode === "MVP") return WORKSPACE_META.MVP.homePath;
-  return hasDna ? WORKSPACE_META.ENTERPRISE.homePath : "/governance/setup";
+  if (mode === "MVP") {
+    if (isNavHrefEnabled("/accelerator")) return WORKSPACE_META.MVP.homePath;
+    return getEnabledHomePath("MVP");
+  }
+  if (isNavHrefEnabled("/dashboard")) {
+    return hasDna ? WORKSPACE_META.ENTERPRISE.homePath : "/governance/setup";
+  }
+  if (!hasDna && isNavHrefEnabled("/governance")) return "/governance/setup";
+  return getEnabledHomePath("ENTERPRISE");
 }
 
 export function isEnterpriseOnlyPath(pathname: string): boolean {

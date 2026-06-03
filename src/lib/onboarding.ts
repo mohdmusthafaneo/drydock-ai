@@ -1,3 +1,4 @@
+import { isNavPathEnabled } from "@/lib/feature-flags";
 import type { WorkspaceMode } from "@/lib/workspace-mode";
 
 type Ctx = {
@@ -14,9 +15,20 @@ type Ctx = {
   pendingApprovals: number;
 };
 
+type OnboardingStep = {
+  id: string;
+  label: string;
+  href: string;
+  done: boolean;
+};
+
+function filterEnabledSteps(steps: OnboardingStep[]): OnboardingStep[] {
+  return steps.filter((step) => isNavPathEnabled(step.href));
+}
+
 export function getOnboardingSteps(ctx: Ctx) {
   if (ctx.mode === "MVP") {
-    return [
+    return filterEnabledSteps([
       {
         id: "first-mvp",
         label: "Create your first MVP",
@@ -41,10 +53,10 @@ export function getOnboardingSteps(ctx: Ctx) {
         href: "/integrations",
         done: ctx.connectedCount > 0,
       },
-    ];
+    ]);
   }
 
-  return [
+  return filterEnabledSteps([
     {
       id: "governance-setup",
       label: "Discovery & Delivery DNA",
@@ -75,5 +87,5 @@ export function getOnboardingSteps(ctx: Ctx) {
       href: "/approvals",
       done: ctx.hasAssessedRelease && ctx.pendingApprovals === 0,
     },
-  ];
+  ]);
 }

@@ -8,7 +8,8 @@ import type { SessionPayload } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import {
   WORKSPACE_META,
-  getNavForMode,
+  getEnabledHomePath,
+  getEnabledNavForMode,
   type WorkspaceMode,
 } from "@/lib/workspace-mode";
 import { AidosLogo } from "@/components/brand/aidos-logo";
@@ -27,14 +28,15 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const meta = WORKSPACE_META[workspaceMode];
-  const nav = getNavForMode(workspaceMode);
+  const homePath = getEnabledHomePath(workspaceMode);
+  const nav = getEnabledNavForMode(workspaceMode);
   const isMvp = workspaceMode === "MVP";
 
   return (
     <div className="app-canvas flex min-h-screen bg-base text-primary">
       <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-sidebar lg:flex xl:w-64">
         <div className="border-b border-border p-5">
-          <Link href={meta.homePath} className="flex items-center gap-2.5">
+          <Link href={homePath} className="flex items-center gap-2.5">
             <AidosLogo size={36} />
             <div>
               <p className="font-semibold tracking-tight">AIDOS</p>

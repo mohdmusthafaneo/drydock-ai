@@ -6,6 +6,7 @@ import { OnboardingBanner } from "@/components/layout/onboarding-banner";
 import { AppShell } from "@/components/layout/app-shell";
 import { prisma } from "@/lib/prisma";
 import type { SessionPayload } from "@/lib/session";
+import { getDefaultLandingPath, isNavPathEnabled } from "@/lib/feature-flags";
 import {
   getHomePath,
   isEnterpriseOnlyPath,
@@ -37,6 +38,10 @@ export async function PlatformShell({
   }
   if (workspaceMode === "ENTERPRISE" && pathname && isMvpOnlyPath(pathname)) {
     redirect(getHomePath("ENTERPRISE", true));
+  }
+
+  if (pathname && !isNavPathEnabled(pathname)) {
+    redirect(getDefaultLandingPath());
   }
 
   const ctx = await getOrganizationContext(session.organizationId);
