@@ -1,7 +1,7 @@
 # Jira integration — single source of truth
 
 **Last updated:** 2026-06-02  
-**Status:** PR1 ✅ · PR2 (sync) ✅ · **PR2b (project picker)** ✅ · PR3 pending  
+**Status:** PR1 ✅ · PR2 (sync) ✅ · PR2b (project picker) ✅ · **PR3 (delivery health)** ✅  
 **Owner agents:** `/backend` (OAuth, API, sync), `/frontend` (Integrations UI), `/architect` (review before merge)
 
 **Related docs:** [`MVP-DEVELOPMENT-PLAN.md`](./MVP-DEVELOPMENT-PLAN.md) · [`AIDOS-PHASE-1-EXECUTION.md`](./AIDOS-PHASE-1-EXECUTION.md)
@@ -42,7 +42,7 @@ Connect **Jira Cloud** to AIDOS with **read-only** access so the platform can:
 | **PR1** | OAuth connect/disconnect, encrypted tokens, connection probe | ✅ Done |
 | **PR2** | Read sync → `deliverySnapshot`, sync API + panel button | ✅ Done |
 | **PR2b** | Per-org project picker (SaaS) | ✅ Done |
-| **PR3** | `jira-delivery-health.ts`, wire release assess + QA | ⬜ Pending |
+| **PR3** | `jira-delivery-health.ts`, wire release assess + QA | ✅ Done |
 
 ### 3.1 Shipped files
 
@@ -53,6 +53,7 @@ Connect **Jira Cloud** to AIDOS with **read-only** access so the platform can:
 | Meta + snapshot types | `src/lib/jira-meta.ts` |
 | Jira API client | `src/lib/jira-api.ts` |
 | Sync engine | `src/lib/jira-sync.ts` |
+| Delivery health | `src/lib/jira-delivery-health.ts` |
 | Project selection | `src/lib/jira-project-selection.ts` |
 | Routes | `authorize`, `callback`, `sync`, `projects` under `src/app/api/integrations/jira/` |
 | UI | `src/components/integrations/jira-integration-panel.tsx` |
@@ -60,9 +61,6 @@ Connect **Jira Cloud** to AIDOS with **read-only** access so the platform can:
 | QA `hasJira` fix | `src/lib/qa-intelligence.ts` — real OAuth only |
 
 ### 3.2 Not shipped
-
-- `src/lib/jira-delivery-health.ts`
-- Release assess wiring (PR3)
 - Multi-site picker (`availableSites.length > 1`)
 - Scheduled / webhook-driven sync
 - `JiraSyncSnapshot` Prisma table (historical trends)
@@ -282,7 +280,7 @@ export type JiraDeliverySnapshot = {
 
 ---
 
-## 8. PR2b — Per-org project picker (in progress)
+## 8. PR2b — Per-org project picker (complete)
 
 ### 8.1 Goal
 
@@ -340,7 +338,7 @@ View-only users: see selected projects and snapshot; cannot connect, save, or sy
 
 ---
 
-## 9. PR3 — Delivery health analysis (pending)
+## 9. PR3 — Delivery health analysis (complete)
 
 ### 9.1 `src/lib/jira-delivery-health.ts`
 
@@ -354,9 +352,9 @@ Input: `JiraDeliverySnapshot` → `JiraDeliveryHealth` (score 0–100, signals, 
 
 ### 9.3 PR3 acceptance
 
-- [ ] Release assess uses real Jira gaps when connected + synced
-- [ ] Gap “Run Jira sync” when connected but no snapshot
-- [ ] `npm run build` passes
+- [x] Release assess uses real Jira gaps when connected + synced
+- [x] Gap “Run Jira sync” when connected but no snapshot
+- [x] `npm run build` passes
 
 ---
 

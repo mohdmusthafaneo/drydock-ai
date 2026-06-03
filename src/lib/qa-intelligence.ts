@@ -1,4 +1,5 @@
 import type { DeliveryDNA, Integration, OrganizationProfile } from "@/generated/prisma/client";
+import type { JiraAssessContext } from "@/lib/jira-delivery-health";
 import { isJiraOAuthConnected } from "@/lib/jira-meta";
 
 /** Master FRD §11 — QA Intelligence Workflow */
@@ -39,6 +40,7 @@ export function assessQAIntelligence(input: {
   integrations: Integration[];
   releaseName: string;
   environment: string;
+  jira?: JiraAssessContext;
 }): QAAssessment {
   const tools = input.profile
     ? (JSON.parse(input.profile.toolsJson || "[]") as string[])
@@ -47,7 +49,9 @@ export function assessQAIntelligence(input: {
   const hasGithub = connected.some((i) => i.provider === "GITHUB") || tools.includes("github");
   const hasGrafana =
     connected.some((i) => i.provider === "GRAFANA") || tools.includes("grafana");
-  const hasJira = connected.some((i) => isJiraOAuthConnected(i));
+  const hasJira = input.jira?.connected ?? connected.some((i) => isJiraOAuthConnected(i));
+  const jiraSynced = input.jira?.synced ?? false;
+  const jiraHealth = input.jira?.health ?? null;
 
   const signals: QASignal[] = [
     {
@@ -83,6 +87,26 @@ export function assessQAIntelligence(input: {
     },
   ];
 
+  if (hasJira && jiraHealth) {
+    for (const js of jiraHealth.signals) {
+      signals.push({
+        id: js.id,
+        category: js.category === "quality" ? "coverage" : "stability",
+        label: `Jira — ${js.label}`,
+        value: js.value,
+        severity: js.severity,
+      });
+    }
+  } else if (hasJira) {
+    signals.push({
+      id: "jira-sync",
+      category: "stability",
+      label: "Jira delivery data",
+      value: jiraSynced ? "No snapshot" : "Connected — run sync on Integrations",
+      severity: "warning",
+    });
+  }
+
   const testGaps: TestGap[] = [];
   if (!hasJira) {
     testGaps.push({
@@ -90,6 +114,20 @@ export function assessQAIntelligence(input: {
       gap: "Release not linked to Jira test cycles",
       priority: "high",
     });
+  } else if (!jiraSynced) {
+    testGaps.push({
+      area: "Traceability",
+      gap: "Run Jira sync on Integrations to load delivery health",
+      priority: "high",
+    });
+  } else if (jiraHealth) {
+    for (const gap of jiraHealth.gaps) {
+      testGaps.push({
+        area: gap.area,
+        gap: gap.gap,
+        priority: gap.priority,
+      });
+    }
   }
   if (!hasGithub) {
     testGaps.push({
@@ -118,11 +156,30 @@ export function assessQAIntelligence(input: {
     testGaps.filter((g) => g.priority === "medium").length * 6 +
     signals.filter((s) => s.severity === "warning").length * 4;
 
-  const readinessScore = Math.max(0, Math.min(100, 88 - penalty + (hasGithub ? 5 : 0)));
+  let readinessScore = Math.max(0, Math.min(100, 88 - penalty + (hasGithub ? 5 : 0)));
 
-  const regressionNotes = hasGithub
+  if (jiraHealth) {
+    readinessScore = Math.round(readinessScore * 0.55 + jiraHealth.score * 0.45);
+  }
+
+  let regressionNotes = hasGithub
     ? `${input.releaseName}: synthetic regression run flagged 2 flaky tests in checkout flow; no blockers in smoke suite.`
     : `${input.releaseName}: regression intelligence unavailable until GitHub CI is connected.`;
+
+  if (jiraHealth) {
+    const jiraParts = [
+      `Jira delivery health ${jiraHealth.score}/100`,
+      jiraHealth.matchedVersion
+        ? `matched fix version ${jiraHealth.matchedVersion.versionName} (${jiraHealth.matchedVersion.projectKey})`
+        : "no fix version match",
+    ];
+    if (jiraHealth.scopedProject) {
+      jiraParts.push(`scope ${jiraHealth.scopedProject.key}`);
+    }
+    regressionNotes = `${input.releaseName}: ${jiraParts.join("; ")}. ${regressionNotes}`;
+  } else if (hasJira && !jiraSynced) {
+    regressionNotes = `${input.releaseName}: Jira connected — run sync on Integrations before assess. ${regressionNotes}`;
+  }
 
   return { signals, testGaps, readinessScore, regressionNotes };
 }

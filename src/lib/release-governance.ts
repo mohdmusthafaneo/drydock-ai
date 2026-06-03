@@ -1,4 +1,5 @@
 import type { DeliveryDNA, Integration, OrganizationProfile } from "@/generated/prisma/client";
+import type { JiraAssessContext } from "@/lib/jira-delivery-health";
 import type { QAAssessment } from "@/lib/qa-intelligence";
 import { assessQAIntelligence } from "@/lib/qa-intelligence";
 
@@ -40,6 +41,7 @@ export function assessReleaseGovernance(input: {
   releaseName: string;
   version?: string | null;
   environment: string;
+  jira?: JiraAssessContext;
 }): GovernanceAssessment {
   const qa = assessQAIntelligence({
     profile: input.profile,
@@ -47,6 +49,7 @@ export function assessReleaseGovernance(input: {
     integrations: input.integrations,
     releaseName: input.releaseName,
     environment: input.environment,
+    jira: input.jira,
   });
 
   const connected = input.integrations.filter((i) => i.status === "CONNECTED").length;
@@ -112,6 +115,22 @@ export function assessReleaseGovernance(input: {
       confidence: 0.94,
       affectedSystems: ["deployment", "audit"],
       requiredRole: "DEVOPS_LEAD",
+    });
+  }
+
+  const jiraHealth = input.jira?.health;
+  if (jiraHealth && jiraHealth.gaps.some((g) => g.priority === "high")) {
+    recommendations.push({
+      title: "Resolve Jira delivery blockers before release",
+      description: jiraHealth.gaps
+        .filter((g) => g.priority === "high")
+        .map((g) => `${g.area}: ${g.gap}`)
+        .join("; "),
+      rationale: `Jira delivery health score ${jiraHealth.score}/100 from sync at ${jiraHealth.snapshotSyncedAt}.`,
+      impact: "HIGH",
+      confidence: 0.88,
+      affectedSystems: ["jira", "release-pipeline"],
+      requiredRole: "QA_LEAD",
     });
   }
 

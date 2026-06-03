@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
+import { resolveJiraAssessContext } from "@/lib/jira-delivery-health";
 import { assessReleaseGovernance } from "@/lib/release-governance";
 
 export async function POST(
@@ -48,6 +49,12 @@ export async function POST(
     );
   }
 
+  const jira = resolveJiraAssessContext({
+    integrations,
+    releaseName: release.name,
+    version: release.version,
+  });
+
   const assessment = assessReleaseGovernance({
     profile,
     dna,
@@ -55,6 +62,7 @@ export async function POST(
     releaseName: release.name,
     version: release.version,
     environment: release.environment,
+    jira,
   });
 
   const updated = await prisma.$transaction(async (tx) => {
