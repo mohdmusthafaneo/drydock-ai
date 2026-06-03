@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ExternalLink, RefreshCw, ShieldCheck, Webhook } from "lucide-react";
@@ -9,39 +9,47 @@ import { Badge } from "@/components/ui/badge";
 import { DisconnectButton } from "@/components/integrations/integration-actions";
 import type { GitHubRepoSummary } from "@/lib/integration-meta";
 
+type GitHubRepoOption = {
+  fullName: string;
+  private: boolean;
+  defaultBranch: string;
+};
+
 export function GitHubIntegrationPanel({
   connected,
-  githubLogin,
   lastSyncSummary,
   repos,
-  syncRepos,
+  selectedRepoFullNames,
   webhookUrl,
   webhookEnabled,
   appSlug,
   installationId,
   installedAt,
-  mode,
   canManage,
 }: {
   connected: boolean;
-  githubLogin?: string;
   lastSyncSummary?: string;
   repos?: GitHubRepoSummary[];
-  /** From GITHUB_SYNC_REPOS — repos sync prioritizes for PRs / Actions */
-  syncRepos?: string[];
+  /** Org-selected sync targets from metadata.repoFullNames */
+  selectedRepoFullNames?: string[];
   webhookUrl: string;
   webhookEnabled: boolean;
-  /** GitHub App slug, e.g. "aidos-neo" — used to build the install / manage URLs */
   appSlug?: string;
   installationId?: number;
   installedAt?: string;
-  /** "oauth" | "app" | "dual" */
-  mode?: string;
   canManage: boolean;
 }) {
   const router = useRouter();
   const [syncing, setSyncing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [loadingRepos, setLoadingRepos] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [availableRepos, setAvailableRepos] = useState<GitHubRepoOption[]>([]);
+  const [pickedNames, setPickedNames] = useState<string[]>(selectedRepoFullNames ?? []);
+  const [maxRepos, setMaxRepos] = useState(10);
+
+  const savedNames = selectedRepoFullNames ?? [];
+  const hasSelection = savedNames.length > 0;
 
   const installUrl = appSlug
     ? `https://github.com/apps/${appSlug}/installations/new`
@@ -51,10 +59,76 @@ export function GitHubIntegrationPanel({
       ? `https://github.com/apps/${appSlug}/installations/${installationId}`
       : null;
 
-  const hasApp = Boolean(installationId);
-  const hasOAuth = mode === "oauth" || mode === "dual";
+  const loadRepos = useCallback(async () => {
+    if (!connected || !canManage || !installationId) return;
+    setLoadingRepos(true);
+    try {
+      const res = await fetch("/api/integrations/github/repos", {
+        credentials: "same-origin",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load repositories");
+      setAvailableRepos(data.repos ?? []);
+      setPickedNames(data.selectedFullNames ?? []);
+      if (data.maxRepos) setMaxRepos(data.maxRepos);
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "Failed to load repositories");
+    } finally {
+      setLoadingRepos(false);
+    }
+  }, [connected, canManage, installationId]);
+
+  useEffect(() => {
+    void loadRepos();
+  }, [loadRepos]);
+
+  useEffect(() => {
+    setPickedNames(selectedRepoFullNames ?? []);
+  }, [selectedRepoFullNames]);
+
+  function toggleRepo(fullName: string) {
+    setPickedNames((prev) => {
+      if (prev.includes(fullName)) {
+        return prev.filter((n) => n !== fullName);
+      }
+      if (prev.length >= maxRepos) {
+        setMessage(`You can sync up to ${maxRepos} repositories`);
+        return prev;
+      }
+      return [...prev, fullName];
+    });
+  }
+
+  async function saveSelection() {
+    if (pickedNames.length === 0) {
+      setMessage("Select at least one repository");
+      return;
+    }
+    setSaving(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/integrations/github/repos", {
+        method: "PUT",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repoFullNames: pickedNames }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to save selection");
+      setMessage(`Saved ${data.repoFullNames.length} repository(ies) for sync`);
+      router.refresh();
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "Failed to save selection");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function sync() {
+    if (!hasSelection) {
+      setMessage("Save at least one repository before syncing");
+      return;
+    }
     setSyncing(true);
     setMessage(null);
     try {
@@ -73,7 +147,6 @@ export function GitHubIntegrationPanel({
     }
   }
 
-  // ---------- Not connected ----------
   if (!connected) {
     if (!installUrl) {
       return (
@@ -96,30 +169,24 @@ export function GitHubIntegrationPanel({
     );
   }
 
-  // ---------- Connected ----------
   return (
     <div className="space-y-4">
-      {/* Connection summary */}
       <div className="space-y-2 rounded-lg border border-border bg-elevated/40 p-3">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="brand">
-            {hasApp && hasOAuth ? "GitHub App + OAuth" : hasApp ? "GitHub App" : "OAuth"}
-          </Badge>
+          <Badge variant="brand">GitHub App</Badge>
           {webhookEnabled && (
             <Badge variant="success">
               <Webhook className="mr-1 h-3 w-3" />
               Webhooks
             </Badge>
           )}
-          {hasApp && (
-            <Badge variant="muted">
-              <ShieldCheck className="mr-1 h-3 w-3" />
-              Org-scoped
-            </Badge>
-          )}
+          <Badge variant="muted">
+            <ShieldCheck className="mr-1 h-3 w-3" />
+            Org-scoped
+          </Badge>
         </div>
 
-        {hasApp && (
+        {installationId && (
           <p className="text-xs text-secondary">
             Installation{" "}
             <code className="rounded bg-base px-1.5 py-0.5 font-mono text-[11px] text-brand">
@@ -128,12 +195,6 @@ export function GitHubIntegrationPanel({
             {installedAt && (
               <span className="text-muted"> · installed {formatDate(installedAt)}</span>
             )}
-          </p>
-        )}
-
-        {githubLogin && (
-          <p className="text-xs text-secondary">
-            OAuth user: <span className="text-primary">@{githubLogin}</span>
           </p>
         )}
 
@@ -158,74 +219,119 @@ export function GitHubIntegrationPanel({
         </div>
       </div>
 
-      {/* Sync targets (OAuth allowlist for now) */}
-      {syncRepos && syncRepos.length > 0 && (
+      {/* Repository picker — per org, not platform env */}
+      <div className="space-y-2 rounded-lg border border-border bg-elevated/40 p-3">
+        <p className="text-xs font-medium text-primary">Repositories to sync</p>
         <p className="text-xs text-muted">
-          Sync targets:{" "}
-          {syncRepos.map((r, i) => (
-            <span key={r}>
-              {i > 0 ? ", " : null}
-              <a
-                href={`https://github.com/${r}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-brand hover:underline"
-              >
-                {r}
-              </a>
-            </span>
-          ))}
+          Choose which GitHub repositories this organization syncs. Each org manages its own
+          selection — same pattern as Jira project picker.
         </p>
-      )}
+
+        {!canManage ? (
+          <p className="text-xs text-muted">
+            {hasSelection
+              ? `Syncing: ${savedNames.join(", ")}`
+              : "An org admin must select repositories before syncing."}
+          </p>
+        ) : loadingRepos ? (
+          <p className="text-xs text-muted">Loading repositories from GitHub…</p>
+        ) : availableRepos.length === 0 ? (
+          <p className="text-xs text-muted">
+            No repositories visible to the App. Use <strong>Add repositories</strong> on GitHub to
+            grant access, then refresh this page.
+          </p>
+        ) : (
+          <>
+            <ul className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-border bg-base/50 p-2">
+              {availableRepos.map((r) => {
+                const checked = pickedNames.includes(r.fullName);
+                return (
+                  <li key={r.fullName}>
+                    <label className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-elevated/60">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleRepo(r.fullName)}
+                        className="rounded border-border"
+                      />
+                      <span className="min-w-0 flex-1 truncate font-medium text-primary">
+                        {r.fullName}
+                      </span>
+                      {r.private && (
+                        <Badge variant="muted" className="shrink-0 text-[10px]">
+                          private
+                        </Badge>
+                      )}
+                    </label>
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={saving || loadingRepos}
+                onClick={saveSelection}
+              >
+                {saving ? "Saving…" : "Save selection"}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                disabled={loadingRepos}
+                onClick={() => void loadRepos()}
+              >
+                Refresh list
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
 
       {lastSyncSummary && (
         <p className="text-xs text-success-soft">{lastSyncSummary}</p>
       )}
       {message && <p className="text-xs text-secondary">{message}</p>}
 
-      {/* Manual sync — requires OAuth token (App-only mode pulls signals via webhooks) */}
-      {hasOAuth ? (
-        <Button type="button" size="sm" variant="brand" disabled={syncing} onClick={sync}>
+      {canManage && installationId && (
+        <Button
+          type="button"
+          size="sm"
+          variant="brand"
+          disabled={syncing || !hasSelection}
+          onClick={sync}
+        >
           <RefreshCw className={syncing ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
           {syncing ? "Syncing…" : "Sync repositories"}
         </Button>
-      ) : (
-        <p className="text-xs text-muted">
-          Signals stream in over webhooks. Manual sync requires the legacy OAuth connection.
-        </p>
       )}
 
-      {/* Cached repo list (from previous OAuth sync, if any) */}
       {repos && repos.length > 0 && (
         <div className="space-y-1">
-          <p className="text-xs font-medium text-primary">Recent repositories</p>
+          <p className="text-xs font-medium text-primary">Last sync snapshot</p>
           <ul className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-border bg-elevated/50 p-2 text-xs">
-            {repos.slice(0, 10).map((r) => (
+            {repos.map((r) => (
               <li key={r.id} className="flex justify-between gap-2 py-1 text-secondary">
                 <span className="truncate font-medium text-primary">{r.fullName}</span>
                 <span className="shrink-0 text-muted">
-                  {r.openPrs != null ? `${r.openPrs} open` : r.defaultBranch}
+                  {r.openPrs != null ? `${r.openPrs} open PRs` : r.defaultBranch}
                 </span>
               </li>
             ))}
-            {repos.length > 10 && (
-              <li className="text-muted">+{repos.length - 10} more repositories</li>
-            )}
           </ul>
         </div>
       )}
 
-      {/* Webhook URL — only relevant for OAuth-mode webhook setup */}
-      {hasOAuth && !hasApp && (
-        <div className="rounded-lg border border-border bg-elevated/40 p-3">
-          <p className="text-xs font-medium text-primary">Webhook URL (optional)</p>
-          <p className="mt-1 break-all font-mono text-[11px] text-muted">{webhookUrl}</p>
-          <p className="mt-2 text-[11px] text-muted">
-            In GitHub → Settings → Webhooks, paste this URL. Events: push, pull_request,
-            workflow_run. Set secret to <code className="text-brand">GITHUB_WEBHOOK_SECRET</code>.
-          </p>
-        </div>
-      )}
+      <div className="rounded-lg border border-border bg-elevated/40 p-3">
+        <p className="text-xs font-medium text-primary">Webhook URL</p>
+        <p className="mt-1 break-all font-mono text-[11px] text-muted">{webhookUrl}</p>
+        <p className="mt-2 text-[11px] text-muted">
+          Configured on the GitHub App. Events: push, pull_request, workflow_run.
+        </p>
+      </div>
     </div>
   );
 }

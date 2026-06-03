@@ -1,23 +1,26 @@
 import { prisma } from "@/lib/prisma";
 import { markIntegrationSync } from "@/lib/integration-health";
 import {
-  getGitHubAccessToken,
-  getGitHubSyncRepoAllowlist,
   getRepo,
   GitHubApiError,
+  listInstallationRepos,
   listOpenPulls,
-  listUserRepos,
   listWorkflowRuns,
   parseOwnerRepo,
 } from "@/lib/github-api";
-import { mergeGitHubMeta, parseIntegrationMeta, type GitHubRepoSummary } from "@/lib/integration-meta";
+import { resolveSyncRepoFullNames } from "@/lib/github-repo-selection";
+import { resolveGitHubTokenForIntegration } from "@/lib/github-token";
+import {
+  mergeGitHubMeta,
+  parseIntegrationMeta,
+  type GitHubRepoSummary,
+} from "@/lib/integration-meta";
 import { ingestNormalizedEvents } from "@/lib/telemetry-ingest";
-
-const MAX_REPOS_DETAIL = 5;
 
 export async function syncGitHubIntegration(input: {
   organizationId: string;
   userId: string;
+  repoFullNames?: string[];
 }) {
   const integration = await prisma.integration.findUnique({
     where: {
@@ -32,53 +35,48 @@ export async function syncGitHubIntegration(input: {
     throw new Error("GitHub is not connected");
   }
 
-  const token = getGitHubAccessToken(integration);
-  if (!token) {
-    throw new Error("GitHub token missing — reconnect via OAuth");
-  }
-
+  const token = await resolveGitHubTokenForIntegration(integration);
   const meta = parseIntegrationMeta(integration.metadataJson);
-  const allowlist = getGitHubSyncRepoAllowlist();
-  const repos = await listUserRepos(token, 100);
 
-  const summaries: GitHubRepoSummary[] = repos.map((r) => ({
-    id: r.id,
-    fullName: r.full_name,
-    private: r.private,
-    defaultBranch: r.default_branch,
-    updatedAt: r.updated_at,
-    openPrs: r.open_issues_count,
-  }));
+  const targetFullNames = resolveSyncRepoFullNames({
+    metaNames: meta.repoFullNames,
+    bodyNames: input.repoFullNames,
+  });
 
-  const byFullName = new Map(summaries.map((r) => [r.fullName.toLowerCase(), r]));
+  const installationRepos = await listInstallationRepos(token);
+  const byFullName = new Map(
+    installationRepos.map((r) => [r.full_name.toLowerCase(), r]),
+  );
 
-  for (const fullName of allowlist) {
-    if (byFullName.has(fullName.toLowerCase())) continue;
-    const { owner, repo: repoName } = parseOwnerRepo(fullName);
-    try {
-      const r = await getRepo(token, owner, repoName);
-      const summary: GitHubRepoSummary = {
-        id: r.id,
-        fullName: r.full_name,
-        private: r.private,
-        defaultBranch: r.default_branch,
-        updatedAt: r.updated_at,
-        openPrs: r.open_issues_count,
-      };
-      summaries.unshift(summary);
-      byFullName.set(summary.fullName.toLowerCase(), summary);
-    } catch (e) {
-      if (e instanceof GitHubApiError && (e.status === 404 || e.status === 403)) continue;
-      throw e;
+  const summaries: GitHubRepoSummary[] = [];
+
+  for (const fullName of targetFullNames) {
+    let repo = byFullName.get(fullName.toLowerCase());
+    if (!repo) {
+      const { owner, repo: repoName } = parseOwnerRepo(fullName);
+      try {
+        repo = await getRepo(token, owner, repoName);
+      } catch (e) {
+        if (e instanceof GitHubApiError && (e.status === 404 || e.status === 403)) {
+          continue;
+        }
+        throw e;
+      }
     }
+
+    summaries.push({
+      id: repo.id,
+      fullName: repo.full_name,
+      private: repo.private,
+      defaultBranch: repo.default_branch,
+      updatedAt: repo.updated_at,
+      openPrs: repo.open_issues_count,
+    });
   }
 
-  const reposForDetail =
-    allowlist.length > 0
-      ? allowlist
-          .map((name) => byFullName.get(name.toLowerCase()))
-          .filter((r): r is GitHubRepoSummary => Boolean(r))
-      : summaries.slice(0, MAX_REPOS_DETAIL);
+  if (summaries.length === 0) {
+    throw new Error("No accessible repositories matched your selection");
+  }
 
   const telemetryEvents: Parameters<typeof ingestNormalizedEvents>[0]["events"] = [
     {
@@ -87,13 +85,13 @@ export async function syncGitHubIntegration(input: {
       severity: "info",
       payload: {
         action: "sync.started",
-        repoCount: repos.length,
-        allowlist: allowlist.length > 0 ? allowlist : undefined,
+        repoCount: summaries.length,
+        repoFullNames: targetFullNames,
       },
     },
   ];
 
-  for (const repo of reposForDetail) {
+  for (const repo of summaries) {
     const { owner, repo: repoName } = parseOwnerRepo(repo.fullName);
     try {
       const [pulls, runs] = await Promise.all([
@@ -153,15 +151,14 @@ export async function syncGitHubIntegration(input: {
     events: telemetryEvents,
   });
 
-  const targetLabel =
-    allowlist.length > 0 ? allowlist.join(", ") : `${reposForDetail.length} repos (recent)`;
-  const summary = `Synced ${targetLabel} · ${telemetryEvents.length} signals`;
+  const summary = `Synced ${targetFullNames.join(", ")} · ${telemetryEvents.length} signals`;
 
   await prisma.integration.update({
     where: { id: integration.id },
     data: {
       metadataJson: mergeGitHubMeta(meta, {
         repos: summaries,
+        repoFullNames: targetFullNames,
         lastSyncSummary: summary,
       }),
       lastSyncAt: new Date(),
@@ -177,7 +174,11 @@ export async function syncGitHubIntegration(input: {
       type: "integration.synced",
       title: "GitHub metadata synchronized",
       description: summary,
-      metadataJson: JSON.stringify({ provider: "GITHUB", repoCount: repos.length }),
+      metadataJson: JSON.stringify({
+        provider: "GITHUB",
+        repoCount: summaries.length,
+        repoFullNames: targetFullNames,
+      }),
     },
   });
 
@@ -188,9 +189,17 @@ export async function syncGitHubIntegration(input: {
       action: "integration.github.synced",
       entityType: "Integration",
       entityId: integration.id,
-      metadataJson: JSON.stringify({ repoCount: repos.length }),
+      metadataJson: JSON.stringify({
+        repoCount: summaries.length,
+        repoFullNames: targetFullNames,
+      }),
     },
   });
 
-  return { repoCount: repos.length, eventCount: telemetryEvents.length, repos: summaries, summary };
+  return {
+    repoCount: summaries.length,
+    eventCount: telemetryEvents.length,
+    repos: summaries,
+    summary,
+  };
 }

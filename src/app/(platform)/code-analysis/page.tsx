@@ -31,7 +31,9 @@ export default async function CodeAnalysisPage() {
   const githubConnected = Boolean(github);
   const githubMeta = github ? parseIntegrationMeta(github.metadataJson) : null;
   const repoNames =
-    githubMeta?.repos?.map((r) => r.fullName) ?? getAvailableMockRepos();
+    githubMeta?.repoFullNames?.length
+      ? githubMeta.repoFullNames
+      : githubMeta?.repos?.map((r) => r.fullName) ?? getAvailableMockRepos();
 
   return (
     <div className="w-full space-y-8 pb-24 lg:pb-8">

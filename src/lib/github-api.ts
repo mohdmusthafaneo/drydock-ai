@@ -57,16 +57,30 @@ export async function listUserRepos(accessToken: string, perPage = 30) {
   );
 }
 
+export type InstallationRepoList = {
+  repositories: GitHubRepo[];
+  total_count: number;
+};
+
+/** Repos granted to the GitHub App installation (installation access token). */
+export async function listInstallationRepos(
+  accessToken: string,
+  perPage = 100,
+): Promise<GitHubRepo[]> {
+  const data = await githubFetch<InstallationRepoList>(
+    accessToken,
+    `/installation/repositories?per_page=${perPage}`,
+  );
+  return data.repositories ?? [];
+}
+
 export async function getRepo(accessToken: string, owner: string, repo: string) {
   return githubFetch<GitHubRepo>(accessToken, `/repos/${owner}/${repo}`);
 }
 
-/** Comma-separated full names, e.g. happilee-app/frontend_web */
+/** @deprecated Use org metadata `repoFullNames` — env allowlist removed for SaaS multi-tenancy */
 export function getGitHubSyncRepoAllowlist(): string[] {
-  return (process.env.GITHUB_SYNC_REPOS ?? "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  return [];
 }
 
 export type GitHubPull = {
@@ -112,6 +126,16 @@ export async function listWorkflowRuns(
 export function parseOwnerRepo(fullName: string) {
   const [owner, ...rest] = fullName.split("/");
   return { owner, repo: rest.join("/") };
+}
+
+export function formatGitHubSyncError(e: unknown): string {
+  if (e instanceof GitHubApiError) {
+    if (e.status === 401) return "GitHub App token expired or invalid — try syncing again.";
+    if (e.status === 403) return "GitHub App lacks permission for this repository.";
+    if (e.status === 404) return "Repository not found or not granted to the GitHub App.";
+    return `GitHub API error (${e.status})`;
+  }
+  return e instanceof Error ? e.message : "GitHub sync failed";
 }
 
 export function buildOAuthMeta(input: {

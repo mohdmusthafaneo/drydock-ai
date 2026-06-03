@@ -1,8 +1,8 @@
 # Code analysis — AI-assisted delivery intelligence
 
 **Last updated:** 2026-06-03  
-**Status:** P1 ✅ UI shell · P2+ (GitHub ingest) not started  
-**Owner agents:** `/frontend` (page & components), `/backend` (GitHub sync, scoring engine), `/architect` (review before merge)
+**Status:** P1 ✅ UI shell · P2a–P2b ✅ GitHub App auth + repo picker · P2c (analysis pipeline) not started  
+**Owner agents:** `/frontend` (page & components), `/backend` (GitHub App auth, sync, scoring engine), `/architect` (review before merge)
 
 **Related docs:** [`docs/AIDOS-USP.md`](docs/AIDOS-USP.md) · [`docs/jira-integration.md`](docs/jira-integration.md) · [`feature-flag.md`](feature-flag.md)
 
@@ -31,7 +31,8 @@ This aligns with AIDOS positioning: **observe and govern AI-native delivery**, n
 |------|--------|
 | Read-only | Pull from GitHub; no commits, PR comments, or branch mutations |
 | Human-governed | Metrics inform recommendations and policy alerts — no auto-blocking merges in MVP |
-| Multi-tenant | All analysis scoped by `organizationId`; tokens from org `Integration` (GITHUB) |
+| Multi-tenant | All analysis scoped by `organizationId`; GitHub App **installation token** from org `Integration.metadataJson.installationId` |
+| GitHub App only | **No OAuth.** Repo access via App installation token — same model as org-wide webhooks |
 | Honest uncertainty | Show confidence bands and “unknown” buckets — heuristics are imperfect |
 | Not a copilot | Page copy frames **governance & visibility**, not “use more AI” |
 | Verify build | Run `npm run build` before marking any PR complete |
@@ -53,9 +54,10 @@ This aligns with AIDOS positioning: **observe and govern AI-native delivery**, n
 
 | Condition | UI |
 |-----------|-----|
-| GitHub not connected | CTA card → `/integrations` (“Connect GitHub to analyze delivery”) |
-| Connected, no repos selected | Prompt to configure repo scope (reuse allowlist pattern from GitHub sync) |
-| Connected, no data yet | “Run analysis” or “Sync GitHub” CTA + explain first sync may take a minute |
+| GitHub App not installed | CTA card → `/integrations` (“Install GitHub App to analyze delivery”) |
+| App installed, no repos granted | Prompt to **Add repositories** on GitHub (manage installation link) |
+| App installed, no analysis yet | “Run analysis” CTA + explain first run may take a minute |
+| App credentials missing server-side | Admin banner: set `GITHUB_APP_ID` + `GITHUB_APP_PRIVATE_KEY` in `.env` |
 | MVP workspace | Redirect to `/accelerator` (same pattern as enterprise-only pages) |
 
 ---
@@ -204,7 +206,7 @@ Each signal: severity badge, entity link, “View in Approvals” stub (future w
 
 | Control | Options | Default |
 |---------|---------|---------|
-| **Repo scope** | All connected repos · multi-select from GitHub meta | All (or allowlist from `GITHUB_SYNC_REPOS`) |
+| **Repo scope** | Org-selected repos from `metadata.repoFullNames` (Integrations picker) | Saved selection, or all if none saved yet |
 | **Branch** | default branch · all branches | default branch |
 | **Time range** | 7d · 30d · 90d · custom (v2) | 30d |
 | **Team** | placeholder “All authors” (v2: map from org members) | All |
@@ -212,8 +214,8 @@ Each signal: severity badge, entity link, “View in Approvals” stub (future w
 
 **Actions:**
 
-- **Sync now** — triggers GitHub sync + analysis refresh (disabled in UI-only phase; show toast “Coming soon” or no-op)
-- **Export** — CSV of current table (mock: download static sample CSV in UI phase)
+- **Sync now** / **Run analysis** — `POST /api/code-analysis/analyze` (P2c; disabled/stub until backend ships)
+- **Export** — CSV via `/api/code-analysis/export` or client-side from snapshot (mock today)
 
 Sticky filter bar on scroll (client component).
 
@@ -243,11 +245,11 @@ Fully interactive page with **realistic mock data** so stakeholders can review U
 
 ### 7.3 Page behavior (UI-only)
 
-1. Server: session + org context; check GitHub integration status from `getOrganizationContext` / integration list.
-2. If GitHub disconnected → empty state (no mock charts).
-3. If connected → render mock snapshot from `getMockCodeAnalysisSnapshot()` with hard-coded realistic numbers.
-4. Client filters update displayed mock data locally (filter repos/authors in memory).
-5. Charts: CSS/SVG first (match `MetricBars` simplicity); optional `recharts` only if already in deps — **prefer zero new deps** for Phase 1.
+1. Server: session + org context; check GitHub integration has `installationId` (App installed).
+2. If GitHub App not installed → empty state (no mock charts).
+3. If App installed but no snapshot yet → render mock snapshot **with banner** “Run analysis for live data” (until P2 UI wired).
+4. If snapshot exists in `Integration.metadataJson.codeAnalysisSnapshot` → render live data via `/api/code-analysis/snapshot`.
+5. Client filters update displayed data locally (mock) or re-fetch snapshot (live).
 
 ### 7.4 Nav & flags
 
@@ -261,38 +263,159 @@ Enable flag when page is ready for demo.
 
 ### 7.5 Acceptance criteria (UI phase)
 
-- [ ] Page loads at `/code-analysis` for Enterprise workspace with DNA configured
-- [ ] Four KPI cards + attribution + trend + repo/author breakdown visible with mock data
-- [ ] Tabs switch without full page reload; tables sortable
-- [ ] Filters narrow mock dataset (repo, range label updates)
-- [ ] GitHub disconnected state shows integration CTA
-- [ ] Mobile: KPIs 2×2 grid; tabs scroll horizontally; bottom nav not obscured (`pb-24`)
-- [ ] `npm run build` passes
+- [x] Page loads at `/code-analysis` for Enterprise workspace with DNA configured
+- [x] Four KPI cards + attribution + trend + repo/author breakdown visible with mock data
+- [x] Tabs switch without full page reload; tables sortable
+- [x] Filters narrow mock dataset (repo, range label updates)
+- [x] GitHub App not installed state shows integration CTA
+- [x] Mobile: KPIs 2×2 grid; tabs scroll horizontally; bottom nav not obscured (`pb-24`)
+- [x] `npm run build` passes
 
 ---
 
-## 8. Data & calculation plan (Phase 2+)
+## 8. GitHub App authentication (required for P2)
 
-### 8.1 GitHub inputs
+AIDOS uses **GitHub Apps only** for repository access. OAuth routes (`/api/integrations/github/authorize`, `/callback`) are legacy and must **not** be used for code analysis or sync.
 
-Extend existing GitHub client (`src/lib/github-api.ts`) and sync (`src/lib/github-sync.ts`):
+### 8.0 Current implementation audit (2026-06-03)
 
-| Source | API (indicative) | Use |
-|--------|------------------|-----|
-| Repos | `GET /user/repos`, allowlist | Scope |
+| Component | Path | Status |
+|-----------|------|--------|
+| App install redirect + persist `installationId` | `src/lib/github-app-install.ts`, `src/app/(platform)/integrations/page.tsx`, `src/app/api/integrations/github/app-callback/route.ts` | ✅ Done |
+| Integrations UI (install / manage / add repos) | `src/components/integrations/github-integration-panel.tsx` | ✅ Done (still mentions OAuth for sync — needs cleanup) |
+| App JWT mint + installation access token | `src/lib/github-app-auth.ts` | ✅ Done |
+| Token resolver (App-only, no OAuth fallback) | `src/lib/github-token.ts` | ✅ Done |
+| List installation repos + org repo picker | `src/lib/github-api.ts`, `src/lib/github-repo-selection.ts`, `/api/integrations/github/repos` | ✅ Done |
+| GitHub metadata sync via App token | `src/lib/github-sync.ts` | ✅ Done (uses `repoFullNames`) |
+| Code analysis ingest + classifier | `src/lib/code-analysis/sync.ts`, `classifier.ts`, … | ❌ **Not implemented** |
+| Code analysis API routes | `src/app/api/code-analysis/{analyze,snapshot,export}/route.ts` | ❌ **Not implemented** |
+| Dashboard wired to live snapshot | `src/components/code-analysis/code-analysis-dashboard.tsx` | ⚠️ Mock only; sync button is stub |
+
+### 8.1 End-to-end flow (target)
+
+```
+Admin installs AIDOS GitHub App on GitHub
+        │
+        ▼
+GitHub redirects → /integrations?installation_id=…&setup_action=install
+        │
+        ▼
+persistGitHubAppInstallation() → Integration.metadataJson.installationId
+        │
+        ▼
+User clicks "Run analysis" on /code-analysis (or "Sync" on /integrations)
+        │
+        ▼
+Server: mintAppJWT()  ──using──►  GITHUB_APP_ID + GITHUB_APP_PRIVATE_KEY
+        │
+        ▼
+POST /app/installations/{installationId}/access_tokens  →  installation token (~1 hr)
+        │
+        ▼
+GET /installation/repositories  →  repos granted to this installation
+        │     (filter: org metadata.repoFullNames — same as Jira projectKeys)
+        ▼
+Per repo: commits, commit detail, closed/merged PRs, PR files, reviews
+        │
+        ▼
+classifyCommit / classifyPullRequest  →  computeSnapshot  →  persist codeAnalysisSnapshot
+        │
+        ▼
+GET /api/code-analysis/snapshot  →  dashboard renders live KPIs
+```
+
+**Session requirement:** The admin completing the install must be logged into AIDOS so `installationId` binds to the correct `organizationId`. If the App is already installed on GitHub but AIDOS has no row, re-open the install URL while logged in.
+
+### 8.2 Server credentials (`.env`)
+
+| Variable | Source | Required for |
+|----------|--------|--------------|
+| `GITHUB_APP_SLUG` | App public page slug (e.g. `aidos-neo`) | Install / manage URLs in UI |
+| `GITHUB_APP_ID` | GitHub App settings → App ID | JWT `iss` claim |
+| `GITHUB_APP_PRIVATE_KEY` | Generate/download PEM; paste with `\n` escaped | Sign App JWT (RS256) |
+| `GITHUB_WEBHOOK_SECRET` | App settings → Webhook secret | Webhook signature verify (optional for analysis MVP) |
+| `NEXT_PUBLIC_APP_URL` | App base URL | Install callback |
+
+Per-org repo scope is stored in `Integration.metadataJson.repoFullNames` (set via Integrations UI) — **not** platform env. Same pattern as Jira `projectKeys`.
+
+Add to `.env.example` when implementing P2:
+
+```bash
+GITHUB_APP_ID="123456"
+GITHUB_APP_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----"
+```
+
+**GitHub App permissions** (minimum for code analysis):
+
+| Permission | Access | APIs used |
+|------------|--------|-----------|
+| Metadata | Read | Repo discovery |
+| Contents | Read | Commit diffs, file lists |
+| Pull requests | Read | Merged PRs, files, reviews |
+| Actions | Read | Workflow runs (sync telemetry, optional) |
+
+Subscribe to webhooks: `push`, `pull_request`, `workflow_run` (incremental sync in P3).
+
+### 8.3 New / updated backend files (P2)
+
+| File | Purpose |
+|------|---------|
+| `src/lib/github-app-auth.ts` | `mintAppJWT()`, `getInstallationToken(installationId)` with ~55 min cache |
+| `src/lib/github-token.ts` | `resolveGitHubTokenForIntegration(integration)` — **App only**; clear error if `installationId` or creds missing |
+| `src/lib/github-api.ts` | Add `listInstallationRepos`, `listCommits`, `getCommit`, `listClosedPulls`, `getPullRequestFiles`, `listPullRequestReviews` |
+| `src/lib/github-sync.ts` | Replace OAuth token path with `resolveGitHubTokenForIntegration`; use `listInstallationRepos` instead of `listUserRepos` |
+| `src/lib/github-repo-selection.ts` | `fetchOrgGitHubRepos`, `saveOrgGitHubRepoFullNames`, `resolveSyncRepoFullNames` |
+| `src/app/api/integrations/github/repos/route.ts` | GET list + PUT save org repo selection |
+| `src/lib/integration-meta.ts` | Add `repoFullNames?: string[]` to `GitHubIntegrationMeta` |
+| `src/lib/code-analysis/classifier.ts` | Heuristic commit/PR classification |
+| `src/lib/code-analysis/compute-snapshot.ts` | Roll up KPIs, trends, governance signals |
+| `src/lib/code-analysis/sync.ts` | Orchestrate fetch → classify → persist |
+| `src/app/api/code-analysis/analyze/route.ts` | POST — trigger `syncCodeAnalysis` |
+| `src/app/api/code-analysis/snapshot/route.ts` | GET — filtered snapshot (fallback mock if none) |
+| `src/app/api/code-analysis/export/route.ts` | GET — CSV export |
+
+Refactor `src/components/integrations/github-integration-panel.tsx`:
+
+- Remove “manual sync requires OAuth” copy; enable **Sync repositories** when `installationId` is present.
+- Remove OAuth badge / dual-mode display; show **GitHub App** only.
+- Deprecate `GitHubOAuthConnect` from integrations UX (keep routes for backward compat until removal ticket).
+
+### 8.4 Credentials & data the implementer may need
+
+Before starting P2 backend work, confirm:
+
+1. **`GITHUB_APP_ID` + private key PEM** — from the GitHub App settings page (or share securely for local `.env`).
+2. **Installation id for your org** — visible on `/integrations` after install (`#12345678`), or query `Integration.metadataJson` for `provider = 'GITHUB'`.
+3. **Test repos** — pick from installation repos in Integrations UI (NeoITO install #136129458 has 4 repos as of 2026-06-03).
+4. **Dev Postgres** (optional) — to verify `installationId` is persisted for your test org if install UI was used on another environment.
+
+Do **not** commit private keys or tokens. Use `.env` locally; production via secrets manager.
+
+---
+
+## 9. Data & calculation plan (Phase 2+)
+
+### 9.1 GitHub inputs (App installation token)
+
+Extend `src/lib/github-api.ts`. All calls use the **installation access token** (not user OAuth, not App JWT directly).
+
+| Source | API | Use |
+|--------|-----|-----|
+| Installation repos | `GET /installation/repositories` | Scope — repos the App was granted |
+| Single repo | `GET /repos/{owner}/{repo}` | Allowlist repos not in first page |
 | Commits | `GET /repos/{owner}/{repo}/commits` | Classification, trends |
 | Commit detail | `GET /repos/{owner}/{repo}/commits/{sha}` | Line stats, files |
 | Pulls | `GET /repos/{owner}/{repo}/pulls?state=closed` | Merged PRs |
 | PR files | `GET /repos/{owner}/{repo}/pulls/{n}/files` | Line attribution |
 | Reviews | `GET /repos/{owner}/{repo}/pulls/{n}/reviews` | Governance metrics |
-| Compare | `GET /repos/{owner}/{repo}/compare/{base}...{head}` | PR diff stats |
+| Compare | `GET /repos/{owner}/{repo}/compare/{base}...{head}` | PR diff stats (optional v2) |
 
 Optional later:
 
 - GitHub Copilot usage metrics (Enterprise Cloud) — org-level, not per-commit
 - Webhooks (`pull_request`, `push`) for incremental updates via `src/lib/github-webhook.ts`
 
-### 8.2 Classification model (heuristic v1)
+### 9.2 Classification model (heuristic v1)
 
 No ML in v1 — transparent rules with confidence score 0–100.
 
@@ -313,7 +436,7 @@ confidence = f(signal_count, diff_quality)
 
 Document matched signals in UI (commit expand row) for auditability — core AIDOS trust principle.
 
-### 8.3 Persistence (recommended schema sketch)
+### 9.3 Persistence (recommended schema sketch)
 
 Store snapshots per org sync — avoid re-fetching full history on every page load.
 
@@ -323,43 +446,64 @@ Store snapshots per org sync — avoid re-fetching full history on every page lo
 | `CodeAnalysisCommit` | Optional normalized rows for drill-down |
 | `CodeAnalysisPullRequest` | PR-level attribution + review metadata |
 
-Alternative for MVP backend: extend `Integration.metadataJson` with `codeAnalysisSummary` (like Jira `deliverySnapshot`) — faster to ship, weaker history. Prefer dedicated tables before trends/governance alerts.
+Alternative for MVP backend: extend `Integration.metadataJson` with `codeAnalysisSnapshot` (like Jira `deliverySnapshot`) — faster to ship, weaker history. Prefer dedicated tables before trends/governance alerts.
 
-### 8.4 API routes (Phase 2)
+### 9.4 API routes (Phase 2)
 
 | Route | Method | Purpose |
 |-------|--------|---------|
-| `/api/integrations/github/analyze` | POST | Trigger analysis job for org |
+| `/api/code-analysis/analyze` | POST | Trigger analysis job for org (uses App installation token) |
 | `/api/code-analysis/snapshot` | GET | Latest rollup + query params (range, repo) |
 | `/api/code-analysis/export` | GET | CSV export |
 
 All routes: session required, `organizationId` from session, Zod validation, audit log on analyze.
 
-### 8.5 Sync integration
+> **Note:** `/api/integrations/github/analyze` (single PR/commit deep analysis + Check Runs) is a **separate** feature slice — not the code-analysis dashboard rollup. Do not conflate the two routes.
 
-Hook analysis after successful GitHub sync (or separate button on this page):
+### 9.5 Sync integration
+
+Hook analysis after successful GitHub sync (or dedicated **Run analysis** button on this page):
 
 ```
-GitHub sync (existing) → fetch commits/PRs in window → classify → persist snapshot → ActivityEvent + AuditLog
+GitHub App install persisted
+  → resolveGitHubTokenForIntegration(integration)
+  → listInstallationRepos
+  → fetch commits/PRs in window → classify → persist codeAnalysisSnapshot → ActivityEvent + AuditLog
 ```
 
 Rate limits: paginate commits, cap repos per run (reuse `MAX_REPOS_DETAIL` pattern), backoff on 403.
 
+### 9.6 P2 acceptance criteria (GitHub App ingest)
+
+- [ ] `.env` has `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_SLUG`
+- [ ] Org with App installed: `installationId` in `Integration.metadataJson`
+- [ ] `POST /api/code-analysis/analyze` returns snapshot; no OAuth token required
+- [ ] Repos analyzed ⊆ org `repoFullNames` ∩ installation-granted repos
+- [ ] Dashboard loads live data from `/api/code-analysis/snapshot` after analyze
+- [ ] Integrations **Sync repositories** works with App-only connection
+- [ ] Org A cannot read org B snapshots
+- [ ] Audit log entry on each analysis run
+- [ ] `npm run build` passes
+
 ---
 
-## 9. Phased delivery
+## 10. Phased delivery
 
 | Phase | Scope | Status |
 |-------|--------|--------|
 | **P1 — UI shell** | Page, components, mock data, nav flag, empty states | ✅ Done |
-| **P2 — GitHub ingest** | API extensions, heuristic classifier, snapshot in metadata | Not started |
+| **P2a — GitHub App auth** | JWT mint, installation token, token resolver, env docs | ✅ Done |
+| **P2b — GitHub ingest** | `listInstallationRepos`, org repo picker, refactor `github-sync` | ✅ Done |
+| **P2c — Analysis pipeline** | Classifier, `syncCodeAnalysis`, snapshot API, wire dashboard | ❌ Not started |
 | **P3 — History & trends** | Prisma models, scheduled sync, real trend charts | Not started |
 | **P4 — Governance** | Policy thresholds in Delivery DNA, signals → recommendations | Not started |
 | **P5 — Tool telemetry** | Optional IDE plugin / commit trailer convention for higher confidence | Future |
 
+**Recommended build order for `/backend`:** P2a → P2b → P2c (each PR verifiable with your installed App + dev repos).
+
 ---
 
-## 10. Copy & governance framing (UI strings)
+## 11. Copy & governance framing (UI strings)
 
 Use language that matches [`docs/AIDOS-USP.md`](docs/AIDOS-USP.md):
 
@@ -379,7 +523,7 @@ Tooltip on AI %:
 
 ---
 
-## 11. Verification
+## 12. Verification
 
 ### UI phase
 
@@ -389,20 +533,25 @@ Tooltip on AI %:
 4. Disconnect GitHub (or use org without integration) → CTA state
 5. Resize to mobile → layout intact
 
-### Backend phase (later)
+### Backend phase (P2)
 
-1. Connect GitHub, select repos, POST analyze
-2. Compare sample PR classifications manually against GitHub UI
-3. Confirm org A cannot read org B snapshots
-4. Audit log entry on each analysis run
+1. Set App credentials in `.env`; confirm App permissions (Contents, Pull requests, Metadata read)
+2. Install App on GitHub while logged into AIDOS → verify `installationId` on `/integrations`
+3. Select 1–2 repos in Integrations → Save selection → Sync repositories
+4. `POST /api/code-analysis/analyze` → expect `ok: true` and non-empty snapshot
+5. Visit `/code-analysis` → live KPIs (not mock banner)
+6. Compare sample PR classifications manually against GitHub UI
+7. Confirm org A cannot read org B snapshots
+8. Audit log entry on each analysis run
 
 ---
 
-## 12. Open questions
+## 13. Open questions
 
 | # | Question | Default assumption |
 |---|----------|-------------------|
-| 1 | Default repo scope: all repos vs env allowlist only? | Same as sync: allowlist if set, else top N recent |
+| 1 | Default repo scope | **Org `repoFullNames`** from Integrations picker (required before sync); max 10 repos |
+| 6 | OAuth removal timeline? | Deprecate OAuth connect UI now; remove routes in follow-up after App sync proven |
 | 2 | Count lines: additions only or additions + deletions? | **Additions only** for AI % numerator/denominator |
 | 3 | Include unmerged PRs? | **Merged only** for PR KPI; open PRs in separate filter (v2) |
 | 4 | New dependency for charts? | CSS/SVG first; add chart lib only if needed in P3 |
@@ -410,7 +559,7 @@ Tooltip on AI %:
 
 ---
 
-## 13. Mock data shape (for P1 UI)
+## 14. Mock data shape (for P1 UI / snapshot fallback)
 
 ```ts
 // src/lib/code-analysis/types.ts (illustrative)
@@ -442,4 +591,4 @@ export type CodeAnalysisSnapshot = {
 
 ---
 
-*Next step: implement **P1 UI shell** per §7; open a follow-up task for `/backend` on §8 when UX is approved.*
+*Next step: `/backend` implements **P2a → P2c** per §8–§9 using your installed GitHub App. Share `GITHUB_APP_ID`, private key PEM, and test repo names when ready to run against live data.*

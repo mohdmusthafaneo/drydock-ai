@@ -15,6 +15,9 @@ export type GitHubIntegrationMeta = {
   scope?: string;
   accessTokenEnc?: string;
   connectedBy?: string;
+  /** Org-selected repo full names for sync / code analysis (e.g. neoito/aidos) */
+  repoFullNames?: string[];
+  /** Cached repo summaries from last sync */
   repos?: GitHubRepoSummary[];
   lastSyncSummary?: string;
   webhookSecretHint?: string;
@@ -22,7 +25,7 @@ export type GitHubIntegrationMeta = {
   installationId?: number;
   /** ISO timestamp of the most recent install / re-install */
   installedAt?: string;
-  /** User id that completed the install handshake */
+  /** User id that completed the App install handshake */
   installedBy?: string;
 };
 

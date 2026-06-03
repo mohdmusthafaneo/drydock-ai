@@ -2,9 +2,8 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { getOrganizationContext } from "@/lib/org-data";
-import { getGitHubSyncRepoAllowlist } from "@/lib/github-api";
-import { getJiraOAuthConfig } from "@/lib/jira-oauth";
 import { parseIntegrationMeta } from "@/lib/integration-meta";
+import { getJiraOAuthConfig } from "@/lib/jira-oauth";
 import { parseJiraMeta } from "@/lib/jira-meta";
 import { checkIntegrationHealth } from "@/lib/integration-health";
 import { persistGitHubAppInstallation } from "@/lib/github-app-install";
@@ -83,7 +82,6 @@ export default async function IntegrationsPage({
   const isMvp = org?.workspaceMode === "MVP";
   const ctx = await getOrganizationContext(session.organizationId);
   const githubAppSlug = process.env.GITHUB_APP_SLUG;
-  const githubSyncRepos = getGitHubSyncRepoAllowlist();
   const jiraOAuthConfigured = getJiraOAuthConfig().configured;
   const canManage = hasPermission(session, "integrations", "manage_integrations");
 
@@ -152,16 +150,14 @@ export default async function IntegrationsPage({
                 {isGitHub ? (
                   <GitHubIntegrationPanel
                     connected={isConnected}
-                    githubLogin={meta.githubLogin}
                     lastSyncSummary={meta.lastSyncSummary}
                     repos={meta.repos}
-                    syncRepos={githubSyncRepos}
+                    selectedRepoFullNames={meta.repoFullNames}
                     webhookUrl={githubWebhookUrl}
                     webhookEnabled={integration.webhookEnabled}
                     appSlug={githubAppSlug}
                     installationId={meta.installationId}
                     installedAt={meta.installedAt}
-                    mode={meta.mode}
                     canManage={canManage}
                   />
                 ) : isJira ? (
