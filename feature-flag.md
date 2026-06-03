@@ -35,6 +35,7 @@ Each sidebar route maps to a stable flag id in `NAV_FEATURE_FLAGS`. Defaults are
 | `nav.dashboard` | Dashboard | — | `/dashboard` |
 | `nav.workflow` | Workflow center | — | `/workflow`, `/releases` |
 | `nav.qa` | QA intelligence | — | `/qa` |
+| `nav.code_analysis` | Code analysis | — | `/code-analysis` |
 | `nav.observability` | Observability | — | `/observability` |
 | `nav.devops` | DevOps | — | `/devops` |
 | `nav.incidents` | Incidents | — | `/incidents` |
