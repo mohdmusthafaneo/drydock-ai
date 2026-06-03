@@ -1,7 +1,7 @@
 # Code analysis — AI-assisted delivery intelligence
 
 **Last updated:** 2026-06-03  
-**Status:** P1 ✅ UI shell · P2a–P2b ✅ GitHub App auth + repo picker · P2c (analysis pipeline) not started  
+**Status:** P1 ✅ UI shell · P2a–P2b ✅ GitHub App auth + repo picker · P2c ✅ Analysis pipeline  
 **Owner agents:** `/frontend` (page & components), `/backend` (GitHub App auth, sync, scoring engine), `/architect` (review before merge)
 
 **Related docs:** [`docs/AIDOS-USP.md`](docs/AIDOS-USP.md) · [`docs/jira-integration.md`](docs/jira-integration.md) · [`feature-flag.md`](feature-flag.md)
@@ -287,9 +287,9 @@ AIDOS uses **GitHub Apps only** for repository access. OAuth routes (`/api/integ
 | Token resolver (App-only, no OAuth fallback) | `src/lib/github-token.ts` | ✅ Done |
 | List installation repos + org repo picker | `src/lib/github-api.ts`, `src/lib/github-repo-selection.ts`, `/api/integrations/github/repos` | ✅ Done |
 | GitHub metadata sync via App token | `src/lib/github-sync.ts` | ✅ Done (uses `repoFullNames`) |
-| Code analysis ingest + classifier | `src/lib/code-analysis/sync.ts`, `classifier.ts`, … | ❌ **Not implemented** |
-| Code analysis API routes | `src/app/api/code-analysis/{analyze,snapshot,export}/route.ts` | ❌ **Not implemented** |
-| Dashboard wired to live snapshot | `src/components/code-analysis/code-analysis-dashboard.tsx` | ⚠️ Mock only; sync button is stub |
+| Code analysis ingest + classifier | `src/lib/code-analysis/sync.ts`, `classifier.ts`, … | ✅ Done |
+| Code analysis API routes | `src/app/api/code-analysis/{analyze,snapshot,export}/route.ts` | ✅ Done |
+| Dashboard wired to live snapshot | `src/components/code-analysis/code-analysis-dashboard.tsx` | ✅ Live + mock fallback |
 
 ### 8.1 End-to-end flow (target)
 
@@ -494,7 +494,7 @@ Rate limits: paginate commits, cap repos per run (reuse `MAX_REPOS_DETAIL` patte
 | **P1 — UI shell** | Page, components, mock data, nav flag, empty states | ✅ Done |
 | **P2a — GitHub App auth** | JWT mint, installation token, token resolver, env docs | ✅ Done |
 | **P2b — GitHub ingest** | `listInstallationRepos`, org repo picker, refactor `github-sync` | ✅ Done |
-| **P2c — Analysis pipeline** | Classifier, `syncCodeAnalysis`, snapshot API, wire dashboard | ❌ Not started |
+| **P2c — Analysis pipeline** | Classifier, `syncCodeAnalysis`, snapshot API, wire dashboard | ✅ Done |
 | **P3 — History & trends** | Prisma models, scheduled sync, real trend charts | Not started |
 | **P4 — Governance** | Policy thresholds in Delivery DNA, signals → recommendations | Not started |
 | **P5 — Tool telemetry** | Optional IDE plugin / commit trailer convention for higher confidence | Future |

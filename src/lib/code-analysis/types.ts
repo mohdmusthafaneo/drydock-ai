@@ -78,6 +78,13 @@ export type TrendBucket = {
   prs?: number;
 };
 
+export type StoredCodeAnalysis = {
+  syncedAt: string;
+  repos: string[];
+  pullRequests: CodeAnalysisPullRequest[];
+  commits: CodeAnalysisCommit[];
+};
+
 export type CodeAnalysisSnapshot = {
   generatedAt: string;
   rangeLabel: string;

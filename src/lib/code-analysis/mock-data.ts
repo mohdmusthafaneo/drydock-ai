@@ -1,5 +1,5 @@
+import { computeCodeAnalysisSnapshot } from "@/lib/code-analysis/compute-snapshot";
 import type {
-  AiAttribution,
   CodeAnalysisCommit,
   CodeAnalysisFilters,
   CodeAnalysisPullRequest,
@@ -265,229 +265,67 @@ const TREND_BY_RANGE: Record<TimeRange, TrendBucket[]> = {
   ],
 };
 
-const RANGE_LABELS: Record<TimeRange, string> = {
-  "7d": "Last 7 days",
-  "30d": "Last 30 days",
-  "90d": "Last 90 days",
-};
-
-function isAiAttribution(a: AiAttribution): boolean {
-  return a === "ai_assisted" || a === "ai_generated";
-}
-
-function computeSnapshot(
+function computeMockSnapshot(
   prs: CodeAnalysisPullRequest[],
   commits: CodeAnalysisCommit[],
   range: TimeRange,
   repos: string[],
 ): CodeAnalysisSnapshot {
-  const totalLines = commits.reduce((n, c) => n + c.additions, 0);
-  const aiLines = commits
-    .filter((c) => isAiAttribution(c.attribution))
-    .reduce((n, c) => n + c.additions, 0);
-  const aiCommits = commits.filter((c) => isAiAttribution(c.attribution)).length;
-  const aiPrs = prs.filter((p) => isAiAttribution(p.attribution)).length;
-  const highAiPrs = prs.filter(
-    (p) => p.attribution === "ai_generated" || p.attribution === "ai_assisted",
-  );
-  const reviewedHighAi = highAiPrs.filter((p) => p.reviewCount > 0).length;
-
-  const attribution: CodeAnalysisSnapshot["attribution"] = {
-    human_only: { count: 0, lines: 0 },
-    ai_assisted: { count: 0, lines: 0 },
-    ai_generated: { count: 0, lines: 0 },
-    unknown: { count: 0, lines: 0 },
-  };
-
-  for (const c of commits) {
-    attribution[c.attribution].count += 1;
-    attribution[c.attribution].lines += c.additions;
-  }
-
-  const byRepoMap = new Map<string, { ai: number; total: number }>();
-  for (const c of commits) {
-    const cur = byRepoMap.get(c.repo) ?? { ai: 0, total: 0 };
-    cur.total += c.additions;
-    if (isAiAttribution(c.attribution)) cur.ai += c.additions;
-    byRepoMap.set(c.repo, cur);
-  }
-
-  const byAuthorMap = new Map<string, { ai: number; total: number; commits: number }>();
-  for (const c of commits) {
-    const cur = byAuthorMap.get(c.author) ?? { ai: 0, total: 0, commits: 0 };
-    cur.commits += 1;
-    cur.total += c.additions;
-    if (isAiAttribution(c.attribution)) cur.ai += c.additions;
-    byAuthorMap.set(c.author, cur);
-  }
-
-  const toolMap = new Map<string, CodeAnalysisSnapshot["tools"][0]>();
-  for (const pr of prs) {
-    for (const tool of pr.tools) {
-      const cur = toolMap.get(tool) ?? {
-        name: tool,
-        linesAttributed: 0,
-        commitsAttributed: 0,
-        prsAttributed: 0,
-      };
-      cur.prsAttributed += 1;
-      cur.linesAttributed += pr.linesAdded;
-      toolMap.set(tool, cur);
-    }
-  }
-  for (const c of commits) {
-    for (const signal of c.signals) {
-      if (signal.includes("Copilot")) {
-        const cur = toolMap.get("Copilot") ?? {
-          name: "Copilot",
-          linesAttributed: 0,
-          commitsAttributed: 0,
-          prsAttributed: 0,
-        };
-        cur.commitsAttributed += 1;
-        cur.linesAttributed += c.additions;
-        toolMap.set("Copilot", cur);
-      }
-      if (signal.includes("Cursor")) {
-        const cur = toolMap.get("Cursor") ?? {
-          name: "Cursor",
-          linesAttributed: 0,
-          commitsAttributed: 0,
-          prsAttributed: 0,
-        };
-        cur.commitsAttributed += 1;
-        cur.linesAttributed += c.additions;
-        toolMap.set("Cursor", cur);
-      }
-      if (signal.includes("ChatGPT")) {
-        const cur = toolMap.get("ChatGPT") ?? {
-          name: "ChatGPT",
-          linesAttributed: 0,
-          commitsAttributed: 0,
-          prsAttributed: 0,
-        };
-        cur.commitsAttributed += 1;
-        cur.linesAttributed += c.additions;
-        toolMap.set("ChatGPT", cur);
-      }
-    }
-  }
-
-  const files = [
-    {
-      path: "src/lib/code-analysis/mock-data.ts",
-      repo: "aidos-neo/platform",
-      changeCount: 12,
-      aiLinesPct: 88,
-      topContributors: ["alex.chen"],
-    },
-    {
-      path: "src/components/code-analysis/analysis-tabs.tsx",
-      repo: "aidos-neo/platform",
-      changeCount: 9,
-      aiLinesPct: 76,
-      topContributors: ["alex.chen", "samira.k"],
-    },
-    {
-      path: "src/app/(platform)/code-analysis/page.tsx",
-      repo: "aidos-neo/platform",
-      changeCount: 4,
-      aiLinesPct: 62,
-      topContributors: ["alex.chen"],
-    },
-    {
-      path: "src/lib/jira-delivery-health.ts",
-      repo: "aidos-neo/platform",
-      changeCount: 7,
-      aiLinesPct: 45,
-      topContributors: ["samira.k"],
-    },
-    {
-      path: "src/components/layout/mobile-nav.tsx",
-      repo: "aidos-neo/web-client",
-      changeCount: 5,
-      aiLinesPct: 12,
-      topContributors: ["morgan.t"],
-    },
-    {
-      path: "src/app/api/webhooks/[provider]/route.ts",
-      repo: "aidos-neo/api-gateway",
-      changeCount: 6,
-      aiLinesPct: 28,
-      topContributors: ["jordan.lee"],
-    },
-  ].filter((f) => repos.includes(f.repo));
-
-  const governanceSignals: CodeAnalysisSnapshot["governanceSignals"] = [];
-
-  for (const pr of prs) {
-    if (isAiAttribution(pr.attribution) && pr.reviewCount === 0) {
-      governanceSignals.push({
-        id: `sig-${pr.id}`,
-        severity: pr.attribution === "ai_generated" ? "error" : "warning",
-        title: "High-AI PR merged without review",
-        description: `PR #${pr.number} had ${pr.confidence}% AI confidence and zero approvals before merge.`,
-        entityLabel: `#${pr.number} · ${pr.title}`,
-        entityUrl: pr.url,
-        repo: pr.repo,
-      });
-    }
-  }
-
-  if (aiLines / Math.max(totalLines, 1) > 0.35) {
-    governanceSignals.push({
-      id: "sig-spike",
-      severity: "info",
-      title: "Elevated AI contribution",
-      description: `${Math.round((aiLines / Math.max(totalLines, 1)) * 100)}% of added lines are AI-attributed in this period.`,
-      entityLabel: "Org-wide",
-      repo: repos[0] ?? "—",
-    });
-  }
-
-  const aiLinesPct = totalLines > 0 ? Math.round((aiLines / totalLines) * 100) : 0;
-  const aiCommitsPct =
-    commits.length > 0 ? Math.round((aiCommits / commits.length) * 100) : 0;
-  const aiPrsPct = prs.length > 0 ? Math.round((aiPrs / prs.length) * 100) : 0;
-  const reviewCoverageOnAiPrsPct =
-    highAiPrs.length > 0 ? Math.round((reviewedHighAi / highAiPrs.length) * 100) : 100;
-
+  const base = computeCodeAnalysisSnapshot({ prs, commits, range, repos });
   const rangeScale = range === "7d" ? 0.35 : range === "90d" ? 1.15 : 1;
-
   return {
-    generatedAt: new Date().toISOString(),
-    rangeLabel: RANGE_LABELS[range],
-    repos,
+    ...base,
     kpis: {
-      aiLinesPct,
+      ...base.kpis,
       aiLinesPctDelta: Math.round(4 * rangeScale),
-      aiCommitsPct,
       aiCommitsPctDelta: Math.round(2 * rangeScale),
-      aiPrsPct,
       aiPrsPctDelta: range === "7d" ? -1 : 1,
-      reviewCoverageOnAiPrsPct,
     },
-    attribution,
     trend: TREND_BY_RANGE[range],
-    byRepo: [...byRepoMap.entries()]
-      .map(([repo, v]) => ({
-        repo,
-        aiLinesPct: v.total > 0 ? Math.round((v.ai / v.total) * 100) : 0,
-        totalLines: v.total,
-      }))
-      .sort((a, b) => b.totalLines - a.totalLines),
-    byAuthor: [...byAuthorMap.entries()]
-      .map(([login, v]) => ({
-        login,
-        aiLinesPct: v.total > 0 ? Math.round((v.ai / v.total) * 100) : 0,
-        commits: v.commits,
-      }))
-      .sort((a, b) => b.commits - a.commits),
-    pullRequests: prs,
-    commits,
-    files,
-    tools: [...toolMap.values()].sort((a, b) => b.linesAttributed - a.linesAttributed),
-    governanceSignals,
+    files: [
+      {
+        path: "src/lib/code-analysis/mock-data.ts",
+        repo: "aidos-neo/platform",
+        changeCount: 12,
+        aiLinesPct: 88,
+        topContributors: ["alex.chen"],
+      },
+      {
+        path: "src/components/code-analysis/analysis-tabs.tsx",
+        repo: "aidos-neo/platform",
+        changeCount: 9,
+        aiLinesPct: 76,
+        topContributors: ["alex.chen", "samira.k"],
+      },
+      {
+        path: "src/app/(platform)/code-analysis/page.tsx",
+        repo: "aidos-neo/platform",
+        changeCount: 4,
+        aiLinesPct: 62,
+        topContributors: ["alex.chen"],
+      },
+      {
+        path: "src/lib/jira-delivery-health.ts",
+        repo: "aidos-neo/platform",
+        changeCount: 7,
+        aiLinesPct: 45,
+        topContributors: ["samira.k"],
+      },
+      {
+        path: "src/components/layout/mobile-nav.tsx",
+        repo: "aidos-neo/web-client",
+        changeCount: 5,
+        aiLinesPct: 12,
+        topContributors: ["morgan.t"],
+      },
+      {
+        path: "src/app/api/webhooks/[provider]/route.ts",
+        repo: "aidos-neo/api-gateway",
+        changeCount: 6,
+        aiLinesPct: 28,
+        topContributors: ["jordan.lee"],
+      },
+    ].filter((f) => repos.includes(f.repo)),
   };
 }
 
@@ -513,7 +351,7 @@ export function getMockCodeAnalysisSnapshot(
     // keep all — represents longer window
   }
 
-  return computeSnapshot(prs, commits, range, selectedRepos);
+  return computeMockSnapshot(prs, commits, range, selectedRepos);
 }
 
 export function getAvailableMockRepos(): string[] {

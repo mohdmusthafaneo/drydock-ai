@@ -1,7 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import type { CodeAnalysisFilters, TrendMetric } from "@/lib/code-analysis/types";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type {
+  CodeAnalysisFilters,
+  CodeAnalysisSnapshot,
+  TrendMetric,
+} from "@/lib/code-analysis/types";
 import {
   getAvailableMockAuthors,
   getAvailableMockRepos,
@@ -20,9 +24,10 @@ type Props = {
   connectedRepos?: string[];
 };
 
+type SnapshotSource = "mock" | "github" | "loading";
+
 export function CodeAnalysisDashboard({ lastSyncedAt, connectedRepos }: Props) {
   const allRepos = connectedRepos?.length ? connectedRepos : getAvailableMockRepos();
-  const authors = getAvailableMockAuthors();
 
   const [filters, setFilters] = useState<CodeAnalysisFilters>({
     repos: allRepos,
@@ -33,15 +38,62 @@ export function CodeAnalysisDashboard({ lastSyncedAt, connectedRepos }: Props) {
   const [trendMetric, setTrendMetric] = useState<TrendMetric>("lines");
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [source, setSource] = useState<SnapshotSource>("loading");
+  const [syncedAt, setSyncedAt] = useState<string | null>(lastSyncedAt);
+  const [liveSnapshot, setLiveSnapshot] = useState<CodeAnalysisSnapshot | null>(null);
 
-  const snapshot = useMemo(
+  const mockSnapshot = useMemo(
     () => getMockCodeAnalysisSnapshot(filters),
     [filters],
   );
 
-  const lastSyncedLabel = lastSyncedAt
-    ? `Last synced ${formatRelative(lastSyncedAt)} · mock data`
-    : "Mock data · connect GitHub for live analysis (Phase 2)";
+  const authors = useMemo(() => {
+    if (source === "github" && liveSnapshot) {
+      return [...new Set(liveSnapshot.commits.map((c) => c.author))].sort();
+    }
+    return getAvailableMockAuthors();
+  }, [source, liveSnapshot]);
+
+  const snapshot = source === "github" && liveSnapshot ? liveSnapshot : mockSnapshot;
+
+  const fetchSnapshot = useCallback(async () => {
+    const params = new URLSearchParams({
+      range: filters.range,
+      repos: filters.repos.join(","),
+    });
+    if (filters.author) params.set("author", filters.author);
+
+    const res = await fetch(`/api/code-analysis/snapshot?${params}`, {
+      credentials: "same-origin",
+    });
+    if (!res.ok) return;
+    const data = (await res.json()) as {
+      source: SnapshotSource;
+      syncedAt: string | null;
+      snapshot: CodeAnalysisSnapshot;
+    };
+    setSource(data.source === "github" ? "github" : "mock");
+    setSyncedAt(data.syncedAt);
+    if (data.source === "github") {
+      setLiveSnapshot(data.snapshot);
+    } else {
+      setLiveSnapshot(null);
+    }
+  }, [filters.range, filters.repos, filters.author]);
+
+  useEffect(() => {
+    void fetchSnapshot();
+  }, [fetchSnapshot]);
+
+  const lastSyncedLabel =
+    source === "github" && syncedAt
+      ? `Live data · last analyzed ${formatRelative(syncedAt)}`
+      : source === "loading"
+        ? "Loading…"
+        : lastSyncedAt
+          ? `Last synced ${formatRelative(lastSyncedAt)} · run analysis for live data`
+          : "Mock data · run analysis for live GitHub data";
 
   function updateFilters(next: Partial<CodeAnalysisFilters>) {
     setFilters((prev) => ({ ...prev, ...next }));
@@ -64,30 +116,35 @@ export function CodeAnalysisDashboard({ lastSyncedAt, connectedRepos }: Props) {
     }));
   }
 
-  function handleSync() {
+  async function handleSync() {
     setSyncing(true);
     setSyncMessage(null);
-    window.setTimeout(() => {
+    setSyncError(null);
+    try {
+      const res = await fetch("/api/code-analysis/analyze", {
+        method: "POST",
+        credentials: "same-origin",
+      });
+      const data = (await res.json()) as { ok?: boolean; error?: string; summary?: string };
+      if (!res.ok) {
+        setSyncError(data.error ?? "Analysis failed");
+        return;
+      }
+      setSyncMessage(data.summary ?? "Analysis complete");
+      await fetchSnapshot();
+    } catch {
+      setSyncError("Analysis request failed");
+    } finally {
       setSyncing(false);
-      setSyncMessage("Live GitHub analysis sync ships in Phase 2.");
-    }, 1200);
+    }
   }
 
-  function handleExport() {
-    const header = "repo,pr_number,title,author,merged_at,ai_attribution,confidence,reviews\n";
-    const rows = snapshot.pullRequests
-      .map(
-        (p) =>
-          `"${p.repo}",${p.number},"${p.title.replace(/"/g, '""')}",${p.author},${p.mergedAt},${p.attribution},${p.confidence},${p.reviewCount}`,
-      )
-      .join("\n");
-    const blob = new Blob([header + rows], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `code-analysis-${filters.range}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+  async function handleExport() {
+    const params = new URLSearchParams({
+      range: filters.range,
+      repos: filters.repos.join(","),
+    });
+    window.location.href = `/api/code-analysis/export?${params}`;
   }
 
   const selectedRepo = filters.repos.length === 1 ? filters.repos[0] : null;
@@ -105,9 +162,22 @@ export function CodeAnalysisDashboard({ lastSyncedAt, connectedRepos }: Props) {
         lastSyncedLabel={lastSyncedLabel}
       />
 
+      {source === "mock" && (
+        <p className="rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm text-secondary">
+          Showing demo data. Click <strong className="text-primary">Sync now</strong> to analyze
+          your selected GitHub repositories.
+        </p>
+      )}
+
       {syncMessage && (
         <p className="rounded-lg border border-brand/30 bg-brand-muted px-3 py-2 text-sm text-brand">
           {syncMessage}
+        </p>
+      )}
+
+      {syncError && (
+        <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {syncError}
         </p>
       )}
 

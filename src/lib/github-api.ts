@@ -99,6 +99,113 @@ export async function listOpenPulls(accessToken: string, owner: string, repo: st
   );
 }
 
+export type GitHubCommitListItem = {
+  sha: string;
+  html_url: string;
+  commit: {
+    message: string;
+    author: { date: string; name?: string } | null;
+    committer: { date: string } | null;
+  };
+  author: { login: string } | null;
+};
+
+export async function listCommits(
+  accessToken: string,
+  owner: string,
+  repo: string,
+  options?: { since?: string; perPage?: number },
+) {
+  const perPage = options?.perPage ?? 50;
+  const since = options?.since ? `&since=${encodeURIComponent(options.since)}` : "";
+  return githubFetch<GitHubCommitListItem[]>(
+    accessToken,
+    `/repos/${owner}/${repo}/commits?per_page=${perPage}${since}`,
+  );
+}
+
+export type GitHubCommitDetail = {
+  sha: string;
+  html_url: string;
+  commit: {
+    message: string;
+    author: { date: string } | null;
+  };
+  author: { login: string } | null;
+  stats?: { additions: number; deletions: number; total: number };
+  files?: { filename: string; additions: number; deletions: number; changes: number }[];
+};
+
+export async function getCommit(
+  accessToken: string,
+  owner: string,
+  repo: string,
+  sha: string,
+) {
+  return githubFetch<GitHubCommitDetail>(
+    accessToken,
+    `/repos/${owner}/${repo}/commits/${sha}`,
+  );
+}
+
+export type GitHubClosedPull = GitHubPull & {
+  merged_at: string | null;
+  body: string | null;
+  additions?: number;
+  deletions?: number;
+  changed_files?: number;
+};
+
+export async function listClosedPulls(
+  accessToken: string,
+  owner: string,
+  repo: string,
+  perPage = 30,
+) {
+  return githubFetch<GitHubClosedPull[]>(
+    accessToken,
+    `/repos/${owner}/${repo}/pulls?state=closed&per_page=${perPage}&sort=updated`,
+  );
+}
+
+export type GitHubPullFile = {
+  filename: string;
+  additions: number;
+  deletions: number;
+  changes: number;
+};
+
+export async function getPullRequestFiles(
+  accessToken: string,
+  owner: string,
+  repo: string,
+  pullNumber: number,
+) {
+  return githubFetch<GitHubPullFile[]>(
+    accessToken,
+    `/repos/${owner}/${repo}/pulls/${pullNumber}/files?per_page=100`,
+  );
+}
+
+export type GitHubPullReview = {
+  id: number;
+  state: string;
+  user: { login: string } | null;
+  submitted_at: string | null;
+};
+
+export async function listPullRequestReviews(
+  accessToken: string,
+  owner: string,
+  repo: string,
+  pullNumber: number,
+) {
+  return githubFetch<GitHubPullReview[]>(
+    accessToken,
+    `/repos/${owner}/${repo}/pulls/${pullNumber}/reviews?per_page=100`,
+  );
+}
+
 export type GitHubWorkflowRun = {
   id: number;
   name: string;

@@ -7,6 +7,8 @@ export type GitHubRepoSummary = {
   openPrs?: number;
 };
 
+import type { StoredCodeAnalysis } from "@/lib/code-analysis/types";
+
 export type GitHubIntegrationMeta = {
   /** "oauth" | "app" | "dual" — how this integration was connected */
   mode?: string;
@@ -27,6 +29,8 @@ export type GitHubIntegrationMeta = {
   installedAt?: string;
   /** User id that completed the App install handshake */
   installedBy?: string;
+  /** Latest code analysis ingest (commits + PRs for dashboard filtering) */
+  codeAnalysisSnapshot?: StoredCodeAnalysis;
 };
 
 export function parseIntegrationMeta(metadataJson: string): GitHubIntegrationMeta {
