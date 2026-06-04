@@ -1,7 +1,7 @@
 # Delivery analysis — Jira operational intelligence
 
 **Last updated:** 2026-06-04  
-**Status:** P1 UI shell complete — P2 live rollup next  
+**Status:** P2 live rollup complete — P3 history & trends next  
 **Owner agents:** `/frontend` (page & components), `/backend` (snapshot rollup, history, APIs), `/architect` (review before merge)
 
 **Related docs:** [`docs/jira-integration.md`](docs/jira-integration.md) · [`code-analysis.md`](code-analysis.md) · [`docs/AIDOS-USP.md`](docs/AIDOS-USP.md) · [`feature-flag.md`](feature-flag.md)
@@ -435,13 +435,13 @@ All routes: `organizationId` from session, Zod query validation, never return OA
 
 ### 9.5 Acceptance criteria — P2 (live data)
 
-- [ ] `compute-snapshot.ts` + `analyzePortfolioDeliveryHealth` covered by unit tests or manual checklist
-- [ ] Dashboard reads live snapshot after Integrations sync
-- [ ] `GET /api/delivery-analysis/snapshot` returns org-scoped rollup only
-- [ ] Export CSV matches filtered view
-- [ ] View-only user can see dashboard but not sync (disabled button)
-- [ ] Org A cannot read org B data
-- [ ] `npm run build` passes
+- [x] `compute-snapshot.ts` + `analyzePortfolioDeliveryHealth` covered by unit tests or manual checklist
+- [x] Dashboard reads live snapshot after Integrations sync
+- [x] `GET /api/delivery-analysis/snapshot` returns org-scoped rollup only
+- [x] Export CSV matches filtered view
+- [x] View-only user can see dashboard but not sync (disabled button)
+- [x] Org A cannot read org B data
+- [x] `npm run build` passes
 
 ### 9.6 Acceptance criteria — P3 (history & trends)
 
@@ -478,7 +478,7 @@ Cap API calls: max 10 projects × (5 base + 2 per version capped at 5 versions) 
 |-------|--------|--------|
 | **P0 — Spec** | This document | ✅ Done |
 | **P1 — UI shell** | Page, components, mock data, nav flag, empty states | ✅ Done |
-| **P2 — Live rollup** | `compute-snapshot`, portfolio health, snapshot + export APIs, wire dashboard | Not started |
+| **P2 — Live rollup** | `compute-snapshot`, portfolio health, snapshot + export APIs, wire dashboard | ✅ Done |
 | **P2b — Sync enrichment** | Per-version counts, throughput, status buckets (if needed for tabs) | Not started |
 | **P3 — History & trends** | Prisma snapshots, deltas, trend chart | Not started |
 | **P3b — Scheduled sync** | External cron → `POST .../jira/sync` (platform worker) | Not started |

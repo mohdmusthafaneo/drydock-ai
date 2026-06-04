@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import type { DeliveryAnalysisFilters } from "@/lib/delivery-analysis/types";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import type { DeliveryAnalysisFilters, DeliveryAnalysisSnapshot } from "@/lib/delivery-analysis/types";
 import { getMockDeliveryAnalysisSnapshot } from "@/lib/delivery-analysis/mock-data";
 import { AnalysisFiltersBar } from "@/components/delivery-analysis/analysis-filters";
 import { KpiStrip } from "@/components/delivery-analysis/kpi-strip";
@@ -19,12 +20,15 @@ type Props = {
   isDemo?: boolean;
 };
 
+type SnapshotSource = "mock" | "jira" | "loading";
+
 export function DeliveryAnalysisDashboard({
   projectKeys,
   lastSyncedAt,
   canSync,
-  isDemo = true,
+  isDemo = false,
 }: Props) {
+  const router = useRouter();
   const [filters, setFilters] = useState<DeliveryAnalysisFilters>({
     projectKey: null,
     riskFocus: "all",
@@ -34,26 +38,87 @@ export function DeliveryAnalysisDashboard({
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [source, setSource] = useState<SnapshotSource>(isDemo ? "mock" : "loading");
+  const [syncedAt, setSyncedAt] = useState<string | null>(lastSyncedAt);
+  const [liveSnapshot, setLiveSnapshot] = useState<DeliveryAnalysisSnapshot | null>(null);
 
-  const snapshot = useMemo(
+  const mockSnapshot = useMemo(
     () => getMockDeliveryAnalysisSnapshot(filters),
     [filters],
   );
 
+  const snapshot =
+    source === "jira" && liveSnapshot ? liveSnapshot : mockSnapshot;
+
+  const fetchSnapshot = useCallback(async () => {
+    if (isDemo) {
+      setSource("mock");
+      return;
+    }
+
+    const params = new URLSearchParams({
+      range: filters.range,
+      riskFocus: filters.riskFocus,
+      compare: filters.compare,
+    });
+    if (filters.projectKey) {
+      params.set("projectKey", filters.projectKey);
+    }
+
+    const res = await fetch(`/api/delivery-analysis/snapshot?${params}`, {
+      credentials: "same-origin",
+    });
+
+    if (res.status === 404) {
+      setSource("loading");
+      setLiveSnapshot(null);
+      return;
+    }
+
+    if (!res.ok) {
+      setSource("mock");
+      return;
+    }
+
+    const data = (await res.json()) as {
+      source: string;
+      syncedAt: string | null;
+      snapshot: DeliveryAnalysisSnapshot;
+    };
+
+    setSource(data.source === "jira" ? "jira" : "mock");
+    setSyncedAt(data.syncedAt);
+    if (data.source === "jira") {
+      setLiveSnapshot(data.snapshot);
+    } else {
+      setLiveSnapshot(null);
+    }
+  }, [filters.range, filters.riskFocus, filters.compare, filters.projectKey, isDemo]);
+
+  useEffect(() => {
+    void fetchSnapshot();
+  }, [fetchSnapshot]);
+
   const staleBanner = useMemo(() => {
-    if (!lastSyncedAt) return null;
-    const hours = (Date.now() - new Date(lastSyncedAt).getTime()) / 3600000;
+    const at = source === "jira" ? syncedAt : lastSyncedAt;
+    if (!at) return null;
+    const hours = (Date.now() - new Date(at).getTime()) / 3600000;
     if (hours > 24) {
-      return `Last synced ${formatRelative(lastSyncedAt)} — data may be stale. Sync for fresh counts.`;
+      return `Last synced ${formatRelative(at)} — data may be stale. Sync for fresh counts.`;
     }
     return null;
-  }, [lastSyncedAt]);
+  }, [source, syncedAt, lastSyncedAt]);
 
-  const lastSyncedLabel = isDemo
-    ? `Demo data · ${projectKeys.length} project${projectKeys.length === 1 ? "" : "s"}`
-    : lastSyncedAt
-      ? `Last synced ${formatRelative(lastSyncedAt)}`
-      : "Not synced yet";
+  const lastSyncedLabel =
+    isDemo
+      ? `Demo data · ${projectKeys.length} project${projectKeys.length === 1 ? "" : "s"}`
+      : source === "jira" && syncedAt
+        ? `Live data · last synced ${formatRelative(syncedAt)}`
+        : source === "loading"
+          ? "Loading…"
+          : lastSyncedAt
+            ? `Last synced ${formatRelative(lastSyncedAt)}`
+            : "Not synced yet";
 
   function updateFilters(next: Partial<DeliveryAnalysisFilters>) {
     setFilters((prev) => ({ ...prev, ...next }));
@@ -82,6 +147,8 @@ export function DeliveryAnalysisDashboard({
         return;
       }
       setSyncMessage(data.summary ?? "Jira sync complete");
+      await fetchSnapshot();
+      router.refresh();
     } catch {
       setSyncError("Sync request failed");
     } finally {
@@ -90,11 +157,18 @@ export function DeliveryAnalysisDashboard({
   }
 
   function handleExport() {
-    // P2: wire export API
-    setSyncMessage("Export available after live data ships (P2)");
+    const params = new URLSearchParams({
+      range: filters.range,
+      riskFocus: filters.riskFocus,
+    });
+    if (filters.projectKey) {
+      params.set("projectKey", filters.projectKey);
+    }
+    window.location.href = `/api/delivery-analysis/export?${params}`;
   }
 
   const selectedProject = filters.projectKey;
+  const showDemoBanner = isDemo || source === "mock";
 
   return (
     <div className="space-y-6">
@@ -109,14 +183,15 @@ export function DeliveryAnalysisDashboard({
         lastSyncedLabel={lastSyncedLabel}
       />
 
-      {isDemo && (
+      {showDemoBanner && (
         <p className="rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm text-secondary">
-          Showing demo data for layout validation. Sync Jira on integrations for live delivery
-          metrics (P2).
+          {isDemo
+            ? "Showing demo data for layout validation. Sync Jira on integrations for live delivery metrics."
+            : "Could not load live snapshot. Sync Jira on Integrations, then refresh this page."}
         </p>
       )}
 
-      {staleBanner && !isDemo && (
+      {staleBanner && source === "jira" && (
         <p className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning">
           {staleBanner}
         </p>
@@ -144,7 +219,7 @@ export function DeliveryAnalysisDashboard({
 
       <div className="grid gap-6 lg:grid-cols-2">
         <RiskMixChart riskMix={snapshot.riskMix} />
-        <TrendChart trend={snapshot.trend} hasHistory={isDemo} />
+        <TrendChart trend={snapshot.trend} hasHistory={source === "mock" && snapshot.trend.length >= 2} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

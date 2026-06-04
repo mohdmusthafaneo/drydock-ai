@@ -133,6 +133,235 @@ function aggregateMetrics(projects: ProjectScope[]) {
   );
 }
 
+function computeHealthScore(
+  signals: JiraDeliverySignal[],
+  gaps: JiraDeliveryGap[],
+): number {
+  const penalty =
+    gaps.filter((g) => g.priority === "high").length * 14 +
+    gaps.filter((g) => g.priority === "medium").length * 7 +
+    gaps.filter((g) => g.priority === "low").length * 3 +
+    signals.filter((s) => s.severity === "critical").length * 10 +
+    signals.filter((s) => s.severity === "warning").length * 4;
+
+  return Math.max(0, Math.min(100, 92 - penalty));
+}
+
+function daysUntil(isoDate: string): number {
+  const end = new Date(isoDate).getTime();
+  return (end - Date.now()) / 86400000;
+}
+
+function scopedProjects(
+  snapshot: JiraDeliverySnapshot,
+  projectKey?: string | null,
+): ProjectScope[] {
+  if (projectKey) {
+    const match = snapshot.projects.find((p) => p.key === projectKey);
+    return match ? [match] : [];
+  }
+  return snapshot.projects;
+}
+
+/** Org- or project-scoped delivery health for the Delivery Analysis dashboard. */
+export function analyzePortfolioDeliveryHealth(input: {
+  snapshot: JiraDeliverySnapshot;
+  projectKey?: string | null;
+}): JiraDeliveryHealth {
+  const projects = scopedProjects(input.snapshot, input.projectKey);
+  if (projects.length === 0) {
+    return {
+      score: 0,
+      signals: [],
+      gaps: [],
+      snapshotSyncedAt: input.snapshot.syncedAt,
+    };
+  }
+
+  const metrics = aggregateMetrics(projects);
+  const isOrgScope = !input.projectKey;
+  const signals: JiraDeliverySignal[] = [];
+  const gaps: JiraDeliveryGap[] = [];
+
+  const blockedThreshold = isOrgScope ? 5 : 3;
+  const blockedSeverity =
+    metrics.blockedCount >= blockedThreshold
+      ? "critical"
+      : metrics.blockedCount > 0
+        ? "warning"
+        : "info";
+
+  signals.push({
+    id: "portfolio-blocked",
+    category: "blockers",
+    label: isOrgScope ? "Portfolio blocked work" : "Blocked issues",
+    value:
+      metrics.blockedCount > 0
+        ? `${metrics.blockedCount} blocked issue${metrics.blockedCount === 1 ? "" : "s"} in scope`
+        : "No blocked issues in scope",
+    severity: blockedSeverity,
+  });
+
+  if (isOrgScope) {
+    for (const p of projects) {
+      if (p.blockedCount >= 3) {
+        gaps.push({
+          area: "Delivery",
+          gap: `${p.key}: ${p.blockedCount} blocked issue${p.blockedCount === 1 ? "" : "s"}`,
+          priority: p.blockedCount >= 5 ? "high" : "medium",
+        });
+      }
+    }
+  }
+
+  signals.push({
+    id: "overdue-cluster",
+    category: "schedule",
+    label: isOrgScope ? "Overdue cluster" : "Overdue work",
+    value:
+      metrics.overdueCount > 0
+        ? `${metrics.overdueCount} overdue issue${metrics.overdueCount === 1 ? "" : "s"} in scope`
+        : "No overdue issues in scope",
+    severity:
+      metrics.overdueCount >= 10
+        ? "critical"
+        : metrics.overdueCount > 0
+          ? "warning"
+          : "info",
+  });
+
+  signals.push({
+    id: "bug-backlog",
+    category: "quality",
+    label: isOrgScope ? "Bug backlog" : "Open bugs",
+    value: `${metrics.bugsOpen} open bug${metrics.bugsOpen === 1 ? "" : "s"} in scope`,
+    severity:
+      metrics.bugsOpen >= 15
+        ? "critical"
+        : metrics.bugsOpen >= 5
+          ? "warning"
+          : "info",
+  });
+
+  const slippedVersions: Array<{ projectKey: string; name: string }> = [];
+  for (const p of projects) {
+    for (const v of p.versions) {
+      if (v.overdue && !v.released) {
+        slippedVersions.push({ projectKey: p.key, name: v.name });
+      }
+    }
+  }
+
+  if (slippedVersions.length > 0) {
+    const preview = slippedVersions
+      .slice(0, 3)
+      .map((v) => `${v.projectKey} · ${v.name}`)
+      .join("; ");
+    signals.push({
+      id: "version-slip",
+      category: "schedule",
+      label: "Version slip",
+      value:
+        slippedVersions.length === 1
+          ? preview
+          : `${slippedVersions.length} overdue fix versions — ${preview}`,
+      severity: "critical",
+    });
+    for (const v of slippedVersions) {
+      gaps.push({
+        area: "Release",
+        gap: `Fix version "${v.name}" (${v.projectKey}) is past target and not released`,
+        priority: "high",
+      });
+    }
+  }
+
+  for (const p of projects) {
+    const sprint = p.activeSprint;
+    if (!sprint || sprint.committed == null || sprint.committed <= 0) continue;
+
+    const done = sprint.done ?? 0;
+    const pct = Math.round((done / sprint.committed) * 100);
+    let severity: JiraDeliverySignal["severity"] =
+      pct < 40 ? "critical" : pct < 60 ? "warning" : "info";
+
+    if (sprint.endDate && pct < 50 && daysUntil(sprint.endDate) < 3) {
+      severity = "critical";
+      gaps.push({
+        area: "Sprint",
+        gap: `${p.key} sprint "${sprint.name}" below 50% with under 3 days left`,
+        priority: "high",
+      });
+    } else if (pct < 50) {
+      gaps.push({
+        area: "Sprint",
+        gap: `${p.key} sprint "${sprint.name}" below 50% completion (${pct}%)`,
+        priority: pct < 30 ? "high" : "medium",
+      });
+    }
+
+    signals.push({
+      id: `sprint-${p.key}`,
+      category: "sprint",
+      label: "Active sprint",
+      value: `${p.key} · ${sprint.name}: ${done}/${sprint.committed} done (${pct}%)`,
+      severity,
+    });
+  }
+
+  const syncAgeHours =
+    (Date.now() - new Date(input.snapshot.syncedAt).getTime()) / 3600000;
+  if (syncAgeHours > 48) {
+    signals.push({
+      id: "stale-sync",
+      category: "schedule",
+      label: "Stale sync",
+      value: `Last synced ${Math.floor(syncAgeHours)}h ago — refresh for current counts`,
+      severity: syncAgeHours > 96 ? "critical" : "warning",
+    });
+    gaps.push({
+      area: "Data freshness",
+      gap: "Jira delivery snapshot is older than 48 hours",
+      priority: syncAgeHours > 96 ? "high" : "medium",
+    });
+  }
+
+  if (metrics.blockedCount > 0 && !isOrgScope) {
+    gaps.push({
+      area: "Delivery",
+      gap: `${metrics.blockedCount} blocked issue${metrics.blockedCount === 1 ? "" : "s"} in Jira`,
+      priority: metrics.blockedCount >= 3 ? "high" : "medium",
+    });
+  }
+
+  if (metrics.overdueCount > 0) {
+    gaps.push({
+      area: "Schedule",
+      gap: `${metrics.overdueCount} overdue issue${metrics.overdueCount === 1 ? "" : "s"} in Jira`,
+      priority: metrics.overdueCount >= 5 ? "high" : "medium",
+    });
+  }
+
+  if (metrics.bugsOpen >= 5) {
+    gaps.push({
+      area: "Quality",
+      gap: `${metrics.bugsOpen} open bugs in Jira scope`,
+      priority: metrics.bugsOpen >= 10 ? "high" : "medium",
+    });
+  }
+
+  const score = computeHealthScore(signals, gaps);
+  const scoped = projects.length === 1 ? projects[0] : undefined;
+
+  return {
+    score,
+    signals,
+    gaps,
+    snapshotSyncedAt: input.snapshot.syncedAt,
+    scopedProject: scoped ? { key: scoped.key, name: scoped.name } : undefined,
+  };
+}
+
 export function analyzeJiraDeliveryHealth(input: {
   snapshot: JiraDeliverySnapshot;
   releaseName: string;
@@ -289,14 +518,7 @@ export function analyzeJiraDeliveryHealth(input: {
     }
   }
 
-  const penalty =
-    gaps.filter((g) => g.priority === "high").length * 14 +
-    gaps.filter((g) => g.priority === "medium").length * 7 +
-    gaps.filter((g) => g.priority === "low").length * 3 +
-    signals.filter((s) => s.severity === "critical").length * 10 +
-    signals.filter((s) => s.severity === "warning").length * 4;
-
-  const score = Math.max(0, Math.min(100, 92 - penalty));
+  const score = computeHealthScore(signals, gaps);
 
   return {
     score,

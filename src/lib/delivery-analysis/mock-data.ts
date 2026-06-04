@@ -1,6 +1,6 @@
 import {
   computeDeliveryAnalysisSnapshot,
-  filterMockProjects,
+  filterSnapshotProjects,
 } from "@/lib/delivery-analysis/compute-snapshot";
 import type {
   DeliveryAnalysisFilters,
@@ -198,7 +198,7 @@ export function getAvailableMockProjectKeys(): string[] {
 export function getMockDeliveryAnalysisSnapshot(
   filters: DeliveryAnalysisFilters,
 ): DeliveryAnalysisSnapshot {
-  const projects = filterMockProjects(MOCK_PROJECTS, filters);
+  const projects = filterSnapshotProjects(MOCK_PROJECTS, filters);
   const trend = TREND_BY_RANGE[filters.range];
 
   return computeDeliveryAnalysisSnapshot({

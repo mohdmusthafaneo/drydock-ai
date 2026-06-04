@@ -6,25 +6,131 @@ import type {
   DeliveryAnalysisSprintRow,
   DeliveryAnalysisVersionRow,
 } from "@/lib/delivery-analysis/types";
-import type { JiraDeliveryGap, JiraDeliverySignal } from "@/lib/jira-delivery-health";
+import type { JiraDeliverySnapshot } from "@/lib/jira-meta";
+import {
+  analyzePortfolioDeliveryHealth,
+  type JiraDeliveryGap,
+  type JiraDeliverySignal,
+} from "@/lib/jira-delivery-health";
 
-type MockProject = DeliveryAnalysisProjectRow & {
+type SnapshotProject = DeliveryAnalysisProjectRow & {
   versions: Omit<DeliveryAnalysisVersionRow, "projectKey" | "projectName">[];
   sprint?: Omit<DeliveryAnalysisSprintRow, "projectKey" | "projectName">;
 };
 
-export function filterMockProjects(
-  projects: MockProject[],
+export function filterSnapshotProjects(
+  projects: SnapshotProject[],
   filters: DeliveryAnalysisFilters,
-): MockProject[] {
+): SnapshotProject[] {
   if (filters.projectKey) {
     return projects.filter((p) => p.key === filters.projectKey);
   }
   return projects;
 }
 
+function sprintSeverity(pct: number): DeliveryAnalysisSprintRow["severity"] {
+  if (pct < 40) return "critical";
+  if (pct < 60) return "warning";
+  return "info";
+}
+
+function jiraProjectsToSnapshotRows(
+  jiraSnapshot: JiraDeliverySnapshot,
+  projectKey: string | null,
+): SnapshotProject[] {
+  const projects = projectKey
+    ? jiraSnapshot.projects.filter((p) => p.key === projectKey)
+    : jiraSnapshot.projects;
+
+  return projects.map((p) => {
+    const health = analyzePortfolioDeliveryHealth({
+      snapshot: jiraSnapshot,
+      projectKey: p.key,
+    });
+
+    const sprint = p.activeSprint;
+    let sprintRow: SnapshotProject["sprint"];
+    let activeSprint: DeliveryAnalysisProjectRow["activeSprint"];
+
+    if (sprint && sprint.committed != null && sprint.committed > 0) {
+      const done = sprint.done ?? 0;
+      const pct = Math.round((done / sprint.committed) * 100);
+      activeSprint = {
+        name: sprint.name,
+        done,
+        committed: sprint.committed,
+        pct,
+      };
+      sprintRow = {
+        name: sprint.name,
+        state: sprint.state,
+        startDate: sprint.startDate,
+        endDate: sprint.endDate,
+        done,
+        committed: sprint.committed,
+        pct,
+        severity: sprintSeverity(pct),
+      };
+    }
+
+    return {
+      key: p.key,
+      name: p.name,
+      healthScore: health.score,
+      openIssues: p.openIssues,
+      blockedCount: p.blockedCount,
+      overdueCount: p.overdueCount,
+      bugsOpen: p.bugsOpen,
+      activeSprint,
+      versions: p.versions.map((v) => ({
+        id: v.id,
+        name: v.name,
+        released: v.released,
+        releaseDate: v.releaseDate,
+        overdue: v.overdue,
+      })),
+      sprint: sprintRow,
+    };
+  });
+}
+
+export function computeDeliveryAnalysisFromJira(input: {
+  jiraSnapshot: JiraDeliverySnapshot;
+  siteUrl?: string;
+  filters: DeliveryAnalysisFilters;
+}): DeliveryAnalysisSnapshot {
+  const allRows = jiraProjectsToSnapshotRows(input.jiraSnapshot, null);
+  const health = analyzePortfolioDeliveryHealth({
+    snapshot: input.jiraSnapshot,
+    projectKey: input.filters.projectKey,
+  });
+
+  return computeDeliveryAnalysisSnapshot({
+    projects: filterSnapshotProjects(allRows, input.filters),
+    filters: input.filters,
+    siteUrl: input.siteUrl ?? "",
+    generatedAt: input.jiraSnapshot.syncedAt,
+    signals: health.signals,
+    gaps: health.gaps,
+    trend: [],
+    portfolioHealthScore: health.score,
+  });
+}
+
+export function snapshotForFilters(
+  jiraSnapshot: JiraDeliverySnapshot,
+  siteUrl: string | undefined,
+  filters: DeliveryAnalysisFilters,
+): DeliveryAnalysisSnapshot {
+  return computeDeliveryAnalysisFromJira({
+    jiraSnapshot,
+    siteUrl,
+    filters,
+  });
+}
+
 export function computeDeliveryAnalysisSnapshot(input: {
-  projects: MockProject[];
+  projects: SnapshotProject[];
   filters: DeliveryAnalysisFilters;
   siteUrl: string;
   generatedAt: string;
@@ -32,8 +138,19 @@ export function computeDeliveryAnalysisSnapshot(input: {
   gaps: JiraDeliveryGap[];
   trend: DeliveryAnalysisSnapshot["trend"];
   kpisDeltas?: Partial<DeliveryAnalysisKpis>;
+  portfolioHealthScore?: number;
 }): DeliveryAnalysisSnapshot {
-  const { projects, filters, siteUrl, generatedAt, signals, gaps, trend, kpisDeltas } = input;
+  const {
+    projects,
+    filters,
+    siteUrl,
+    generatedAt,
+    signals,
+    gaps,
+    trend,
+    kpisDeltas,
+    portfolioHealthScore,
+  } = input;
 
   const openWork = projects.reduce((n, p) => n + p.openIssues, 0);
   const blocked = projects.reduce((n, p) => n + p.blockedCount, 0);
@@ -42,9 +159,10 @@ export function computeDeliveryAnalysisSnapshot(input: {
   const otherOpen = Math.max(0, openWork - blocked - overdue);
 
   const healthScore =
-    projects.length > 0
+    portfolioHealthScore ??
+    (projects.length > 0
       ? Math.round(projects.reduce((n, p) => n + p.healthScore, 0) / projects.length)
-      : 0;
+      : 0);
 
   const sprintRows: DeliveryAnalysisSprintRow[] = projects
     .filter((p) => p.sprint)
@@ -111,3 +229,6 @@ export function computeDeliveryAnalysisSnapshot(input: {
     gaps,
   };
 }
+
+/** @deprecated Use filterSnapshotProjects */
+export const filterMockProjects = filterSnapshotProjects;
