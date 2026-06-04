@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Rocket,
   GitBranch,
+  Kanban,
   FlaskConical,
   Code2,
   Activity,
@@ -74,6 +75,7 @@ export function getNavForMode(mode: WorkspaceMode): NavItem[] {
   return [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, primary: true },
     { href: "/workflow", label: "Workflow center", icon: GitBranch },
+    { href: "/delivery-analysis", label: "Delivery analysis", icon: Kanban },
     { href: "/qa", label: "QA intelligence", icon: FlaskConical },
     { href: "/code-analysis", label: "Code analysis", icon: Code2 },
     { href: "/observability", label: "Observability", icon: Activity },
@@ -124,6 +126,7 @@ export function isEnterpriseOnlyPath(pathname: string): boolean {
     "/workflow",
     "/releases",
     "/qa",
+    "/delivery-analysis",
     "/code-analysis",
     "/observability",
     "/devops",
