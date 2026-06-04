@@ -18,6 +18,9 @@ export function deliveryAnalysisToCsv(snapshot: DeliveryAnalysisSnapshot): strin
   if (snapshot.kpis.sprintCompletionPct != null) {
     lines.push(`kpi,sprint_completion_pct,${snapshot.kpis.sprintCompletionPct}`);
   }
+  if (snapshot.kpis.resolvedLast7d != null) {
+    lines.push(`kpi,resolved_last_7d,${snapshot.kpis.resolvedLast7d}`);
+  }
   lines.push(`meta,generated_at,${snapshot.generatedAt}`);
   lines.push(`meta,project_count,${snapshot.byProject.length}`);
 
@@ -39,7 +42,9 @@ export function deliveryAnalysisToCsv(snapshot: DeliveryAnalysisSnapshot): strin
   }
 
   lines.push("");
-  lines.push("version,project_key,project_name,version_name,released,overdue,release_date");
+  lines.push(
+    "version,project_key,project_name,version_name,released,overdue,release_date,open_in_version",
+  );
   for (const v of snapshot.versions) {
     lines.push(
       [
@@ -50,6 +55,7 @@ export function deliveryAnalysisToCsv(snapshot: DeliveryAnalysisSnapshot): strin
         v.released ? "yes" : "no",
         v.overdue ? "yes" : "no",
         v.releaseDate ?? "",
+        v.openIssuesInVersion ?? "",
       ].join(","),
     );
   }

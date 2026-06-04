@@ -1,7 +1,7 @@
 # Delivery analysis — Jira operational intelligence
 
 **Last updated:** 2026-06-04  
-**Status:** P2 live rollup complete — P3 history & trends next  
+**Status:** P2b sync enrichment complete — P3 history & trends next  
 **Owner agents:** `/frontend` (page & components), `/backend` (snapshot rollup, history, APIs), `/architect` (review before merge)
 
 **Related docs:** [`docs/jira-integration.md`](docs/jira-integration.md) · [`code-analysis.md`](code-analysis.md) · [`docs/AIDOS-USP.md`](docs/AIDOS-USP.md) · [`feature-flag.md`](feature-flag.md)
@@ -275,10 +275,10 @@ Sticky filter bar on scroll (client component). Session required; sync requires 
 | Gap | Impact | Phase to address |
 |-----|--------|------------------|
 | No historical points | No trend / delta | P3 `DeliveryAnalysisSnapshot` table |
-| No per-version issue counts | Versions tab shallow | P2b extend `jira-sync.ts` |
-| No status breakdown (To Do / In Progress / Done) | No flow metrics | P2b JQL buckets |
+| ~~No per-version issue counts~~ | Versions tab | ✅ P2b — capped at 5 versions/project |
+| ~~No status breakdown (To Do / In Progress / Done)~~ | Flow metrics on Overview | ✅ P2b |
 | No issue list / assignee dimension | No accountability table | P3 or P4 (paginated JQL search) |
-| No throughput (resolved last 7d) | No velocity story | P2b JQL `resolved >= -7d` |
+| ~~No throughput (resolved last 7d)~~ | Velocity on Overview | ✅ P2b |
 | Org health tied to release name today | `analyzeJiraDeliveryHealth` needs release | P2: `analyzePortfolioDeliveryHealth` |
 
 ### 7.2 Computed rollup (new)
@@ -479,7 +479,7 @@ Cap API calls: max 10 projects × (5 base + 2 per version capped at 5 versions) 
 | **P0 — Spec** | This document | ✅ Done |
 | **P1 — UI shell** | Page, components, mock data, nav flag, empty states | ✅ Done |
 | **P2 — Live rollup** | `compute-snapshot`, portfolio health, snapshot + export APIs, wire dashboard | ✅ Done |
-| **P2b — Sync enrichment** | Per-version counts, throughput, status buckets (if needed for tabs) | Not started |
+| **P2b — Sync enrichment** | Per-version counts, throughput, status buckets (if needed for tabs) | ✅ Done |
 | **P3 — History & trends** | Prisma snapshots, deltas, trend chart | Not started |
 | **P3b — Scheduled sync** | External cron → `POST .../jira/sync` (platform worker) | Not started |
 | **P4 — Governance** | Signals → recommendations, DNA policies | Not started |

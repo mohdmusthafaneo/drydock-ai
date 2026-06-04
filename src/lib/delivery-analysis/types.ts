@@ -1,4 +1,5 @@
 import type { JiraDeliveryGap, JiraDeliverySignal } from "@/lib/jira-delivery-health";
+import type { JiraStatusBreakdown } from "@/lib/jira-meta";
 
 export type TimeRange = "7d" | "30d" | "90d";
 
@@ -24,6 +25,8 @@ export type DeliveryAnalysisKpis = {
   overdueDelta?: number;
   bugsOpen?: number;
   sprintCompletionPct?: number | null;
+  /** Sum of resolved issues in the last 7 days across scope (P2b). */
+  resolvedLast7d?: number;
 };
 
 export type DeliveryAnalysisProjectRow = {
@@ -34,6 +37,8 @@ export type DeliveryAnalysisProjectRow = {
   blockedCount: number;
   overdueCount: number;
   bugsOpen: number;
+  resolvedLast7d?: number;
+  statusBreakdown?: JiraStatusBreakdown;
   activeSprint?: {
     name: string;
     done: number;

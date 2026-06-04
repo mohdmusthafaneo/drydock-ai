@@ -20,6 +20,8 @@ const MOCK_PROJECTS = [
     blockedCount: 2,
     overdueCount: 4,
     bugsOpen: 6,
+    resolvedLast7d: 24,
+    statusBreakdown: { todo: 22, inProgress: 28, done: 412 },
     activeSprint: { name: "PLAT Sprint 24", done: 18, committed: 26, pct: 69 },
     sprint: {
       name: "PLAT Sprint 24",
@@ -38,6 +40,7 @@ const MOCK_PROJECTS = [
         released: false,
         releaseDate: "2026-06-15",
         overdue: false,
+        openIssuesInVersion: 34,
       },
       {
         id: "v2",
@@ -55,6 +58,8 @@ const MOCK_PROJECTS = [
     blockedCount: 3,
     overdueCount: 5,
     bugsOpen: 8,
+    resolvedLast7d: 19,
+    statusBreakdown: { todo: 18, inProgress: 21, done: 286 },
     activeSprint: { name: "WEB Sprint 12", done: 9, committed: 22, pct: 41 },
     sprint: {
       name: "WEB Sprint 12",
@@ -73,6 +78,7 @@ const MOCK_PROJECTS = [
         released: false,
         releaseDate: "2026-05-28",
         overdue: true,
+        openIssuesInVersion: 41,
       },
       {
         id: "v4",
@@ -90,6 +96,8 @@ const MOCK_PROJECTS = [
     blockedCount: 1,
     overdueCount: 2,
     bugsOpen: 4,
+    resolvedLast7d: 15,
+    statusBreakdown: { todo: 11, inProgress: 14, done: 198 },
     activeSprint: { name: "API Sprint 8", done: 14, committed: 18, pct: 78 },
     sprint: {
       name: "API Sprint 8",
@@ -108,6 +116,7 @@ const MOCK_PROJECTS = [
         released: false,
         releaseDate: "2026-06-20",
         overdue: false,
+        openIssuesInVersion: 22,
       },
     ],
   },

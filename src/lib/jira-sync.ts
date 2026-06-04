@@ -13,6 +13,7 @@ import {
   mergeJiraMeta,
   parseJiraMeta,
   type JiraDeliverySnapshot,
+  type JiraStatusBreakdown,
 } from "@/lib/jira-meta";
 import { resolveSyncProjectKeys } from "@/lib/jira-project-selection";
 import { ingestNormalizedEvents } from "@/lib/telemetry-ingest";
@@ -30,6 +31,70 @@ function pickBoard(boards: Array<{ id: number; name: string; type: string }>) {
     boards.find((b) => b.type === "kanban") ??
     boards[0]
   );
+}
+
+/** Cap per-version JQL to limit approximate-count calls (see delivery-analysis.md P2b). */
+const MAX_VERSION_JQL_COUNTS = 5;
+
+function jqlQuoteLiteral(value: string): string {
+  return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+}
+
+function versionsForOpenCount(
+  versions: JiraDeliverySnapshot["projects"][number]["versions"],
+): JiraDeliverySnapshot["projects"][number]["versions"] {
+  const unreleased = versions.filter((v) => !v.released);
+  const released = versions.filter((v) => v.released);
+  const ranked = [
+    ...unreleased.sort((a, b) => (a.overdue && !b.overdue ? -1 : !a.overdue && b.overdue ? 1 : 0)),
+    ...released,
+  ];
+  return ranked.slice(0, MAX_VERSION_JQL_COUNTS);
+}
+
+async function enrichProjectP2b(
+  accessToken: string,
+  cloudId: string,
+  projectKey: string,
+  versions: JiraDeliverySnapshot["projects"][number]["versions"],
+): Promise<{
+  resolvedLast7d: number;
+  statusBreakdown: JiraStatusBreakdown;
+  versions: JiraDeliverySnapshot["projects"][number]["versions"];
+}> {
+  const baseJql = `project = "${projectKey}"`;
+
+  const [resolvedLast7d, todo, inProgress, done] = await Promise.all([
+    countIssuesByJql(accessToken, cloudId, `${baseJql} AND resolved >= -7d`),
+    countIssuesByJql(accessToken, cloudId, `${baseJql} AND statusCategory = "To Do"`),
+    countIssuesByJql(accessToken, cloudId, `${baseJql} AND statusCategory = "In Progress"`),
+    countIssuesByJql(accessToken, cloudId, `${baseJql} AND statusCategory = Done`),
+  ]);
+
+  const statusBreakdown: JiraStatusBreakdown = { todo, inProgress, done };
+
+  const versionsToCount = versionsForOpenCount(versions);
+  const countTargets = new Set(versionsToCount.map((v) => v.id));
+  const enrichedVersions = await Promise.all(
+    versions.map(async (v) => {
+      if (!countTargets.has(v.id)) return v;
+      try {
+        const openIssuesInVersion = await countIssuesByJql(
+          accessToken,
+          cloudId,
+          `${baseJql} AND fixVersion = ${jqlQuoteLiteral(v.name)} AND statusCategory != Done`,
+        );
+        return { ...v, openIssuesInVersion };
+      } catch (e) {
+        if (e instanceof JiraApiError && [400, 404].includes(e.status)) {
+          return v;
+        }
+        throw e;
+      }
+    }),
+  );
+
+  return { resolvedLast7d, statusBreakdown, versions: enrichedVersions };
 }
 
 async function syncProject(
@@ -112,6 +177,22 @@ async function syncProject(
     // Board/sprint data requires Jira Software scopes — skip when unavailable.
   }
 
+  let resolvedLast7d: number | undefined;
+  let statusBreakdown: JiraStatusBreakdown | undefined;
+  let enrichedVersions: JiraDeliverySnapshot["projects"][number]["versions"] = versions;
+
+  try {
+    const p2b = await enrichProjectP2b(accessToken, cloudId, projectKey, versions);
+    resolvedLast7d = p2b.resolvedLast7d;
+    statusBreakdown = p2b.statusBreakdown;
+    enrichedVersions = p2b.versions;
+  } catch (e) {
+    if (!(e instanceof JiraApiError) || ![400, 401, 403, 404, 429].includes(e.status)) {
+      throw e;
+    }
+    // P2b enrichment is best-effort when JQL or rate limits fail.
+  }
+
   return {
     key: project.key,
     name: project.name,
@@ -120,7 +201,9 @@ async function syncProject(
     overdueCount,
     bugsOpen,
     unassignedCount,
-    versions,
+    resolvedLast7d,
+    statusBreakdown,
+    versions: enrichedVersions,
     board,
     activeSprint,
   };

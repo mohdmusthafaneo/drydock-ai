@@ -271,6 +271,18 @@ export type JiraDeliverySnapshot = {
 | Bugs | `... AND issuetype = Bug AND statusCategory != Done` |
 | Unassigned | `... AND assignee is EMPTY AND statusCategory != Done` |
 
+**P2b enrichment** (per project, capped at 5 fix versions for per-version JQL):
+
+| Metric | JQL |
+|--------|-----|
+| Resolved (7d) | `project = KEY AND resolved >= -7d` |
+| To Do | `project = KEY AND statusCategory = "To Do"` |
+| In progress | `project = KEY AND statusCategory = "In Progress"` |
+| Done (total) | `project = KEY AND statusCategory = Done` |
+| Open in version | `project = KEY AND fixVersion = "NAME" AND statusCategory != Done` |
+
+Stored on `JiraDeliverySnapshot.projects[]` as `resolvedLast7d`, `statusBreakdown`, and `versions[].openIssuesInVersion`.
+
 ### 7.4 PR2 acceptance
 
 - [x] Manual sync stores snapshot in org metadata

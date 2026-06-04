@@ -81,6 +81,8 @@ function jiraProjectsToSnapshotRows(
       blockedCount: p.blockedCount,
       overdueCount: p.overdueCount,
       bugsOpen: p.bugsOpen,
+      resolvedLast7d: p.resolvedLast7d,
+      statusBreakdown: p.statusBreakdown,
       activeSprint,
       versions: p.versions.map((v) => ({
         id: v.id,
@@ -88,6 +90,7 @@ function jiraProjectsToSnapshotRows(
         released: v.released,
         releaseDate: v.releaseDate,
         overdue: v.overdue,
+        openIssuesInVersion: v.openIssuesInVersion,
       })),
       sprint: sprintRow,
     };
@@ -156,6 +159,8 @@ export function computeDeliveryAnalysisSnapshot(input: {
   const blocked = projects.reduce((n, p) => n + p.blockedCount, 0);
   const overdue = projects.reduce((n, p) => n + p.overdueCount, 0);
   const bugsOpen = projects.reduce((n, p) => n + p.bugsOpen, 0);
+  const resolvedLast7d = projects.reduce((n, p) => n + (p.resolvedLast7d ?? 0), 0);
+  const hasThroughput = projects.some((p) => p.resolvedLast7d != null);
   const otherOpen = Math.max(0, openWork - blocked - overdue);
 
   const healthScore =
@@ -219,6 +224,7 @@ export function computeDeliveryAnalysisSnapshot(input: {
       overdueDelta: kpisDeltas?.overdueDelta,
       bugsOpen,
       sprintCompletionPct,
+      resolvedLast7d: hasThroughput ? resolvedLast7d : undefined,
     },
     riskMix: { blocked, overdue, bugs: bugsOpen, otherOpen },
     trend,

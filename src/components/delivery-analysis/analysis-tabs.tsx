@@ -72,6 +72,19 @@ export function AnalysisTabs({ snapshot }: { snapshot: DeliveryAnalysisSnapshot 
 }
 
 function OverviewTab({ snapshot }: { snapshot: DeliveryAnalysisSnapshot }) {
+  const flowProjects = snapshot.byProject.filter((p) => p.statusBreakdown);
+  const flowTotals = flowProjects.reduce(
+    (acc, p) => {
+      const b = p.statusBreakdown!;
+      return {
+        todo: acc.todo + b.todo,
+        inProgress: acc.inProgress + b.inProgress,
+        done: acc.done + b.done,
+      };
+    },
+    { todo: 0, inProgress: 0, done: 0 },
+  );
+
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -80,6 +93,23 @@ function OverviewTab({ snapshot }: { snapshot: DeliveryAnalysisSnapshot }) {
         <SummaryStat label="Blocked" value={snapshot.kpis.blocked.toLocaleString()} />
         <SummaryStat label="Overdue" value={snapshot.kpis.overdue.toLocaleString()} />
       </div>
+      {(snapshot.kpis.resolvedLast7d != null || flowProjects.length > 0) && (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {snapshot.kpis.resolvedLast7d != null && (
+            <SummaryStat
+              label="Resolved (7d)"
+              value={snapshot.kpis.resolvedLast7d.toLocaleString()}
+            />
+          )}
+          {flowProjects.length > 0 && (
+            <>
+              <SummaryStat label="To Do" value={flowTotals.todo.toLocaleString()} />
+              <SummaryStat label="In progress" value={flowTotals.inProgress.toLocaleString()} />
+              <SummaryStat label="Done (total)" value={flowTotals.done.toLocaleString()} />
+            </>
+          )}
+        </div>
+      )}
       {snapshot.gaps.length > 0 && (
         <div>
           <p className="mb-2 text-sm font-medium text-primary">Priority gaps</p>
@@ -144,6 +174,7 @@ function VersionsTab({ snapshot }: { snapshot: DeliveryAnalysisSnapshot }) {
             <th className="pb-2 font-medium">Version</th>
             <th className="pb-2 font-medium">Status</th>
             <th className="pb-2 font-medium">Target date</th>
+            <th className="pb-2 font-medium text-right">Open in version</th>
           </tr>
         </thead>
         <tbody>
@@ -164,6 +195,9 @@ function VersionsTab({ snapshot }: { snapshot: DeliveryAnalysisSnapshot }) {
                 )}
               </td>
               <td className="py-2 tabular-nums text-secondary">{v.releaseDate ?? "—"}</td>
+              <td className="py-2 text-right tabular-nums text-secondary">
+                {v.openIssuesInVersion != null ? v.openIssuesInVersion.toLocaleString() : "—"}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -298,6 +332,11 @@ function ProjectsTab({
                               {projectVersions.map((v) => (
                                 <li key={v.id} className="text-xs text-secondary">
                                   {v.name}
+                                  {v.openIssuesInVersion != null && (
+                                    <span className="ml-1 text-muted">
+                                      · {v.openIssuesInVersion} open
+                                    </span>
+                                  )}
                                   {v.overdue && !v.released && (
                                     <Badge variant="warning" className="ml-2 text-[10px]">
                                       Overdue

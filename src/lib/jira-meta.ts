@@ -6,6 +6,13 @@ export type JiraSiteSummary = {
   siteName?: string;
 };
 
+/** Status flow counts from JQL at sync (P2b). */
+export type JiraStatusBreakdown = {
+  todo: number;
+  inProgress: number;
+  done: number;
+};
+
 /** Stored in metadataJson after PR2 sync */
 export type JiraDeliverySnapshot = {
   syncedAt: string;
@@ -17,12 +24,18 @@ export type JiraDeliverySnapshot = {
     overdueCount: number;
     bugsOpen: number;
     unassignedCount: number;
+    /** Issues resolved in the last 7 days (P2b). */
+    resolvedLast7d?: number;
+    /** To Do / In Progress / Done category counts (P2b). */
+    statusBreakdown?: JiraStatusBreakdown;
     versions: Array<{
       id: string;
       name: string;
       released: boolean;
       releaseDate?: string;
       overdue?: boolean;
+      /** Open issues with this fix version (P2b; capped versions per sync). */
+      openIssuesInVersion?: number;
     }>;
     board?: { id: number; name: string; type: string };
     activeSprint?: {
