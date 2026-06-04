@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { CodeAnalysisDashboard } from "@/components/code-analysis/code-analysis-dashboard";
 import { ConnectGitHubEmpty } from "@/components/code-analysis/connect-github-empty";
 import { getAvailableMockRepos } from "@/lib/code-analysis/mock-data";
+import { resolveStoredCodeAnalysis } from "@/lib/code-analysis/sync";
 
 export default async function CodeAnalysisPage() {
   const session = await getSession();
@@ -35,6 +36,15 @@ export default async function CodeAnalysisPage() {
       ? githubMeta.repoFullNames
       : githubMeta?.repos?.map((r) => r.fullName) ?? getAvailableMockRepos();
 
+  const storedAnalysis = githubConnected
+    ? await resolveStoredCodeAnalysis(
+        session.organizationId,
+        github?.metadataJson,
+      )
+    : null;
+  const lastAnalyzedAt =
+    storedAnalysis?.syncedAt ?? github?.lastSyncAt?.toISOString() ?? null;
+
   return (
     <div className="w-full space-y-8 pb-24 lg:pb-8">
       <PageHeader
@@ -46,7 +56,7 @@ export default async function CodeAnalysisPage() {
         <ConnectGitHubEmpty />
       ) : (
         <CodeAnalysisDashboard
-          lastSyncedAt={github?.lastSyncAt?.toISOString() ?? null}
+          lastSyncedAt={lastAnalyzedAt}
           connectedRepos={repoNames}
         />
       )}

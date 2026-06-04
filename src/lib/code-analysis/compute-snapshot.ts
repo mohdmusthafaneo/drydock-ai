@@ -65,6 +65,50 @@ function applyKpiDeltas(
   };
 }
 
+function startOfUtcDay(d: Date): Date {
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+}
+
+function startOfUtcWeek(d: Date): Date {
+  const day = startOfUtcDay(d);
+  const weekday = day.getUTCDay();
+  const diff = weekday === 0 ? 6 : weekday - 1;
+  day.setUTCDate(day.getUTCDate() - diff);
+  return day;
+}
+
+function startOfUtcMonth(d: Date): Date {
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1));
+}
+
+function trendBucketMeta(
+  d: Date,
+  range: TimeRange,
+): { sortKey: string; label: string; sort: number } {
+  if (range === "7d") {
+    const start = startOfUtcDay(d);
+    return {
+      sortKey: start.toISOString(),
+      label: start.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }),
+      sort: start.getTime(),
+    };
+  }
+  if (range === "30d") {
+    const start = startOfUtcWeek(d);
+    return {
+      sortKey: start.toISOString(),
+      label: `Week of ${start.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}`,
+      sort: start.getTime(),
+    };
+  }
+  const start = startOfUtcMonth(d);
+  return {
+    sortKey: start.toISOString(),
+    label: start.toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" }),
+    sort: start.getTime(),
+  };
+}
+
 function buildTrend(
   commits: CodeAnalysisCommit[],
   prs: CodeAnalysisPullRequest[],
@@ -72,24 +116,36 @@ function buildTrend(
 ): TrendBucket[] {
   const byBucket = new Map<
     string,
-    { human_only: number; ai_assisted: number; ai_generated: number; commits: number; prs: number }
+    {
+      label: string;
+      sort: number;
+      human_only: number;
+      ai_assisted: number;
+      ai_generated: number;
+      commits: number;
+      prs: number;
+    }
   >();
 
-  for (const c of commits) {
-    const d = new Date(c.committedAt);
-    const key =
-      range === "7d"
-        ? d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
-        : range === "30d"
-          ? `Week of ${d.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
-          : d.toLocaleDateString("en-US", { month: "short" });
-    const bucket = byBucket.get(key) ?? {
+  function ensureBucket(d: Date) {
+    const { sortKey, label, sort } = trendBucketMeta(d, range);
+    const existing = byBucket.get(sortKey);
+    if (existing) return existing;
+    const bucket = {
+      label,
+      sort,
       human_only: 0,
       ai_assisted: 0,
       ai_generated: 0,
       commits: 0,
       prs: 0,
     };
+    byBucket.set(sortKey, bucket);
+    return bucket;
+  }
+
+  for (const c of commits) {
+    const bucket = ensureBucket(new Date(c.committedAt));
     bucket.commits += 1;
     if (c.attribution === "human_only" || c.attribution === "unknown") {
       bucket.human_only += c.additions;
@@ -98,29 +154,23 @@ function buildTrend(
     } else {
       bucket.ai_generated += c.additions;
     }
-    byBucket.set(key, bucket);
   }
 
   for (const p of prs) {
-    const d = new Date(p.mergedAt);
-    const key =
-      range === "7d"
-        ? d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
-        : range === "30d"
-          ? `Week of ${d.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
-          : d.toLocaleDateString("en-US", { month: "short" });
-    const bucket = byBucket.get(key);
-    if (bucket) bucket.prs += 1;
+    const bucket = ensureBucket(new Date(p.mergedAt));
+    bucket.prs += 1;
   }
 
-  return [...byBucket.entries()].map(([bucket, v]) => ({
-    bucket,
-    human_only: v.human_only,
-    ai_assisted: v.ai_assisted,
-    ai_generated: v.ai_generated,
-    commits: v.commits,
-    prs: v.prs,
-  }));
+  return [...byBucket.values()]
+    .sort((a, b) => a.sort - b.sort)
+    .map((v) => ({
+      bucket: v.label,
+      human_only: v.human_only,
+      ai_assisted: v.ai_assisted,
+      ai_generated: v.ai_generated,
+      commits: v.commits,
+      prs: v.prs,
+    }));
 }
 
 function buildFiles(commits: CodeAnalysisCommit[], repos: string[]): CodeAnalysisSnapshot["files"] {

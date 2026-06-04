@@ -55,7 +55,7 @@ export function TrendChart({
       <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3 space-y-0">
         <div>
           <CardTitle className="text-base">Trend over time</CardTitle>
-          <CardDescription>Weekly attribution mix</CardDescription>
+          <CardDescription>Attribution over time (from stored history)</CardDescription>
         </div>
         <div className="flex rounded-lg border border-border p-0.5">
           {(

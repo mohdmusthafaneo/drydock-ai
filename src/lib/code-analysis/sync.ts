@@ -20,6 +20,10 @@ import {
 } from "@/lib/integration-meta";
 import { classifyCommit, classifyPullRequest } from "@/lib/code-analysis/classifier";
 import { snapshotForStoredData } from "@/lib/code-analysis/compute-snapshot";
+import {
+  loadStoredCodeAnalysisFromDb,
+  persistCodeAnalysisToDb,
+} from "@/lib/code-analysis/persist";
 import type {
   CodeAnalysisCommit,
   CodeAnalysisFilters,
@@ -38,6 +42,17 @@ export function getStoredCodeAnalysisSnapshot(
   const meta = parseIntegrationMeta(metadataJson);
   if (!meta.codeAnalysisSnapshot) return null;
   return meta.codeAnalysisSnapshot;
+}
+
+/** Prefer Prisma history (90d); fall back to integration metadata snapshot. */
+export async function resolveStoredCodeAnalysis(
+  organizationId: string,
+  metadataJson?: string,
+): Promise<StoredCodeAnalysis | null> {
+  const fromDb = await loadStoredCodeAnalysisFromDb(organizationId);
+  if (fromDb) return fromDb;
+  if (metadataJson) return getStoredCodeAnalysisSnapshot(metadataJson);
+  return null;
 }
 
 export function snapshotForFilters(
@@ -159,7 +174,7 @@ async function fetchRepoAnalysis(
 
 export async function syncCodeAnalysis(input: {
   organizationId: string;
-  userId: string;
+  userId: string | null;
 }): Promise<{
   summary: string;
   stored: StoredCodeAnalysis;
@@ -243,6 +258,16 @@ export async function syncCodeAnalysis(input: {
       lastSyncAt: new Date(),
       lastError: null,
     },
+  });
+
+  await persistCodeAnalysisToDb({
+    organizationId: input.organizationId,
+    integrationId: integration.id,
+    repos: targetFullNames,
+    commits: allCommits,
+    pullRequests: allPullRequests,
+    summary,
+    syncedAt: new Date(syncedAt),
   });
 
   await markIntegrationSync(input.organizationId, "GITHUB");

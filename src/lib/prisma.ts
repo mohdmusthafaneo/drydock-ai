@@ -3,7 +3,7 @@ import pg from "pg";
 import { PrismaClient } from "@/generated/prisma/client";
 
 /** Bump when schema changes so dev hot-reload picks up a fresh client. */
-const PRISMA_SCHEMA_VERSION = 10;
+const PRISMA_SCHEMA_VERSION = 11;
 
 /** Delegates that must exist on a valid client (guards stale dev cache). */
 const REQUIRED_DELEGATES = [
@@ -15,6 +15,9 @@ const REQUIRED_DELEGATES = [
   "deploymentEvent",
   "incident",
   "agentRegistry",
+  "codeAnalysisRun",
+  "codeAnalysisCommit",
+  "codeAnalysisPullRequest",
 ] as const;
 
 const globalForPrisma = globalThis as unknown as {

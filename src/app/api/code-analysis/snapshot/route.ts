@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getSession } from "@/lib/session";
 import { requirePermission } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
-import { getStoredCodeAnalysisSnapshot, snapshotForFilters } from "@/lib/code-analysis/sync";
+import { resolveStoredCodeAnalysis, snapshotForFilters } from "@/lib/code-analysis/sync";
 import { getMockCodeAnalysisSnapshot } from "@/lib/code-analysis/mock-data";
 import type { CodeAnalysisFilters } from "@/lib/code-analysis/types";
 
@@ -52,9 +52,10 @@ export async function GET(request: Request) {
     repos: query.repos ? query.repos.split(",").filter(Boolean) : undefined,
   };
 
-  const stored = integration
-    ? getStoredCodeAnalysisSnapshot(integration.metadataJson)
-    : null;
+  const stored = await resolveStoredCodeAnalysis(
+    session.organizationId,
+    integration?.metadataJson,
+  );
 
   if (stored) {
     const snapshot = snapshotForFilters(stored, filters);

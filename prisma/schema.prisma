@@ -125,6 +125,9 @@ model Organization {
   webhookEvents      WebhookEvent[]
   invitations        OrgInvitation[]
   governancePolicy   GovernancePolicy?
+  codeAnalysisRuns   CodeAnalysisRun[]
+  codeAnalysisCommits CodeAnalysisCommit[]
+  codeAnalysisPullRequests CodeAnalysisPullRequest[]
 }
 
 enum MetricSource {
@@ -565,4 +568,68 @@ model ActivityEvent {
   createdAt      DateTime @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+/// One GitHub code-analysis ingest per org (manual Sync now).
+model CodeAnalysisRun {
+  id                String   @id @default(cuid())
+  organizationId    String
+  integrationId     String
+  repoFullNamesJson String   @default("[]")
+  commitCount       Int      @default(0)
+  prCount           Int      @default(0)
+  summary           String?
+  syncedAt          DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, syncedAt])
+}
+
+/// Normalized commit rows for drill-down and trend history (upserted per sync).
+model CodeAnalysisCommit {
+  id             String   @id @default(cuid())
+  organizationId String
+  sha            String
+  repo           String
+  message        String
+  author         String
+  committedAt    DateTime
+  url            String
+  additions      Int      @default(0)
+  deletions      Int      @default(0)
+  attribution    String
+  confidence     Int      @default(0)
+  signalsJson    String   @default("[]")
+  lastSeenAt     DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, repo, sha])
+  @@index([organizationId, committedAt])
+}
+
+/// Normalized merged PR rows for drill-down and governance metrics.
+model CodeAnalysisPullRequest {
+  id             String   @id @default(cuid())
+  organizationId String
+  externalId     String
+  number         Int
+  title          String
+  repo           String
+  author         String
+  mergedAt       DateTime
+  url            String
+  linesAdded     Int      @default(0)
+  linesRemoved   Int      @default(0)
+  attribution    String
+  confidence     Int      @default(0)
+  reviewCount    Int      @default(0)
+  toolsJson      String   @default("[]")
+  lastSeenAt     DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, externalId])
+  @@index([organizationId, mergedAt])
 }

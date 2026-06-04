@@ -1,7 +1,7 @@
 # Code analysis — AI-assisted delivery intelligence
 
-**Last updated:** 2026-06-03  
-**Status:** P1 ✅ UI shell · P2a–P2b ✅ GitHub App auth + repo picker · P2c ✅ Analysis pipeline  
+**Last updated:** 2026-06-04  
+**Status:** P1 ✅ UI shell · P2a–P2b ✅ GitHub App auth + repo picker · P2c ✅ Analysis pipeline · P3 ✅ History & trends  
 **Owner agents:** `/frontend` (page & components), `/backend` (GitHub App auth, sync, scoring engine), `/architect` (review before merge)
 
 **Related docs:** [`docs/AIDOS-USP.md`](docs/AIDOS-USP.md) · [`docs/jira-integration.md`](docs/jira-integration.md) · [`feature-flag.md`](feature-flag.md)
@@ -354,7 +354,7 @@ GITHUB_APP_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVA
 | Pull requests | Read | Merged PRs, files, reviews |
 | Actions | Read | Workflow runs (sync telemetry, optional) |
 
-Subscribe to webhooks: `push`, `pull_request`, `workflow_run` (incremental sync in P3).
+Subscribe to webhooks: `push`, `pull_request`, `workflow_run` (incremental sync — future).
 
 ### 8.3 New / updated backend files (P2)
 
@@ -436,17 +436,19 @@ confidence = f(signal_count, diff_quality)
 
 Document matched signals in UI (commit expand row) for auditability — core AIDOS trust principle.
 
-### 9.3 Persistence (recommended schema sketch)
-
-Store snapshots per org sync — avoid re-fetching full history on every page load.
+### 9.3 Persistence (P3 — implemented)
 
 | Model | Purpose |
 |-------|---------|
-| `CodeAnalysisSnapshot` | Org-level rollup for a time window (JSON metrics blob) |
-| `CodeAnalysisCommit` | Optional normalized rows for drill-down |
-| `CodeAnalysisPullRequest` | PR-level attribution + review metadata |
+| `CodeAnalysisRun` | Audit trail per analyze (repo scope, counts, summary) |
+| `CodeAnalysisCommit` | Upserted commit rows (90d window for trends/drill-down) |
+| `CodeAnalysisPullRequest` | Upserted merged PR rows |
 
-Alternative for MVP backend: extend `Integration.metadataJson` with `codeAnalysisSnapshot` (like Jira `deliverySnapshot`) — faster to ship, weaker history. Prefer dedicated tables before trends/governance alerts.
+`resolveStoredCodeAnalysis()` reads **DB first**, then falls back to `Integration.metadataJson.codeAnalysisSnapshot`. Each **Sync now** run upserts rows and still updates metadata for backward compatibility.
+
+**Migration:** `prisma/migrations/20260604120000_code_analysis_history` — run `npx prisma migrate deploy` in each environment.
+
+**Automated sync:** Not shipped in-repo. Use **Sync now** on `/code-analysis` (or `POST /api/code-analysis/analyze` with a user session). An external scheduler (Coolify cron, etc.) can be wired later if needed.
 
 ### 9.4 API routes (Phase 2)
 
@@ -495,7 +497,8 @@ Rate limits: paginate commits, cap repos per run (reuse `MAX_REPOS_DETAIL` patte
 | **P2a — GitHub App auth** | JWT mint, installation token, token resolver, env docs | ✅ Done |
 | **P2b — GitHub ingest** | `listInstallationRepos`, org repo picker, refactor `github-sync` | ✅ Done |
 | **P2c — Analysis pipeline** | Classifier, `syncCodeAnalysis`, snapshot API, wire dashboard | ✅ Done |
-| **P3 — History & trends** | Prisma models, scheduled sync, real trend charts | Not started |
+| **P3 — History & trends** | Prisma models, DB-backed history, real trend charts (UI **Sync now** only) | ✅ Done |
+| **P3b — Automated sync** | External scheduler → batch analyze (optional; not GitHub Actions) | Not started |
 | **P4 — Governance** | Policy thresholds in Delivery DNA, signals → recommendations | Not started |
 | **P5 — Tool telemetry** | Optional IDE plugin / commit trailer convention for higher confidence | Future |
 
@@ -556,6 +559,7 @@ Tooltip on AI %:
 | 3 | Include unmerged PRs? | **Merged only** for PR KPI; open PRs in separate filter (v2) |
 | 4 | New dependency for charts? | CSS/SVG first; add chart lib only if needed in P3 |
 | 5 | Link to Reports page? | Cross-link from `/reports` card; keep dedicated page as primary |
+| 7 | Automated analyze cadence? | **Manual Sync now** for MVP; external cron (Coolify, etc.) in P3b — no in-repo GitHub Actions |
 
 ---
 
