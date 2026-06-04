@@ -1,7 +1,7 @@
 # Delivery analysis — Jira operational intelligence
 
 **Last updated:** 2026-06-04  
-**Status:** P3 history & trends complete — P3b scheduled sync next  
+**Status:** P3b worker sync endpoint ready — wire external cron when deploying  
 **Owner agents:** `/frontend` (page & components), `/backend` (snapshot rollup, history, APIs), `/architect` (review before merge)
 
 **Related docs:** [`docs/jira-integration.md`](docs/jira-integration.md) · [`code-analysis.md`](code-analysis.md) · [`docs/AIDOS-USP.md`](docs/AIDOS-USP.md) · [`feature-flag.md`](feature-flag.md)
@@ -377,8 +377,11 @@ Keep **Integrations** sync button as primary; Delivery Analysis **Sync now** cal
 | `/api/delivery-analysis/snapshot` | GET | session | Latest `DeliveryAnalysisSnapshot`; query `?projectKey=` |
 | `/api/delivery-analysis/export` | GET | session | CSV export for scoped snapshot |
 | `/api/delivery-analysis/history` | GET | session | P3: time series for charts (`?days=30`) |
+| `/api/platform/jira/sync` | POST | `Bearer PLATFORM_WORKER_SECRET` | P3b: scheduled Jira sync for one org or all connected orgs (external cron) |
 
 All routes: `organizationId` from session, Zod query validation, never return OAuth tokens.
+
+**P3b worker sync (no in-repo scheduler):** Set `PLATFORM_WORKER_SECRET` in platform env. External cron (e.g. Coolify) calls `POST /api/platform/jira/sync` with `Authorization: Bearer <secret>`. Optional body `{ "organizationId": "..." }`; omit to sync every org with connected Jira and saved project keys. Skips orgs without project selection or active users. Reuses `syncJiraIntegration` (delivery snapshot + `DeliveryAnalysisSnapshot` history).
 
 ---
 
@@ -481,7 +484,7 @@ Cap API calls: max 10 projects × (5 base + 2 per version capped at 5 versions) 
 | **P2 — Live rollup** | `compute-snapshot`, portfolio health, snapshot + export APIs, wire dashboard | ✅ Done |
 | **P2b — Sync enrichment** | Per-version counts, throughput, status buckets (if needed for tabs) | ✅ Done |
 | **P3 — History & trends** | Prisma snapshots, deltas, trend chart | ✅ Done |
-| **P3b — Scheduled sync** | External cron → `POST .../jira/sync` (platform worker) | Not started |
+| **P3b — Scheduled sync** | External cron → `POST /api/platform/jira/sync` (platform worker) | ✅ Endpoint ready (cron wiring out of repo) |
 | **P4 — Governance** | Signals → recommendations, DNA policies | Not started |
 
 **Recommended build order:**

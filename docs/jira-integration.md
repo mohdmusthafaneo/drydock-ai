@@ -376,7 +376,7 @@ Input: `JiraDeliverySnapshot` → `JiraDeliveryHealth` (score 0–100, signals, 
 |------|--------|
 | Multi-site picker | When `availableSites.length > 1` |
 | Inbound webhooks | Read-only snapshot refresh |
-| Scheduled sync | Cron/worker |
+| Scheduled sync | `POST /api/platform/jira/sync` with `PLATFORM_WORKER_SECRET` (external cron; see `delivery-analysis.md` §8) |
 | `JiraSyncSnapshot` table | Historical trends |
 | Architect review | `docs/reviews/YYYY-MM-DD-jira-oauth-architecture-review.md` |
 

@@ -11,6 +11,7 @@ const publicPaths = [
   "/api/auth/login",
   "/api/auth/signup",
   "/api/auth/logout",
+  "/api/platform/jira/sync",
 ];
 
 function getSecret() {
