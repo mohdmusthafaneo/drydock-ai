@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { PageHeader } from "@/components/layout/page-header";
 import { DeliveryAnalysisDashboard } from "@/components/delivery-analysis/delivery-analysis-dashboard";
 import {
@@ -24,10 +23,6 @@ export function DeliveryAnalysisPageClient({
   lastSyncedAt,
   canSync,
 }: Props) {
-  const [showDemo, setShowDemo] = useState(false);
-
-  const showDashboard = hasSnapshot || showDemo;
-
   return (
     <div className="w-full space-y-8 pb-24 lg:pb-8">
       <PageHeader
@@ -39,14 +34,13 @@ export function DeliveryAnalysisPageClient({
         <ConnectJiraEmpty />
       ) : projectKeys.length === 0 ? (
         <SelectProjectsEmpty />
-      ) : !showDashboard ? (
-        <SyncJiraEmpty projectKeys={projectKeys} onPreviewDemo={() => setShowDemo(true)} />
+      ) : !hasSnapshot ? (
+        <SyncJiraEmpty projectKeys={projectKeys} />
       ) : (
         <DeliveryAnalysisDashboard
           projectKeys={projectKeys}
           lastSyncedAt={lastSyncedAt}
           canSync={canSync}
-          isDemo={!hasSnapshot}
         />
       )}
     </div>

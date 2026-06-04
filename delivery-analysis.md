@@ -1,7 +1,7 @@
 # Delivery analysis — Jira operational intelligence
 
 **Last updated:** 2026-06-04  
-**Status:** P2b sync enrichment complete — P3 history & trends next  
+**Status:** P3 history & trends complete — P3b scheduled sync next  
 **Owner agents:** `/frontend` (page & components), `/backend` (snapshot rollup, history, APIs), `/architect` (review before merge)
 
 **Related docs:** [`docs/jira-integration.md`](docs/jira-integration.md) · [`code-analysis.md`](code-analysis.md) · [`docs/AIDOS-USP.md`](docs/AIDOS-USP.md) · [`feature-flag.md`](feature-flag.md)
@@ -445,10 +445,10 @@ All routes: `organizationId` from session, Zod query validation, never return OA
 
 ### 9.6 Acceptance criteria — P3 (history & trends)
 
-- [ ] Prisma models migrated
-- [ ] Each Jira sync appends history row; trend chart shows ≥2 points
-- [ ] KPI deltas vs previous sync
-- [ ] `npm run build` passes
+- [x] Prisma models migrated
+- [x] Each Jira sync appends history row; trend chart shows ≥2 points
+- [x] KPI deltas vs previous sync
+- [x] `npm run build` passes
 
 ---
 
@@ -480,7 +480,7 @@ Cap API calls: max 10 projects × (5 base + 2 per version capped at 5 versions) 
 | **P1 — UI shell** | Page, components, mock data, nav flag, empty states | ✅ Done |
 | **P2 — Live rollup** | `compute-snapshot`, portfolio health, snapshot + export APIs, wire dashboard | ✅ Done |
 | **P2b — Sync enrichment** | Per-version counts, throughput, status buckets (if needed for tabs) | ✅ Done |
-| **P3 — History & trends** | Prisma snapshots, deltas, trend chart | Not started |
+| **P3 — History & trends** | Prisma snapshots, deltas, trend chart | ✅ Done |
 | **P3b — Scheduled sync** | External cron → `POST .../jira/sync` (platform worker) | Not started |
 | **P4 — Governance** | Signals → recommendations, DNA policies | Not started |
 

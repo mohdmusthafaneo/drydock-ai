@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { DeliveryAnalysisFilters, DeliveryAnalysisSnapshot } from "@/lib/delivery-analysis/types";
-import { getMockDeliveryAnalysisSnapshot } from "@/lib/delivery-analysis/mock-data";
 import { AnalysisFiltersBar } from "@/components/delivery-analysis/analysis-filters";
 import { KpiStrip } from "@/components/delivery-analysis/kpi-strip";
 import { RiskMixChart } from "@/components/delivery-analysis/risk-mix-chart";
@@ -12,21 +11,20 @@ import { ProjectBreakdown } from "@/components/delivery-analysis/project-breakdo
 import { SprintCards } from "@/components/delivery-analysis/sprint-cards";
 import { DeliverySignalsCard } from "@/components/delivery-analysis/delivery-signals";
 import { AnalysisTabs } from "@/components/delivery-analysis/analysis-tabs";
+import { SnapshotUnavailable } from "@/components/delivery-analysis/snapshot-unavailable";
 
 type Props = {
   projectKeys: string[];
   lastSyncedAt: string | null;
   canSync: boolean;
-  isDemo?: boolean;
 };
 
-type SnapshotSource = "mock" | "jira" | "loading";
+type LoadState = "loading" | "ready" | "missing" | "error" | "empty_filter";
 
 export function DeliveryAnalysisDashboard({
   projectKeys,
   lastSyncedAt,
   canSync,
-  isDemo = false,
 }: Props) {
   const router = useRouter();
   const [filters, setFilters] = useState<DeliveryAnalysisFilters>({
@@ -38,23 +36,12 @@ export function DeliveryAnalysisDashboard({
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
-  const [source, setSource] = useState<SnapshotSource>(isDemo ? "mock" : "loading");
+  const [loadState, setLoadState] = useState<LoadState>("loading");
   const [syncedAt, setSyncedAt] = useState<string | null>(lastSyncedAt);
-  const [liveSnapshot, setLiveSnapshot] = useState<DeliveryAnalysisSnapshot | null>(null);
-
-  const mockSnapshot = useMemo(
-    () => getMockDeliveryAnalysisSnapshot(filters),
-    [filters],
-  );
-
-  const snapshot =
-    source === "jira" && liveSnapshot ? liveSnapshot : mockSnapshot;
+  const [snapshot, setSnapshot] = useState<DeliveryAnalysisSnapshot | null>(null);
 
   const fetchSnapshot = useCallback(async () => {
-    if (isDemo) {
-      setSource("mock");
-      return;
-    }
+    setLoadState("loading");
 
     const params = new URLSearchParams({
       range: filters.range,
@@ -65,60 +52,65 @@ export function DeliveryAnalysisDashboard({
       params.set("projectKey", filters.projectKey);
     }
 
-    const res = await fetch(`/api/delivery-analysis/snapshot?${params}`, {
-      credentials: "same-origin",
-    });
+    try {
+      const res = await fetch(`/api/delivery-analysis/snapshot?${params}`, {
+        credentials: "same-origin",
+      });
 
-    if (res.status === 404) {
-      setSource("loading");
-      setLiveSnapshot(null);
-      return;
+      if (res.status === 404) {
+        setSnapshot(null);
+        setLoadState("missing");
+        return;
+      }
+
+      if (!res.ok) {
+        setSnapshot(null);
+        setLoadState("error");
+        return;
+      }
+
+      const data = (await res.json()) as {
+        source: string;
+        syncedAt: string | null;
+        snapshot: DeliveryAnalysisSnapshot;
+      };
+
+      setSyncedAt(data.syncedAt);
+      setSnapshot(data.snapshot);
+
+      if (data.snapshot.byProject.length === 0) {
+        setLoadState("empty_filter");
+      } else {
+        setLoadState("ready");
+      }
+    } catch {
+      setSnapshot(null);
+      setLoadState("error");
     }
-
-    if (!res.ok) {
-      setSource("mock");
-      return;
-    }
-
-    const data = (await res.json()) as {
-      source: string;
-      syncedAt: string | null;
-      snapshot: DeliveryAnalysisSnapshot;
-    };
-
-    setSource(data.source === "jira" ? "jira" : "mock");
-    setSyncedAt(data.syncedAt);
-    if (data.source === "jira") {
-      setLiveSnapshot(data.snapshot);
-    } else {
-      setLiveSnapshot(null);
-    }
-  }, [filters.range, filters.riskFocus, filters.compare, filters.projectKey, isDemo]);
+  }, [filters.range, filters.riskFocus, filters.compare, filters.projectKey]);
 
   useEffect(() => {
     void fetchSnapshot();
   }, [fetchSnapshot]);
 
   const staleBanner = useMemo(() => {
-    const at = source === "jira" ? syncedAt : lastSyncedAt;
+    const at = loadState === "ready" ? syncedAt : lastSyncedAt;
     if (!at) return null;
     const hours = (Date.now() - new Date(at).getTime()) / 3600000;
     if (hours > 24) {
       return `Last synced ${formatRelative(at)} — data may be stale. Sync for fresh counts.`;
     }
     return null;
-  }, [source, syncedAt, lastSyncedAt]);
+  }, [loadState, syncedAt, lastSyncedAt]);
 
   const lastSyncedLabel =
-    isDemo
-      ? `Demo data · ${projectKeys.length} project${projectKeys.length === 1 ? "" : "s"}`
-      : source === "jira" && syncedAt
-        ? `Live data · last synced ${formatRelative(syncedAt)}`
-        : source === "loading"
-          ? "Loading…"
-          : lastSyncedAt
-            ? `Last synced ${formatRelative(lastSyncedAt)}`
-            : "Not synced yet";
+    loadState === "ready" && syncedAt
+      ? `Live data · last synced ${formatRelative(syncedAt)}`
+      : loadState === "loading"
+        ? "Loading…"
+        : lastSyncedAt
+          ? `Last synced ${formatRelative(lastSyncedAt)}`
+          : "Not synced yet";
 
   function updateFilters(next: Partial<DeliveryAnalysisFilters>) {
     setFilters((prev) => ({ ...prev, ...next }));
@@ -157,6 +149,7 @@ export function DeliveryAnalysisDashboard({
   }
 
   function handleExport() {
+    if (loadState !== "ready" || !snapshot) return;
     const params = new URLSearchParams({
       range: filters.range,
       riskFocus: filters.riskFocus,
@@ -168,7 +161,7 @@ export function DeliveryAnalysisDashboard({
   }
 
   const selectedProject = filters.projectKey;
-  const showDemoBanner = isDemo || source === "mock";
+  const showMetrics = loadState === "ready" && snapshot;
 
   return (
     <div className="space-y-6">
@@ -181,17 +174,10 @@ export function DeliveryAnalysisDashboard({
         syncing={syncing}
         canSync={canSync}
         lastSyncedLabel={lastSyncedLabel}
+        exportDisabled={!showMetrics}
       />
 
-      {showDemoBanner && (
-        <p className="rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm text-secondary">
-          {isDemo
-            ? "Showing demo data for layout validation. Sync Jira on integrations for live delivery metrics."
-            : "Could not load live snapshot. Sync Jira on Integrations, then refresh this page."}
-        </p>
-      )}
-
-      {staleBanner && source === "jira" && (
+      {staleBanner && showMetrics && (
         <p className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning">
           {staleBanner}
         </p>
@@ -209,33 +195,54 @@ export function DeliveryAnalysisDashboard({
         </p>
       )}
 
-      <p className="text-xs text-muted">
-        {snapshot.rangeLabel}
-        {selectedProject ? ` · ${selectedProject}` : ` · ${snapshot.projectKeys.length} projects`}
-        · Counts from JQL at last sync — not live Jira.
-      </p>
+      {loadState === "loading" && <SnapshotUnavailable variant="loading" />}
 
-      <KpiStrip kpis={snapshot.kpis} projectCount={snapshot.byProject.length} />
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <RiskMixChart riskMix={snapshot.riskMix} />
-        <TrendChart trend={snapshot.trend} hasHistory={source === "mock" && snapshot.trend.length >= 2} />
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <ProjectBreakdown
-          items={snapshot.byProject}
-          onSelectProject={handleProjectSelect}
-          selectedProject={selectedProject}
-        />
-        <SprintCards sprints={snapshot.sprints} siteUrl={snapshot.siteUrl} />
-      </div>
-
-      {snapshot.signals.length > 0 && (
-        <DeliverySignalsCard signals={snapshot.signals} siteUrl={snapshot.siteUrl} />
+      {loadState === "missing" && (
+        <SnapshotUnavailable variant="missing" projectKeys={projectKeys} onRetry={fetchSnapshot} />
       )}
 
-      <AnalysisTabs snapshot={snapshot} />
+      {loadState === "error" && (
+        <SnapshotUnavailable variant="error" projectKeys={projectKeys} onRetry={fetchSnapshot} />
+      )}
+
+      {loadState === "empty_filter" && (
+        <SnapshotUnavailable
+          variant="empty_filter"
+          projectKeys={projectKeys}
+          filterProjectKey={filters.projectKey}
+          onRetry={fetchSnapshot}
+        />
+      )}
+
+      {showMetrics && (
+        <>
+          <p className="text-xs text-muted">
+            {snapshot.rangeLabel}
+            {selectedProject ? ` · ${selectedProject}` : ` · ${snapshot.projectKeys.length} projects`}
+            · Counts from JQL at last sync — not live Jira.
+          </p>
+
+          <KpiStrip kpis={snapshot.kpis} projectCount={snapshot.byProject.length} />
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <RiskMixChart riskMix={snapshot.riskMix} />
+            <TrendChart trend={snapshot.trend} hasHistory={snapshot.trend.length >= 2} />
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <ProjectBreakdown
+              items={snapshot.byProject}
+              onSelectProject={handleProjectSelect}
+              selectedProject={selectedProject}
+            />
+            <SprintCards sprints={snapshot.sprints} siteUrl={snapshot.siteUrl} />
+          </div>
+
+          <DeliverySignalsCard signals={snapshot.signals} siteUrl={snapshot.siteUrl} />
+
+          <AnalysisTabs snapshot={snapshot} />
+        </>
+      )}
     </div>
   );
 }

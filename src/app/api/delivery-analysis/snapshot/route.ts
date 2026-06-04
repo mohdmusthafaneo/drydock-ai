@@ -3,7 +3,8 @@ import { z } from "zod";
 import { getSession } from "@/lib/session";
 import { requirePermission } from "@/lib/rbac";
 import type { DeliveryAnalysisFilters } from "@/lib/delivery-analysis/types";
-import { deliveryAnalysisForFilters, resolveStoredJiraDelivery } from "@/lib/delivery-analysis/resolve";
+import { enrichDeliverySnapshot } from "@/lib/delivery-analysis/history";
+import { resolveStoredJiraDelivery } from "@/lib/delivery-analysis/resolve";
 
 const querySchema = z.object({
   projectKey: z.string().min(1).max(32).optional(),
@@ -52,13 +53,21 @@ export async function GET(request: Request) {
     compare: query.compare ?? "previous_sync",
   };
 
-  const snapshot = deliveryAnalysisForFilters(stored, filters);
+  try {
+    const snapshot = await enrichDeliverySnapshot(session.organizationId, stored, filters);
 
-  return NextResponse.json({
-    ok: true,
-    source: "jira",
-    syncedAt: stored.snapshot.syncedAt,
-    projectKeys: stored.projectKeys,
-    snapshot,
-  });
+    return NextResponse.json({
+      ok: true,
+      source: "jira",
+      syncedAt: stored.snapshot.syncedAt,
+      projectKeys: stored.projectKeys,
+      snapshot,
+    });
+  } catch (error) {
+    console.error("[delivery-analysis/snapshot]", error);
+    return NextResponse.json(
+      { error: "Failed to compute delivery analysis snapshot." },
+      { status: 500 },
+    );
+  }
 }

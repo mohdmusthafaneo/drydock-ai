@@ -128,6 +128,7 @@ model Organization {
   codeAnalysisRuns   CodeAnalysisRun[]
   codeAnalysisCommits CodeAnalysisCommit[]
   codeAnalysisPullRequests CodeAnalysisPullRequest[]
+  deliveryAnalysisSnapshots DeliveryAnalysisSnapshot[]
 }
 
 enum MetricSource {
@@ -632,4 +633,24 @@ model CodeAnalysisPullRequest {
 
   @@unique([organizationId, externalId])
   @@index([organizationId, mergedAt])
+}
+
+/// Computed delivery-analysis rollup per Jira sync (portfolio scope, for trends and deltas).
+model DeliveryAnalysisSnapshot {
+  id              String   @id @default(cuid())
+  organizationId  String
+  integrationId   String?
+  healthScore     Int
+  openWork        Int
+  blocked         Int      @default(0)
+  overdue         Int      @default(0)
+  bugsOpen        Int      @default(0)
+  projectKeysJson String   @default("[]")
+  snapshotJson    String
+  syncedAt        DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, syncedAt])
 }

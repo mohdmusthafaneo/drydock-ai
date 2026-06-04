@@ -21,7 +21,7 @@ export function TrendChart({ trend, hasHistory }: Props) {
           <div className="flex min-h-[160px] flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-elevated/30 p-6 text-center">
             <TrendingUp className="h-8 w-8 text-muted" />
             <p className="text-sm text-secondary">Sync at least twice to see trends</p>
-            <p className="text-xs text-muted">History tracking ships in a later phase</p>
+            <p className="text-xs text-muted">Each Jira sync adds a history point</p>
           </div>
         </CardContent>
       </Card>
@@ -35,7 +35,7 @@ export function TrendChart({ trend, hasHistory }: Props) {
     <Card className="h-full">
       <CardHeader>
         <CardTitle className="text-base">Health trend</CardTitle>
-        <CardDescription>Demo trend from mock sync history</CardDescription>
+        <CardDescription>Delivery health and open work over sync history</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex items-end gap-2 sm:gap-3" style={{ minHeight: 160 }}>

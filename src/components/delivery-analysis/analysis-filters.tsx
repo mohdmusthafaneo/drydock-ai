@@ -14,6 +14,7 @@ type Props = {
   syncing: boolean;
   canSync: boolean;
   lastSyncedLabel: string;
+  exportDisabled?: boolean;
 };
 
 export function AnalysisFiltersBar({
@@ -25,6 +26,7 @@ export function AnalysisFiltersBar({
   syncing,
   canSync,
   lastSyncedLabel,
+  exportDisabled = false,
 }: Props) {
   return (
     <div className="sticky top-0 z-10 -mx-1 rounded-xl border border-border bg-surface/95 p-3 backdrop-blur-sm">
@@ -71,7 +73,14 @@ export function AnalysisFiltersBar({
 
         <div className="flex flex-wrap items-center gap-2">
           <span className="hidden text-xs text-muted sm:inline">{lastSyncedLabel}</span>
-          <Button type="button" variant="secondary" size="sm" onClick={onExport}>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={onExport}
+            disabled={exportDisabled}
+            title={exportDisabled ? "Sync Jira and load data before exporting" : undefined}
+          >
             <Download className="h-3.5 w-3.5" />
             Export
           </Button>

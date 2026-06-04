@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/prisma";
+import { computeDeliveryAnalysisFromJira } from "@/lib/delivery-analysis/compute-snapshot";
+import { persistDeliveryAnalysisSnapshot } from "@/lib/delivery-analysis/persist";
 import { markIntegrationSync } from "@/lib/integration-health";
 import {
   countIssuesByJql,
@@ -293,6 +295,17 @@ export async function syncJiraIntegration(input: {
   const totalVersions = projects.reduce((n, p) => n + p.versions.length, 0);
   const summary = `Synced ${projects.map((p) => p.key).join(", ")} · ${totalOpen} open · ${totalBlocked} blocked · ${totalVersions} versions`;
 
+  const analysisRollup = computeDeliveryAnalysisFromJira({
+    jiraSnapshot: deliverySnapshot,
+    siteUrl: meta.siteUrl,
+    filters: {
+      projectKey: null,
+      riskFocus: "all",
+      range: "30d",
+      compare: "previous_sync",
+    },
+  });
+
   await ingestNormalizedEvents({
     organizationId: input.organizationId,
     userId: input.userId,
@@ -304,6 +317,12 @@ export async function syncJiraIntegration(input: {
     projectKeys: projects.map((p) => p.key),
     lastSyncSummary: summary,
     deliverySnapshot,
+    deliveryAnalysisSnapshot: {
+      generatedAt: analysisRollup.generatedAt,
+      healthScore: analysisRollup.kpis.healthScore,
+      openWork: analysisRollup.kpis.openWork,
+      projectKeys: analysisRollup.projectKeys,
+    },
     lastError: undefined,
   });
 
@@ -317,6 +336,14 @@ export async function syncJiraIntegration(input: {
   });
 
   await markIntegrationSync(input.organizationId, "JIRA");
+
+  await persistDeliveryAnalysisSnapshot({
+    organizationId: input.organizationId,
+    integrationId: integration.id,
+    jiraSnapshot: deliverySnapshot,
+    siteUrl: meta.siteUrl,
+    syncedAt: new Date(syncedAt),
+  });
 
   await prisma.activityEvent.create({
     data: {
@@ -341,6 +368,19 @@ export async function syncJiraIntegration(input: {
       metadataJson: JSON.stringify({
         projectKeys: projects.map((p) => p.key),
         openIssues: totalOpen,
+      }),
+    },
+  });
+
+  await prisma.activityEvent.create({
+    data: {
+      organizationId: input.organizationId,
+      type: "delivery_analysis.synced",
+      title: "Delivery analysis snapshot saved",
+      description: `Health ${analysisRollup.kpis.healthScore} · ${analysisRollup.kpis.openWork} open issues`,
+      metadataJson: JSON.stringify({
+        healthScore: analysisRollup.kpis.healthScore,
+        projectCount: projects.length,
       }),
     },
   });

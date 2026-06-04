@@ -59,10 +59,9 @@ export function SelectProjectsEmpty() {
 
 type SyncJiraEmptyProps = {
   projectKeys: string[];
-  onPreviewDemo?: () => void;
 };
 
-export function SyncJiraEmpty({ projectKeys, onPreviewDemo }: SyncJiraEmptyProps) {
+export function SyncJiraEmpty({ projectKeys }: SyncJiraEmptyProps) {
   return (
     <Card className="border-dashed border-brand/30">
       <CardHeader className="text-center">
@@ -83,11 +82,6 @@ export function SyncJiraEmpty({ projectKeys, onPreviewDemo }: SyncJiraEmptyProps
             Sync on integrations
           </Link>
         </Button>
-        {onPreviewDemo && (
-          <Button type="button" variant="ghost" size="sm" onClick={onPreviewDemo}>
-            Preview dashboard layout (demo data)
-          </Button>
-        )}
         <p className="max-w-sm text-center text-xs text-muted">
           Counts are JQL-based at sync time — not live Jira.
         </p>

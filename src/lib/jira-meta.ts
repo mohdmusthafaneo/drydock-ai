@@ -68,6 +68,13 @@ export type JiraIntegrationMeta = {
   projectKeys?: string[];
   lastSyncSummary?: string;
   deliverySnapshot?: JiraDeliverySnapshot;
+  /** Latest computed rollup summary (compat when Prisma history unavailable). */
+  deliveryAnalysisSnapshot?: {
+    generatedAt: string;
+    healthScore: number;
+    openWork: number;
+    projectKeys: string[];
+  };
 };
 
 export function parseJiraMeta(metadataJson: string): Partial<JiraIntegrationMeta> {

@@ -23,6 +23,27 @@ export function RiskMixChart({
   const radius = 40;
   const circumference = 2 * Math.PI * radius;
 
+  if (total === 0) {
+    return (
+      <Card className="h-full">
+        <CardHeader>
+          <CardTitle className="text-base">Risk mix</CardTitle>
+          <CardDescription>
+            Open work by risk category · counts at last sync, not live Jira
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex min-h-[160px] flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-elevated/30 p-6 text-center">
+            <p className="text-sm text-secondary">No open issues in scope</p>
+            <p className="text-xs text-muted">
+              All projects may be clear, or the selected filter has no open work at last sync.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="h-full">
       <CardHeader>

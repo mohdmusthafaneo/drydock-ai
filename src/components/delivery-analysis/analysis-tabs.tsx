@@ -269,6 +269,14 @@ function ProjectsTab({
   expandedProject: string | null;
   onToggleExpand: (key: string) => void;
 }) {
+  if (snapshot.byProject.length === 0) {
+    return (
+      <p className="py-4 text-sm text-muted">
+        No projects in scope for the current filters.
+      </p>
+    );
+  }
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
