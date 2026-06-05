@@ -1,7 +1,7 @@
 # Prometheus analysis — operational reliability intelligence
 
 **Last updated:** 2026-06-05 (audit pass)  
-**Status:** P0 spec — not started · codebase audit verified against `src/` and `prisma/schema.prisma`  
+**Status:** P1 UI shell — done · P2+ not started · codebase audit verified against `src/` and `prisma/schema.prisma`  
 **Owner agents:** `/frontend` (page & components), `/backend` (Prometheus connect, PromQL sync, scoring engine), `/architect` (review before merge)
 
 **Related docs:** [`docs/AIDOS-USP.md`](docs/AIDOS-USP.md) · [`delivery-analysis.md`](delivery-analysis.md) · [`code-analysis.md`](code-analysis.md) · [`feature-flag.md`](feature-flag.md) · [`docs/prometheus-integration.md`](docs/prometheus-integration.md) *(to be created — connection & sync contract)*
@@ -681,13 +681,13 @@ All routes: `organizationId` from session, Zod validation, never return API toke
 
 ### 10.4 Acceptance criteria — P1 (UI shell)
 
-- [ ] Page loads at `/observability` for Enterprise org with DNA
-- [ ] Four KPI cards + health mix + service breakdown + resource cards with mock data
-- [ ] Tabs switch without full page reload
-- [ ] Filters narrow mock dataset by service and environment
-- [ ] Prometheus not connected / no scopes / no sync states render correct CTAs
-- [ ] Mobile: KPIs 2×2; tabs scroll horizontally; `pb-24`
-- [ ] `npm run build` passes
+- [x] Page loads at `/observability` for Enterprise org with DNA
+- [x] Four KPI cards + health mix + service breakdown + resource cards with mock data
+- [x] Tabs switch without full page reload
+- [x] Filters narrow mock dataset by service and environment
+- [x] Prometheus not connected / no scopes / no sync states render correct CTAs
+- [x] Mobile: KPIs 2×2; tabs scroll horizontally; `pb-24`
+- [x] `npm run build` passes
 
 ### 10.5 Acceptance criteria — P2 (live data)
 
@@ -790,7 +790,7 @@ Weights are **defaults for open question §17** — implementer must not assume 
 | Phase | Scope | Status |
 |-------|--------|--------|
 | **P0 — Spec** | This document + `docs/prometheus-integration.md` outline | ✅ Done (this doc) |
-| **P1 — UI shell** | Upgrade `/observability`, components, mock data, MVP/DNA guards, empty states | Not started |
+| **P1 — UI shell** | Upgrade `/observability`, components, mock data, MVP/DNA guards, empty states | ✅ Done |
 | **P2a — Connect** | URL + token, probe, encrypt credentials, integration panel | Not started |
 | **P2b — Scope picker** | Discover jobs/services, save `serviceScopes`, PromQL template catalog | Not started |
 | **P2c — Sync pipeline** | `prometheus-api.ts`, `prometheus-sync.ts`, write `TelemetryMetric` + `operationalSnapshot` | Not started |

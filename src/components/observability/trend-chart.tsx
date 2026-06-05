@@ -1,0 +1,81 @@
+"use client";
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import type { ObservabilityAnalysisTrendPoint } from "@/lib/observability-analysis/types";
+import { TrendingUp } from "lucide-react";
+
+type Props = {
+  trend: ObservabilityAnalysisTrendPoint[];
+  hasHistory: boolean;
+};
+
+export function TrendChart({ trend, hasHistory }: Props) {
+  if (!hasHistory || trend.length < 2) {
+    return (
+      <Card className="h-full">
+        <CardHeader>
+          <CardTitle className="text-base">Reliability trend</CardTitle>
+          <CardDescription>Health score and error rate over sync history</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex min-h-[160px] flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-elevated/30 p-6 text-center">
+            <TrendingUp className="h-8 w-8 text-muted" />
+            <p className="text-sm text-secondary">Sync at least twice to see trends</p>
+            <p className="text-xs text-muted">Each Prometheus sync adds a history point</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const maxScore = 100;
+  const maxError = Math.max(...trend.map((t) => t.errorRate), 0.01);
+
+  return (
+    <Card className="h-full">
+      <CardHeader>
+        <CardTitle className="text-base">Reliability trend</CardTitle>
+        <CardDescription>Health score and error rate over sync history</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-end gap-2 sm:gap-3" style={{ minHeight: 160 }}>
+          {trend.map((point) => {
+            const scoreHeight = (point.healthScore / maxScore) * 100;
+            const errorHeight = (point.errorRate / maxError) * 100;
+            const label = new Date(point.syncedAt).toLocaleDateString(undefined, {
+              month: "short",
+              day: "numeric",
+            });
+            return (
+              <div key={point.syncedAt} className="flex min-w-0 flex-1 flex-col items-center gap-1">
+                <div className="flex w-full max-w-[48px] items-end gap-0.5" style={{ height: 140 }}>
+                  <div
+                    className="flex-1 rounded-t bg-enterprise/80"
+                    style={{ height: `${scoreHeight}%` }}
+                    title={`Health: ${point.healthScore}`}
+                  />
+                  <div
+                    className="flex-1 rounded-t bg-warning/60"
+                    style={{ height: `${errorHeight}%` }}
+                    title={`Error rate: ${point.errorRate}%`}
+                  />
+                </div>
+                <span className="max-w-full truncate text-[10px] text-muted">{label}</span>
+              </div>
+            );
+          })}
+        </div>
+        <div className="mt-4 flex flex-wrap gap-4 text-xs text-secondary">
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-sm bg-enterprise/80" />
+            Health score
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-sm bg-warning/60" />
+            Error rate
+          </span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
