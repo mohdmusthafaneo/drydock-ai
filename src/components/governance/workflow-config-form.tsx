@@ -7,6 +7,13 @@ import { WORKFLOW_MODES } from "@/lib/agents";
 import type { AutonomyMode } from "@/generated/prisma/client";
 import { cn } from "@/lib/utils";
 
+type WorkflowExecutionStatus = "ACTIVE" | "PAUSED" | "COMPLETED";
+
+function normalizeExecutionStatus(status: string): WorkflowExecutionStatus {
+  if (status === "PAUSED" || status === "COMPLETED") return status;
+  return "ACTIVE";
+}
+
 export function WorkflowConfigForm({
   currentMode,
   executionStatus,
@@ -16,7 +23,9 @@ export function WorkflowConfigForm({
 }) {
   const router = useRouter();
   const [mode, setMode] = useState<AutonomyMode>(currentMode);
-  const [status, setStatus] = useState(executionStatus);
+  const [status, setStatus] = useState<WorkflowExecutionStatus>(
+    normalizeExecutionStatus(executionStatus),
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,7 +55,7 @@ export function WorkflowConfigForm({
         <p className="mb-3 text-sm font-medium text-slate-300">Workflow execution</p>
         <select
           value={status}
-          onChange={(e) => setStatus(e.target.value)}
+          onChange={(e) => setStatus(e.target.value as WorkflowExecutionStatus)}
           className="w-full rounded-lg border border-white/10 bg-[#131A2A] px-3 py-2 text-sm"
         >
           <option value="ACTIVE">Active</option>

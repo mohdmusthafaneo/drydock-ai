@@ -35,7 +35,7 @@ export default async function WorkflowConfigurationPage() {
         <CardContent>
           <WorkflowConfigForm
             currentMode={dna.autonomyMode}
-            executionStatus={workflow?.executionStatus ?? "NOT_CONFIGURED"}
+            executionStatus={workflow?.executionStatus ?? "ACTIVE"}
           />
         </CardContent>
       </Card>
