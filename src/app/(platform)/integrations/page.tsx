@@ -16,6 +16,8 @@ import { IntegrationAlerts } from "@/components/integrations/integration-alerts"
 import { SyncIntegrationsButton } from "@/components/integrations/integration-health-actions";
 import { GitHubIntegrationPanel } from "@/components/integrations/github-integration-panel";
 import { JiraIntegrationPanel } from "@/components/integrations/jira-integration-panel";
+import { PrometheusIntegrationPanel } from "@/components/integrations/prometheus-integration-panel";
+import { isPrometheusTrulyConnected, parsePrometheusMeta } from "@/lib/prometheus-meta";
 import { DisconnectButton, StubConnectButton } from "@/components/integrations/integration-actions";
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -127,6 +129,10 @@ export default async function IntegrationsPage({
           const h = health[idx];
           const isGitHub = integration.provider === "GITHUB";
           const isJira = integration.provider === "JIRA";
+          const isPrometheus = integration.provider === "PROMETHEUS";
+          const prometheusMeta = isPrometheus
+            ? parsePrometheusMeta(integration.metadataJson)
+            : null;
           const isConnected = integration.status === "CONNECTED";
 
           return (
@@ -174,6 +180,20 @@ export default async function IntegrationsPage({
                     selectedProjectKeys={jiraMeta.projectKeys}
                     deliverySnapshot={jiraMeta.deliverySnapshot}
                     availableSitesCount={jiraMeta.availableSites?.length}
+                    canManage={canManage}
+                  />
+                ) : isPrometheus ? (
+                  <PrometheusIntegrationPanel
+                    connected={isConnected}
+                    trulyConnected={isPrometheusTrulyConnected(integration)}
+                    prometheusUrl={prometheusMeta?.prometheusUrl}
+                    authType={prometheusMeta?.authType}
+                    basicUsername={prometheusMeta?.basicUsername}
+                    connectedAt={integration.connectedAt?.toISOString()}
+                    connectionStatus={prometheusMeta?.connectionStatus}
+                    lastError={prometheusMeta?.lastError ?? integration.lastError ?? undefined}
+                    lastSyncSummary={prometheusMeta?.lastSyncSummary}
+                    selectedServiceScopes={prometheusMeta?.serviceScopes}
                     canManage={canManage}
                   />
                 ) : (
