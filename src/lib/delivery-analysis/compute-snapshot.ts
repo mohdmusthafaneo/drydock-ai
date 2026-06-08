@@ -12,6 +12,7 @@ import {
   type JiraDeliveryGap,
   type JiraDeliverySignal,
 } from "@/lib/jira-delivery-health";
+import type { ToolchainMapping } from "@/lib/toolchain-mapping";
 
 type SnapshotProject = DeliveryAnalysisProjectRow & {
   versions: Omit<DeliveryAnalysisVersionRow, "projectKey" | "projectName">[];
@@ -37,6 +38,7 @@ function sprintSeverity(pct: number): DeliveryAnalysisSprintRow["severity"] {
 function jiraProjectsToSnapshotRows(
   jiraSnapshot: JiraDeliverySnapshot,
   projectKey: string | null,
+  mapping?: ToolchainMapping["jira"],
 ): SnapshotProject[] {
   const projects = projectKey
     ? jiraSnapshot.projects.filter((p) => p.key === projectKey)
@@ -46,6 +48,7 @@ function jiraProjectsToSnapshotRows(
     const health = analyzePortfolioDeliveryHealth({
       snapshot: jiraSnapshot,
       projectKey: p.key,
+      mapping,
     });
 
     const sprint = p.activeSprint;
@@ -101,11 +104,13 @@ export function computeDeliveryAnalysisFromJira(input: {
   jiraSnapshot: JiraDeliverySnapshot;
   siteUrl?: string;
   filters: DeliveryAnalysisFilters;
+  mapping?: ToolchainMapping["jira"];
 }): DeliveryAnalysisSnapshot {
-  const allRows = jiraProjectsToSnapshotRows(input.jiraSnapshot, null);
+  const allRows = jiraProjectsToSnapshotRows(input.jiraSnapshot, null, input.mapping);
   const health = analyzePortfolioDeliveryHealth({
     snapshot: input.jiraSnapshot,
     projectKey: input.filters.projectKey,
+    mapping: input.mapping,
   });
 
   return computeDeliveryAnalysisSnapshot({

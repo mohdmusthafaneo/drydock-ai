@@ -1,6 +1,14 @@
 import type { Integration, OrganizationProfile } from "@/generated/prisma/client";
+import { prisma } from "@/lib/prisma";
 import { parseIntegrationMeta } from "@/lib/integration-meta";
-import { isJiraOAuthConnected, parseJiraMeta } from "@/lib/jira-meta";
+import {
+  isJiraOAuthConnected,
+  parseJiraMeta,
+  type JiraFieldRef,
+  type JiraSchemaSnapshot,
+} from "@/lib/jira-meta";
+import { suggestionConfidence } from "@/lib/jira-introspection";
+import type { GitHubSchemaSnapshot } from "@/lib/github-introspection";
 
 /** Org-specific semantics for Jira/GitHub — confirmed after integration sync. */
 export type ToolchainMapping = {
@@ -10,22 +18,61 @@ export type ToolchainMapping = {
     usesSprints: boolean;
     releaseTracking: "fixVersion" | "sprint" | "labels" | "none";
     blockedStatusName: string;
+    blockedStatusId?: string;
     bugIssueType: string;
+    bugIssueTypeId?: string;
     doneStatusCategory: "Done" | "Complete" | "Closed";
-    storyPointField?: string;
+    doneStatusNames?: string[];
+    storyPointField?: JiraFieldRef;
+    releaseLabelPrefix?: string;
+    sprintField?: JiraFieldRef;
+    projectOverrides?: Record<string, Partial<ToolchainMapping["jira"]>>;
   };
   github?: {
     primaryDefaultBranch: string;
     branchStrategy: "trunk" | "gitflow" | "release-branches" | "custom";
     tracksPrsForRelease: boolean;
+    releaseBranchPattern?: string;
+    productionBranch?: string;
   };
   inferredFrom?: {
     jiraSyncedAt?: string;
     githubSyncedAt?: string;
+    jiraSchemaSyncedAt?: string;
     discoveryWorkflows?: string[];
+    suggestionConfidence?: "high" | "medium" | "low";
   };
   confirmedAt?: string;
 };
+
+export function applyJiraSchemaSuggestions(
+  mapping: ToolchainMapping,
+  schema: JiraSchemaSnapshot,
+): ToolchainMapping {
+  const s = schema.suggestions;
+  const jira = mapping.jira;
+  if (!jira) return mapping;
+
+  return {
+    ...mapping,
+    jira: {
+      ...jira,
+      blockedStatusName: s.blockedStatus?.name ?? jira.blockedStatusName,
+      blockedStatusId: s.blockedStatus?.id || undefined,
+      bugIssueType: s.bugIssueType?.name ?? jira.bugIssueType,
+      bugIssueTypeId: s.bugIssueType?.id || undefined,
+      releaseTracking: s.releaseTracking?.mode ?? jira.releaseTracking,
+      storyPointField: s.storyPointField
+        ? { id: s.storyPointField.id, name: s.storyPointField.name }
+        : jira.storyPointField,
+    },
+    inferredFrom: {
+      ...mapping.inferredFrom,
+      jiraSchemaSyncedAt: schema.syncedAt,
+      suggestionConfidence: suggestionConfidence(s),
+    },
+  };
+}
 
 export function parseToolchainMapping(json: string | null | undefined): ToolchainMapping {
   try {
@@ -34,6 +81,16 @@ export function parseToolchainMapping(json: string | null | undefined): Toolchai
   } catch {
     return {};
   }
+}
+
+export async function resolveConfirmedToolchainMapping(
+  organizationId: string,
+): Promise<ToolchainMapping | null> {
+  const profile = await prisma.organizationProfile.findUnique({
+    where: { organizationId },
+  });
+  if (!profile?.toolchainMappingConfirmedAt) return null;
+  return parseToolchainMapping(profile.toolchainMappingJson);
 }
 
 function inferJiraMethodology(
@@ -66,11 +123,19 @@ function inferJiraMethodology(
 function inferGithubMapping(
   defaultBranches: string[],
   discoveryWorkflows: string[],
+  githubSchema?: GitHubSchemaSnapshot,
 ): NonNullable<ToolchainMapping["github"]> {
-  const primaryDefaultBranch = defaultBranches[0] ?? "main";
-  let branchStrategy: "trunk" | "gitflow" | "release-branches" | "custom" = "trunk";
+  const suggestion = githubSchema?.suggestions;
+  const primaryDefaultBranch =
+    suggestion?.productionBranch?.value ?? defaultBranches[0] ?? "main";
 
-  if (discoveryWorkflows.includes("gitflow")) {
+  let branchStrategy: "trunk" | "gitflow" | "release-branches" | "custom" = "trunk";
+  if (suggestion?.branchStrategy?.value) {
+    const v = suggestion.branchStrategy.value;
+    if (v === "gitflow" || v === "release-branches" || v === "trunk" || v === "custom") {
+      branchStrategy = v;
+    }
+  } else if (discoveryWorkflows.includes("gitflow")) {
     branchStrategy = "gitflow";
   } else if (defaultBranches.some((b) => b === "develop" || b === "development")) {
     branchStrategy = "gitflow";
@@ -82,6 +147,9 @@ function inferGithubMapping(
     primaryDefaultBranch,
     branchStrategy,
     tracksPrsForRelease: true,
+    productionBranch: suggestion?.productionBranch?.value,
+    releaseBranchPattern:
+      branchStrategy === "release-branches" ? "release/*" : undefined,
   };
 }
 
@@ -108,13 +176,18 @@ export function inferToolchainMapping(input: {
 
     mapping.jira = inferJiraMethodology(boardType, hasActiveSprint, discoveryWorkflows);
     mapping.inferredFrom!.jiraSyncedAt = snapshot?.syncedAt ?? jira.lastSyncAt?.toISOString();
+
+    if (meta.jiraSchemaSnapshot) {
+      Object.assign(mapping, applyJiraSchemaSuggestions(mapping, meta.jiraSchemaSnapshot));
+    }
   }
 
   const github = input.integrations.find((i) => i.provider === "GITHUB");
   if (github?.status === "CONNECTED") {
     const meta = parseIntegrationMeta(github.metadataJson);
     const defaultBranches = (meta.repos ?? []).map((r) => r.defaultBranch).filter(Boolean);
-    mapping.github = inferGithubMapping(defaultBranches, discoveryWorkflows);
+    const githubSchema = meta.githubSchemaSnapshot as GitHubSchemaSnapshot | undefined;
+    mapping.github = inferGithubMapping(defaultBranches, discoveryWorkflows, githubSchema);
     mapping.inferredFrom!.githubSyncedAt = github.lastSyncAt?.toISOString();
   }
 

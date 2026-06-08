@@ -5,6 +5,7 @@ export type GitHubRepoSummary = {
   defaultBranch: string;
   updatedAt: string;
   openPrs?: number;
+  commonPrLabels?: string[];
 };
 
 import type { StoredCodeAnalysis } from "@/lib/code-analysis/types";
@@ -37,6 +38,19 @@ export type GitHubIntegrationMeta = {
   };
   /** Latest code analysis ingest (commits + PRs for dashboard filtering) */
   codeAnalysisSnapshot?: StoredCodeAnalysis;
+  githubSchemaSnapshot?: {
+    syncedAt: string;
+    repos: Array<{
+      fullName: string;
+      defaultBranch: string;
+      branches?: string[];
+      commonPrLabels?: string[];
+    }>;
+    suggestions: {
+      branchStrategy?: { value: string; reason: string };
+      productionBranch?: { value: string; reason: string };
+    };
+  };
 };
 
 export function parseIntegrationMeta(metadataJson: string): GitHubIntegrationMeta {

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { resolveJiraAssessContext } from "@/lib/jira-delivery-health";
 import { assessReleaseGovernance } from "@/lib/release-governance";
+import { parseToolchainMapping } from "@/lib/toolchain-mapping";
 
 export async function POST(
   _request: Request,
@@ -49,10 +50,16 @@ export async function POST(
     );
   }
 
+  const toolchainMapping = parseToolchainMapping(profile?.toolchainMappingJson);
+  const jiraMapping = profile?.toolchainMappingConfirmedAt
+    ? toolchainMapping.jira
+    : undefined;
+
   const jira = resolveJiraAssessContext({
     integrations,
     releaseName: release.name,
     version: release.version,
+    mapping: jiraMapping,
   });
 
   const assessment = assessReleaseGovernance({

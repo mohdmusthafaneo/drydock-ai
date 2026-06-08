@@ -15,6 +15,7 @@ import {
   parseIntegrationMeta,
   type GitHubRepoSummary,
 } from "@/lib/integration-meta";
+import { maybeIntrospectGitHubAfterSync } from "@/lib/github-introspection";
 import { ingestNormalizedEvents } from "@/lib/telemetry-ingest";
 
 export async function syncGitHubIntegration(input: {
@@ -101,6 +102,17 @@ export async function syncGitHubIntegration(input: {
 
       repo.openPrs = pulls.length;
 
+      const labelCounts = new Map<string, number>();
+      for (const pr of pulls) {
+        for (const label of pr.labels ?? []) {
+          labelCounts.set(label.name, (labelCounts.get(label.name) ?? 0) + 1);
+        }
+      }
+      repo.commonPrLabels = [...labelCounts.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([name]) => name);
+
       for (const pr of pulls.slice(0, 3)) {
         telemetryEvents.push({
           eventType: "release",
@@ -167,6 +179,8 @@ export async function syncGitHubIntegration(input: {
   });
 
   await markIntegrationSync(input.organizationId, "GITHUB");
+
+  void maybeIntrospectGitHubAfterSync(input.organizationId);
 
   await prisma.activityEvent.create({
     data: {

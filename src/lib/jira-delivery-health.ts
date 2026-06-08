@@ -4,6 +4,7 @@ import {
   parseJiraMeta,
   type JiraDeliverySnapshot,
 } from "@/lib/jira-meta";
+import type { ToolchainMapping } from "@/lib/toolchain-mapping";
 
 export type JiraDeliverySignal = {
   id: string;
@@ -24,7 +25,7 @@ export type JiraVersionMatch = {
   projectName: string;
   versionId: string;
   versionName: string;
-  matchedOn: "releaseName" | "version" | "combined";
+  matchedOn: "releaseName" | "version" | "combined" | "sprint" | "label";
 };
 
 export type JiraDeliveryHealth = {
@@ -46,11 +47,53 @@ function normalizeLabel(value: string): string {
   return value.toLowerCase().replace(/[\s._-]+/g, "");
 }
 
-export function matchReleaseToFixVersion(
+function matchReleaseToSprint(
   releaseName: string,
   version: string | null | undefined,
   snapshot: JiraDeliverySnapshot,
 ): JiraVersionMatch | undefined {
+  const candidates = [releaseName.trim(), version?.trim()].filter(Boolean) as string[];
+
+  for (const project of snapshot.projects) {
+    const sprint = project.activeSprint;
+    if (!sprint) continue;
+
+    for (const candidate of candidates) {
+      const sprintNorm = normalizeLabel(sprint.name);
+      const candidateNorm = normalizeLabel(candidate);
+      if (
+        sprintNorm === candidateNorm ||
+        sprintNorm.includes(candidateNorm) ||
+        candidateNorm.includes(sprintNorm)
+      ) {
+        return {
+          projectKey: project.key,
+          projectName: project.name,
+          versionId: String(sprint.id),
+          versionName: sprint.name,
+          matchedOn: "sprint",
+        };
+      }
+    }
+  }
+  return undefined;
+}
+
+export function matchReleaseToFixVersion(
+  releaseName: string,
+  version: string | null | undefined,
+  snapshot: JiraDeliverySnapshot,
+  mapping?: ToolchainMapping["jira"],
+): JiraVersionMatch | undefined {
+  const tracking = mapping?.releaseTracking ?? "fixVersion";
+
+  if (tracking === "sprint") {
+    return matchReleaseToSprint(releaseName, version, snapshot);
+  }
+
+  if (tracking === "labels" || tracking === "none") {
+    return undefined;
+  }
   const candidates: Array<{ label: string; matchedOn: JiraVersionMatch["matchedOn"] }> = [];
   if (version?.trim()) {
     candidates.push({ label: version.trim(), matchedOn: "version" });
@@ -163,11 +206,20 @@ function scopedProjects(
   return snapshot.projects;
 }
 
+function mappingLabels(mapping?: ToolchainMapping["jira"]) {
+  return {
+    blocked: mapping?.blockedStatusName ?? "Blocked",
+    bug: mapping?.bugIssueType ?? "Bug",
+  };
+}
+
 /** Org- or project-scoped delivery health for the Delivery Analysis dashboard. */
 export function analyzePortfolioDeliveryHealth(input: {
   snapshot: JiraDeliverySnapshot;
   projectKey?: string | null;
+  mapping?: ToolchainMapping["jira"];
 }): JiraDeliveryHealth {
+  const labels = mappingLabels(input.mapping);
   const projects = scopedProjects(input.snapshot, input.projectKey);
   if (projects.length === 0) {
     return {
@@ -194,11 +246,11 @@ export function analyzePortfolioDeliveryHealth(input: {
   signals.push({
     id: "portfolio-blocked",
     category: "blockers",
-    label: isOrgScope ? "Portfolio blocked work" : "Blocked issues",
+    label: isOrgScope ? "Portfolio blocked work" : `${labels.blocked} issues`,
     value:
       metrics.blockedCount > 0
-        ? `${metrics.blockedCount} blocked issue${metrics.blockedCount === 1 ? "" : "s"} in scope`
-        : "No blocked issues in scope",
+        ? `${metrics.blockedCount} in status ${labels.blocked}`
+        : `No issues in status ${labels.blocked}`,
     severity: blockedSeverity,
   });
 
@@ -233,8 +285,8 @@ export function analyzePortfolioDeliveryHealth(input: {
   signals.push({
     id: "bug-backlog",
     category: "quality",
-    label: isOrgScope ? "Bug backlog" : "Open bugs",
-    value: `${metrics.bugsOpen} open bug${metrics.bugsOpen === 1 ? "" : "s"} in scope`,
+    label: isOrgScope ? `${labels.bug} backlog` : `Open ${labels.bug}s`,
+    value: `${metrics.bugsOpen} open ${labels.bug}${metrics.bugsOpen === 1 ? "" : "s"} in scope`,
     severity:
       metrics.bugsOpen >= 15
         ? "critical"
@@ -345,7 +397,7 @@ export function analyzePortfolioDeliveryHealth(input: {
   if (metrics.bugsOpen >= 5) {
     gaps.push({
       area: "Quality",
-      gap: `${metrics.bugsOpen} open bugs in Jira scope`,
+      gap: `${metrics.bugsOpen} open ${labels.bug}s in Jira scope`,
       priority: metrics.bugsOpen >= 10 ? "high" : "medium",
     });
   }
@@ -366,11 +418,14 @@ export function analyzeJiraDeliveryHealth(input: {
   snapshot: JiraDeliverySnapshot;
   releaseName: string;
   version?: string | null;
+  mapping?: ToolchainMapping["jira"];
 }): JiraDeliveryHealth {
+  const labels = mappingLabels(input.mapping);
   const matchedVersion = matchReleaseToFixVersion(
     input.releaseName,
     input.version,
     input.snapshot,
+    input.mapping,
   );
   const scopedProject = pickProjectScope(input.snapshot, matchedVersion);
   const metrics = scopedProject
@@ -392,11 +447,11 @@ export function analyzeJiraDeliveryHealth(input: {
     {
       id: "jira-blocked",
       category: "blockers",
-      label: "Blocked issues",
+      label: `${labels.blocked} issues`,
       value:
         metrics.blockedCount > 0
-          ? `${metrics.blockedCount} open blocked issue${metrics.blockedCount === 1 ? "" : "s"}`
-          : "No blocked issues in scope",
+          ? `${metrics.blockedCount} in status ${labels.blocked}`
+          : `No issues in status ${labels.blocked}`,
       severity:
         metrics.blockedCount >= 5
           ? "critical"
@@ -422,8 +477,8 @@ export function analyzeJiraDeliveryHealth(input: {
     {
       id: "jira-bugs",
       category: "quality",
-      label: "Open bugs",
-      value: `${metrics.bugsOpen} open bug${metrics.bugsOpen === 1 ? "" : "s"} in scope`,
+      label: `Open ${labels.bug}s`,
+      value: `${metrics.bugsOpen} open ${labels.bug}${metrics.bugsOpen === 1 ? "" : "s"} in scope`,
       severity:
         metrics.bugsOpen >= 15
           ? "critical"
@@ -466,10 +521,17 @@ export function analyzeJiraDeliveryHealth(input: {
 
   const gaps: JiraDeliveryGap[] = [];
 
-  if (!matchedVersion && input.snapshot.projects.length > 0) {
+  const tracking = input.mapping?.releaseTracking ?? "fixVersion";
+  if (!matchedVersion && input.snapshot.projects.length > 0 && tracking !== "none") {
+    const target =
+      tracking === "sprint"
+        ? "sprint"
+        : tracking === "labels"
+          ? "release label"
+          : "fix version";
     gaps.push({
       area: "Traceability",
-      gap: `Release "${input.releaseName}"${input.version ? ` (${input.version})` : ""} not matched to a Jira fix version`,
+      gap: `Release "${input.releaseName}"${input.version ? ` (${input.version})` : ""} not matched to a Jira ${target}`,
       priority: "medium",
     });
   }
@@ -477,7 +539,7 @@ export function analyzeJiraDeliveryHealth(input: {
   if (metrics.blockedCount > 0) {
     gaps.push({
       area: "Delivery",
-      gap: `${metrics.blockedCount} blocked issue${metrics.blockedCount === 1 ? "" : "s"} in Jira`,
+      gap: `${metrics.blockedCount} issue${metrics.blockedCount === 1 ? "" : "s"} in status ${labels.blocked}`,
       priority: metrics.blockedCount >= 3 ? "high" : "medium",
     });
   }
@@ -493,7 +555,7 @@ export function analyzeJiraDeliveryHealth(input: {
   if (metrics.bugsOpen >= 5) {
     gaps.push({
       area: "Quality",
-      gap: `${metrics.bugsOpen} open bugs in Jira scope`,
+      gap: `${metrics.bugsOpen} open ${labels.bug}s in Jira scope`,
       priority: metrics.bugsOpen >= 10 ? "high" : "medium",
     });
   }
@@ -536,6 +598,7 @@ export function resolveJiraAssessContext(input: {
   integrations: Integration[];
   releaseName: string;
   version?: string | null;
+  mapping?: ToolchainMapping["jira"];
 }): JiraAssessContext {
   const jira = input.integrations.find(
     (i) => i.provider === "JIRA" && isJiraOAuthConnected(i),
@@ -557,6 +620,7 @@ export function resolveJiraAssessContext(input: {
       snapshot,
       releaseName: input.releaseName,
       version: input.version,
+      mapping: input.mapping,
     }),
   };
 }

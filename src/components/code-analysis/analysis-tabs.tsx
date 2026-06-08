@@ -76,6 +76,8 @@ export function AnalysisTabs({ snapshot }: { snapshot: CodeAnalysisSnapshot }) {
       const av = a[commitSort.key];
       const bv = b[commitSort.key];
       if (av === bv) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
       const cmp = av > bv ? 1 : -1;
       return commitSort.dir === "asc" ? cmp : -cmp;
     });

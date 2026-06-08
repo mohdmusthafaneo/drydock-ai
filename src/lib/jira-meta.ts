@@ -50,6 +50,40 @@ export type JiraDeliverySnapshot = {
   }>;
 };
 
+export type JiraFieldRef = {
+  id: string;
+  name: string;
+  schemaType?: string;
+};
+
+export type JiraSchemaSnapshot = {
+  syncedAt: string;
+  projectKeys: string[];
+  issueTypes: Array<{ id: string; name: string; subtask: boolean; scope?: string }>;
+  statuses: Array<{
+    id: string;
+    name: string;
+    statusCategory: { key: string; name: string };
+    scope?: { projectKey?: string; projectName?: string };
+  }>;
+  fields: Array<{
+    id: string;
+    name: string;
+    custom: boolean;
+    schema?: { type: string; custom?: string };
+    projectKeys?: string[];
+  }>;
+  suggestions: {
+    blockedStatus?: { name: string; id: string; reason: string; confidence: number };
+    bugIssueType?: { name: string; id: string; reason: string; confidence: number };
+    storyPointField?: { id: string; name: string; reason: string; confidence: number };
+    releaseTracking?: {
+      mode: "fixVersion" | "sprint" | "labels" | "none";
+      reason: string;
+    };
+  };
+};
+
 export type JiraIntegrationMeta = {
   mode: "oauth-readonly";
   cloudId: string;
@@ -68,6 +102,7 @@ export type JiraIntegrationMeta = {
   projectKeys?: string[];
   lastSyncSummary?: string;
   deliverySnapshot?: JiraDeliverySnapshot;
+  jiraSchemaSnapshot?: JiraSchemaSnapshot;
   connectedVia?: "session" | "external_link";
   externalConnector?: { displayName?: string; accountId?: string };
   /** Latest computed rollup summary (compat when Prisma history unavailable). */

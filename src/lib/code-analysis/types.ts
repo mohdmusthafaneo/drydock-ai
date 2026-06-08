@@ -42,6 +42,7 @@ export type CodeAnalysisCommit = {
   attribution: AiAttribution;
   confidence: number;
   signals: string[];
+  branch?: string;
 };
 
 export type CodeAnalysisFile = {

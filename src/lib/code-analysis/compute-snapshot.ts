@@ -446,6 +446,10 @@ export function snapshotForStoredData(
     commits = commits.filter((c) => c.author === filters.author);
   }
 
+  if (filters.branch && filters.branch !== "all") {
+    commits = commits.filter((c) => !c.branch || c.branch === filters.branch);
+  }
+
   const prsInRange = filterByTimeRange(prs, range, "mergedAt");
   const commitsInRange = filterByTimeRange(commits, range, "committedAt");
   const priorPrs = filterPriorPeriod(prs, range, "mergedAt");

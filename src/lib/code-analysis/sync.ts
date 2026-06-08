@@ -19,6 +19,7 @@ import {
   type GitHubIntegrationMeta,
 } from "@/lib/integration-meta";
 import { classifyCommit, classifyPullRequest } from "@/lib/code-analysis/classifier";
+import { resolveConfirmedToolchainMapping } from "@/lib/toolchain-mapping";
 import { snapshotForStoredData } from "@/lib/code-analysis/compute-snapshot";
 import {
   loadStoredCodeAnalysisFromDb,
@@ -70,10 +71,28 @@ function countApprovals(reviews: { state: string }[]): number {
   return reviews.filter((r) => r.state === "APPROVED").length;
 }
 
+function resolveAnalysisBranch(
+  defaultBranch: string,
+  githubMapping?: {
+    branchStrategy: string;
+    primaryDefaultBranch?: string;
+    productionBranch?: string;
+  },
+): string {
+  if (!githubMapping || githubMapping.branchStrategy === "trunk") {
+    return defaultBranch;
+  }
+  if (githubMapping.branchStrategy === "gitflow") {
+    return githubMapping.productionBranch ?? "develop";
+  }
+  return githubMapping.productionBranch ?? githubMapping.primaryDefaultBranch ?? defaultBranch;
+}
+
 async function fetchRepoAnalysis(
   token: string,
   fullName: string,
   since: string,
+  branch: string,
 ): Promise<{ commits: CodeAnalysisCommit[]; pullRequests: CodeAnalysisPullRequest[] }> {
   const { owner, repo } = parseOwnerRepo(fullName);
   const commits: CodeAnalysisCommit[] = [];
@@ -82,6 +101,7 @@ async function fetchRepoAnalysis(
   const commitList = await listCommits(token, owner, repo, {
     since,
     perPage: MAX_COMMITS_PER_REPO,
+    sha: branch,
   });
 
   for (const item of commitList.slice(0, MAX_COMMITS_PER_REPO)) {
@@ -110,6 +130,7 @@ async function fetchRepoAnalysis(
         attribution: classified.attribution,
         confidence: classified.confidence,
         signals,
+        branch,
       });
     } catch (e) {
       if (e instanceof GitHubApiError && (e.status === 404 || e.status === 403)) continue;
@@ -199,6 +220,8 @@ export async function syncCodeAnalysis(input: {
 
   const token = await resolveGitHubTokenForIntegration(integration);
   const targetFullNames = resolveSyncRepoFullNames({ metaNames: meta.repoFullNames });
+  const confirmedMapping = await resolveConfirmedToolchainMapping(input.organizationId);
+  const githubMapping = confirmedMapping?.github;
 
   const installationRepos = await listInstallationRepos(token);
   const granted = new Set(installationRepos.map((r) => r.full_name.toLowerCase()));
@@ -222,7 +245,12 @@ export async function syncCodeAnalysis(input: {
 
   for (const fullName of targetFullNames.slice(0, MAX_GITHUB_SYNC_REPOS)) {
     try {
-      const { commits, pullRequests } = await fetchRepoAnalysis(token, fullName, since);
+      const repoMeta = meta.repos?.find((r) => r.fullName === fullName);
+      const branch = resolveAnalysisBranch(
+        repoMeta?.defaultBranch ?? "main",
+        githubMapping,
+      );
+      const { commits, pullRequests } = await fetchRepoAnalysis(token, fullName, since, branch);
       allCommits.push(...commits);
       allPullRequests.push(...pullRequests);
     } catch (e) {

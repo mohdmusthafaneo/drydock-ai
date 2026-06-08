@@ -17,7 +17,19 @@ import {
   type JiraDeliverySnapshot,
   type JiraStatusBreakdown,
 } from "@/lib/jira-meta";
+import { maybeIntrospectJiraAfterSync } from "@/lib/jira-introspection";
+import {
+  buildBlockedJql,
+  buildBugJql,
+  buildDoneJql,
+  buildNotDoneJql,
+  buildOpenJql,
+  jqlQuoteLiteral,
+  LEGACY_JIRA_MAPPING,
+  type JiraMappingSlice,
+} from "@/lib/jira-jql";
 import { resolveSyncProjectKeys } from "@/lib/jira-project-selection";
+import { resolveConfirmedToolchainMapping } from "@/lib/toolchain-mapping";
 import { ingestNormalizedEvents } from "@/lib/telemetry-ingest";
 
 function isOverdueVersion(version: { released: boolean; releaseDate?: string }): boolean {
@@ -38,10 +50,6 @@ function pickBoard(boards: Array<{ id: number; name: string; type: string }>) {
 /** Cap per-version JQL to limit approximate-count calls (see delivery-analysis.md P2b). */
 const MAX_VERSION_JQL_COUNTS = 5;
 
-function jqlQuoteLiteral(value: string): string {
-  return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
-}
-
 function versionsForOpenCount(
   versions: JiraDeliverySnapshot["projects"][number]["versions"],
 ): JiraDeliverySnapshot["projects"][number]["versions"] {
@@ -59,6 +67,7 @@ async function enrichProjectP2b(
   cloudId: string,
   projectKey: string,
   versions: JiraDeliverySnapshot["projects"][number]["versions"],
+  mapping: JiraMappingSlice,
 ): Promise<{
   resolvedLast7d: number;
   statusBreakdown: JiraStatusBreakdown;
@@ -70,7 +79,7 @@ async function enrichProjectP2b(
     countIssuesByJql(accessToken, cloudId, `${baseJql} AND resolved >= -7d`),
     countIssuesByJql(accessToken, cloudId, `${baseJql} AND statusCategory = "To Do"`),
     countIssuesByJql(accessToken, cloudId, `${baseJql} AND statusCategory = "In Progress"`),
-    countIssuesByJql(accessToken, cloudId, `${baseJql} AND statusCategory = Done`),
+    countIssuesByJql(accessToken, cloudId, buildDoneJql(baseJql, mapping)),
   ]);
 
   const statusBreakdown: JiraStatusBreakdown = { todo, inProgress, done };
@@ -84,7 +93,7 @@ async function enrichProjectP2b(
         const openIssuesInVersion = await countIssuesByJql(
           accessToken,
           cloudId,
-          `${baseJql} AND fixVersion = ${jqlQuoteLiteral(v.name)} AND statusCategory != Done`,
+          `${baseJql} AND fixVersion = ${jqlQuoteLiteral(v.name)} AND ${buildNotDoneJql(mapping)}`,
         );
         return { ...v, openIssuesInVersion };
       } catch (e) {
@@ -103,32 +112,25 @@ async function syncProject(
   accessToken: string,
   cloudId: string,
   projectKey: string,
+  mapping: JiraMappingSlice,
 ): Promise<JiraDeliverySnapshot["projects"][number]> {
   const project = await getJiraProject(accessToken, cloudId, projectKey);
   const baseJql = `project = "${projectKey}"`;
 
   const [openIssues, blockedCount, overdueCount, bugsOpen, unassignedCount, rawVersions] =
     await Promise.all([
-      countIssuesByJql(accessToken, cloudId, `${baseJql} AND statusCategory != Done`),
+      countIssuesByJql(accessToken, cloudId, buildOpenJql(baseJql, mapping)),
+      countIssuesByJql(accessToken, cloudId, buildBlockedJql(baseJql, mapping)),
       countIssuesByJql(
         accessToken,
         cloudId,
-        `${baseJql} AND (status = Blocked OR labels = blocked) AND statusCategory != Done`,
+        `${baseJql} AND duedate < now() AND ${buildNotDoneJql(mapping)}`,
       ),
+      countIssuesByJql(accessToken, cloudId, buildBugJql(baseJql, mapping)),
       countIssuesByJql(
         accessToken,
         cloudId,
-        `${baseJql} AND duedate < now() AND statusCategory != Done`,
-      ),
-      countIssuesByJql(
-        accessToken,
-        cloudId,
-        `${baseJql} AND issuetype = Bug AND statusCategory != Done`,
-      ),
-      countIssuesByJql(
-        accessToken,
-        cloudId,
-        `${baseJql} AND assignee is EMPTY AND statusCategory != Done`,
+        `${baseJql} AND assignee is EMPTY AND ${buildNotDoneJql(mapping)}`,
       ),
       listProjectVersions(accessToken, cloudId, projectKey),
     ]);
@@ -157,7 +159,7 @@ async function syncProject(
             countIssuesByJql(
               accessToken,
               cloudId,
-              `sprint = ${sprint.id} AND statusCategory = Done`,
+              `sprint = ${sprint.id} AND statusCategory = ${jqlQuoteLiteral(mapping.doneStatusCategory)}`,
             ),
           ]);
           activeSprint = {
@@ -184,7 +186,7 @@ async function syncProject(
   let enrichedVersions: JiraDeliverySnapshot["projects"][number]["versions"] = versions;
 
   try {
-    const p2b = await enrichProjectP2b(accessToken, cloudId, projectKey, versions);
+    const p2b = await enrichProjectP2b(accessToken, cloudId, projectKey, versions, mapping);
     resolvedLast7d = p2b.resolvedLast7d;
     statusBreakdown = p2b.statusBreakdown;
     enrichedVersions = p2b.versions;
@@ -232,6 +234,16 @@ export async function syncJiraIntegration(input: {
   const meta = parseJiraMeta(integration.metadataJson);
   const { accessToken, cloudId, metaPatch } = await resolveJiraAccessToken(integration);
 
+  const confirmedMapping = await resolveConfirmedToolchainMapping(input.organizationId);
+  const jiraMapping: JiraMappingSlice = confirmedMapping?.jira
+    ? {
+        blockedStatusName: confirmedMapping.jira.blockedStatusName,
+        bugIssueType: confirmedMapping.jira.bugIssueType,
+        doneStatusCategory: confirmedMapping.jira.doneStatusCategory,
+        doneStatusNames: confirmedMapping.jira.doneStatusNames,
+      }
+    : LEGACY_JIRA_MAPPING;
+
   const projectKeys = resolveSyncProjectKeys({
     metaKeys: meta.projectKeys,
     bodyKeys: input.projectKeys,
@@ -257,7 +269,7 @@ export async function syncJiraIntegration(input: {
 
   for (const key of projectKeys) {
     try {
-      const snapshot = await syncProject(accessToken, cloudId, key);
+      const snapshot = await syncProject(accessToken, cloudId, key, jiraMapping);
       projects.push(snapshot);
 
       telemetryEvents.push({
@@ -304,6 +316,7 @@ export async function syncJiraIntegration(input: {
       range: "30d",
       compare: "previous_sync",
     },
+    mapping: confirmedMapping?.jira,
   });
 
   await ingestNormalizedEvents({
@@ -336,6 +349,8 @@ export async function syncJiraIntegration(input: {
   });
 
   await markIntegrationSync(input.organizationId, "JIRA");
+
+  void maybeIntrospectJiraAfterSync(input.organizationId);
 
   await persistDeliveryAnalysisSnapshot({
     organizationId: input.organizationId,

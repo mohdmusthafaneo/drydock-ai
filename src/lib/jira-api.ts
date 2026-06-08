@@ -384,3 +384,71 @@ export async function countIssuesByJql(
   );
   return data.count ?? 0;
 }
+
+export type JiraFieldSummary = {
+  id: string;
+  name: string;
+  custom: boolean;
+  schema?: { type: string; custom?: string };
+};
+
+export type JiraIssueTypeSummary = {
+  id: string;
+  name: string;
+  subtask: boolean;
+  scope?: { type?: string; project?: { key?: string } };
+};
+
+export type JiraStatusSummary = {
+  id: string;
+  name: string;
+  statusCategory: { key: string; name: string };
+};
+
+export async function listJiraFields(
+  accessToken: string,
+  cloudId: string,
+): Promise<JiraFieldSummary[]> {
+  const fields = await jiraFetch<
+    Array<{ id: string; name: string; custom: boolean; schema?: { type: string; custom?: string } }>
+  >(accessToken, cloudId, "/rest/api/3/field");
+  return fields.map((f) => ({
+    id: f.id,
+    name: f.name,
+    custom: f.custom,
+    schema: f.schema,
+  }));
+}
+
+export async function listJiraIssueTypes(
+  accessToken: string,
+  cloudId: string,
+): Promise<JiraIssueTypeSummary[]> {
+  const types = await jiraFetch<
+    Array<{
+      id: string;
+      name: string;
+      subtask: boolean;
+      scope?: { type?: string; project?: { key?: string } };
+    }>
+  >(accessToken, cloudId, "/rest/api/3/issuetype");
+  return types.map((t) => ({
+    id: t.id,
+    name: t.name,
+    subtask: t.subtask,
+    scope: t.scope,
+  }));
+}
+
+export async function listProjectStatuses(
+  accessToken: string,
+  cloudId: string,
+  projectKey: string,
+): Promise<
+  Array<{
+    name: string;
+    statuses: JiraStatusSummary[];
+  }>
+> {
+  return jiraFetch(accessToken, cloudId, `/rest/api/3/project/${encodeURIComponent(projectKey)}/statuses`);
+}

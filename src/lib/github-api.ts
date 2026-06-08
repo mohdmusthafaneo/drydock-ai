@@ -90,7 +90,24 @@ export type GitHubPull = {
   html_url: string;
   updated_at: string;
   user: { login: string } | null;
+  labels?: Array<{ name: string }>;
 };
+
+export type GitHubBranch = {
+  name: string;
+};
+
+export async function listBranches(
+  accessToken: string,
+  owner: string,
+  repo: string,
+  perPage = 30,
+) {
+  return githubFetch<GitHubBranch[]>(
+    accessToken,
+    `/repos/${owner}/${repo}/branches?per_page=${perPage}`,
+  );
+}
 
 export async function listOpenPulls(accessToken: string, owner: string, repo: string) {
   return githubFetch<GitHubPull[]>(
@@ -114,13 +131,14 @@ export async function listCommits(
   accessToken: string,
   owner: string,
   repo: string,
-  options?: { since?: string; perPage?: number },
+  options?: { since?: string; perPage?: number; sha?: string },
 ) {
   const perPage = options?.perPage ?? 50;
   const since = options?.since ? `&since=${encodeURIComponent(options.since)}` : "";
+  const sha = options?.sha ? `&sha=${encodeURIComponent(options.sha)}` : "";
   return githubFetch<GitHubCommitListItem[]>(
     accessToken,
-    `/repos/${owner}/${repo}/commits?per_page=${perPage}${since}`,
+    `/repos/${owner}/${repo}/commits?per_page=${perPage}${since}${sha}`,
   );
 }
 
