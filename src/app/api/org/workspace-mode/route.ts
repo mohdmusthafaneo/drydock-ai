@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
-import { getHomePath } from "@/lib/workspace-mode";
+import { getLandingPathForOrganization } from "@/lib/landing-path-org";
 
 const schema = z.object({
   workspaceMode: z.enum(["MVP", "ENTERPRISE"]),
@@ -16,10 +16,6 @@ export async function POST(request: Request) {
 
   try {
     const { workspaceMode } = schema.parse(await request.json());
-
-    const dna = await prisma.deliveryDNA.findUnique({
-      where: { organizationId: session.organizationId },
-    });
 
     await prisma.$transaction(async (tx) => {
       await tx.organization.update({
@@ -39,9 +35,11 @@ export async function POST(request: Request) {
       });
     });
 
+    const redirect = await getLandingPathForOrganization(session.organizationId);
+
     return NextResponse.json({
       ok: true,
-      redirect: getHomePath(workspaceMode, Boolean(dna)),
+      redirect,
     });
   } catch {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });

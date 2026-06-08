@@ -3,7 +3,7 @@ import { z } from "zod";
 import { authenticateUser } from "@/lib/auth";
 import { jsonWithSession } from "@/lib/auth-response";
 import { prisma } from "@/lib/prisma";
-import { getHomePath } from "@/lib/workspace-mode";
+import { getLandingPathForOrganization } from "@/lib/landing-path-org";
 
 const schema = z.object({
   email: z.string().email(),
@@ -24,17 +24,7 @@ export async function POST(request: Request) {
       data: { lastLoginAt: new Date() },
     });
 
-    const [dna, org] = await Promise.all([
-      prisma.deliveryDNA.findUnique({
-        where: { organizationId: user.organizationId },
-      }),
-      prisma.organization.findUnique({
-        where: { id: user.organizationId },
-        select: { workspaceMode: true },
-      }),
-    ]);
-
-    const mode = (org?.workspaceMode ?? "MVP") as "MVP" | "ENTERPRISE";
+    const redirect = await getLandingPathForOrganization(user.organizationId);
 
     return jsonWithSession(
       {
@@ -44,7 +34,7 @@ export async function POST(request: Request) {
         name: user.name,
         role: user.role,
       },
-      { ok: true, redirect: getHomePath(mode, Boolean(dna)) },
+      { ok: true, redirect },
     );
   } catch {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });

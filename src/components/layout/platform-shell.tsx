@@ -6,7 +6,12 @@ import { OnboardingBanner } from "@/components/layout/onboarding-banner";
 import { AppShell } from "@/components/layout/app-shell";
 import { prisma } from "@/lib/prisma";
 import type { SessionPayload } from "@/lib/session";
-import { getDefaultLandingPath, isNavPathEnabled } from "@/lib/feature-flags";
+import { isNavPathEnabled } from "@/lib/feature-flags";
+import { resolveLandingPath } from "@/lib/landing-path";
+import {
+  getIntegrationNavGates,
+  isIntegrationGatedPathAccessible,
+} from "@/lib/nav-availability";
 import {
   getHomePath,
   isEnterpriseOnlyPath,
@@ -40,11 +45,27 @@ export async function PlatformShell({
     redirect(getHomePath("ENTERPRISE", true));
   }
 
+  const ctx = await getOrganizationContext(session.organizationId);
+  const homePath = resolveLandingPath({
+    mode: workspaceMode,
+    hasDna: Boolean(ctx.dna),
+    completedStepIds:
+      workspaceMode === "ENTERPRISE" ? ctx.completedStepIds : undefined,
+  });
+
   if (pathname && !isNavPathEnabled(pathname)) {
-    redirect(getDefaultLandingPath());
+    redirect(homePath);
   }
 
-  const ctx = await getOrganizationContext(session.organizationId);
+  const integrationGates = getIntegrationNavGates(ctx.integrations);
+
+  if (
+    pathname &&
+    isNavPathEnabled(pathname) &&
+    !isIntegrationGatedPathAccessible(pathname, integrationGates)
+  ) {
+    redirect("/integrations");
+  }
 
   const [
     acceleratorCount,
@@ -94,7 +115,12 @@ export async function PlatformShell({
   });
 
   return (
-    <AppShell session={session} workspaceMode={workspaceMode}>
+    <AppShell
+      session={session}
+      workspaceMode={workspaceMode}
+      integrationGates={integrationGates}
+      homePath={homePath}
+    >
       <OnboardingBanner steps={steps} workspaceMode={workspaceMode} />
       {children}
     </AppShell>

@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
-import { getDefaultLandingPath } from "@/lib/feature-flags";
-
 const COOKIE_NAME = "aidos_session";
 const publicPaths = [
   "/",
@@ -37,19 +35,6 @@ export async function middleware(request: NextRequest) {
   requestHeaders.set("x-pathname", pathname);
 
   if (pathname === "/") {
-    const landingToken = request.cookies.get(COOKIE_NAME)?.value;
-    if (landingToken) {
-      try {
-        await jwtVerify(landingToken, getSecret());
-        return NextResponse.redirect(new URL(getDefaultLandingPath(), request.url));
-      } catch {
-        const response = NextResponse.next({
-          request: { headers: requestHeaders },
-        });
-        response.cookies.delete(COOKIE_NAME);
-        return response;
-      }
-    }
     return NextResponse.next({
       request: { headers: requestHeaders },
     });

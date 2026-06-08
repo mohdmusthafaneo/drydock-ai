@@ -6,31 +6,71 @@ import { LogOut } from "lucide-react";
 import { ROLE_LABELS } from "@/lib/roles";
 import type { SessionPayload } from "@/lib/session";
 import { cn } from "@/lib/utils";
+import type { IntegrationNavGates } from "@/lib/nav-availability";
 import {
   WORKSPACE_META,
-  getEnabledHomePath,
   getEnabledNavForMode,
+  getResolvedEnterpriseNavLayout,
+  isNavItemActive,
   type WorkspaceMode,
 } from "@/lib/workspace-mode";
 import { AidosLogo } from "@/components/brand/aidos-logo";
+import { EnterpriseSidebarNav } from "@/components/layout/enterprise-sidebar-nav";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { ModeSwitcher } from "@/components/layout/mode-switcher";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 
+function MvpSidebarNav({ isMvp }: { isMvp: boolean }) {
+  const pathname = usePathname();
+  const items = getEnabledNavForMode("MVP");
+
+  return (
+    <div className="space-y-0.5">
+      {items.map((item) => {
+        const Icon = item.icon;
+        const active = isNavItemActive(pathname, item.href);
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={cn(
+              "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors",
+              active
+                ? isMvp
+                  ? "bg-mvp-muted text-mvp"
+                  : "bg-enterprise-muted text-enterprise"
+                : "text-secondary hover:bg-hover hover:text-primary",
+              item.primary && !active && "font-medium text-primary",
+            )}
+          >
+            <Icon className="h-4 w-4 shrink-0" />
+            {item.label}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
 export function AppShell({
   session,
   workspaceMode,
+  integrationGates,
+  homePath,
   children,
 }: {
   session: SessionPayload;
   workspaceMode: WorkspaceMode;
+  integrationGates?: IntegrationNavGates;
+  homePath: string;
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
   const meta = WORKSPACE_META[workspaceMode];
-  const homePath = getEnabledHomePath(workspaceMode);
-  const nav = getEnabledNavForMode(workspaceMode);
   const isMvp = workspaceMode === "MVP";
+  const enterpriseLayout =
+    workspaceMode === "ENTERPRISE"
+      ? getResolvedEnterpriseNavLayout(integrationGates)
+      : null;
 
   return (
     <div className="app-canvas flex min-h-screen bg-base text-primary">
@@ -47,34 +87,11 @@ export function AppShell({
         </div>
 
         <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
-          {nav.map((item) => {
-            const Icon = item.icon;
-            const active =
-              pathname === item.href ||
-              (item.href !== "/accelerator" &&
-                pathname.startsWith(`${item.href}/`)) ||
-              (item.href === "/accelerator" &&
-                pathname.startsWith("/accelerator") &&
-                pathname !== "/accelerator/new");
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors",
-                  active
-                    ? isMvp
-                      ? "bg-mvp-muted text-mvp"
-                      : "bg-enterprise-muted text-enterprise"
-                    : "text-secondary hover:bg-hover hover:text-primary",
-                  item.primary && !active && "font-medium text-primary",
-                )}
-              >
-                <Icon className="h-4 w-4 shrink-0" />
-                {item.label}
-              </Link>
-            );
-          })}
+          {isMvp ? (
+            <MvpSidebarNav isMvp={isMvp} />
+          ) : enterpriseLayout ? (
+            <EnterpriseSidebarNav layout={enterpriseLayout} isMvp={isMvp} />
+          ) : null}
         </nav>
 
         <div className="space-y-3 border-t border-border p-4">
@@ -114,7 +131,7 @@ export function AppShell({
         <main className="w-full flex-1 p-4 pb-24 lg:px-8 lg:py-8 lg:pb-8 xl:px-10 2xl:px-12">
           {children}
         </main>
-        <MobileNav workspaceMode={workspaceMode} />
+        <MobileNav workspaceMode={workspaceMode} integrationGates={integrationGates} />
       </div>
     </div>
   );
