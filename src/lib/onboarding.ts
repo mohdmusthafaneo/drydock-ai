@@ -13,6 +13,7 @@ type Ctx = {
   hasAssessedRelease: boolean;
   connectedCount: number;
   pendingApprovals: number;
+  toolchainMappingConfirmed: boolean;
 };
 
 type OnboardingStep = {
@@ -67,7 +68,13 @@ export function getOnboardingSteps(ctx: Ctx) {
       id: "integrations",
       label: "Setup integrations",
       href: "/integrations",
-      done: ctx.connectedCount >= 2,
+      done: ctx.connectedCount >= 1,
+    },
+    {
+      id: "toolchain-mapping",
+      label: "Map Jira & GitHub workflows",
+      href: "/governance/toolchain-mapping",
+      done: ctx.toolchainMappingConfirmed,
     },
     {
       id: "workflow",

@@ -112,6 +112,7 @@ export async function PlatformShell({
     hasAssessedRelease: assessedReleaseCount > 0,
     connectedCount: ctx.integrations.filter((i) => i.status === "CONNECTED").length,
     pendingApprovals: ctx.stats.pendingApprovals,
+    toolchainMappingConfirmed: Boolean(ctx.profile?.toolchainMappingConfirmedAt),
   });
 
   return (

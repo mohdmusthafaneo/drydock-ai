@@ -12,10 +12,9 @@ export async function seedEnterpriseFoundation(
     create: {
       organizationId,
       workflowType,
-      executionStatus: "ACTIVE",
+      executionStatus: "NOT_CONFIGURED",
       currentStepId: "integrations",
       stepsCompletedJson: JSON.stringify(["auth", "discovery"]),
-      configuredAt: new Date(),
     },
     update: {
       workflowType,

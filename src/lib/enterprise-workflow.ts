@@ -30,57 +30,64 @@ export const ENTERPRISE_WORKFLOW_STEPS: EnterpriseWorkflowStep[] = [
     href: "/integrations",
   },
   {
-    id: "workflow-config",
+    id: "toolchain-mapping",
     order: 4,
+    label: "Delivery toolchain mapping",
+    description: "Confirm how your team uses Jira and GitHub workflows",
+    href: "/governance/toolchain-mapping",
+  },
+  {
+    id: "workflow-config",
+    order: 5,
     label: "Workflow configuration",
     description: "Autonomy mode and execution policy",
     href: "/governance/workflow",
   },
   {
     id: "qa-init",
-    order: 5,
+    order: 6,
     label: "QA intelligence initialization",
     description: "Coverage baselines and regression intelligence",
     href: "/qa",
   },
   {
     id: "telemetry",
-    order: 6,
+    order: 7,
     label: "Observability & telemetry",
     description: "Metrics, incidents, and deployment signals",
     href: "/observability",
   },
   {
     id: "correlation",
-    order: 7,
+    order: 8,
     label: "AI correlation & risk analysis",
     description: "Correlate QA and operational signals",
     href: "/workflow",
   },
   {
     id: "recommendations",
-    order: 8,
+    order: 9,
     label: "Recommendation generation",
     description: "Explainable AI proposals with confidence",
     href: "/recommendations",
   },
   {
     id: "approval",
-    order: 9,
+    order: 10,
     label: "Human approval workflow",
     description: "Governed sign-off before execution",
     href: "/approvals",
   },
   {
     id: "execution",
-    order: 10,
+    order: 11,
     label: "Controlled execution",
     description: "Deployment with audit trail",
     href: "/releases",
   },
   {
     id: "monitoring",
-    order: 11,
+    order: 12,
     label: "Continuous monitoring",
     description: "Post-deploy observability and learning",
     href: "/observability",
@@ -91,27 +98,28 @@ export function computeCompletedStepIds(input: {
   hasDna: boolean;
   hasProfile: boolean;
   connectedCount: number;
+  toolchainMappingConfirmed: boolean;
   workflowConfigured: boolean;
   hasAssessedRelease: boolean;
   hasPendingApprovals: boolean;
   hasDeployedRelease: boolean;
   hasOpenIncident: boolean;
-  hasTelemetry?: boolean;
+  hasPrometheusSynced?: boolean;
 }): string[] {
   const done: string[] = ["auth"];
 
   if (input.hasDna && input.hasProfile) done.push("discovery");
   if (input.connectedCount >= 1) done.push("integrations");
+  if (input.toolchainMappingConfirmed) done.push("toolchain-mapping");
   if (input.workflowConfigured) done.push("workflow-config");
-  if (input.hasDna) done.push("qa-init");
-  if (input.connectedCount >= 2 || input.hasAssessedRelease || input.hasTelemetry)
-    done.push("telemetry");
+  if (input.hasAssessedRelease) done.push("qa-init");
+  if (input.hasPrometheusSynced) done.push("telemetry");
   if (input.hasAssessedRelease) {
     done.push("correlation", "recommendations");
   }
   if (input.hasAssessedRelease && !input.hasPendingApprovals) done.push("approval");
   if (input.hasDeployedRelease) done.push("execution");
-  if (input.hasDeployedRelease && (input.hasTelemetry || !input.hasOpenIncident))
+  if (input.hasDeployedRelease && (input.hasPrometheusSynced || !input.hasOpenIncident))
     done.push("monitoring");
 
   return [...new Set(done)];

@@ -465,6 +465,8 @@ model OrganizationProfile {
   deploymentStrategy String?
   toolsJson        String   @default("[]")
   workflowsJson    String   @default("[]")
+  toolchainMappingJson String @default("{}")
+  toolchainMappingConfirmedAt DateTime?
   completedAt      DateTime?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt

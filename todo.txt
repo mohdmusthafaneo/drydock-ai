@@ -1,4 +1,4 @@
-- sidebar section, workflow center
+- workflow center
 - workflow dynamic
 - onboarding flow
 - ai agents, notification
