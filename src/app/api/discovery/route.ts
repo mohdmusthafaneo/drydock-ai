@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { generateDeliveryDNA, generateRecommendations } from "@/lib/delivery-dna";
 import { seedEnterpriseFoundation } from "@/lib/enterprise-seed";
+import { getLandingPathForOrganization } from "@/lib/landing-path-org";
 
 const schema = z.object({
   industryType: z.string(),
@@ -188,7 +189,8 @@ export async function POST(request: Request) {
       });
     });
 
-    return NextResponse.json({ ok: true, redirect: "/dashboard" });
+    const redirect = await getLandingPathForOrganization(session.organizationId);
+    return NextResponse.json({ ok: true, redirect });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Invalid discovery data" }, { status: 400 });

@@ -70,7 +70,7 @@ export function DiscoveryWizard() {
       setError(data.error || "Failed to complete discovery");
       return;
     }
-    router.push(data.redirect || "/dashboard");
+    router.push(data.redirect || "/workflow");
     router.refresh();
   }
 
