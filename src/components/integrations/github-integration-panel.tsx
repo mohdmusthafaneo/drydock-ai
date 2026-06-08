@@ -7,6 +7,7 @@ import { ExternalLink, RefreshCw, ShieldCheck, Webhook } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DisconnectButton } from "@/components/integrations/integration-actions";
+import { ExternalConnectLinkPanel } from "@/components/integrations/external-connect-link-panel";
 import type { GitHubRepoSummary } from "@/lib/integration-meta";
 
 type GitHubRepoOption = {
@@ -26,6 +27,8 @@ export function GitHubIntegrationPanel({
   installationId,
   installedAt,
   canManage,
+  installState,
+  appUrlConfigured,
 }: {
   connected: boolean;
   lastSyncSummary?: string;
@@ -38,6 +41,8 @@ export function GitHubIntegrationPanel({
   installationId?: number;
   installedAt?: string;
   canManage: boolean;
+  installState?: string;
+  appUrlConfigured: boolean;
 }) {
   const router = useRouter();
   const [syncing, setSyncing] = useState(false);
@@ -52,7 +57,9 @@ export function GitHubIntegrationPanel({
   const hasSelection = savedNames.length > 0;
 
   const installUrl = appSlug
-    ? `https://github.com/apps/${appSlug}/installations/new`
+    ? installState
+      ? `https://github.com/apps/${appSlug}/installations/new?state=${encodeURIComponent(installState)}`
+      : `https://github.com/apps/${appSlug}/installations/new`
     : null;
   const manageUrl =
     appSlug && installationId
@@ -165,6 +172,14 @@ export function GitHubIntegrationPanel({
         <Button size="sm" asChild>
           <Link href={installUrl}>Install GitHub App</Link>
         </Button>
+        <ExternalConnectLinkPanel
+          provider="GITHUB"
+          connected={connected}
+          canManage={canManage}
+          appUrlConfigured={appUrlConfigured}
+          providerConfigured={Boolean(appSlug)}
+          providerConfigHint="Set GITHUB_APP_SLUG in .env."
+        />
       </div>
     );
   }

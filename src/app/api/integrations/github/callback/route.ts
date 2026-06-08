@@ -8,11 +8,12 @@ import {
   fetchGitHubUser,
 } from "@/lib/github-oauth";
 import { verifyOAuthState } from "@/lib/oauth-state";
+import { appUrl } from "@/lib/app-url";
 
 export async function GET(request: Request) {
   const session = await getSession();
   if (!session) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(appUrl("/login"));
   }
 
   const url = new URL(request.url);
@@ -21,24 +22,22 @@ export async function GET(request: Request) {
   const error = url.searchParams.get("error");
 
   if (error) {
-    return NextResponse.redirect(
-      new URL(`/integrations?error=github_${error}`, request.url),
-    );
+    return NextResponse.redirect(appUrl(`/integrations?error=github_${error}`));
   }
 
   if (!code || !state) {
-    return NextResponse.redirect(
-      new URL("/integrations?error=github_missing_params", request.url),
-    );
+    return NextResponse.redirect(appUrl("/integrations?error=github_missing_params"));
   }
 
   try {
     const oauthState = await verifyOAuthState(state);
 
+    if (oauthState.flow !== "session") {
+      return NextResponse.redirect(appUrl("/integrations?error=github_invalid_state"));
+    }
+
     if (oauthState.organizationId !== session.organizationId) {
-      return NextResponse.redirect(
-        new URL("/integrations?error=github_org_mismatch", request.url),
-      );
+      return NextResponse.redirect(appUrl("/integrations?error=github_org_mismatch"));
     }
 
     const { accessToken, scope } = await exchangeGitHubCode(code);
@@ -107,13 +106,9 @@ export async function GET(request: Request) {
       });
     });
 
-    return NextResponse.redirect(
-      new URL("/integrations?connected=github", request.url),
-    );
+    return NextResponse.redirect(appUrl("/integrations?connected=github"));
   } catch (err) {
     console.error("GitHub OAuth callback error:", err);
-    return NextResponse.redirect(
-      new URL("/integrations?error=github_callback_failed", request.url),
-    );
+    return NextResponse.redirect(appUrl("/integrations?error=github_callback_failed"));
   }
 }

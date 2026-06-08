@@ -29,6 +29,12 @@ export type GitHubIntegrationMeta = {
   installedAt?: string;
   /** User id that completed the App install handshake */
   installedBy?: string;
+  connectedVia?: "session" | "external_link";
+  externalConnector?: {
+    displayName?: string;
+    accountId?: string;
+    githubInstallationId?: number;
+  };
   /** Latest code analysis ingest (commits + PRs for dashboard filtering) */
   codeAnalysisSnapshot?: StoredCodeAnalysis;
 };

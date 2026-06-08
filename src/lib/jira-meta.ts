@@ -68,6 +68,8 @@ export type JiraIntegrationMeta = {
   projectKeys?: string[];
   lastSyncSummary?: string;
   deliverySnapshot?: JiraDeliverySnapshot;
+  connectedVia?: "session" | "external_link";
+  externalConnector?: { displayName?: string; accountId?: string };
   /** Latest computed rollup summary (compat when Prisma history unavailable). */
   deliveryAnalysisSnapshot?: {
     generatedAt: string;

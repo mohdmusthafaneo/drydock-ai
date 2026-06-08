@@ -1,4 +1,8 @@
+import { getAppUrl } from "@/lib/app-url";
+
 const ATLASSIAN_AUTH = "https://auth.atlassian.com";
+
+export type JiraOAuthFlow = "session" | "external";
 
 /** Read-only scopes for connection (PR1) + delivery sync (PR2). Also enable these in the Atlassian developer app. */
 export const JIRA_OAUTH_SCOPES = [
@@ -14,11 +18,18 @@ export function getJiraOAuthScopeString(): string {
   return JIRA_OAUTH_SCOPES.join(" ");
 }
 
-export function getJiraOAuthConfig() {
+export function getJiraOAuthRedirectUri(flow: JiraOAuthFlow = "session"): string {
+  const base = getAppUrl();
+  if (flow === "external") {
+    return `${base}/api/integrations/external/jira/callback`;
+  }
+  return `${base}/api/integrations/jira/callback`;
+}
+
+export function getJiraOAuthConfig(flow: JiraOAuthFlow = "session") {
   const clientId = process.env.ATLASSIAN_CLIENT_ID;
   const clientSecret = process.env.ATLASSIAN_CLIENT_SECRET;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const redirectUri = `${appUrl.replace(/\/$/, "")}/api/integrations/jira/callback`;
+  const redirectUri = getJiraOAuthRedirectUri(flow);
 
   return {
     clientId,
@@ -28,8 +39,8 @@ export function getJiraOAuthConfig() {
   };
 }
 
-export function buildJiraAuthorizeUrl(state: string) {
-  const { clientId, redirectUri } = getJiraOAuthConfig();
+export function buildJiraAuthorizeUrl(state: string, flow: JiraOAuthFlow = "session") {
+  const { clientId, redirectUri } = getJiraOAuthConfig(flow);
   if (!clientId) throw new Error("Jira OAuth is not configured");
 
   const params = new URLSearchParams({
@@ -83,8 +94,8 @@ async function postToken(body: Record<string, string>) {
   };
 }
 
-export async function exchangeJiraCode(code: string) {
-  const { redirectUri } = getJiraOAuthConfig();
+export async function exchangeJiraCode(code: string, flow: JiraOAuthFlow = "session") {
+  const { redirectUri } = getJiraOAuthConfig(flow);
   return postToken({
     grant_type: "authorization_code",
     code,

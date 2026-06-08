@@ -71,6 +71,18 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 Without these vars, use **Connect (dev stub)** for local testing.
 
+## External integration setup links
+
+Org admins with `manage_integrations` can generate single-use, 24-hour share links on **Integrations** for Jira and GitHub. External users complete OAuth/App install without an AIDOS account.
+
+**Deployment (required once per environment):**
+
+1. Set `NEXT_PUBLIC_APP_URL` to your public origin (no trailing slash).
+2. GitHub App → **Setup URL:** `{NEXT_PUBLIC_APP_URL}/api/integrations/external/github/callback`
+3. Atlassian OAuth app → add callback `{NEXT_PUBLIC_APP_URL}/api/integrations/external/jira/callback` (keep the in-app callback too).
+
+Apply migration: `npx prisma migrate deploy` (or `migrate dev` locally).
+
 Architecture review: [docs/reviews/2026-05-17-github-oauth-architecture-review.md](./docs/reviews/2026-05-17-github-oauth-architecture-review.md)
 
 ## Environment
@@ -79,7 +91,7 @@ Architecture review: [docs/reviews/2026-05-17-github-oauth-architecture-review.m
 |----------------|--------------------------------------|
 | `DATABASE_URL` | SQLite path (default in `.env`)      |
 | `AUTH_SECRET`  | JWT signing secret (32+ chars prod)  |
-| `NEXT_PUBLIC_APP_URL` | App URL for OAuth callbacks   |
+| `NEXT_PUBLIC_APP_URL` | App URL for OAuth callbacks and external setup links (required in production) |
 | `GITHUB_CLIENT_ID` | GitHub OAuth app client ID     |
 | `GITHUB_CLIENT_SECRET` | GitHub OAuth secret          |
 

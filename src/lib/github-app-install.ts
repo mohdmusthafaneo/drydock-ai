@@ -10,6 +10,9 @@ export type PersistGitHubAppInstallationInput = {
   userId: string;
   installationId: number;
   setupAction: string;
+  via?: "session" | "external_link";
+  inviteId?: string;
+  auditUserId?: string;
 };
 
 export type PersistGitHubAppInstallationResult = {
@@ -31,6 +34,7 @@ export type PersistGitHubAppInstallationResult = {
 export async function persistGitHubAppInstallation(
   input: PersistGitHubAppInstallationInput,
 ): Promise<PersistGitHubAppInstallationResult> {
+  const via = input.via ?? "session";
   const existing = await prisma.integration.findUnique({
     where: {
       organizationId_provider: {
@@ -54,7 +58,33 @@ export async function persistGitHubAppInstallation(
     installationId: input.installationId,
     installedAt: new Date().toISOString(),
     installedBy: input.userId,
+    connectedVia: via,
+    ...(via === "external_link"
+      ? {
+          externalConnector: {
+            githubInstallationId: input.installationId,
+          },
+        }
+      : {}),
   });
+
+  const auditAction =
+    via === "external_link"
+      ? "integration.github.app_installed_external"
+      : "integration.github.app_installed";
+
+  const auditMetadata =
+    via === "external_link"
+      ? {
+          inviteId: input.inviteId,
+          installationId: input.installationId,
+          setupAction: input.setupAction,
+          createdById: input.auditUserId ?? input.userId,
+        }
+      : {
+          installationId: input.installationId,
+          setupAction: input.setupAction,
+        };
 
   await prisma.$transaction(async (tx) => {
     await tx.integration.upsert({
@@ -91,7 +121,10 @@ export async function persistGitHubAppInstallation(
         data: {
           organizationId: input.organizationId,
           type: "integration.connected",
-          title: "GitHub App installed",
+          title:
+            via === "external_link"
+              ? "GitHub App installed via external link"
+              : "GitHub App installed",
           description: `AIDOS GitHub App installed (installation #${input.installationId}) — webhooks and org-wide access active.`,
           metadataJson: JSON.stringify({
             provider: "GITHUB",
@@ -104,14 +137,18 @@ export async function persistGitHubAppInstallation(
       await tx.auditLog.create({
         data: {
           organizationId: input.organizationId,
-          userId: input.userId,
-          action: "integration.github.app_installed",
+          userId: input.auditUserId ?? input.userId,
+          action: auditAction,
           entityType: "Integration",
-          metadataJson: JSON.stringify({
-            installationId: input.installationId,
-            setupAction: input.setupAction,
-          }),
+          metadataJson: JSON.stringify(auditMetadata),
         },
+      });
+    }
+
+    if (input.inviteId) {
+      await tx.integrationConnectInvite.update({
+        where: { id: input.inviteId },
+        data: { usedAt: new Date() },
       });
     }
   });

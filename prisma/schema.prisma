@@ -128,6 +128,7 @@ model Organization {
   codeAnalysisRuns   CodeAnalysisRun[]
   codeAnalysisCommits CodeAnalysisCommit[]
   codeAnalysisPullRequests CodeAnalysisPullRequest[]
+  integrationConnectInvites IntegrationConnectInvite[]
   deliveryAnalysisSnapshots DeliveryAnalysisSnapshot[]
 }
 
@@ -507,6 +508,24 @@ model Integration {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@unique([organizationId, provider])
+}
+
+model IntegrationConnectInvite {
+  id             String              @id @default(cuid())
+  organizationId String
+  provider       IntegrationProvider
+  token          String              @unique
+  createdById    String
+  expiresAt      DateTime
+  usedAt         DateTime?
+  revokedAt      DateTime?
+  revokedById    String?
+  createdAt      DateTime            @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, provider])
+  @@index([expiresAt])
 }
 
 model Recommendation {

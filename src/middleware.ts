@@ -12,7 +12,16 @@ const publicPaths = [
   "/api/auth/signup",
   "/api/auth/logout",
   "/api/platform/jira/sync",
+  "/connect/done",
+  "/connect/error",
 ];
+
+const publicPathPrefixes = ["/connect/", "/api/integrations/external/"];
+
+function isPublicPath(pathname: string): boolean {
+  if (publicPaths.includes(pathname)) return true;
+  return publicPathPrefixes.some((prefix) => pathname.startsWith(prefix));
+}
 
 function getSecret() {
   return new TextEncoder().encode(
@@ -47,7 +56,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (
-    publicPaths.some((p) => pathname === p) ||
+    isPublicPath(pathname) ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon")
   ) {

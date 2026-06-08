@@ -1,10 +1,11 @@
+import { getAppUrl } from "@/lib/app-url";
+
 export { signOAuthState, verifyOAuthState, type OAuthState } from "@/lib/oauth-state";
 
 export function getGitHubOAuthConfig() {
   const clientId = process.env.GITHUB_CLIENT_ID;
   const clientSecret = process.env.GITHUB_CLIENT_SECRET;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const redirectUri = `${appUrl.replace(/\/$/, "")}/api/integrations/github/callback`;
+  const redirectUri = `${getAppUrl()}/api/integrations/github/callback`;
 
   return {
     clientId,

@@ -9,6 +9,7 @@ import {
   DisconnectButton,
   JiraOAuthConnect,
 } from "@/components/integrations/integration-actions";
+import { ExternalConnectLinkPanel } from "@/components/integrations/external-connect-link-panel";
 import type { JiraDeliverySnapshot } from "@/lib/jira-meta";
 
 type JiraProjectOption = { key: string; name: string };
@@ -27,6 +28,7 @@ export function JiraIntegrationPanel({
   deliverySnapshot,
   availableSitesCount,
   canManage,
+  appUrlConfigured,
 }: {
   connected: boolean;
   configured: boolean;
@@ -42,6 +44,7 @@ export function JiraIntegrationPanel({
   deliverySnapshot?: JiraDeliverySnapshot;
   availableSitesCount?: number;
   canManage: boolean;
+  appUrlConfigured: boolean;
 }) {
   const router = useRouter();
   const [syncing, setSyncing] = useState(false);
@@ -170,6 +173,14 @@ export function JiraIntegrationPanel({
           epics, or versions.
         </p>
         <JiraOAuthConnect />
+        <ExternalConnectLinkPanel
+          provider="JIRA"
+          connected={connected}
+          canManage={canManage}
+          appUrlConfigured={appUrlConfigured}
+          providerConfigured={configured}
+          providerConfigHint="Set ATLASSIAN_CLIENT_ID and ATLASSIAN_CLIENT_SECRET in .env."
+        />
       </div>
     );
   }

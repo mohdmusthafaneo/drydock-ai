@@ -9,6 +9,8 @@ import { checkIntegrationHealth } from "@/lib/integration-health";
 import { persistGitHubAppInstallation } from "@/lib/github-app-install";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/rbac";
+import { signOAuthState } from "@/lib/oauth-state";
+import { getAppUrl, isAppUrlConfigured } from "@/lib/app-url";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -73,8 +75,9 @@ export default async function IntegrationsPage({
     redirect("/integrations?connected=github_app");
   }
 
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const appUrl = getAppUrl();
   const githubWebhookUrl = `${appUrl}/api/webhooks/github?organizationId=${session.organizationId}`;
+  const appUrlConfigured = isAppUrlConfigured();
 
   const org = await prisma.organization.findUnique({
     where: { id: session.organizationId },
@@ -86,6 +89,15 @@ export default async function IntegrationsPage({
   const githubAppSlug = process.env.GITHUB_APP_SLUG;
   const jiraOAuthConfigured = getJiraOAuthConfig().configured;
   const canManage = hasPermission(session, "integrations", "manage_integrations");
+
+  const githubInstallState =
+    canManage && githubAppSlug
+      ? await signOAuthState({
+          flow: "session",
+          organizationId: session.organizationId,
+          userId: session.userId,
+        })
+      : undefined;
 
   const integrations = ctx.integrations.filter(
     (i) => !isMvp || MVP_PROVIDERS.has(i.provider),
@@ -165,6 +177,8 @@ export default async function IntegrationsPage({
                     installationId={meta.installationId}
                     installedAt={meta.installedAt}
                     canManage={canManage}
+                    installState={githubInstallState}
+                    appUrlConfigured={appUrlConfigured}
                   />
                 ) : isJira ? (
                   <JiraIntegrationPanel
@@ -181,6 +195,7 @@ export default async function IntegrationsPage({
                     deliverySnapshot={jiraMeta.deliverySnapshot}
                     availableSitesCount={jiraMeta.availableSites?.length}
                     canManage={canManage}
+                    appUrlConfigured={appUrlConfigured}
                   />
                 ) : isPrometheus ? (
                   <PrometheusIntegrationPanel
