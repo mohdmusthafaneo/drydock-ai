@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -170,6 +171,10 @@ export async function POST(request: Request) {
     delete meta.apiTokenEnc;
   } else {
     meta.apiTokenEnc = stored.apiTokenEnc;
+  }
+
+  if (!meta.webhookSecret) {
+    meta.webhookSecret = randomUUID();
   }
 
   const displayName = grafanaUrl.replace(/^https?:\/\//, "");

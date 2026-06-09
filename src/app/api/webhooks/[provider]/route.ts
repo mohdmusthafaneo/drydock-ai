@@ -6,6 +6,14 @@ import {
   parseGitHubWebhookEvent,
   verifyGitHubWebhookSignature,
 } from "@/lib/github-webhook";
+import { parseGrafanaMeta } from "@/lib/grafana-meta";
+import {
+  grafanaWebhookSeverity,
+  ingestGrafanaWebhookTelemetry,
+  parseGrafanaWebhookPayload,
+  processGrafanaWebhookAlerts,
+  verifyGrafanaWebhookSecret,
+} from "@/lib/grafana-webhook";
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ provider: string }> },
@@ -83,6 +91,61 @@ export async function POST(
     });
 
     return NextResponse.json({ ok: true, event: gh.eventType, ...result });
+  }
+
+  if (provider === "GRAFANA") {
+    const meta = parseGrafanaMeta(integration.metadataJson);
+    const headerSecret = request.headers.get("x-aidos-webhook-secret");
+    const querySecret = url.searchParams.get("secret");
+
+    if (
+      !verifyGrafanaWebhookSecret(headerSecret, querySecret, meta.webhookSecret)
+    ) {
+      return NextResponse.json({ error: "Invalid webhook secret" }, { status: 401 });
+    }
+
+    const alerts = parseGrafanaWebhookPayload(payload);
+    const topSeverity = alerts.reduce<"info" | "warning" | "error" | "critical">(
+      (max, alert) => {
+        const sev = grafanaWebhookSeverity(alert);
+        const rank = { info: 0, warning: 1, error: 2, critical: 3 };
+        return rank[sev] > rank[max] ? sev : max;
+      },
+      "info",
+    );
+
+    const enriched = {
+      ...payload,
+      _aidos: {
+        alertCount: alerts.length,
+        severity: topSeverity,
+        fingerprints: alerts.map((a) => a.fingerprint),
+      },
+    };
+
+    const result = await receiveWebhook({
+      organizationId: orgId,
+      provider,
+      eventType: `grafana.alert.${payload.status ?? "received"}`,
+      payload: enriched,
+    });
+
+    const incidentResult = await processGrafanaWebhookAlerts({
+      organizationId: orgId,
+      alerts,
+    });
+
+    await ingestGrafanaWebhookTelemetry({
+      organizationId: orgId,
+      alerts,
+      webhookEventId: result.webhookId,
+    });
+
+    return NextResponse.json({
+      ok: true,
+      ...result,
+      incidents: incidentResult,
+    });
   }
 
   const eventType = String(payload.action ?? payload.event_type ?? "webhook.received");

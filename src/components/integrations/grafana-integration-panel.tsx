@@ -33,6 +33,10 @@ export function GrafanaIntegrationPanel({
   lastSyncSummary,
   selectedDashboardScopes,
   operationalSnapshot,
+  webhookUrl,
+  webhookSecret,
+  webhookEnabled,
+  appUrlConfigured,
   canManage,
 }: {
   connected: boolean;
@@ -45,6 +49,10 @@ export function GrafanaIntegrationPanel({
   lastSyncSummary?: string;
   selectedDashboardScopes?: GrafanaDashboardScope[];
   operationalSnapshot?: GrafanaOperationalSnapshot;
+  webhookUrl?: string;
+  webhookSecret?: string;
+  webhookEnabled?: boolean;
+  appUrlConfigured?: boolean;
   canManage: boolean;
 }) {
   const router = useRouter();
@@ -63,6 +71,7 @@ export function GrafanaIntegrationPanel({
   const [tagFilter, setTagFilter] = useState("");
   const [alertLabels, setAlertLabels] = useState("");
   const [maxScopes, setMaxScopes] = useState(15);
+  const [copiedWebhook, setCopiedWebhook] = useState(false);
 
   const savedScopes = selectedDashboardScopes ?? [];
   const hasSelection = savedScopes.length > 0;
@@ -238,6 +247,17 @@ export function GrafanaIntegrationPanel({
       setMessage(e instanceof Error ? e.message : "Connection failed");
     } finally {
       setConnecting(false);
+    }
+  }
+
+  async function copyWebhookUrl() {
+    if (!webhookUrl) return;
+    try {
+      await navigator.clipboard.writeText(webhookUrl);
+      setCopiedWebhook(true);
+      setTimeout(() => setCopiedWebhook(false), 2000);
+    } catch {
+      setMessage("Could not copy webhook URL");
     }
   }
 
@@ -560,6 +580,41 @@ export function GrafanaIntegrationPanel({
               Snapshot from {formatDate(operationalSnapshot.generatedAt)}
             </p>
           )}
+        </div>
+      )}
+
+      {webhookUrl && (
+        <div className="rounded-lg border border-border bg-elevated/40 p-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-xs font-medium text-primary">Alert webhook</p>
+            {webhookEnabled && <Badge variant="brand">Webhooks active</Badge>}
+          </div>
+          <p className="mt-1 text-[11px] text-muted">
+            Add this URL as a Grafana contact point for unified alerting. Real-time firing alerts
+            create incidents in AIDOS.
+          </p>
+          {!appUrlConfigured && (
+            <p className="mt-2 text-[11px] text-warning-soft">
+              Set <code className="text-warning">NEXT_PUBLIC_APP_URL</code> for production webhook
+              delivery.
+            </p>
+          )}
+          <p className="mt-2 break-all font-mono text-[11px] text-muted">{webhookUrl}</p>
+          {webhookSecret && (
+            <p className="mt-2 text-[11px] text-muted">
+              Secret: <span className="font-mono text-secondary">{webhookSecret}</span>
+            </p>
+          )}
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button type="button" size="sm" variant="secondary" onClick={copyWebhookUrl}>
+              {copiedWebhook ? "Copied" : "Copy webhook URL"}
+            </Button>
+          </div>
+          <p className="mt-2 text-[11px] text-muted">
+            Grafana contact point: Webhook · Method POST · Include{" "}
+            <code className="text-secondary">secret</code> query param or{" "}
+            <code className="text-secondary">X-AIDOS-Webhook-Secret</code> header.
+          </p>
         </div>
       )}
 

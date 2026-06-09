@@ -2,6 +2,7 @@ import type { Integration } from "@/generated/prisma/client";
 import { parseIntegrationMeta } from "@/lib/integration-meta";
 import { isJiraOAuthConnected, parseJiraMeta } from "@/lib/jira-meta";
 import { isPrometheusTrulyConnected } from "@/lib/prometheus-meta";
+import { isGrafanaTrulyConnected } from "@/lib/grafana-meta";
 
 export type IntegrationGateKey = "codeAnalysis" | "deliveryAnalysis" | "observability";
 
@@ -23,6 +24,7 @@ export function getIntegrationNavGates(integrations: Integration[]): Integration
   const github = integrations.find((i) => i.provider === "GITHUB" && i.status === "CONNECTED");
   const jira = integrations.find((i) => i.provider === "JIRA" && isJiraOAuthConnected(i));
   const prometheus = integrations.find((i) => i.provider === "PROMETHEUS");
+  const grafana = integrations.find((i) => i.provider === "GRAFANA");
 
   const githubMeta = github ? parseIntegrationMeta(github.metadataJson) : null;
   const jiraMeta = jira ? parseJiraMeta(jira.metadataJson) : null;
@@ -30,7 +32,8 @@ export function getIntegrationNavGates(integrations: Integration[]): Integration
   return {
     codeAnalysis: Boolean(githubMeta?.repoFullNames?.length),
     deliveryAnalysis: Boolean(jiraMeta?.projectKeys?.length),
-    observability: isPrometheusTrulyConnected(prometheus),
+    observability:
+      isPrometheusTrulyConnected(prometheus) || isGrafanaTrulyConnected(grafana),
   };
 }
 

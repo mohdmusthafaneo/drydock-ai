@@ -7,6 +7,7 @@ import {
   isPrometheusTrulyConnected,
   parsePrometheusMeta,
 } from "@/lib/prometheus-meta";
+import { isGrafanaTrulyConnected, parseGrafanaMeta } from "@/lib/grafana-meta";
 import { getAvailableMockServiceScopes } from "@/lib/observability-analysis/mock-data";
 import { ObservabilityPageClient } from "@/components/observability/observability-page-client";
 
@@ -29,36 +30,55 @@ export default async function ObservabilityPage() {
   const prometheus = ctx.integrations.find(
     (i) => i.provider === "PROMETHEUS" && i.status === "CONNECTED",
   );
+  const grafana = ctx.integrations.find(
+    (i) => i.provider === "GRAFANA" && i.status === "CONNECTED",
+  );
 
-  const meta = prometheus ? parsePrometheusMeta(prometheus.metadataJson) : null;
-  const isStubConnection = meta?.mode === "observability-stub";
+  const prometheusMeta = prometheus ? parsePrometheusMeta(prometheus.metadataJson) : null;
+  const grafanaMeta = grafana ? parseGrafanaMeta(grafana.metadataJson) : null;
+
   const prometheusConnected = Boolean(prometheus);
-  const trulyConnected = isPrometheusTrulyConnected(prometheus);
-  const hasSnapshot = Boolean(meta?.operationalSnapshot);
-  const lastSyncedAt = prometheus?.lastSyncAt?.toISOString() ?? null;
+  const grafanaConnected = Boolean(grafana);
+  const prometheusTrulyConnected = isPrometheusTrulyConnected(prometheus);
+  const grafanaTrulyConnected = isGrafanaTrulyConnected(grafana);
+
+  const isPrometheusStub = prometheusMeta?.mode === "observability-stub";
+  const prometheusHasSnapshot = Boolean(prometheusMeta?.operationalSnapshot);
+  const prometheusLastSyncedAt = prometheus?.lastSyncAt?.toISOString() ?? null;
+
+  const grafanaHasSnapshot = Boolean(grafanaMeta?.operationalSnapshot);
+  const grafanaLastSyncedAt = grafana?.lastSyncAt?.toISOString() ?? null;
+  const grafanaDashboardScopes = grafanaMeta?.dashboardScopes ?? [];
+
   const canSync = hasPermission(session, "integrations", "manage_integrations");
 
-  const configuredScopes = meta?.serviceScopes ?? [];
+  const configuredScopes = prometheusMeta?.serviceScopes ?? [];
 
-  // P1 UI shell: stub connections preview mock dashboard; truly connected with scopes but no snapshot uses mock until P2
   const showP1MockPreview =
-    (isStubConnection && prometheusConnected) ||
-    (trulyConnected && configuredScopes.length > 0 && !hasSnapshot);
+    (isPrometheusStub && prometheusConnected) ||
+    (prometheusTrulyConnected && configuredScopes.length > 0 && !prometheusHasSnapshot);
 
   const serviceScopes =
     configuredScopes.length > 0
       ? configuredScopes
-      : showP1MockPreview && isStubConnection
+      : showP1MockPreview && isPrometheusStub
         ? getAvailableMockServiceScopes()
         : [];
 
   return (
     <ObservabilityPageClient
       prometheusConnected={prometheusConnected}
-      isStubConnection={isStubConnection}
+      prometheusTrulyConnected={prometheusTrulyConnected}
+      isPrometheusStub={isPrometheusStub}
       serviceScopes={serviceScopes}
-      hasSnapshot={hasSnapshot}
-      lastSyncedAt={lastSyncedAt}
+      prometheusHasSnapshot={prometheusHasSnapshot}
+      prometheusLastSyncedAt={prometheusLastSyncedAt}
+      grafanaConnected={grafanaConnected}
+      grafanaTrulyConnected={grafanaTrulyConnected}
+      grafanaDashboardScopes={grafanaDashboardScopes}
+      grafanaHasSnapshot={grafanaHasSnapshot}
+      grafanaLastSyncedAt={grafanaLastSyncedAt}
+      grafanaSnapshot={grafanaMeta?.operationalSnapshot ?? null}
       canSync={canSync}
       showP1MockPreview={showP1MockPreview}
     />

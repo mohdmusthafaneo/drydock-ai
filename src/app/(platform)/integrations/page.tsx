@@ -79,6 +79,7 @@ export default async function IntegrationsPage({
 
   const appUrl = getAppUrl();
   const githubWebhookUrl = `${appUrl}/api/webhooks/github?organizationId=${session.organizationId}`;
+  const grafanaWebhookUrl = `${appUrl}/api/webhooks/grafana?organizationId=${session.organizationId}`;
   const appUrlConfigured = isAppUrlConfigured();
 
   const org = await prisma.organization.findUnique({
@@ -227,6 +228,14 @@ export default async function IntegrationsPage({
                     lastSyncSummary={grafanaMeta?.lastSyncSummary}
                     selectedDashboardScopes={grafanaMeta?.dashboardScopes}
                     operationalSnapshot={grafanaMeta?.operationalSnapshot}
+                    webhookUrl={
+                      grafanaMeta?.webhookSecret
+                        ? `${grafanaWebhookUrl}&secret=${grafanaMeta.webhookSecret}`
+                        : grafanaWebhookUrl
+                    }
+                    webhookSecret={grafanaMeta?.webhookSecret}
+                    webhookEnabled={integration.webhookEnabled}
+                    appUrlConfigured={appUrlConfigured}
                     canManage={canManage}
                   />
                 ) : (
