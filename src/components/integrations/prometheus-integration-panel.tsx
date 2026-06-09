@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DisconnectButton } from "@/components/integrations/integration-actions";
@@ -46,6 +46,7 @@ export function PrometheusIntegrationPanel({
   const [basicUsername, setBasicUsername] = useState(savedBasicUsername ?? "");
   const [basicPassword, setBasicPassword] = useState("");
   const [connecting, setConnecting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -97,7 +98,7 @@ export function PrometheusIntegrationPanel({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Connection failed");
-      setMessage("Prometheus connected — select services to sync (coming in next step)");
+      setMessage("Prometheus connected — run sync to populate metrics");
       setApiToken("");
       setBasicPassword("");
       router.refresh();
@@ -105,6 +106,25 @@ export function PrometheusIntegrationPanel({
       setMessage(e instanceof Error ? e.message : "Connection failed");
     } finally {
       setConnecting(false);
+    }
+  }
+
+  async function sync() {
+    setSyncing(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/integrations/prometheus/sync", {
+        method: "POST",
+        credentials: "same-origin",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Sync failed");
+      setMessage(data.summary ?? "Prometheus sync complete");
+      router.refresh();
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "Sync failed");
+    } finally {
+      setSyncing(false);
     }
   }
 
@@ -285,8 +305,8 @@ export function PrometheusIntegrationPanel({
       <div className="space-y-2 rounded-lg border border-border bg-elevated/40 p-3">
         <p className="text-xs font-medium text-primary">Services to analyze</p>
         <p className="text-xs text-muted">
-          Service scope selection and PromQL sync ship in the next phase. Choose which jobs or
-          services to include once scope discovery is enabled.
+          PromQL templates run at sync time for selected service scopes. Sync populates metrics
+          used in release assess and observability.
         </p>
         {scopeLabels.length > 0 ? (
           <p className="text-xs text-secondary">
@@ -305,6 +325,19 @@ export function PrometheusIntegrationPanel({
 
       {lastSyncSummary && (
         <p className="text-xs text-success-soft">{lastSyncSummary}</p>
+      )}
+
+      {canManage && (
+        <Button
+          type="button"
+          size="sm"
+          variant="brand"
+          disabled={syncing}
+          onClick={sync}
+        >
+          <RefreshCw className={syncing ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
+          {syncing ? "Syncing…" : "Sync Prometheus metrics"}
+        </Button>
       )}
 
       {canManage && (

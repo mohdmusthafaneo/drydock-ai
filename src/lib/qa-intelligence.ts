@@ -1,4 +1,5 @@
 import type { DeliveryDNA, Integration, OrganizationProfile } from "@/generated/prisma/client";
+import type { GitHubAssessContext } from "@/lib/github-assess-context";
 import type { GrafanaAssessContext } from "@/lib/grafana-assess-context";
 import type { JiraAssessContext } from "@/lib/jira-delivery-health";
 import { isJiraOAuthConnected } from "@/lib/jira-meta";
@@ -121,6 +122,87 @@ function formatPerformanceSignal(
   };
 }
 
+function formatStabilitySignal(
+  metrics: MetricsAssessContext,
+  environment: string,
+  liveObs: ReturnType<typeof hasLiveObservability>,
+): Pick<QASignal, "value" | "severity"> {
+  if (metrics.synced && metrics.snapshot && metrics.provenance) {
+    const { kpis } = metrics.snapshot;
+    const source = formatMetricsSourceShort(metrics.provenance);
+
+    if (kpis.errorBudgetRemainingPct != null) {
+      return {
+        value: `Error budget ${kpis.errorBudgetRemainingPct}% remaining (${source})`,
+        severity:
+          kpis.errorBudgetRemainingPct < 30
+            ? "critical"
+            : kpis.errorBudgetRemainingPct < 50
+              ? "warning"
+              : "info",
+      };
+    }
+
+    if (kpis.errorRate > 0.5) {
+      return {
+        value: `Error rate ${kpis.errorRate}% (${source})`,
+        severity: kpis.errorRate > 1 ? "critical" : "warning",
+      };
+    }
+
+    return {
+      value: `Within budget — error rate ${kpis.errorRate}% (${source})`,
+      severity: "info",
+    };
+  }
+
+  if (environment !== "PRODUCTION") {
+    return { value: "Within budget for non-prod", severity: "info" };
+  }
+
+  if (liveObs.any) {
+    return {
+      value: "Run metrics sync on Integrations for error budget signal",
+      severity: "warning",
+    };
+  }
+
+  return {
+    value: "No error budget signal — connect observability",
+    severity: "warning",
+  };
+}
+
+function formatRegressionSignal(github: GitHubAssessContext | undefined): Pick<QASignal, "value" | "severity"> {
+  if (!github?.connected) {
+    return { value: "No CI signal — connect GitHub", severity: "warning" };
+  }
+
+  if (!github.synced) {
+    return {
+      value: "GitHub connected — run sync on Integrations for CI signals",
+      severity: "warning",
+    };
+  }
+
+  const ci = github.ci;
+  if (!ci || ci.passRatePct == null) {
+    return {
+      value: "No CI runs in scope — check branch filter or run GitHub sync",
+      severity: "warning",
+    };
+  }
+
+  const branchNote =
+    ci.consecutiveFailures > 0 ? ` · ${ci.consecutiveFailures} consecutive failure(s)` : "";
+
+  return {
+    value: `${ci.passRatePct}% pass rate on recent workflow runs${branchNote}`,
+    severity:
+      ci.passRatePct >= 80 ? "info" : ci.passRatePct >= 60 ? "warning" : "critical",
+  };
+}
+
 export function assessQAIntelligence(input: {
   profile: OrganizationProfile | null;
   dna: DeliveryDNA;
@@ -131,12 +213,17 @@ export function assessQAIntelligence(input: {
   grafana?: GrafanaAssessContext;
   prometheus?: PrometheusAssessContext;
   metrics?: MetricsAssessContext;
+  github?: GitHubAssessContext;
 }): QAAssessment {
   const tools = input.profile
     ? (JSON.parse(input.profile.toolsJson || "[]") as string[])
     : [];
   const connected = input.integrations.filter((i) => i.status === "CONNECTED");
-  const hasGithub = connected.some((i) => i.provider === "GITHUB") || tools.includes("github");
+  const github = input.github;
+  const hasGithub =
+    github?.connected ??
+    (connected.some((i) => i.provider === "GITHUB") || tools.includes("github"));
+  const githubSynced = github?.synced ?? false;
   const liveObs = hasLiveObservability({ integrations: input.integrations, tools });
   const metrics =
     input.metrics ?? resolveMetricsAssessContext({ integrations: input.integrations });
@@ -150,14 +237,16 @@ export function assessQAIntelligence(input: {
     input.grafana,
     liveObs,
   );
+  const stability = formatStabilitySignal(metrics, input.environment, liveObs);
+  const regression = formatRegressionSignal(github);
 
   const signals: QASignal[] = [
     {
       id: "regression-suite",
       category: "regression",
       label: "Regression suite",
-      value: hasGithub ? "Last run 94% pass (synthetic)" : "No CI signal — connect GitHub",
-      severity: hasGithub ? "info" : "warning",
+      value: regression.value,
+      severity: regression.severity,
     },
     {
       id: "coverage",
@@ -177,26 +266,10 @@ export function assessQAIntelligence(input: {
       id: "stability",
       category: "stability",
       label: "Error budget burn",
-      value:
-        input.environment === "PRODUCTION"
-          ? "12% consumed this window"
-          : "Within budget for non-prod",
-      severity: input.environment === "PRODUCTION" ? "warning" : "info",
+      value: stability.value,
+      severity: stability.severity,
     },
   ];
-
-  if (metrics.synced && metrics.snapshot) {
-    const { kpis } = metrics.snapshot;
-    if (kpis.errorRate > 0.5 || (kpis.errorBudgetRemainingPct != null && kpis.errorBudgetRemainingPct < 30)) {
-      signals.push({
-        id: "metrics-stability",
-        category: "stability",
-        label: "Error budget / error rate",
-        value: `Error rate ${kpis.errorRate}%${kpis.errorBudgetRemainingPct != null ? ` · budget ${kpis.errorBudgetRemainingPct}% remaining` : ""}`,
-        severity: kpis.errorRate > 1 ? "critical" : "warning",
-      });
-    }
-  }
 
   if (input.grafana?.synced && input.grafana.openAlerts > 0) {
     signals.push({
@@ -254,13 +327,33 @@ export function assessQAIntelligence(input: {
       });
     }
   }
+
   if (!hasGithub) {
     testGaps.push({
       area: "Automation",
       gap: "No automated regression signal from CI",
       priority: "high",
     });
+  } else if (!githubSynced) {
+    testGaps.push({
+      area: "Automation",
+      gap: "Run GitHub sync on Integrations for CI pass rate",
+      priority: "high",
+    });
+  } else if (github?.ci?.passRatePct == null) {
+    testGaps.push({
+      area: "Automation",
+      gap: "No workflow runs found in synced repositories",
+      priority: "medium",
+    });
+  } else if (github.ci.passRatePct < 80) {
+    testGaps.push({
+      area: "Automation",
+      gap: `CI pass rate ${github.ci.passRatePct}% below 80% target`,
+      priority: "high",
+    });
   }
+
   if (input.dna.governanceScore < 60) {
     testGaps.push({
       area: "Governance",
@@ -268,6 +361,7 @@ export function assessQAIntelligence(input: {
       priority: "medium",
     });
   }
+
   if (input.environment === "PRODUCTION" && !liveObs.any) {
     testGaps.push({
       area: "Observability",
@@ -275,8 +369,35 @@ export function assessQAIntelligence(input: {
       priority: "high",
     });
   }
+
+  if (liveObs.any && !metrics.synced) {
+    testGaps.push({
+      area: "Observability",
+      gap: "Run sync on Integrations for live metrics",
+      priority: "high",
+    });
+  }
+
+  if (input.grafana?.connected && !input.grafana.synced) {
+    testGaps.push({
+      area: "Observability",
+      gap: "Run Grafana sync on Integrations for alert and deployment signals",
+      priority: "medium",
+    });
+  }
+
   if (metrics.synced && metrics.snapshot) {
     for (const gap of metrics.snapshot.gaps ?? []) {
+      testGaps.push({
+        area: gap.area,
+        gap: gap.gap,
+        priority: gap.priority,
+      });
+    }
+  }
+
+  if (input.grafana?.synced && input.grafana.snapshot?.gaps) {
+    for (const gap of input.grafana.snapshot.gaps) {
       testGaps.push({
         area: gap.area,
         gap: gap.gap,
@@ -290,15 +411,31 @@ export function assessQAIntelligence(input: {
     testGaps.filter((g) => g.priority === "medium").length * 6 +
     signals.filter((s) => s.severity === "warning").length * 4;
 
-  let readinessScore = Math.max(0, Math.min(100, 88 - penalty + (hasGithub ? 5 : 0)));
+  const ciPassRate = github?.ci?.passRatePct;
+  const ciBonus = ciPassRate != null && ciPassRate >= 80 ? 5 : 0;
+
+  let readinessScore = Math.max(0, Math.min(100, 88 - penalty + ciBonus));
 
   if (jiraHealth) {
     readinessScore = Math.round(readinessScore * 0.55 + jiraHealth.score * 0.45);
   }
 
-  let regressionNotes = hasGithub
-    ? `${input.releaseName}: synthetic regression run flagged 2 flaky tests in checkout flow; no blockers in smoke suite.`
-    : `${input.releaseName}: regression intelligence unavailable until GitHub CI is connected.`;
+  let regressionNotes: string;
+  if (githubSynced && github?.ci?.passRatePct != null) {
+    const ci = github.ci;
+    regressionNotes = `${input.releaseName}: CI pass rate ${ci.passRatePct}%`;
+    if (ci.consecutiveFailures > 0) {
+      regressionNotes += `; ${ci.consecutiveFailures} consecutive failure(s)`;
+    }
+    if (ci.lastConclusion === "failure") {
+      regressionNotes += "; latest run failed";
+    }
+    regressionNotes += ".";
+  } else if (hasGithub && !githubSynced) {
+    regressionNotes = `${input.releaseName}: GitHub connected — run sync on Integrations before assess.`;
+  } else {
+    regressionNotes = `${input.releaseName}: regression intelligence unavailable until GitHub CI is connected.`;
+  }
 
   if (jiraHealth) {
     const jiraParts = [
@@ -310,9 +447,9 @@ export function assessQAIntelligence(input: {
     if (jiraHealth.scopedProject) {
       jiraParts.push(`scope ${jiraHealth.scopedProject.key}`);
     }
-    regressionNotes = `${input.releaseName}: ${jiraParts.join("; ")}. ${regressionNotes}`;
+    regressionNotes = `${input.releaseName}: ${jiraParts.join("; ")}. ${regressionNotes.replace(`${input.releaseName}: `, "")}`;
   } else if (hasJira && !jiraSynced) {
-    regressionNotes = `${input.releaseName}: Jira connected — run sync on Integrations before assess. ${regressionNotes}`;
+    regressionNotes = `${input.releaseName}: Jira connected — run sync on Integrations before assess. ${regressionNotes.replace(`${input.releaseName}: `, "")}`;
   }
 
   return { signals, testGaps, readinessScore, regressionNotes };

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { computeCompletedStepIds } from "@/lib/enterprise-workflow";
-import { isPrometheusTrulyConnected } from "@/lib/prometheus-meta";
+import { hasObservabilitySynced } from "@/lib/observability-connectivity";
 import { resolveLandingPath } from "@/lib/landing-path";
 import { prisma } from "@/lib/prisma";
 import type { WorkspaceMode } from "@/lib/workspace-mode";
@@ -54,9 +54,7 @@ export async function getLandingPathForOrganization(organizationId: string): Pro
   const assessedReleases = releases.filter((r) => r.assessedAt);
   const deployedReleases = releases.filter((r) => r.status === "DEPLOYED");
   const pendingApprovals = approvals.filter((a) => !a.decision);
-  const prometheus = integrations.find((i) => i.provider === "PROMETHEUS");
-  const hasPrometheusSynced =
-    isPrometheusTrulyConnected(prometheus) && Boolean(prometheus?.lastSyncAt);
+  const hasObservabilitySyncedFlag = hasObservabilitySynced(integrations);
 
   const completedStepIds = computeCompletedStepIds({
     hasDna: Boolean(dna),
@@ -68,7 +66,7 @@ export async function getLandingPathForOrganization(organizationId: string): Pro
     hasPendingApprovals: pendingApprovals.length > 0,
     hasDeployedRelease: deployedReleases.length > 0,
     hasOpenIncident: incidents.length > 0,
-    hasPrometheusSynced,
+    hasObservabilitySynced: hasObservabilitySyncedFlag,
   });
 
   return resolveLandingPath({

@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { computeCompletedStepIds } from "@/lib/enterprise-workflow";
-import { isPrometheusTrulyConnected } from "@/lib/prometheus-meta";
+import { hasObservabilitySynced } from "@/lib/observability-connectivity";
 
 export async function getOrganizationContext(organizationId: string) {
   const [
@@ -112,9 +112,7 @@ export async function getOrganizationContext(organizationId: string) {
 
   const workflowConfigured = Boolean(workflow?.configuredAt);
   const toolchainMappingConfirmed = Boolean(profile?.toolchainMappingConfirmedAt);
-  const prometheus = integrations.find((i) => i.provider === "PROMETHEUS");
-  const hasPrometheusSynced =
-    isPrometheusTrulyConnected(prometheus) && Boolean(prometheus?.lastSyncAt);
+  const hasObservabilitySyncedFlag = hasObservabilitySynced(integrations);
   const completedStepIds = computeCompletedStepIds({
     hasDna: Boolean(dna),
     hasProfile: Boolean(profile?.completedAt),
@@ -125,7 +123,7 @@ export async function getOrganizationContext(organizationId: string) {
     hasPendingApprovals: pendingApprovals.length > 0,
     hasDeployedRelease: deployedReleases.length > 0,
     hasOpenIncident: incidents.some((i) => i.status === "OPEN" || i.status === "INVESTIGATING"),
-    hasPrometheusSynced,
+    hasObservabilitySynced: hasObservabilitySyncedFlag,
   });
 
   const degradedDeployments = deploymentEvents.filter(

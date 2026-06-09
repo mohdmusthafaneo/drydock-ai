@@ -97,7 +97,7 @@ export async function syncGitHubIntegration(input: {
     try {
       const [pulls, runs] = await Promise.all([
         listOpenPulls(token, owner, repoName),
-        listWorkflowRuns(token, owner, repoName, 3),
+        listWorkflowRuns(token, owner, repoName, 10),
       ]);
 
       repo.openPrs = pulls.length;
@@ -129,6 +129,18 @@ export async function syncGitHubIntegration(input: {
           occurredAt: pr.updated_at,
         });
       }
+
+      repo.recentWorkflowRuns = runs.map((run) => ({
+        name: run.name,
+        conclusion:
+          run.conclusion === "success" ||
+          run.conclusion === "failure" ||
+          run.conclusion === "cancelled"
+            ? run.conclusion
+            : null,
+        headBranch: run.head_branch,
+        updatedAt: run.updated_at,
+      }));
 
       for (const run of runs) {
         const severity =

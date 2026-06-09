@@ -94,6 +94,8 @@ export const ENTERPRISE_WORKFLOW_STEPS: EnterpriseWorkflowStep[] = [
   },
 ];
 
+export { hasObservabilitySynced } from "@/lib/observability-connectivity";
+
 export function computeCompletedStepIds(input: {
   hasDna: boolean;
   hasProfile: boolean;
@@ -104,8 +106,12 @@ export function computeCompletedStepIds(input: {
   hasPendingApprovals: boolean;
   hasDeployedRelease: boolean;
   hasOpenIncident: boolean;
+  hasObservabilitySynced?: boolean;
+  /** @deprecated use hasObservabilitySynced */
   hasPrometheusSynced?: boolean;
 }): string[] {
+  const observabilitySynced =
+    input.hasObservabilitySynced ?? input.hasPrometheusSynced ?? false;
   const done: string[] = ["auth"];
 
   if (input.hasDna && input.hasProfile) done.push("discovery");
@@ -113,13 +119,13 @@ export function computeCompletedStepIds(input: {
   if (input.toolchainMappingConfirmed) done.push("toolchain-mapping");
   if (input.workflowConfigured) done.push("workflow-config");
   if (input.hasAssessedRelease) done.push("qa-init");
-  if (input.hasPrometheusSynced) done.push("telemetry");
+  if (observabilitySynced) done.push("telemetry");
   if (input.hasAssessedRelease) {
     done.push("correlation", "recommendations");
   }
   if (input.hasAssessedRelease && !input.hasPendingApprovals) done.push("approval");
   if (input.hasDeployedRelease) done.push("execution");
-  if (input.hasDeployedRelease && (input.hasPrometheusSynced || !input.hasOpenIncident))
+  if (input.hasDeployedRelease && (observabilitySynced || !input.hasOpenIncident))
     done.push("monitoring");
 
   return [...new Set(done)];

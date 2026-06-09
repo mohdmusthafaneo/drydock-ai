@@ -1,3 +1,10 @@
+export type GitHubWorkflowRunSummary = {
+  name: string;
+  conclusion: "success" | "failure" | "cancelled" | null;
+  headBranch: string;
+  updatedAt: string;
+};
+
 export type GitHubRepoSummary = {
   id: number;
   fullName: string;
@@ -6,6 +13,7 @@ export type GitHubRepoSummary = {
   updatedAt: string;
   openPrs?: number;
   commonPrLabels?: string[];
+  recentWorkflowRuns?: GitHubWorkflowRunSummary[];
 };
 
 import type { StoredCodeAnalysis } from "@/lib/code-analysis/types";

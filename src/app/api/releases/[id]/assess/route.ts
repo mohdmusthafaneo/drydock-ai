@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { resolveGrafanaAssessContext } from "@/lib/grafana-assess-context";
+import { resolveGitHubAssessContext } from "@/lib/github-assess-context";
 import { resolveJiraAssessContext } from "@/lib/jira-delivery-health";
 import { resolvePrometheusAssessContext, resolveMetricsAssessContext } from "@/lib/observability-connectivity";
 import { assessReleaseGovernance } from "@/lib/release-governance";
@@ -56,6 +57,9 @@ export async function POST(
   const jiraMapping = profile?.toolchainMappingConfirmedAt
     ? toolchainMapping.jira
     : undefined;
+  const githubMapping = profile?.toolchainMappingConfirmedAt
+    ? toolchainMapping.github
+    : undefined;
 
   const jira = resolveJiraAssessContext({
     integrations,
@@ -67,6 +71,11 @@ export async function POST(
   const grafana = resolveGrafanaAssessContext({ integrations });
   const prometheus = resolvePrometheusAssessContext({ integrations });
   const metrics = resolveMetricsAssessContext({ integrations });
+  const github = resolveGitHubAssessContext({
+    integrations,
+    releaseBranch:
+      githubMapping?.productionBranch ?? githubMapping?.primaryDefaultBranch ?? null,
+  });
 
   const assessment = assessReleaseGovernance({
     profile,
@@ -79,6 +88,7 @@ export async function POST(
     grafana,
     prometheus,
     metrics,
+    github,
   });
 
   const updated = await prisma.$transaction(async (tx) => {

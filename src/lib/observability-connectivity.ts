@@ -54,8 +54,14 @@ export function hasLiveObservability(input: {
   };
 }
 
+type IntegrationMetricsSlice = Pick<Integration, "provider" | "status" | "metadataJson">;
+
+export function hasObservabilitySynced(integrations: IntegrationMetricsSlice[]): boolean {
+  return resolveMetricsAssessContext({ integrations }).synced;
+}
+
 export function resolveMetricsAssessContext(input: {
-  integrations: Integration[];
+  integrations: IntegrationMetricsSlice[];
 }): MetricsAssessContext {
   const prometheus = input.integrations.find((i) => i.provider === "PROMETHEUS");
   const grafana = input.integrations.find((i) => i.provider === "GRAFANA");

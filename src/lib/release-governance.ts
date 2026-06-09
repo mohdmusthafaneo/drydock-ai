@@ -1,4 +1,5 @@
 import type { DeliveryDNA, Integration, OrganizationProfile } from "@/generated/prisma/client";
+import type { GitHubAssessContext } from "@/lib/github-assess-context";
 import type { GrafanaAssessContext } from "@/lib/grafana-assess-context";
 import type { JiraAssessContext } from "@/lib/jira-delivery-health";
 import {
@@ -7,7 +8,7 @@ import {
   resolveMetricsAssessContext,
   type PrometheusAssessContext,
 } from "@/lib/observability-connectivity";
-import type { MetricsAssessContext } from "@/lib/observability-metrics/types";
+import type { MetricsAssessContext, MetricsProvenance } from "@/lib/observability-metrics/types";
 import type { QAAssessment } from "@/lib/qa-intelligence";
 import { assessQAIntelligence } from "@/lib/qa-intelligence";
 
@@ -16,6 +17,8 @@ export type TelemetrySnapshot = {
   openIncidents: number;
   errorRateDelta: string;
   observabilityCoverage: string;
+  metricsProvenance?: MetricsProvenance | null;
+  assessedAt?: string;
 };
 
 export type GovernanceAssessment = {
@@ -44,9 +47,8 @@ function riskLevelFromScore(score: number): GovernanceAssessment["riskLevel"] {
 
 function resolveOpenIncidents(
   grafana: GrafanaAssessContext | undefined,
-  prometheus: PrometheusAssessContext | undefined,
   metrics: MetricsAssessContext | undefined,
-  riskLevel: GovernanceAssessment["riskLevel"],
+  prometheus: PrometheusAssessContext | undefined,
 ): number {
   if (grafana?.synced) return grafana.openAlerts;
   if (metrics?.synced && metrics.snapshot) {
@@ -55,17 +57,14 @@ function resolveOpenIncidents(
   if (prometheus?.synced && prometheus.snapshot) {
     return prometheus.snapshot.kpis.openAlerts;
   }
-  return riskLevel === "CRITICAL" || riskLevel === "HIGH" ? 1 : 0;
+  return 0;
 }
 
-function resolveDeployments24h(
-  grafana: GrafanaAssessContext | undefined,
-  connectedCount: number,
-): number {
+function resolveDeployments24h(grafana: GrafanaAssessContext | undefined): number {
   if (grafana?.synced && grafana.snapshot) {
     return grafana.snapshot.kpis.annotations24h;
   }
-  return connectedCount > 0 ? 3 : 0;
+  return 0;
 }
 
 export function assessReleaseGovernance(input: {
@@ -79,9 +78,11 @@ export function assessReleaseGovernance(input: {
   grafana?: GrafanaAssessContext;
   prometheus?: PrometheusAssessContext;
   metrics?: MetricsAssessContext;
+  github?: GitHubAssessContext;
 }): GovernanceAssessment {
   const metrics =
     input.metrics ?? resolveMetricsAssessContext({ integrations: input.integrations });
+  const assessedAt = new Date().toISOString();
 
   const qa = assessQAIntelligence({
     profile: input.profile,
@@ -93,6 +94,7 @@ export function assessReleaseGovernance(input: {
     grafana: input.grafana,
     prometheus: input.prometheus,
     metrics,
+    github: input.github,
   });
 
   const connected = input.integrations.filter((i) => i.status === "CONNECTED").length;
@@ -115,15 +117,16 @@ export function assessReleaseGovernance(input: {
   const prometheusCtx = input.prometheus?.connected ? input.prometheus : null;
 
   const telemetry: TelemetrySnapshot = {
-    deployments24h: resolveDeployments24h(grafanaCtx ?? undefined, connected),
+    deployments24h: resolveDeployments24h(grafanaCtx ?? undefined),
     openIncidents: resolveOpenIncidents(
       grafanaCtx ?? undefined,
-      prometheusCtx ?? undefined,
       metrics,
-      riskLevel,
+      prometheusCtx ?? undefined,
     ),
     errorRateDelta: formatErrorRateDelta(prometheusCtx, metrics),
     observabilityCoverage: formatObservabilityCoverage(grafanaCtx, prometheusCtx, metrics),
+    metricsProvenance: metrics.synced ? metrics.provenance : null,
+    assessedAt,
   };
 
   const recommendations: GovernanceAssessment["recommendations"] = [];
