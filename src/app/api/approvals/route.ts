@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { canApproveRequiredRole } from "@/lib/permissions";
 import { getSession } from "@/lib/session";
+import { enqueueApprovalFollowUpWakeups } from "@/lib/agent-control-plane/wakeup";
 
 const schema = z.object({
   approvalId: z.string(),
@@ -113,6 +114,12 @@ export async function POST(request: Request) {
         }
       }
     });
+
+    await enqueueApprovalFollowUpWakeups(
+      session.organizationId,
+      approval.id,
+      body.decision,
+    );
 
     return NextResponse.json({ ok: true });
   } catch {

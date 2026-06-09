@@ -118,6 +118,9 @@ model Organization {
   releases           Release[]
   deliveryWorkflow   DeliveryWorkflow?
   agents             AgentRegistry[]
+  agentApiKeys       AgentApiKey[]
+  agentWakeupRequests AgentWakeupRequest[]
+  agentHeartbeatRuns AgentHeartbeatRun[]
   incidents          Incident[]
   telemetryMetrics   TelemetryMetric[]
   telemetryEvents    TelemetryEvent[]
@@ -271,7 +274,36 @@ enum AgentType {
 enum AgentStatus {
   IDLE
   ACTIVE
+  RUNNING
+  PAUSED
+  PENDING_APPROVAL
   DEGRADED
+  ERROR
+  TERMINATED
+}
+
+enum AgentWakeupSource {
+  timer
+  event
+  approval
+  on_demand
+  delegation
+}
+
+enum AgentWakeupStatus {
+  queued
+  running
+  completed
+  skipped
+  coalesced
+}
+
+enum AgentHeartbeatRunStatus {
+  running
+  succeeded
+  failed
+  timed_out
+  cancelled
 }
 
 enum IncidentStatus {
@@ -296,21 +328,99 @@ model DeliveryWorkflow {
 }
 
 model AgentRegistry {
-  id             String      @id @default(cuid())
-  organizationId String
-  agentType      AgentType
-  displayName    String
-  description    String?
-  status         AgentStatus @default(IDLE)
-  confidenceScore Float      @default(0.85)
-  autonomyMode   AutonomyMode @default(RECOMMEND)
-  lastActiveAt   DateTime?
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  id                 String       @id @default(cuid())
+  organizationId     String
+  agentType          AgentType
+  displayName        String
+  description        String?
+  status             AgentStatus  @default(IDLE)
+  confidenceScore    Float        @default(0.85)
+  autonomyMode       AutonomyMode @default(RECOMMEND)
+  reportsToAgentId   String?
+  adapterType        String       @default("internal")
+  adapterConfigJson  String       @default("{}")
+  runtimeConfigJson  String       @default("{}")
+  permissionsJson    String       @default("{}")
+  lastHeartbeatAt    DateTime?
+  lastActiveAt       DateTime?
+  createdByAgentId   String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization    Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  reportsTo       AgentRegistry?        @relation("AgentReportsTo", fields: [reportsToAgentId], references: [id], onDelete: SetNull)
+  directReports   AgentRegistry[]       @relation("AgentReportsTo")
+  apiKeys         AgentApiKey[]
+  wakeupRequests  AgentWakeupRequest[]
+  heartbeatRuns   AgentHeartbeatRun[]
 
   @@unique([organizationId, agentType])
+  @@index([organizationId, status])
+}
+
+model AgentApiKey {
+  id             String    @id @default(cuid())
+  organizationId String
+  agentId        String
+  keyHash        String
+  label          String    @default("default")
+  revokedAt      DateTime?
+  createdAt      DateTime  @default(now())
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  agent        AgentRegistry @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId])
+  @@index([keyHash])
+}
+
+model AgentWakeupRequest {
+  id              String            @id @default(cuid())
+  organizationId  String
+  agentId         String
+  source          AgentWakeupSource
+  reason          String
+  status          AgentWakeupStatus @default(queued)
+  payloadJson     String            @default("{}")
+  idempotencyKey  String?
+  coalescedCount  Int               @default(0)
+  requestedAt     DateTime          @default(now())
+  startedAt       DateTime?
+  finishedAt      DateTime?
+  error           String?
+
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  agent        AgentRegistry       @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  heartbeatRuns AgentHeartbeatRun[]
+
+  @@index([organizationId, status, requestedAt])
+  @@index([agentId, status])
+  @@unique([organizationId, idempotencyKey])
+}
+
+model AgentHeartbeatRun {
+  id                  String                  @id @default(cuid())
+  organizationId      String
+  agentId             String
+  wakeupRequestId     String
+  status              AgentHeartbeatRunStatus @default(running)
+  source              AgentWakeupSource
+  reason              String
+  contextSnapshotJson String                  @default("{}")
+  startedAt           DateTime                @default(now())
+  finishedAt          DateTime?
+  exitCode            Int?
+  error               String?
+  summary             String?
+  tokenUsageJson      String                  @default("{}")
+  logsJson            String                  @default("[]")
+
+  organization  Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  agent         AgentRegistry      @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  wakeupRequest AgentWakeupRequest @relation(fields: [wakeupRequestId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, startedAt])
+  @@index([agentId, startedAt])
 }
 
 model Incident {

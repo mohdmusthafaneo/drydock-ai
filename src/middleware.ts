@@ -9,12 +9,18 @@ const publicPaths = [
   "/api/auth/login",
   "/api/auth/signup",
   "/api/auth/logout",
-  "/api/platform/jira/sync",
   "/connect/done",
   "/connect/error",
 ];
 
-const publicPathPrefixes = ["/connect/", "/api/integrations/external/"];
+/** Bearer-auth routes — no session cookie required */
+const publicPathPrefixes = [
+  "/connect/",
+  "/api/integrations/external/",
+  "/api/platform/",
+  "/api/agents/me",
+  "/api/webhooks/",
+];
 
 function isPublicPath(pathname: string): boolean {
   if (publicPaths.includes(pathname)) return true;
