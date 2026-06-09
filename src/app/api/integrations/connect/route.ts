@@ -30,6 +30,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (provider === "GRAFANA") {
+      return NextResponse.json(
+        { error: "Connect Grafana on the Integrations page" },
+        { status: 400 },
+      );
+    }
+
     await prisma.integration.upsert({
       where: {
         organizationId_provider: {
@@ -44,7 +51,7 @@ export async function POST(request: Request) {
         displayName: provider,
         connectedAt: new Date(),
         metadataJson: JSON.stringify({
-          mode: provider === "GRAFANA" ? "observability-stub" : "read-only-stub",
+          mode: "read-only-stub",
           phase: 2,
         }),
       },
@@ -52,7 +59,7 @@ export async function POST(request: Request) {
         status: "CONNECTED",
         connectedAt: new Date(),
         metadataJson: JSON.stringify({
-          mode: provider === "GRAFANA" ? "observability-stub" : "read-only-stub",
+          mode: "read-only-stub",
           phase: 2,
         }),
       },

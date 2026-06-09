@@ -19,7 +19,9 @@ import { SyncIntegrationsButton } from "@/components/integrations/integration-he
 import { GitHubIntegrationPanel } from "@/components/integrations/github-integration-panel";
 import { JiraIntegrationPanel } from "@/components/integrations/jira-integration-panel";
 import { PrometheusIntegrationPanel } from "@/components/integrations/prometheus-integration-panel";
+import { GrafanaIntegrationPanel } from "@/components/integrations/grafana-integration-panel";
 import { isPrometheusTrulyConnected, parsePrometheusMeta } from "@/lib/prometheus-meta";
+import { isGrafanaTrulyConnected, parseGrafanaMeta } from "@/lib/grafana-meta";
 import { DisconnectButton, StubConnectButton } from "@/components/integrations/integration-actions";
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -142,9 +144,11 @@ export default async function IntegrationsPage({
           const isGitHub = integration.provider === "GITHUB";
           const isJira = integration.provider === "JIRA";
           const isPrometheus = integration.provider === "PROMETHEUS";
+          const isGrafana = integration.provider === "GRAFANA";
           const prometheusMeta = isPrometheus
             ? parsePrometheusMeta(integration.metadataJson)
             : null;
+          const grafanaMeta = isGrafana ? parseGrafanaMeta(integration.metadataJson) : null;
           const isConnected = integration.status === "CONNECTED";
 
           return (
@@ -209,6 +213,19 @@ export default async function IntegrationsPage({
                     lastError={prometheusMeta?.lastError ?? integration.lastError ?? undefined}
                     lastSyncSummary={prometheusMeta?.lastSyncSummary}
                     selectedServiceScopes={prometheusMeta?.serviceScopes}
+                    canManage={canManage}
+                  />
+                ) : isGrafana ? (
+                  <GrafanaIntegrationPanel
+                    connected={isConnected}
+                    trulyConnected={isGrafanaTrulyConnected(integration)}
+                    grafanaUrl={grafanaMeta?.grafanaUrl}
+                    authType={grafanaMeta?.authType}
+                    connectedAt={integration.connectedAt?.toISOString()}
+                    connectionStatus={grafanaMeta?.connectionStatus}
+                    lastError={grafanaMeta?.lastError ?? integration.lastError ?? undefined}
+                    lastSyncSummary={grafanaMeta?.lastSyncSummary}
+                    selectedDashboardScopes={grafanaMeta?.dashboardScopes}
                     canManage={canManage}
                   />
                 ) : (
