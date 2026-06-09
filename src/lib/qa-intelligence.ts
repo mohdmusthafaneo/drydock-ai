@@ -2,10 +2,13 @@ import type { DeliveryDNA, Integration, OrganizationProfile } from "@/generated/
 import type { GrafanaAssessContext } from "@/lib/grafana-assess-context";
 import type { JiraAssessContext } from "@/lib/jira-delivery-health";
 import { isJiraOAuthConnected } from "@/lib/jira-meta";
+import type { MetricsAssessContext } from "@/lib/observability-metrics/types";
 import {
   hasLiveObservability,
+  resolveMetricsAssessContext,
   type PrometheusAssessContext,
 } from "@/lib/observability-connectivity";
+import { formatMetricsSourceShort } from "@/lib/observability-metrics/format-source-label";
 
 /** Master FRD §11 — QA Intelligence Workflow */
 export const QA_INTELLIGENCE_WORKFLOW = [
@@ -40,10 +43,38 @@ export type QAAssessment = {
 };
 
 function formatPerformanceSignal(
+  metrics: MetricsAssessContext,
   prometheus: PrometheusAssessContext | undefined,
   grafana: GrafanaAssessContext | undefined,
   liveObs: ReturnType<typeof hasLiveObservability>,
 ): Pick<QASignal, "value" | "severity"> {
+  if (metrics.synced && metrics.snapshot && metrics.provenance) {
+    const { kpis } = metrics.snapshot;
+    const source = formatMetricsSourceShort(metrics.provenance);
+
+    if (kpis.p95LatencyDelta != null) {
+      const sign = kpis.p95LatencyDelta > 0 ? "+" : "";
+      const severity =
+        kpis.p95LatencyDelta > 25 ? "critical" : kpis.p95LatencyDelta > 15 ? "warning" : "info";
+      return {
+        value: `P95 ${sign}${kpis.p95LatencyDelta}ms vs previous sync (${source})`,
+        severity,
+      };
+    }
+    if (kpis.errorRateDelta != null) {
+      const sign = kpis.errorRateDelta > 0 ? "+" : "";
+      const severity = kpis.errorRateDelta > 0.5 ? "warning" : "info";
+      return {
+        value: `Error rate ${sign}${kpis.errorRateDelta}% vs previous sync (${source})`,
+        severity,
+      };
+    }
+    return {
+      value: `${source} health ${kpis.healthScore}/100 — P95 ${kpis.p95LatencyMs}ms, error ${kpis.errorRate}%`,
+      severity: kpis.healthScore < 60 ? "warning" : "info",
+    };
+  }
+
   if (prometheus?.synced && prometheus.snapshot) {
     const { kpis } = prometheus.snapshot;
     if (kpis.p95LatencyDelta != null) {
@@ -99,6 +130,7 @@ export function assessQAIntelligence(input: {
   jira?: JiraAssessContext;
   grafana?: GrafanaAssessContext;
   prometheus?: PrometheusAssessContext;
+  metrics?: MetricsAssessContext;
 }): QAAssessment {
   const tools = input.profile
     ? (JSON.parse(input.profile.toolsJson || "[]") as string[])
@@ -106,11 +138,18 @@ export function assessQAIntelligence(input: {
   const connected = input.integrations.filter((i) => i.status === "CONNECTED");
   const hasGithub = connected.some((i) => i.provider === "GITHUB") || tools.includes("github");
   const liveObs = hasLiveObservability({ integrations: input.integrations, tools });
+  const metrics =
+    input.metrics ?? resolveMetricsAssessContext({ integrations: input.integrations });
   const hasJira = input.jira?.connected ?? connected.some((i) => isJiraOAuthConnected(i));
   const jiraSynced = input.jira?.synced ?? false;
   const jiraHealth = input.jira?.health ?? null;
 
-  const performance = formatPerformanceSignal(input.prometheus, input.grafana, liveObs);
+  const performance = formatPerformanceSignal(
+    metrics,
+    input.prometheus,
+    input.grafana,
+    liveObs,
+  );
 
   const signals: QASignal[] = [
     {
@@ -145,6 +184,19 @@ export function assessQAIntelligence(input: {
       severity: input.environment === "PRODUCTION" ? "warning" : "info",
     },
   ];
+
+  if (metrics.synced && metrics.snapshot) {
+    const { kpis } = metrics.snapshot;
+    if (kpis.errorRate > 0.5 || (kpis.errorBudgetRemainingPct != null && kpis.errorBudgetRemainingPct < 30)) {
+      signals.push({
+        id: "metrics-stability",
+        category: "stability",
+        label: "Error budget / error rate",
+        value: `Error rate ${kpis.errorRate}%${kpis.errorBudgetRemainingPct != null ? ` · budget ${kpis.errorBudgetRemainingPct}% remaining` : ""}`,
+        severity: kpis.errorRate > 1 ? "critical" : "warning",
+      });
+    }
+  }
 
   if (input.grafana?.synced && input.grafana.openAlerts > 0) {
     signals.push({
@@ -222,6 +274,15 @@ export function assessQAIntelligence(input: {
       gap: "Production release without live telemetry correlation",
       priority: "high",
     });
+  }
+  if (metrics.synced && metrics.snapshot) {
+    for (const gap of metrics.snapshot.gaps ?? []) {
+      testGaps.push({
+        area: gap.area,
+        gap: gap.gap,
+        priority: gap.priority,
+      });
+    }
   }
 
   const penalty =

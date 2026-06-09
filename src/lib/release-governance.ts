@@ -4,8 +4,10 @@ import type { JiraAssessContext } from "@/lib/jira-delivery-health";
 import {
   formatErrorRateDelta,
   formatObservabilityCoverage,
+  resolveMetricsAssessContext,
   type PrometheusAssessContext,
 } from "@/lib/observability-connectivity";
+import type { MetricsAssessContext } from "@/lib/observability-metrics/types";
 import type { QAAssessment } from "@/lib/qa-intelligence";
 import { assessQAIntelligence } from "@/lib/qa-intelligence";
 
@@ -43,9 +45,13 @@ function riskLevelFromScore(score: number): GovernanceAssessment["riskLevel"] {
 function resolveOpenIncidents(
   grafana: GrafanaAssessContext | undefined,
   prometheus: PrometheusAssessContext | undefined,
+  metrics: MetricsAssessContext | undefined,
   riskLevel: GovernanceAssessment["riskLevel"],
 ): number {
   if (grafana?.synced) return grafana.openAlerts;
+  if (metrics?.synced && metrics.snapshot) {
+    return metrics.snapshot.kpis.openAlerts;
+  }
   if (prometheus?.synced && prometheus.snapshot) {
     return prometheus.snapshot.kpis.openAlerts;
   }
@@ -72,7 +78,11 @@ export function assessReleaseGovernance(input: {
   jira?: JiraAssessContext;
   grafana?: GrafanaAssessContext;
   prometheus?: PrometheusAssessContext;
+  metrics?: MetricsAssessContext;
 }): GovernanceAssessment {
+  const metrics =
+    input.metrics ?? resolveMetricsAssessContext({ integrations: input.integrations });
+
   const qa = assessQAIntelligence({
     profile: input.profile,
     dna: input.dna,
@@ -82,6 +92,7 @@ export function assessReleaseGovernance(input: {
     jira: input.jira,
     grafana: input.grafana,
     prometheus: input.prometheus,
+    metrics,
   });
 
   const connected = input.integrations.filter((i) => i.status === "CONNECTED").length;
@@ -105,9 +116,14 @@ export function assessReleaseGovernance(input: {
 
   const telemetry: TelemetrySnapshot = {
     deployments24h: resolveDeployments24h(grafanaCtx ?? undefined, connected),
-    openIncidents: resolveOpenIncidents(grafanaCtx ?? undefined, prometheusCtx ?? undefined, riskLevel),
-    errorRateDelta: formatErrorRateDelta(prometheusCtx),
-    observabilityCoverage: formatObservabilityCoverage(grafanaCtx, prometheusCtx),
+    openIncidents: resolveOpenIncidents(
+      grafanaCtx ?? undefined,
+      prometheusCtx ?? undefined,
+      metrics,
+      riskLevel,
+    ),
+    errorRateDelta: formatErrorRateDelta(prometheusCtx, metrics),
+    observabilityCoverage: formatObservabilityCoverage(grafanaCtx, prometheusCtx, metrics),
   };
 
   const recommendations: GovernanceAssessment["recommendations"] = [];
@@ -148,6 +164,27 @@ export function assessReleaseGovernance(input: {
       impact: "HIGH",
       confidence: 0.94,
       affectedSystems: ["deployment", "audit"],
+      requiredRole: "DEVOPS_LEAD",
+    });
+  }
+
+  const firingCritical = input.grafana?.snapshot?.kpis.firingCritical ?? 0;
+  const metricsDegraded =
+    metrics.synced &&
+    metrics.snapshot &&
+    (metrics.snapshot.kpis.healthScore < 50 || metrics.snapshot.kpis.errorRate > 1);
+
+  if (firingCritical > 0 || metricsDegraded) {
+    recommendations.push({
+      title: "Resolve firing alerts before production release",
+      description:
+        firingCritical > 0
+          ? `${firingCritical} critical Grafana alert(s) firing.`
+          : `Metrics health ${metrics.snapshot!.kpis.healthScore}/100 with elevated error rate.`,
+      rationale: "Operational degradation detected from live observability sync.",
+      impact: "HIGH",
+      confidence: 0.9,
+      affectedSystems: ["observability", "deployment"],
       requiredRole: "DEVOPS_LEAD",
     });
   }

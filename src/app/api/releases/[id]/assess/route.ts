@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { resolveGrafanaAssessContext } from "@/lib/grafana-assess-context";
 import { resolveJiraAssessContext } from "@/lib/jira-delivery-health";
-import { resolvePrometheusAssessContext } from "@/lib/observability-connectivity";
+import { resolvePrometheusAssessContext, resolveMetricsAssessContext } from "@/lib/observability-connectivity";
 import { assessReleaseGovernance } from "@/lib/release-governance";
 import { parseToolchainMapping } from "@/lib/toolchain-mapping";
 
@@ -66,6 +66,7 @@ export async function POST(
 
   const grafana = resolveGrafanaAssessContext({ integrations });
   const prometheus = resolvePrometheusAssessContext({ integrations });
+  const metrics = resolveMetricsAssessContext({ integrations });
 
   const assessment = assessReleaseGovernance({
     profile,
@@ -77,6 +78,7 @@ export async function POST(
     jira,
     grafana,
     prometheus,
+    metrics,
   });
 
   const updated = await prisma.$transaction(async (tx) => {

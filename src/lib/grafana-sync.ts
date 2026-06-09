@@ -4,10 +4,12 @@ import {
   dashboardHasMissingDatasource,
   getGrafanaAuth,
   getGrafanaDashboard,
+  getGrafanaDatasourceByUid,
   listGrafanaAlerts,
   listGrafanaAnnotations,
   type GrafanaAlertmanagerAlert,
 } from "@/lib/grafana-api";
+import { createGrafanaPrometheusProxyTransport } from "@/lib/grafana-prometheus-proxy";
 import { buildGrafanaSnapshot } from "@/lib/grafana/health-score";
 import { markIntegrationSync } from "@/lib/integration-health";
 import {
@@ -21,6 +23,12 @@ import {
   type GrafanaOperationalSnapshot,
 } from "@/lib/grafana-meta";
 import { ingestNormalizedEvents } from "@/lib/telemetry-ingest";
+import {
+  formatMetricsSyncSummary,
+  runPromqlSync,
+} from "@/lib/observability-metrics/run-promql-sync";
+import type { MetricsProvenance } from "@/lib/observability-metrics/types";
+import type { ObservabilityAnalysisSnapshot } from "@/lib/observability-analysis/types";
 import type { MetricSource } from "@/generated/prisma/client";
 
 const GRAFANA_SOURCE: MetricSource = "GRAFANA";
@@ -97,6 +105,8 @@ async function fetchDashboardHealth(
 function buildTelemetryMetrics(
   organizationId: string,
   snapshot: GrafanaOperationalSnapshot,
+  metricsSnapshot?: ObservabilityAnalysisSnapshot | null,
+  metricsProvenance?: MetricsProvenance | null,
 ) {
   const { kpis } = snapshot;
   const base = {
@@ -105,7 +115,7 @@ function buildTelemetryMetrics(
     labelsJson: JSON.stringify({ grafanaUrl: snapshot.grafanaUrl }),
   };
 
-  return [
+  const rows = [
     { ...base, metricKey: "open_alerts", value: kpis.openAlerts, unit: "count" },
     { ...base, metricKey: "firing_critical", value: kpis.firingCritical, unit: "count" },
     {
@@ -122,6 +132,71 @@ function buildTelemetryMetrics(
     },
     { ...base, metricKey: "health_score", value: kpis.healthScore, unit: "score" },
   ];
+
+  if (metricsSnapshot?.kpis && metricsProvenance) {
+    const proxyLabels = JSON.stringify({
+      grafanaUrl: snapshot.grafanaUrl,
+      path: metricsProvenance.path,
+      datasourceUid: metricsProvenance.datasourceUid,
+    });
+    const proxyBase = {
+      organizationId,
+      source: GRAFANA_SOURCE,
+      labelsJson: proxyLabels,
+    };
+    rows.push(
+      { ...proxyBase, metricKey: "proxy_health_score", value: metricsSnapshot.kpis.healthScore, unit: "score" },
+      { ...proxyBase, metricKey: "proxy_error_rate", value: metricsSnapshot.kpis.errorRate, unit: "percent" },
+      { ...proxyBase, metricKey: "proxy_p95_latency_ms", value: metricsSnapshot.kpis.p95LatencyMs, unit: "ms" },
+    );
+  }
+
+  return rows;
+}
+
+async function syncGrafanaProxyMetrics(input: {
+  organizationId: string;
+  grafanaUrl: string;
+  auth: NonNullable<ReturnType<typeof getGrafanaAuth>>;
+  meta: ReturnType<typeof parseGrafanaMeta>;
+}): Promise<{
+  metricsSnapshot: ObservabilityAnalysisSnapshot;
+  metricsProvenance: MetricsProvenance;
+  metricsSummary: string;
+} | null> {
+  const dsUid = input.meta.prometheusDatasource?.uid;
+  if (!dsUid) return null;
+
+  const ds = await getGrafanaDatasourceByUid(input.grafanaUrl, input.auth, dsUid);
+  if (!ds || ds.type !== "prometheus") {
+    throw new Error("Prometheus datasource not found — re-select on Integrations");
+  }
+
+  const transport = createGrafanaPrometheusProxyTransport({
+    grafanaUrl: input.grafanaUrl,
+    auth: input.auth,
+    datasourceUid: dsUid,
+  });
+
+  const provenance: MetricsProvenance = {
+    path: "grafana-datasource-proxy",
+    grafanaUrl: input.grafanaUrl,
+    datasourceUid: ds.uid,
+    datasourceName: ds.name,
+  };
+
+  const metricsSnapshot = await runPromqlSync({
+    transport,
+    serviceScopes: input.meta.metricsServiceScopes ?? [],
+    promqlOverrides: input.meta.promqlOverrides,
+    previousSnapshot: input.meta.metricsSnapshot ?? null,
+    provenance,
+    prometheusUrlLabel: `grafana-proxy://${ds.uid}`,
+  });
+
+  const metricsSummary = formatMetricsSyncSummary({ provenance, snapshot: metricsSnapshot });
+
+  return { metricsSnapshot, metricsProvenance: provenance, metricsSummary };
 }
 
 export async function syncGrafanaIntegration(input: {
@@ -190,7 +265,29 @@ export async function syncGrafanaIntegration(input: {
     firingCritical,
   });
 
-  const summary = `Synced ${expandedDashboards.length} dashboard(s) · ${openAlerts} firing alert(s) · health ${snapshot.kpis.healthScore}`;
+  let metricsResult: Awaited<ReturnType<typeof syncGrafanaProxyMetrics>> = null;
+  let metricsLastError: string | undefined;
+
+  if (meta.prometheusDatasource?.uid) {
+    try {
+      metricsResult = await syncGrafanaProxyMetrics({
+        organizationId: input.organizationId,
+        grafanaUrl,
+        auth,
+        meta,
+      });
+    } catch (err) {
+      metricsLastError = err instanceof Error ? err.message : "Metrics sync failed";
+      if (metricsLastError.includes("not found")) {
+        throw err;
+      }
+    }
+  }
+
+  let summary = `Synced ${expandedDashboards.length} dashboard(s) · ${openAlerts} firing alert(s) · health ${snapshot.kpis.healthScore}`;
+  if (metricsResult) {
+    summary = `Synced ${expandedDashboards.length} dashboard(s) · ${openAlerts} alert(s) · ${metricsResult.metricsSummary}`;
+  }
 
   const telemetryEvents: Parameters<typeof ingestNormalizedEvents>[0]["events"] = [
     {
@@ -230,12 +327,21 @@ export async function syncGrafanaIntegration(input: {
     events: telemetryEvents,
   });
 
-  const metrics = buildTelemetryMetrics(input.organizationId, snapshot);
+  const metrics = buildTelemetryMetrics(
+    input.organizationId,
+    snapshot,
+    metricsResult?.metricsSnapshot,
+    metricsResult?.metricsProvenance,
+  );
 
   const metadataJson = mergeGrafanaMeta(meta, {
     operationalSnapshot: snapshot,
     lastSyncSummary: summary,
     lastError: undefined,
+    metricsSnapshot: metricsResult?.metricsSnapshot,
+    metricsProvenance: metricsResult?.metricsProvenance,
+    metricsLastSyncSummary: metricsResult?.metricsSummary,
+    metricsLastError,
   });
 
   await prisma.$transaction(async (tx) => {
@@ -268,13 +374,17 @@ export async function syncGrafanaIntegration(input: {
       data: {
         organizationId: input.organizationId,
         userId: input.userId,
-        action: "integration.grafana.synced",
+        action: metricsResult
+          ? "grafana.metrics_sync.completed"
+          : "integration.grafana.synced",
         entityType: "Integration",
         entityId: integration.id,
         metadataJson: JSON.stringify({
           dashboardCount: expandedDashboards.length,
           openAlerts,
           healthScore: snapshot.kpis.healthScore,
+          metricsSynced: Boolean(metricsResult),
+          metricsHealthScore: metricsResult?.metricsSnapshot.kpis.healthScore,
         }),
       },
     });

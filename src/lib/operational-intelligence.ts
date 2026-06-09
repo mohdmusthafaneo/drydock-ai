@@ -245,6 +245,15 @@ export function collectOperationalTelemetry(input: {
   const grafana = input.integrations.find((i) => i.provider === "GRAFANA");
   if (isGrafanaTrulyConnected(grafana)) {
     const meta = parseGrafanaMeta(grafana!.metadataJson);
+    if (meta.metricsSnapshot?.kpis) {
+      return buildFromPrometheusSnapshot({
+        snapshot: meta.metricsSnapshot,
+        releaseName: input.releaseName,
+        environment: input.environment,
+        postDeploy: input.postDeploy,
+        correlationId,
+      });
+    }
     if (meta.operationalSnapshot) {
       return buildFromGrafanaSnapshot({
         snapshot: meta.operationalSnapshot,

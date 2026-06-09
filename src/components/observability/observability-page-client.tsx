@@ -15,7 +15,10 @@ import {
   SelectGrafanaScopesEmpty,
   SyncGrafanaEmpty,
 } from "@/components/observability/connect-grafana-empty";
+import { GrafanaProxyMetricsStrip } from "@/components/observability/grafana-proxy-metrics-strip";
 import type { GrafanaOperationalSnapshot } from "@/lib/grafana-meta";
+import type { ObservabilityAnalysisSnapshot } from "@/lib/observability-analysis/types";
+import type { MetricsProvenance } from "@/lib/observability-metrics/types";
 import { cn } from "@/lib/utils";
 
 type SourceTab = "prometheus" | "grafana";
@@ -31,6 +34,9 @@ type Props = {
   grafanaTrulyConnected: boolean;
   grafanaDashboardScopes: Array<{ title: string }>;
   grafanaHasSnapshot: boolean;
+  grafanaHasMetricsSnapshot: boolean;
+  grafanaMetricsSnapshot: ObservabilityAnalysisSnapshot | null;
+  grafanaMetricsProvenance: MetricsProvenance | null;
   grafanaLastSyncedAt: string | null;
   grafanaSnapshot: GrafanaOperationalSnapshot | null;
   canSync: boolean;
@@ -48,6 +54,9 @@ export function ObservabilityPageClient({
   grafanaTrulyConnected,
   grafanaDashboardScopes,
   grafanaHasSnapshot,
+  grafanaHasMetricsSnapshot,
+  grafanaMetricsSnapshot,
+  grafanaMetricsProvenance,
   grafanaLastSyncedAt,
   grafanaSnapshot,
   canSync,
@@ -100,18 +109,34 @@ export function ObservabilityPageClient({
     if (!grafanaTrulyConnected) {
       return <ConnectGrafanaEmpty />;
     }
-    if (grafanaDashboardScopes.length === 0) {
+    if (grafanaDashboardScopes.length === 0 && !grafanaHasMetricsSnapshot) {
       return <SelectGrafanaScopesEmpty />;
     }
-    if (!grafanaHasSnapshot || !grafanaSnapshot) {
+    if (!grafanaHasSnapshot && !grafanaHasMetricsSnapshot) {
       return <SyncGrafanaEmpty dashboardScopes={grafanaDashboardScopes} />;
     }
+
     return (
-      <GrafanaObservabilityDashboard
-        snapshot={grafanaSnapshot}
-        lastSyncedAt={grafanaLastSyncedAt}
-        canSync={canSync}
-      />
+      <div className="space-y-8">
+        {grafanaHasMetricsSnapshot && grafanaMetricsSnapshot && (
+          <GrafanaProxyMetricsStrip
+            snapshot={grafanaMetricsSnapshot}
+            provenance={grafanaMetricsProvenance}
+            lastSyncedAt={grafanaLastSyncedAt}
+          />
+        )}
+        {grafanaHasSnapshot && grafanaSnapshot ? (
+          <GrafanaObservabilityDashboard
+            snapshot={grafanaSnapshot}
+            lastSyncedAt={grafanaLastSyncedAt}
+            canSync={canSync}
+          />
+        ) : grafanaHasMetricsSnapshot ? null : (
+          <p className="text-sm text-muted">
+            Select a Prometheus datasource on Integrations to load metric KPIs via Grafana.
+          </p>
+        )}
+      </div>
     );
   }
 

@@ -21,6 +21,8 @@ export function PrometheusIntegrationPanel({
   lastError,
   lastSyncSummary,
   selectedServiceScopes,
+  grafanaProxyActive,
+  grafanaProxyDatasourceName,
   canManage,
 }: {
   connected: boolean;
@@ -33,6 +35,8 @@ export function PrometheusIntegrationPanel({
   lastError?: string;
   lastSyncSummary?: string;
   selectedServiceScopes?: Array<{ id: string; label: string }>;
+  grafanaProxyActive?: boolean;
+  grafanaProxyDatasourceName?: string;
   canManage: boolean;
 }) {
   const router = useRouter();
@@ -115,6 +119,15 @@ export function PrometheusIntegrationPanel({
 
     return (
       <div className="space-y-3">
+        <div className="rounded-lg border border-border bg-base/30 p-2">
+          <p className="text-xs font-medium text-primary">Connection mode</p>
+          <p className="mt-1 text-xs text-muted">
+            <span className="text-secondary">◉ Direct to Prometheus</span>
+            <br />
+            <span className="text-muted">○ Through Grafana — configure on Grafana card (private network)</span>
+          </p>
+        </div>
+
         <p className="text-xs text-muted">
           Connect your Prometheus instance with read-only query access. AIDOS runs PromQL templates
           at sync time — it never writes to Prometheus.
@@ -212,6 +225,15 @@ export function PrometheusIntegrationPanel({
 
   return (
     <div className="space-y-4">
+      {grafanaProxyActive && (
+        <div className="rounded-lg border border-brand/30 bg-brand/5 p-3">
+          <p className="text-xs text-secondary">
+            Metrics are provided via Grafana → {grafanaProxyDatasourceName ?? "Prometheus"}.
+            Direct connection is optional.
+          </p>
+        </div>
+      )}
+
       <div className="space-y-2 rounded-lg border border-border bg-elevated/40 p-3">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="brand">Prometheus · read-only</Badge>

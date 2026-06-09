@@ -1,10 +1,13 @@
 import type { Integration } from "@/generated/prisma/client";
 import type { PrometheusServiceScope } from "@/lib/observability-analysis/types";
+import type { MetricsProvenance } from "@/lib/observability-metrics/types";
 
 export type PrometheusAuthType = "bearer" | "basic" | "none";
 
 export type PrometheusIntegrationMeta = {
   mode?: string;
+  connectionMode?: "direct";
+  metricsProvenance?: MetricsProvenance;
   prometheusUrl?: string;
   authType?: PrometheusAuthType;
   apiTokenEnc?: string;

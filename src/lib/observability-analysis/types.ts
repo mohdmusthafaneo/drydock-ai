@@ -84,6 +84,7 @@ export type ObservabilityAnalysisSnapshot = {
   generatedAt: string;
   serviceScopes: PrometheusServiceScope[];
   prometheusUrl: string;
+  provenance?: import("@/lib/observability-metrics/types").MetricsProvenance;
   kpis: ObservabilityAnalysisKpis;
   healthMix: { healthy: number; degraded: number; critical: number };
   trend: ObservabilityAnalysisTrendPoint[];

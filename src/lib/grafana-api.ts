@@ -73,15 +73,19 @@ async function grafanaFetch(
   grafanaUrl: string,
   path: string,
   auth: GrafanaAuth,
+  init?: RequestInit,
 ): Promise<Response> {
   const url = `${grafanaUrl}${path}`;
   try {
     return await fetch(url, {
-      method: "GET",
+      method: init?.method ?? "GET",
       headers: {
         Accept: "application/json",
+        "Content-Type": "application/json",
         ...authHeaders(auth),
+        ...(init?.headers ?? {}),
       },
+      body: init?.body,
       signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
     });
   } catch (err) {
@@ -306,4 +310,266 @@ export function dashboardHasMissingDatasource(panels: GrafanaDashboardPanel[] | 
   }
 
   return panels.some(checkPanel);
+}
+
+export type GrafanaDatasourceSummary = {
+  uid: string;
+  name: string;
+  type: string;
+  isDefault: boolean;
+};
+
+type GrafanaDatasourceRecord = {
+  uid: string;
+  name: string;
+  type: string;
+  isDefault?: boolean;
+};
+
+export async function listGrafanaDatasources(
+  grafanaUrl: string,
+  auth: GrafanaAuth,
+): Promise<GrafanaDatasourceSummary[]> {
+  const records = await grafanaFetchJson<GrafanaDatasourceRecord[]>(
+    grafanaUrl,
+    "/api/datasources",
+    auth,
+  );
+  if (!Array.isArray(records)) return [];
+  return records.map((ds) => ({
+    uid: ds.uid,
+    name: ds.name,
+    type: ds.type,
+    isDefault: Boolean(ds.isDefault),
+  }));
+}
+
+export async function listGrafanaPrometheusDatasources(
+  grafanaUrl: string,
+  auth: GrafanaAuth,
+): Promise<GrafanaDatasourceSummary[]> {
+  const all = await listGrafanaDatasources(grafanaUrl, auth);
+  return all.filter((ds) => ds.type === "prometheus");
+}
+
+export async function getGrafanaDatasourceByUid(
+  grafanaUrl: string,
+  auth: GrafanaAuth,
+  uid: string,
+): Promise<GrafanaDatasourceSummary | null> {
+  try {
+    const ds = await grafanaFetchJson<GrafanaDatasourceRecord>(
+      grafanaUrl,
+      `/api/datasources/uid/${encodeURIComponent(uid)}`,
+      auth,
+    );
+    return {
+      uid: ds.uid,
+      name: ds.name,
+      type: ds.type,
+      isDefault: Boolean(ds.isDefault),
+    };
+  } catch (err) {
+    if (err instanceof GrafanaApiError && err.status === 404) return null;
+    throw err;
+  }
+}
+
+type GrafanaDataQueryResponse = {
+  results?: Record<
+    string,
+    {
+      status?: number;
+      error?: string;
+      frames?: Array<{
+        schema?: { meta?: { type?: string } };
+        data?: { values?: unknown[][] };
+      }>;
+    }
+  >;
+};
+
+type PrometheusApiShape = {
+  status?: string;
+  data?: {
+    resultType?: string;
+    result?: unknown[];
+  };
+};
+
+function framesToPrometheusQueryResult(
+  frames: NonNullable<GrafanaDataQueryResponse["results"]>[string]["frames"],
+): import("@/lib/observability-metrics/types").PrometheusQueryResult {
+  if (!frames?.length) {
+    return { resultType: "vector", result: [] };
+  }
+
+  const frame = frames[0];
+  const values = frame?.data?.values;
+  if (!values?.length) {
+    return { resultType: "vector", result: [] };
+  }
+
+  if (values.length >= 2 && Array.isArray(values[0]) && Array.isArray(values[1])) {
+    const timestamps = values[0] as number[];
+    const dataValues = values[1] as number[];
+
+    if (timestamps.length === 1) {
+      return {
+        resultType: "vector",
+        result: [
+          {
+            metric: {},
+            value: [timestamps[0] / 1000, String(dataValues[0])],
+          },
+        ],
+      };
+    }
+
+    return {
+      resultType: "matrix",
+      result: [
+        {
+          metric: {},
+          values: timestamps.map((ts, i) => [ts / 1000, String(dataValues[i])]),
+        },
+      ],
+    };
+  }
+
+  return { resultType: "vector", result: [] };
+}
+
+async function grafanaFetchPostJson<T>(
+  grafanaUrl: string,
+  path: string,
+  auth: GrafanaAuth,
+  body: unknown,
+): Promise<{ response: Response; data: T }> {
+  const response = await grafanaFetch(grafanaUrl, path, auth, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+  const bodyText = await response.text();
+  let parsed: T;
+  try {
+    parsed = JSON.parse(bodyText) as T;
+  } catch {
+    throw new GrafanaApiError(
+      response.ok ? "Grafana returned an invalid response" : `Grafana returned HTTP ${response.status}`,
+      response.ok ? 502 : response.status >= 400 ? response.status : 502,
+    );
+  }
+  return { response, data: parsed };
+}
+
+export type GrafanaPrometheusQueryResult = {
+  result: import("@/lib/observability-metrics/types").PrometheusQueryResult;
+  queryPath: "ds-query" | "legacy-proxy";
+};
+
+export async function queryPrometheusViaGrafana(input: {
+  grafanaUrl: string;
+  auth: GrafanaAuth;
+  datasourceUid: string;
+  promql: string;
+  instant?: boolean;
+}): Promise<GrafanaPrometheusQueryResult> {
+  const instant = input.instant ?? true;
+
+  try {
+    const { response, data } = await grafanaFetchPostJson<GrafanaDataQueryResponse>(
+      input.grafanaUrl,
+      "/api/ds/query",
+      input.auth,
+      {
+        queries: [
+          {
+            refId: "A",
+            datasource: { type: "prometheus", uid: input.datasourceUid },
+            expr: input.promql,
+            instant,
+            range: !instant,
+          },
+        ],
+        from: "now-5m",
+        to: "now",
+      },
+    );
+
+    if (!response.ok) {
+      if (response.status === 403) {
+        throw new GrafanaApiError(
+          "Service account needs datasources:query permission",
+          403,
+        );
+      }
+      throw new GrafanaApiError(`Grafana query returned HTTP ${response.status}`, response.status);
+    }
+
+    const frameResult = data.results?.A;
+    if (frameResult?.error) {
+      throw new GrafanaApiError(frameResult.error, 502);
+    }
+
+    return {
+      result: framesToPrometheusQueryResult(frameResult?.frames),
+      queryPath: "ds-query",
+    };
+  } catch (dsQueryErr) {
+    if (
+      dsQueryErr instanceof GrafanaApiError &&
+      dsQueryErr.status !== 404 &&
+      dsQueryErr.status !== 400
+    ) {
+      throw dsQueryErr;
+    }
+  }
+
+  const encoded = encodeURIComponent(input.promql);
+  const legacyPath = `/api/datasources/proxy/uid/${encodeURIComponent(input.datasourceUid)}/api/v1/query?query=${encoded}`;
+  const legacyBody = await grafanaFetchJson<PrometheusApiShape>(
+    input.grafanaUrl,
+    legacyPath,
+    input.auth,
+  );
+
+  if (legacyBody.status !== "success") {
+    throw new GrafanaApiError("Prometheus query via Grafana proxy failed", 502);
+  }
+
+  return {
+    result: {
+      resultType: (legacyBody.data?.resultType ?? "vector") as import("@/lib/observability-metrics/types").PrometheusQueryResult["resultType"],
+      result: (legacyBody.data?.result ?? []) as import("@/lib/observability-metrics/types").PrometheusQueryResult["result"],
+    },
+    queryPath: "legacy-proxy",
+  };
+}
+
+export async function probeGrafanaPrometheusDatasource(input: {
+  grafanaUrl: string;
+  auth: GrafanaAuth;
+  datasourceUid: string;
+}): Promise<{ summary: string; upCount: number | null }> {
+  const { result } = await queryPrometheusViaGrafana({
+    grafanaUrl: input.grafanaUrl,
+    auth: input.auth,
+    datasourceUid: input.datasourceUid,
+    promql: "count(up == 1)",
+    instant: true,
+  });
+
+  const vectors = result.result as import("@/lib/observability-metrics/types").PrometheusQueryVectorResult[];
+  const raw = vectors[0]?.value?.[1];
+  const upCount = raw != null ? Number.parseFloat(raw) : null;
+
+  if (upCount == null || !Number.isFinite(upCount)) {
+    return { summary: "Query OK — no scalar result", upCount: null };
+  }
+
+  return {
+    summary: `up=${Math.round(upCount)} targets`,
+    upCount: Math.round(upCount),
+  };
 }

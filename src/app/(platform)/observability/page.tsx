@@ -10,6 +10,7 @@ import {
 import { isGrafanaTrulyConnected, parseGrafanaMeta } from "@/lib/grafana-meta";
 import { getAvailableMockServiceScopes } from "@/lib/observability-analysis/mock-data";
 import { ObservabilityPageClient } from "@/components/observability/observability-page-client";
+import type { ObservabilityAnalysisSnapshot } from "@/lib/observability-analysis/types";
 
 export default async function ObservabilityPage() {
   const session = await getSession();
@@ -47,6 +48,9 @@ export default async function ObservabilityPage() {
   const prometheusLastSyncedAt = prometheus?.lastSyncAt?.toISOString() ?? null;
 
   const grafanaHasSnapshot = Boolean(grafanaMeta?.operationalSnapshot);
+  const grafanaMetricsSnapshot = (grafanaMeta?.metricsSnapshot as ObservabilityAnalysisSnapshot | undefined) ?? null;
+  const grafanaHasMetricsSnapshot = Boolean(grafanaMetricsSnapshot?.kpis);
+  const grafanaMetricsProvenance = grafanaMeta?.metricsProvenance ?? null;
   const grafanaLastSyncedAt = grafana?.lastSyncAt?.toISOString() ?? null;
   const grafanaDashboardScopes = grafanaMeta?.dashboardScopes ?? [];
 
@@ -77,6 +81,9 @@ export default async function ObservabilityPage() {
       grafanaTrulyConnected={grafanaTrulyConnected}
       grafanaDashboardScopes={grafanaDashboardScopes}
       grafanaHasSnapshot={grafanaHasSnapshot}
+      grafanaHasMetricsSnapshot={grafanaHasMetricsSnapshot}
+      grafanaMetricsSnapshot={grafanaMetricsSnapshot}
+      grafanaMetricsProvenance={grafanaMetricsProvenance}
       grafanaLastSyncedAt={grafanaLastSyncedAt}
       grafanaSnapshot={grafanaMeta?.operationalSnapshot ?? null}
       canSync={canSync}

@@ -20,6 +20,7 @@ import { GitHubIntegrationPanel } from "@/components/integrations/github-integra
 import { JiraIntegrationPanel } from "@/components/integrations/jira-integration-panel";
 import { PrometheusIntegrationPanel } from "@/components/integrations/prometheus-integration-panel";
 import { GrafanaIntegrationPanel } from "@/components/integrations/grafana-integration-panel";
+import { ObservabilityPairingBanner } from "@/components/integrations/observability-pairing-banner";
 import { isPrometheusTrulyConnected, parsePrometheusMeta } from "@/lib/prometheus-meta";
 import { isGrafanaTrulyConnected, parseGrafanaMeta } from "@/lib/grafana-meta";
 import { DisconnectButton, StubConnectButton } from "@/components/integrations/integration-actions";
@@ -93,6 +94,15 @@ export default async function IntegrationsPage({
   const jiraOAuthConfigured = getJiraOAuthConfig().configured;
   const canManage = hasPermission(session, "integrations", "manage_integrations");
 
+  const grafanaIntegration = ctx.integrations.find((i) => i.provider === "GRAFANA");
+  const prometheusIntegration = ctx.integrations.find((i) => i.provider === "PROMETHEUS");
+  const grafanaMetaForBanner = grafanaIntegration
+    ? parseGrafanaMeta(grafanaIntegration.metadataJson)
+    : null;
+  const showObservabilityBanner =
+    !isMvp &&
+    (isGrafanaTrulyConnected(grafanaIntegration) || isPrometheusTrulyConnected(prometheusIntegration));
+
   const githubInstallState =
     canManage && githubAppSlug
       ? await signOAuthState({
@@ -124,6 +134,16 @@ export default async function IntegrationsPage({
       <Suspense fallback={null}>
         <IntegrationAlerts />
       </Suspense>
+
+      {showObservabilityBanner && (
+        <ObservabilityPairingBanner
+          grafanaTrulyConnected={isGrafanaTrulyConnected(grafanaIntegration)}
+          grafanaProxyConfigured={Boolean(grafanaMetaForBanner?.prometheusDatasource?.uid)}
+          grafanaDatasourceName={grafanaMetaForBanner?.prometheusDatasource?.name}
+          prometheusTrulyConnected={isPrometheusTrulyConnected(prometheusIntegration)}
+          metricsProvenance={grafanaMetaForBanner?.metricsProvenance}
+        />
+      )}
 
       {!githubAppSlug && (
         <Card className="border-warning/30 bg-warning-muted/50">
@@ -214,6 +234,16 @@ export default async function IntegrationsPage({
                     lastError={prometheusMeta?.lastError ?? integration.lastError ?? undefined}
                     lastSyncSummary={prometheusMeta?.lastSyncSummary}
                     selectedServiceScopes={prometheusMeta?.serviceScopes}
+                    grafanaProxyActive={Boolean(
+                      parseGrafanaMeta(
+                        ctx.integrations.find((i) => i.provider === "GRAFANA")?.metadataJson ?? "{}",
+                      ).prometheusDatasource?.uid,
+                    )}
+                    grafanaProxyDatasourceName={
+                      parseGrafanaMeta(
+                        ctx.integrations.find((i) => i.provider === "GRAFANA")?.metadataJson ?? "{}",
+                      ).prometheusDatasource?.name
+                    }
                     canManage={canManage}
                   />
                 ) : isGrafana ? (
@@ -228,6 +258,11 @@ export default async function IntegrationsPage({
                     lastSyncSummary={grafanaMeta?.lastSyncSummary}
                     selectedDashboardScopes={grafanaMeta?.dashboardScopes}
                     operationalSnapshot={grafanaMeta?.operationalSnapshot}
+                    prometheusDatasource={grafanaMeta?.prometheusDatasource}
+                    metricsServiceScopes={grafanaMeta?.metricsServiceScopes}
+                    metricsLastSyncSummary={grafanaMeta?.metricsLastSyncSummary}
+                    metricsSnapshot={grafanaMeta?.metricsSnapshot}
+                    metricsLastError={grafanaMeta?.metricsLastError}
                     webhookUrl={
                       grafanaMeta?.webhookSecret
                         ? `${grafanaWebhookUrl}&secret=${grafanaMeta.webhookSecret}`

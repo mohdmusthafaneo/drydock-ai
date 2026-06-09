@@ -1,4 +1,7 @@
 import type { Integration } from "@/generated/prisma/client";
+import type { PrometheusServiceScope } from "@/lib/observability-analysis/types";
+import type { ObservabilityAnalysisSnapshot } from "@/lib/observability-analysis/types";
+import type { MetricsProvenance } from "@/lib/observability-metrics/types";
 
 export type GrafanaAuthType = "bearer" | "none";
 
@@ -8,6 +11,16 @@ export type GrafanaDashboardScope = {
   folderTitle?: string;
   type: "dashboard" | "folder";
   tags?: string[];
+};
+
+export type GrafanaPrometheusDatasource = {
+  uid: string;
+  name: string;
+  type: "prometheus";
+  isDefault?: boolean;
+  lastProbedAt?: string;
+  lastProbeStatus?: "ok" | "error";
+  lastProbeSummary?: string;
 };
 
 export type GrafanaOperationalSnapshot = {
@@ -56,6 +69,13 @@ export type GrafanaIntegrationMeta = {
   alertLabelSelectors?: Record<string, string>;
   webhookSecret?: string;
   operationalSnapshot?: GrafanaOperationalSnapshot;
+  prometheusDatasource?: GrafanaPrometheusDatasource | null;
+  metricsServiceScopes?: PrometheusServiceScope[];
+  promqlOverrides?: Record<string, string>;
+  metricsSnapshot?: ObservabilityAnalysisSnapshot;
+  metricsProvenance?: MetricsProvenance;
+  metricsLastSyncSummary?: string;
+  metricsLastError?: string;
   lastSyncSummary?: string;
   lastConnectionCheckAt?: string;
   connectionStatus?: "ok" | "error";
@@ -110,6 +130,13 @@ export function buildGrafanaConnectMeta(input: {
     alertLabelSelectors: input.existing?.alertLabelSelectors,
     webhookSecret: input.existing?.webhookSecret,
     operationalSnapshot: input.existing?.operationalSnapshot,
+    prometheusDatasource: input.existing?.prometheusDatasource,
+    metricsServiceScopes: input.existing?.metricsServiceScopes,
+    promqlOverrides: input.existing?.promqlOverrides,
+    metricsSnapshot: input.existing?.metricsSnapshot,
+    metricsProvenance: input.existing?.metricsProvenance,
+    metricsLastSyncSummary: input.existing?.metricsLastSyncSummary,
+    metricsLastError: input.existing?.metricsLastError,
     lastSyncSummary: input.existing?.lastSyncSummary,
   };
 }

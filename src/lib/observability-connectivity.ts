@@ -1,13 +1,17 @@
 import type { Integration } from "@/generated/prisma/client";
 import type { GrafanaAssessContext } from "@/lib/grafana-assess-context";
 import { resolveGrafanaAssessContext } from "@/lib/grafana-assess-context";
-import { isGrafanaTrulyConnected } from "@/lib/grafana-meta";
+import { isGrafanaTrulyConnected, parseGrafanaMeta } from "@/lib/grafana-meta";
 import { isPrometheusTrulyConnected, parsePrometheusMeta } from "@/lib/prometheus-meta";
 import type { ObservabilityAnalysisSnapshot } from "@/lib/observability-analysis/types";
+import type { MetricsAssessContext, MetricsProvenance } from "@/lib/observability-metrics/types";
+export type { MetricsAssessContext, MetricsProvenance } from "@/lib/observability-metrics/types";
+import { formatMetricsSourceShort } from "@/lib/observability-metrics/format-source-label";
 
 export type LiveObservabilityStatus = {
   grafana: boolean;
   prometheus: boolean;
+  grafanaMetricsProxy: boolean;
   any: boolean;
 };
 
@@ -15,12 +19,21 @@ export type PrometheusAssessContext = {
   connected: boolean;
   synced: boolean;
   snapshot: ObservabilityAnalysisSnapshot | null;
+  provenance?: MetricsProvenance | null;
 };
 
 export type ObservabilityAssessContext = {
   grafana: GrafanaAssessContext | null;
   prometheus: PrometheusAssessContext | null;
+  metrics: MetricsAssessContext;
 };
+
+export function hasGrafanaMetricsProxy(integrations: Integration[]): boolean {
+  const grafana = integrations.find((i) => i.provider === "GRAFANA");
+  if (!isGrafanaTrulyConnected(grafana)) return false;
+  const meta = parseGrafanaMeta(grafana!.metadataJson);
+  return Boolean(meta.metricsSnapshot?.kpis && meta.prometheusDatasource?.uid);
+}
 
 export function hasLiveObservability(input: {
   integrations: Integration[];
@@ -31,31 +44,82 @@ export function hasLiveObservability(input: {
 
   const grafana = isGrafanaTrulyConnected(grafanaIntegration);
   const prometheus = isPrometheusTrulyConnected(prometheusIntegration);
+  const grafanaMetricsProxy = hasGrafanaMetricsProxy(input.integrations);
 
   return {
     grafana,
     prometheus,
-    any: grafana || prometheus,
+    grafanaMetricsProxy,
+    any: grafana || prometheus || grafanaMetricsProxy,
   };
+}
+
+export function resolveMetricsAssessContext(input: {
+  integrations: Integration[];
+}): MetricsAssessContext {
+  const prometheus = input.integrations.find((i) => i.provider === "PROMETHEUS");
+  const grafana = input.integrations.find((i) => i.provider === "GRAFANA");
+
+  if (prometheus && isPrometheusTrulyConnected(prometheus)) {
+    const meta = parsePrometheusMeta(prometheus.metadataJson);
+    const snapshot = (meta.operationalSnapshot as ObservabilityAnalysisSnapshot | undefined) ?? null;
+    if (snapshot?.kpis) {
+      const provenance: MetricsProvenance = meta.metricsProvenance ?? {
+        path: "prometheus-direct",
+        prometheusUrl: meta.prometheusUrl,
+      };
+      return { provenance, synced: true, snapshot: { ...snapshot, provenance } };
+    }
+  }
+
+  if (grafana && isGrafanaTrulyConnected(grafana)) {
+    const meta = parseGrafanaMeta(grafana.metadataJson);
+    if (meta.metricsSnapshot?.kpis && meta.prometheusDatasource?.uid) {
+      const provenance: MetricsProvenance = meta.metricsProvenance ?? {
+        path: "grafana-datasource-proxy",
+        grafanaUrl: meta.grafanaUrl,
+        datasourceUid: meta.prometheusDatasource.uid,
+        datasourceName: meta.prometheusDatasource.name,
+      };
+      return {
+        provenance,
+        synced: true,
+        snapshot: { ...meta.metricsSnapshot, provenance },
+      };
+    }
+  }
+
+  if (
+    (prometheus && isPrometheusTrulyConnected(prometheus)) ||
+    (grafana && isGrafanaTrulyConnected(grafana))
+  ) {
+    return { provenance: null, synced: false, snapshot: null };
+  }
+
+  return { provenance: null, synced: false, snapshot: null };
 }
 
 export function resolvePrometheusAssessContext(input: {
   integrations: Integration[];
 }): PrometheusAssessContext {
+  const metrics = resolveMetricsAssessContext(input);
   const prometheus = input.integrations.find((i) => i.provider === "PROMETHEUS");
+  const connected = Boolean(prometheus && isPrometheusTrulyConnected(prometheus));
 
-  if (!prometheus || !isPrometheusTrulyConnected(prometheus)) {
+  if (metrics.provenance?.path === "prometheus-direct" && metrics.synced) {
+    return {
+      connected: true,
+      synced: true,
+      snapshot: metrics.snapshot,
+      provenance: metrics.provenance,
+    };
+  }
+
+  if (!connected) {
     return { connected: false, synced: false, snapshot: null };
   }
 
-  const meta = parsePrometheusMeta(prometheus.metadataJson);
-  const snapshot = (meta.operationalSnapshot as ObservabilityAnalysisSnapshot | undefined) ?? null;
-
-  if (!snapshot?.kpis) {
-    return { connected: true, synced: false, snapshot: null };
-  }
-
-  return { connected: true, synced: true, snapshot };
+  return { connected: true, synced: false, snapshot: null };
 }
 
 export function resolveObservabilityContext(input: {
@@ -63,22 +127,27 @@ export function resolveObservabilityContext(input: {
 }): ObservabilityAssessContext {
   const grafana = resolveGrafanaAssessContext(input);
   const prometheus = resolvePrometheusAssessContext(input);
+  const metrics = resolveMetricsAssessContext(input);
 
   return {
     grafana: grafana.connected ? grafana : null,
     prometheus: prometheus.connected ? prometheus : null,
+    metrics,
   };
 }
 
 export function formatObservabilityCoverage(
   grafana: GrafanaAssessContext | null,
   prometheus: PrometheusAssessContext | null,
+  metrics?: MetricsAssessContext | null,
 ): string {
   const parts: string[] = [];
+  const metricsCtx = metrics ?? resolveMetricsAssessContext({ integrations: [] });
 
-  if (prometheus?.synced && prometheus.snapshot) {
+  if (metricsCtx.synced && metricsCtx.snapshot && metricsCtx.provenance) {
+    const source = formatMetricsSourceShort(metricsCtx.provenance);
     parts.push(
-      `Prometheus synced (health ${prometheus.snapshot.kpis.healthScore}/100)`,
+      `${source} synced (health ${metricsCtx.snapshot.kpis.healthScore}/100)`,
     );
   } else if (prometheus?.connected) {
     parts.push("Prometheus connected — run sync on Integrations");
@@ -96,8 +165,14 @@ export function formatObservabilityCoverage(
   return parts.join("; ");
 }
 
-export function formatErrorRateDelta(prometheus: PrometheusAssessContext | null): string {
-  const delta = prometheus?.snapshot?.kpis.errorRateDelta;
+export function formatErrorRateDelta(
+  prometheus: PrometheusAssessContext | null,
+  metrics?: MetricsAssessContext | null,
+): string {
+  const snapshot =
+    metrics?.snapshot ??
+    (prometheus?.provenance?.path === "prometheus-direct" ? prometheus.snapshot : null);
+  const delta = snapshot?.kpis.errorRateDelta;
   if (delta == null) return "unknown";
   const sign = delta > 0 ? "+" : "";
   return `${sign}${delta}%`;

@@ -96,6 +96,38 @@ type PrometheusApiResponse = {
   };
 };
 
+export type PrometheusQueryVectorResult = {
+  metric: Record<string, string>;
+  value: [number, string];
+};
+
+export type PrometheusQueryMatrixResult = {
+  metric: Record<string, string>;
+  values: Array<[number, string]>;
+};
+
+export type PrometheusQueryResult = {
+  resultType: "vector" | "matrix" | "scalar" | "string";
+  result: PrometheusQueryVectorResult[] | PrometheusQueryMatrixResult[];
+  scalarValue?: number;
+};
+
+function mapPrometheusApiResponse(body: PrometheusApiResponse): PrometheusQueryResult {
+  const resultType = (body.data?.resultType ?? "vector") as PrometheusQueryResult["resultType"];
+  const result = (body.data?.result ?? []) as PrometheusQueryResult["result"];
+
+  if (resultType === "scalar" && Array.isArray(result) && result.length >= 2) {
+    const scalarValue = Number.parseFloat(String(result[1]));
+    return {
+      resultType: "scalar",
+      result: [],
+      scalarValue: Number.isFinite(scalarValue) ? scalarValue : undefined,
+    };
+  }
+
+  return { resultType, result };
+}
+
 async function prometheusFetch(
   prometheusUrl: string,
   path: string,
@@ -148,6 +180,54 @@ async function prometheusFetch(
   }
 
   return body;
+}
+
+export async function queryPrometheusInstant(
+  prometheusUrl: string,
+  auth: PrometheusAuth,
+  promql: string,
+): Promise<PrometheusQueryResult> {
+  const encoded = encodeURIComponent(promql);
+  const body = await prometheusFetch(
+    prometheusUrl,
+    `/api/v1/query?query=${encoded}`,
+    auth,
+  );
+  return mapPrometheusApiResponse(body);
+}
+
+export async function queryPrometheusRange(
+  prometheusUrl: string,
+  auth: PrometheusAuth,
+  promql: string,
+  start: Date,
+  end: Date,
+  stepSec: number,
+): Promise<PrometheusQueryResult> {
+  const params = new URLSearchParams({
+    query: promql,
+    start: String(start.getTime() / 1000),
+    end: String(end.getTime() / 1000),
+    step: String(stepSec),
+  });
+  const body = await prometheusFetch(
+    prometheusUrl,
+    `/api/v1/query_range?${params.toString()}`,
+    auth,
+  );
+  return mapPrometheusApiResponse(body);
+}
+
+export function createDirectPrometheusTransport(input: {
+  prometheusUrl: string;
+  auth: PrometheusAuth;
+}): import("@/lib/observability-metrics/types").MetricsQueryTransport {
+  return {
+    kind: "prometheus-direct",
+    queryInstant: (promql) => queryPrometheusInstant(input.prometheusUrl, input.auth, promql),
+    queryRange: (promql, start, end, stepSec) =>
+      queryPrometheusRange(input.prometheusUrl, input.auth, promql, start, end, stepSec),
+  };
 }
 
 export async function probePrometheus(

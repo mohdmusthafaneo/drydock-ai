@@ -6,7 +6,9 @@ import { ExternalLink, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DisconnectButton } from "@/components/integrations/integration-actions";
-import type { GrafanaAuthType, GrafanaDashboardScope, GrafanaOperationalSnapshot } from "@/lib/grafana-meta";
+import { GrafanaMetricsConfigSection } from "@/components/integrations/grafana-metrics-config-section";
+import type { GrafanaAuthType, GrafanaDashboardScope, GrafanaOperationalSnapshot, GrafanaPrometheusDatasource } from "@/lib/grafana-meta";
+import type { ObservabilityAnalysisSnapshot, PrometheusServiceScope } from "@/lib/observability-analysis/types";
 
 type AuthTypeOption = GrafanaAuthType;
 
@@ -33,6 +35,11 @@ export function GrafanaIntegrationPanel({
   lastSyncSummary,
   selectedDashboardScopes,
   operationalSnapshot,
+  prometheusDatasource,
+  metricsServiceScopes,
+  metricsLastSyncSummary,
+  metricsSnapshot,
+  metricsLastError,
   webhookUrl,
   webhookSecret,
   webhookEnabled,
@@ -49,6 +56,11 @@ export function GrafanaIntegrationPanel({
   lastSyncSummary?: string;
   selectedDashboardScopes?: GrafanaDashboardScope[];
   operationalSnapshot?: GrafanaOperationalSnapshot;
+  prometheusDatasource?: GrafanaPrometheusDatasource | null;
+  metricsServiceScopes?: PrometheusServiceScope[];
+  metricsLastSyncSummary?: string;
+  metricsSnapshot?: ObservabilityAnalysisSnapshot;
+  metricsLastError?: string;
   webhookUrl?: string;
   webhookSecret?: string;
   webhookEnabled?: boolean;
@@ -508,6 +520,16 @@ export function GrafanaIntegrationPanel({
           <p className="text-xs text-muted">No dashboards selected yet.</p>
         )}
       </div>
+
+      <GrafanaMetricsConfigSection
+        trulyConnected={trulyConnected}
+        canManage={canManage}
+        prometheusDatasource={prometheusDatasource}
+        metricsServiceScopes={metricsServiceScopes}
+        metricsLastSyncSummary={metricsLastSyncSummary}
+        metricsSnapshot={metricsSnapshot}
+        metricsLastError={metricsLastError}
+      />
 
       {hasSelection && (
         <p className="text-xs text-muted">
