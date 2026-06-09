@@ -41,9 +41,16 @@ export async function POST(_request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: result.error }, { status: 400 });
   }
 
+  const workerEnabled = process.env.AGENT_WORKER_ENABLED !== "false";
+
   return NextResponse.json({
     ok: true,
     wakeupId: result.wakeupId,
     coalesced: result.coalesced,
+    status: "queued",
+    workerEnabled,
+    message: workerEnabled
+      ? "Wakeup queued — worker will drain the queue"
+      : "Wakeup queued — set AGENT_WORKER_ENABLED=true and run the platform worker",
   });
 }

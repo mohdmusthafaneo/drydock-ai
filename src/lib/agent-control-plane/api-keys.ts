@@ -1,4 +1,5 @@
 import type { Prisma } from "@/generated/prisma/client";
+import { prisma } from "@/lib/prisma";
 import {
   generateAgentApiKey,
   hashAgentApiKey,
@@ -29,4 +30,29 @@ export async function ensureAgentApiKey(
   });
 
   return plaintext;
+}
+
+/** Short-lived key for in-process adapter → agent API calls during a heartbeat run. */
+export async function createEphemeralRunApiKey(
+  organizationId: string,
+  agentId: string,
+  runId: string,
+): Promise<string> {
+  const plaintext = generateAgentApiKey();
+  await prisma.agentApiKey.create({
+    data: {
+      organizationId,
+      agentId,
+      keyHash: hashAgentApiKey(plaintext),
+      label: `heartbeat-run:${runId}`,
+    },
+  });
+  return plaintext;
+}
+
+export async function revokeEphemeralRunApiKey(runId: string): Promise<void> {
+  await prisma.agentApiKey.updateMany({
+    where: { label: `heartbeat-run:${runId}`, revokedAt: null },
+    data: { revokedAt: new Date() },
+  });
 }

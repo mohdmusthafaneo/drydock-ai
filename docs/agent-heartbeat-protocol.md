@@ -1,67 +1,137 @@
 # Agent Heartbeat Protocol
 
-**Status:** Stub (Phase 5a) · See [ai-agents-workflow.md](./ai-agents-workflow.md) for full plan.
+**Status:** Active (revised for LLM + skills model) · See [ai-agents-workflow.md](./ai-agents-workflow.md)
 
-Agents run in **bounded heartbeats** triggered by the wakeup queue — not continuously. External cron calls `POST /api/platform/agents/worker` every 30–60s to drain the queue and run timer-based wakeups.
+Runtime agents are **LLM workers** — not server-side rule engines. Each heartbeat, the adapter loads the agent's **`AGENTS.md`** and the shared **`skills/aidos/SKILL.md`**, then runs the model with tools that call AIDOS agent APIs.
+
+> **Note:** [AGENTS.md](../AGENTS.md) at the repo root is for **Cursor development subagents**. Runtime agents use managed instructions at `organizations/{orgId}/agents/{agentId}/instructions/AGENTS.md`.
+
+---
+
+## Environment (injected by adapter)
+
+| Variable | Purpose |
+|----------|---------|
+| `AIDOS_API_URL` | Base URL (e.g. `http://localhost:3000`) |
+| `AIDOS_API_KEY` | Bearer token for agent auth |
+| `AIDOS_AGENT_ID` | Current agent id |
+| `AIDOS_ORGANIZATION_ID` | Org scope |
+| `AIDOS_RUN_ID` | Current heartbeat run id — **required on all mutating API calls** |
+| `AIDOS_WAKE_REASON` | e.g. `release.detected`, `manual.invoke`, `approval.approved` |
+| `AIDOS_WAKE_PAYLOAD_JSON` | Compact wake context (releaseId, approvalId, etc.) |
+
+---
+
+## Context loaded every wakeup
+
+1. **`skills/aidos/SKILL.md`** — API procedures, governance rules, heartbeat steps.
+2. **Managed `AGENTS.md`** — role charter written by Super Agent (or default for Super).
+3. **`HEARTBEAT.md`** (if present) — per-agent checklist.
+4. **Wake delta** — reason, payload, scoped entity ids.
+
+The LLM follows these documents. The adapter does **not** branch on `agentType` in code.
+
+---
 
 ## Authentication
 
 ```
-Authorization: Bearer <agent_api_key>
+Authorization: Bearer <AIDOS_API_KEY>
+X-Run-Id: <AIDOS_RUN_ID>    # required on POST/PATCH/PUT
 ```
 
-API keys are issued per agent (hash stored in DB). Include `X-Run-Id: {heartbeatRunId}` on mutating calls during an active heartbeat (Phase 5b+).
+---
 
-## Step 1 — Identity
+## Heartbeat procedure
+
+Follow `skills/aidos/SKILL.md` every time. Summary:
+
+### Step 1 — Identity
 
 ```
 GET /api/agents/me
-Authorization: Bearer <key>
 ```
 
-Returns agent identity, organization, permissions, runtime config, and manager chain.
+Confirm id, organization, permissions (`canCreateAgents`), manager chain.
 
-## Step 2 — Approval follow-up
+### Step 2 — Initialization (Super Agent only, first runs)
 
-When woken with `source=approval`, read `payload.approvalId` and the human decision from the approval record. Perform allowed follow-up only (no auto-execution without `AGENT_ACTION` approval — Phase 5e).
+If `INITIALIZE.md` applies and org not yet initialized:
 
-## Step 3 — Inbox (Phase 5b)
+1. Read org context (DNA, integrations, releases).
+2. Draft minimal specialist roster.
+3. For each role: write `AGENTS.md`, submit `POST /api/agents/hire` with `instructionsBundle`.
+4. `POST /api/agents/me/initialization/complete` when proposals submitted.
+
+Use `skills/aidos-create-agent/SKILL.md` for hire procedure.
+
+### Step 3 — Approval follow-up
+
+If wake payload includes `approvalId`:
+
+- Read approval decision.
+- If `AGENT_HIRE` approved: note new agent id; optionally wake them.
+- If recommendation approval: perform allowed follow-up per AGENTS.md.
+- Never auto-execute side effects without `AGENT_ACTION` approval.
+
+### Step 4 — Inbox
 
 ```
 GET /api/agents/me/inbox
 ```
 
-Returns prioritized work items (releases, webhooks, etc.).
+Prioritized work items (releases, webhooks, incidents). The LLM decides which item to act on per AGENTS.md priorities.
 
-## Step 4 — Execute
+### Step 5 — Execute (LLM-driven)
 
-Use allowlisted tools only. Phase 5a uses an in-process stub adapter; Phase 5b adds OpenAI + tool registry.
+Use API tools defined in SKILL.md. Examples:
 
-## Step 5 — Write outputs
+- `POST /api/agents/me/releases/{id}/assess`
+- `POST /api/agents/me/recommendations`
+- `POST /api/agents/hire` (Super Agent + permission)
+- `POST /api/agents/me/work-items/{id}/complete`
 
-- Create `Recommendation` + `Approval` when human sign-off is required (Phase 5b).
-- Always write `ActivityEvent` and `AuditLog` with `actorType: agent`.
-- Update `lastHeartbeatAt`; set agent status back to `IDLE`.
+Domain rule engines run **behind** these API routes — agents never call lib functions directly.
 
-## Step 6 — Exit
+### Step 6 — Write outputs
 
-The adapter records `AgentHeartbeatRun` result (summary, token usage, errors).
+- Create `Recommendation` + `Approval` when human sign-off required.
+- Write `ActivityEvent` + `AuditLog` (`actorType: agent`).
+- Summarize actions in run log before exit.
+
+### Step 7 — Exit
+
+Adapter records `AgentHeartbeatRun`: summary, token usage, errors.
+
+---
+
+## Critical rules
+
+- Read **AGENTS.md** every wakeup — responsibilities live there, not in server code.
+- Follow **SKILL.md** for all API interactions.
+- **Recommend-only** — no deploy, Jira push, or destructive actions without approved `AGENT_ACTION`.
+- Never bypass org scope.
+- If `ANTHROPIC_API_KEY` missing, heartbeat fails — no silent fallback.
+
+---
 
 ## Worker setup
 
 ```bash
-# Every 30–60s (example cron)
+# Every 30–60s (production cron)
 curl -X POST "$APP_URL/api/platform/agents/worker" \
   -H "Authorization: Bearer $PLATFORM_WORKER_SECRET"
 ```
 
-Optional body: `{ "organizationId": "..." }` to scope to one org.
-
-Environment:
+Invoke from UI **queues** a wakeup and polls until the worker completes it. In dev, run `npm run worker:agents` in a second terminal (or schedule `POST /api/platform/agents/worker` in production).
 
 | Variable | Purpose |
 |----------|---------|
-| `PLATFORM_WORKER_SECRET` | Worker auth (shared with Jira/Grafana sync) |
-| `AGENT_WORKER_ENABLED` | Set `false` to disable agent worker |
-| `AGENT_DEFAULT_HEARTBEAT_SEC` | Lead orchestrator timer interval (default 900) |
-| `OPENAI_API_KEY` | BYOK for internal adapter (Phase 5b+) |
+| `PLATFORM_WORKER_SECRET` | Worker auth |
+| `ANTHROPIC_API_KEY` | Required for LLM adapter |
+| `ANTHROPIC_BASE_URL` | Anthropic Messages API base (default MiniMax-compatible endpoint) |
+| `ANTHROPIC_MODEL` | Model id (e.g. `MiniMax-M3`) |
+| `AIDOS_API_URL` | Agent adapter → API tool calls (defaults to `NEXT_PUBLIC_APP_URL`) |
+| `AGENT_WORKER_ENABLED` | Set `false` to disable |
+| `AGENT_WORKER_INTERVAL_SEC` | Dev loop interval for `npm run worker:agents` (default 15) |
+| `AGENT_DEFAULT_HEARTBEAT_SEC` | Super Agent timer (default 900) |

@@ -68,3 +68,20 @@ export function formatDuration(
 export function formatWakeupSource(source: AgentWakeupSource): string {
   return source.replace(/_/g, " ");
 }
+
+export function formatTokenUsage(
+  tokenUsage: {
+    inputTokens?: number;
+    outputTokens?: number;
+    mode?: string;
+  } | null | undefined,
+): string {
+  if (!tokenUsage) return "—";
+  const mode = tokenUsage.mode ?? "rule-engine";
+  if (mode === "rule-engine" && !tokenUsage.inputTokens && !tokenUsage.outputTokens) {
+    return "rule-engine";
+  }
+  const inTok = tokenUsage.inputTokens ?? 0;
+  const outTok = tokenUsage.outputTokens ?? 0;
+  return `${mode} · ${inTok + outTok} tokens`;
+}

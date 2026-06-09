@@ -5,6 +5,12 @@ import {
   serializeRuntimeConfig,
 } from "@/lib/agent-control-plane/runtime-config";
 import { ensureAgentApiKey } from "@/lib/agent-control-plane/api-keys";
+import {
+  buildInstructionsAdapterConfig,
+  ensureSuperAgentInstructions,
+} from "@/lib/agent-control-plane/instructions/service";
+
+const SUPER_AGENT = DEFAULT_AGENT_DEFINITIONS[0];
 
 export async function seedEnterpriseFoundation(
   tx: Prisma.TransactionClient,
@@ -27,60 +33,52 @@ export async function seedEnterpriseFoundation(
     },
   });
 
-  let leadAgentId: string | null = null;
+  const runtimeConfig = defaultRuntimeConfigForAgentType(SUPER_AGENT.agentType);
+  const permissionsJson = JSON.stringify({ canCreateAgents: true });
 
-  for (const agent of DEFAULT_AGENT_DEFINITIONS) {
-    const runtimeConfig = defaultRuntimeConfigForAgentType(agent.agentType);
-    const permissionsJson =
-      agent.agentType === "SUPER_ORCHESTRATOR"
-        ? JSON.stringify({ canCreateAgents: false })
-        : JSON.stringify({ canCreateAgents: false });
-
-    const upserted = await tx.agentRegistry.upsert({
-      where: {
-        organizationId_agentType: {
-          organizationId,
-          agentType: agent.agentType,
-        },
-      },
-      create: {
+  const superAgent = await tx.agentRegistry.upsert({
+    where: {
+      organizationId_agentType: {
         organizationId,
-        agentType: agent.agentType,
-        displayName: agent.displayName,
-        description: agent.description,
-        confidenceScore: agent.defaultConfidence,
-        autonomyMode: agent.autonomyMode,
-        status: "IDLE",
-        runtimeConfigJson: serializeRuntimeConfig(runtimeConfig),
-        permissionsJson,
-        adapterType: "internal",
-        lastActiveAt:
-          agent.agentType === "SUPER_ORCHESTRATOR" ? new Date() : null,
+        agentType: SUPER_AGENT.agentType,
       },
-      update: {
-        displayName: agent.displayName,
-        description: agent.description,
-        runtimeConfigJson: serializeRuntimeConfig(runtimeConfig),
-        permissionsJson,
-      },
-    });
+    },
+    create: {
+      organizationId,
+      agentType: SUPER_AGENT.agentType,
+      displayName: SUPER_AGENT.displayName,
+      description: SUPER_AGENT.description,
+      confidenceScore: SUPER_AGENT.defaultConfidence,
+      autonomyMode: SUPER_AGENT.autonomyMode,
+      status: "IDLE",
+      runtimeConfigJson: serializeRuntimeConfig(runtimeConfig),
+      permissionsJson,
+      adapterType: "llm",
+      adapterConfigJson: "{}",
+      lastActiveAt: new Date(),
+    },
+    update: {
+      displayName: SUPER_AGENT.displayName,
+      description: SUPER_AGENT.description,
+      runtimeConfigJson: serializeRuntimeConfig(runtimeConfig),
+      permissionsJson,
+      adapterType: "llm",
+    },
+  });
 
-    if (agent.agentType === "SUPER_ORCHESTRATOR") {
-      leadAgentId = upserted.id;
-    }
-  }
+  const { adapterConfig } = await ensureSuperAgentInstructions(
+    organizationId,
+    superAgent.id,
+  );
 
-  if (leadAgentId) {
-    await tx.agentRegistry.updateMany({
-      where: {
-        organizationId,
-        agentType: { not: "SUPER_ORCHESTRATOR" },
-      },
-      data: { reportsToAgentId: leadAgentId },
-    });
+  await tx.agentRegistry.update({
+    where: { id: superAgent.id },
+    data: {
+      adapterConfigJson: JSON.stringify(adapterConfig),
+    },
+  });
 
-    await ensureAgentApiKey(tx, organizationId, leadAgentId, "bootstrap");
-  }
+  await ensureAgentApiKey(tx, organizationId, superAgent.id, "bootstrap");
 
   await tx.governancePolicy.upsert({
     where: { organizationId },

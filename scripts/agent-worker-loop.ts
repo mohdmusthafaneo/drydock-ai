@@ -1,0 +1,60 @@
+/**
+ * Local dev helper — polls POST /api/platform/agents/worker on an interval.
+ *
+ * Usage:
+ *   npm run worker:agents
+ *
+ * Requires PLATFORM_WORKER_SECRET and a running app (npm run dev).
+ */
+import "dotenv/config";
+
+const baseUrl = (
+  process.env.AIDOS_API_URL?.trim() ||
+  process.env.NEXT_PUBLIC_APP_URL?.trim() ||
+  "http://localhost:3000"
+).replace(/\/$/, "");
+
+const secret = process.env.PLATFORM_WORKER_SECRET?.trim();
+const intervalSec = Number(process.env.AGENT_WORKER_INTERVAL_SEC ?? "15");
+
+async function tick() {
+  if (!secret) {
+    console.error("PLATFORM_WORKER_SECRET is not set");
+    process.exit(1);
+  }
+
+  try {
+    const res = await fetch(`${baseUrl}/api/platform/agents/worker`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${secret}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+
+    if (!res.ok) {
+      console.error(`[${new Date().toISOString()}] worker HTTP ${res.status}`, body);
+      return;
+    }
+
+    if (body.disabled) {
+      console.log(`[${new Date().toISOString()}] AGENT_WORKER_ENABLED=false — idle`);
+      return;
+    }
+
+    console.log(
+      `[${new Date().toISOString()}] processed=${body.wakeupsProcessed ?? 0} ok=${body.runsSucceeded ?? 0} fail=${body.runsFailed ?? 0} timers=${body.timersEnqueued ?? 0}`,
+    );
+  } catch (err) {
+    console.error(`[${new Date().toISOString()}] worker tick failed`, err);
+  }
+}
+
+console.log(
+  `Agent worker loop → ${baseUrl}/api/platform/agents/worker every ${intervalSec}s`,
+);
+
+void tick();
+setInterval(tick, intervalSec * 1000);

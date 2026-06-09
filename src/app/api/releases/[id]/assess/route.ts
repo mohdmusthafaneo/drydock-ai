@@ -11,6 +11,7 @@ import {
   resolveMetricsAssessContext,
   scopeMetricsContext,
 } from "@/lib/observability-connectivity";
+import { enqueueReleaseAssessedWakeups } from "@/lib/agent-control-plane/release-wakeups";
 import { assessReleaseGovernance } from "@/lib/release-governance";
 import { buildAssessmentSnapshot } from "@/lib/release-assess-snapshot";
 import { parseToolchainMapping } from "@/lib/toolchain-mapping";
@@ -263,6 +264,8 @@ export async function POST(
       }),
     },
   });
+
+  await enqueueReleaseAssessedWakeups(session.organizationId, release.id);
 
   return NextResponse.json({
     ok: true,

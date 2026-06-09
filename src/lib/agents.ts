@@ -8,49 +8,18 @@ export type AgentDefinition = {
   autonomyMode: AutonomyMode;
 };
 
-/** Master FRD §10 — Agent Hierarchy */
+/**
+ * Org bootstrap roster — exactly one Super Agent at seed time.
+ * Specialists are hired by the Super Agent via governed AGENT_HIRE flow (Phase 5.3).
+ */
 export const DEFAULT_AGENT_DEFINITIONS: AgentDefinition[] = [
   {
     agentType: "SUPER_ORCHESTRATOR",
-    displayName: "Super Orchestrator",
-    description: "Coordinates governance-aware multi-agent workflows",
+    displayName: "Super Agent",
+    description:
+      "Leads operational intelligence — delegates work and hires specialists under human approval",
     defaultConfidence: 0.92,
     autonomyMode: "ASSIST",
-  },
-  {
-    agentType: "QA_INTELLIGENCE",
-    displayName: "QA Intelligence Agent",
-    description: "Coverage gaps, regression intelligence, release readiness",
-    defaultConfidence: 0.88,
-    autonomyMode: "RECOMMEND",
-  },
-  {
-    agentType: "DEVOPS_INTELLIGENCE",
-    displayName: "DevOps Intelligence Agent",
-    description: "Deployment risk, rollback intelligence, remediation",
-    defaultConfidence: 0.86,
-    autonomyMode: "RECOMMEND",
-  },
-  {
-    agentType: "GOVERNANCE",
-    displayName: "Governance Agent",
-    description: "Policy enforcement, risk scoring, audit alignment",
-    defaultConfidence: 0.9,
-    autonomyMode: "RECOMMEND",
-  },
-  {
-    agentType: "INCIDENT_CORRELATION",
-    displayName: "Incident Correlation Agent",
-    description: "Correlates incidents with releases and telemetry",
-    defaultConfidence: 0.84,
-    autonomyMode: "OBSERVE",
-  },
-  {
-    agentType: "INTEGRATION",
-    displayName: "Integration Agents",
-    description: "GitHub, Jira, Grafana, Prometheus connectors",
-    defaultConfidence: 0.8,
-    autonomyMode: "OBSERVE",
   },
 ];
 

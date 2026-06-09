@@ -46,7 +46,11 @@ export type AdapterExecutionResult = {
   status: "succeeded" | "failed" | "timed_out";
   summary?: string;
   error?: string;
-  tokenUsage?: { inputTokens: number; outputTokens: number };
+  tokenUsage?: {
+    inputTokens: number;
+    outputTokens: number;
+    mode?: "anthropic" | "openai" | "rule-engine";
+  };
 };
 
 /** Priority: on_demand > approval/delegation > event > timer */

@@ -30,16 +30,26 @@ export async function GET(request: Request, { params }: RouteParams) {
   });
 
   return NextResponse.json({
-    runs: runs.map((run) => ({
-      id: run.id,
-      status: run.status,
-      source: run.source,
-      reason: run.reason,
-      startedAt: run.startedAt,
-      finishedAt: run.finishedAt,
-      summary: run.summary,
-      error: run.error,
-      exitCode: run.exitCode,
-    })),
+    runs: runs.map((run) => {
+      let tokenUsage: { inputTokens?: number; outputTokens?: number; mode?: string } =
+        {};
+      try {
+        tokenUsage = JSON.parse(run.tokenUsageJson) as typeof tokenUsage;
+      } catch {
+        tokenUsage = {};
+      }
+      return {
+        id: run.id,
+        status: run.status,
+        source: run.source,
+        reason: run.reason,
+        startedAt: run.startedAt,
+        finishedAt: run.finishedAt,
+        summary: run.summary,
+        error: run.error,
+        exitCode: run.exitCode,
+        tokenUsage,
+      };
+    }),
   });
 }

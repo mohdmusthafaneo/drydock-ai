@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getSession } from "@/lib/session";
 import { getOrganizationContext } from "@/lib/org-data";
 import { prisma } from "@/lib/prisma";
@@ -61,7 +62,11 @@ export default async function AgentsManagementPage() {
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <CardTitle className="text-base">{agent.displayName}</CardTitle>
+                      <CardTitle className="text-base">
+                        <Link href={`/agents/${agent.id}`} className="hover:text-brand">
+                          {agent.displayName}
+                        </Link>
+                      </CardTitle>
                       {isLead && (
                         <p className="mt-0.5 text-xs text-brand">Lead orchestrator</p>
                       )}
@@ -103,7 +108,10 @@ export default async function AgentsManagementPage() {
       )}
 
       <p className="text-xs text-slate-600">
-        Worker: POST /api/platform/agents/worker (Bearer PLATFORM_WORKER_SECRET) — schedule every 30–60s.
+        Invoke queues a wakeup (async). Drain the queue with{" "}
+        <code className="text-slate-500">npm run worker:agents</code> in dev or{" "}
+        <code className="text-slate-500">POST /api/platform/agents/worker</code>{" "}
+        (Bearer PLATFORM_WORKER_SECRET) every 30–60s in production.
       </p>
     </div>
   );

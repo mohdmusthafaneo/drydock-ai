@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   displayAgentStatus,
   formatDuration,
+  formatTokenUsage,
   formatWakeupSource,
   runStatusVariant,
 } from "@/lib/agent-control-plane/display";
@@ -63,14 +64,33 @@ export default async function AgentRunsPage({ params }: PageProps) {
                   <th className="pb-2 pr-4 font-medium">Source</th>
                   <th className="pb-2 pr-4 font-medium">Reason</th>
                   <th className="pb-2 pr-4 font-medium">Status</th>
+                  <th className="pb-2 pr-4 font-medium">Mode</th>
                   <th className="pb-2 font-medium">Summary</th>
                 </tr>
               </thead>
               <tbody>
-                {runs.map((run) => (
+                {runs.map((run) => {
+                  const tokenUsage = (() => {
+                    try {
+                      return JSON.parse(run.tokenUsageJson) as {
+                        inputTokens?: number;
+                        outputTokens?: number;
+                        mode?: string;
+                      };
+                    } catch {
+                      return {};
+                    }
+                  })();
+
+                  return (
                   <tr key={run.id} className="border-b border-white/5">
                     <td className="py-2 pr-4 whitespace-nowrap text-slate-300">
-                      {run.startedAt.toLocaleString()}
+                      <Link
+                        href={`/agents/${id}/runs/${run.id}`}
+                        className="hover:text-brand"
+                      >
+                        {run.startedAt.toLocaleString()}
+                      </Link>
                     </td>
                     <td className="py-2 pr-4 text-slate-400">
                       {formatDuration(run.startedAt, run.finishedAt)}
@@ -82,11 +102,20 @@ export default async function AgentRunsPage({ params }: PageProps) {
                     <td className="py-2 pr-4">
                       <Badge variant={runStatusVariant(run.status)}>{run.status}</Badge>
                     </td>
+                    <td className="py-2 pr-4 text-xs text-slate-500">
+                      {formatTokenUsage(tokenUsage)}
+                    </td>
                     <td className="py-2 max-w-xs truncate text-slate-400">
-                      {run.summary ?? run.error ?? "—"}
+                      <Link
+                        href={`/agents/${id}/runs/${run.id}`}
+                        className="hover:text-slate-200"
+                      >
+                        {run.summary ?? run.error ?? "—"}
+                      </Link>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </CardContent>

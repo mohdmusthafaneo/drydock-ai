@@ -46,3 +46,6 @@ next-env.d.ts
 # local sqlite
 /prisma/*.db
 /prisma/*.db-journal
+
+# managed agent instruction bundles (Phase 5.1)
+.data/

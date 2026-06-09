@@ -1,6 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import type { AgentWakeupSource } from "@/generated/prisma/client";
-import { runInternalAdapter } from "./adapters/internal";
+import { runLlmAdapter } from "./adapters/llm";
+import {
+  createEphemeralRunApiKey,
+  revokeEphemeralRunApiKey,
+} from "./api-keys";
 import { logAgentActivity, logAgentAudit } from "./audit";
 import {
   compareWakeupPriority,
@@ -112,23 +116,49 @@ async function executeHeartbeatRun(wakeupId: string): Promise<boolean> {
   });
 
   let adapterResult;
+  let ephemeralKey: string | null = null;
   try {
-    adapterResult = await runInternalAdapter({
-      runId: run.id,
-      agent,
-      wakeup: {
-        id: wakeup.id,
-        source: wakeup.source as AgentWakeupSource,
-        reason: wakeup.reason,
-        payloadJson: wakeup.payloadJson,
-      },
-      organizationId,
-    });
+    if (agent.adapterType === "llm") {
+      ephemeralKey = await createEphemeralRunApiKey(
+        organizationId,
+        agent.id,
+        run.id,
+      );
+      adapterResult = await runLlmAdapter({
+        runId: run.id,
+        agent,
+        wakeup: {
+          id: wakeup.id,
+          source: wakeup.source as AgentWakeupSource,
+          reason: wakeup.reason,
+          payloadJson: wakeup.payloadJson,
+        },
+        organizationId,
+        agentApiKey: ephemeralKey,
+      });
+    } else {
+      const { runInternalAdapter } = await import("./adapters/internal");
+      adapterResult = await runInternalAdapter({
+        runId: run.id,
+        agent,
+        wakeup: {
+          id: wakeup.id,
+          source: wakeup.source as AgentWakeupSource,
+          reason: wakeup.reason,
+          payloadJson: wakeup.payloadJson,
+        },
+        organizationId,
+      });
+    }
   } catch (err) {
     adapterResult = {
       status: "failed" as const,
       error: err instanceof Error ? err.message : "Adapter execution failed",
     };
+  } finally {
+    if (ephemeralKey) {
+      await revokeEphemeralRunApiKey(run.id).catch(() => undefined);
+    }
   }
 
   const finishedAt = new Date();
