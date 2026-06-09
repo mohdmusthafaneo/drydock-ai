@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { ingestTelemetryForOrganization } from "@/lib/telemetry-service";
+import { parsePostDeployComparison } from "@/lib/release-assess-snapshot";
 
 export async function POST(
   _request: Request,
@@ -69,13 +70,21 @@ export async function POST(
     },
   });
 
+  const refreshed = await prisma.release.findFirst({
+    where: { id: release.id, organizationId: session.organizationId },
+  });
+  const postDeployComparison = parsePostDeployComparison(
+    refreshed?.postDeployComparisonJson,
+  );
+
   return NextResponse.json({
     ok: true,
-    release: updated,
+    release: refreshed ?? updated,
     monitoring: {
       correlationId: telemetry.collected.correlationId,
       degradationDetected: telemetry.collected.degradationDetected,
       rollbackRecommended: telemetry.deploymentEvent?.rollbackRecommended ?? false,
+      postDeployComparison,
     },
   });
 }

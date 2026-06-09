@@ -60,6 +60,41 @@ export function hasObservabilitySynced(integrations: IntegrationMetricsSlice[]):
   return resolveMetricsAssessContext({ integrations }).synced;
 }
 
+export function scopeMetricsContext(
+  metrics: MetricsAssessContext,
+  serviceScopeIds: string[] | null | undefined,
+): MetricsAssessContext {
+  if (!serviceScopeIds?.length || !metrics.synced || !metrics.snapshot?.byService?.length) {
+    return metrics;
+  }
+
+  const scoped = metrics.snapshot.byService.filter(
+    (row) => serviceScopeIds.includes(row.id) || serviceScopeIds.includes(row.label),
+  );
+  if (scoped.length === 0) return metrics;
+
+  const avgHealth = Math.round(
+    scoped.reduce((sum, row) => sum + row.healthScore, 0) / scoped.length,
+  );
+  const avgError = scoped.reduce((sum, row) => sum + row.errorRate, 0) / scoped.length;
+  const maxP95 = Math.max(...scoped.map((row) => row.p95LatencyMs));
+  const totalAlerts = scoped.reduce((sum, row) => sum + row.openAlerts, 0);
+
+  return {
+    ...metrics,
+    snapshot: {
+      ...metrics.snapshot,
+      kpis: {
+        ...metrics.snapshot.kpis,
+        healthScore: avgHealth,
+        errorRate: avgError,
+        p95LatencyMs: maxP95,
+        openAlerts: totalAlerts,
+      },
+    },
+  };
+}
+
 export function resolveMetricsAssessContext(input: {
   integrations: IntegrationMetricsSlice[];
 }): MetricsAssessContext {

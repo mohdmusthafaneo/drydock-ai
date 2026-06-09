@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { canApproveRequiredRole } from "@/lib/permissions";
 import { getSession } from "@/lib/session";
 
 const schema = z.object({
@@ -28,6 +29,19 @@ export async function POST(request: Request) {
 
     if (!approval) {
       return NextResponse.json({ error: "Approval not found" }, { status: 404 });
+    }
+
+    if (
+      !canApproveRequiredRole(session.role, approval.recommendation.requiredRole ?? undefined)
+    ) {
+      return NextResponse.json(
+        {
+          error: approval.recommendation.requiredRole
+            ? `This approval requires ${approval.recommendation.requiredRole.replace(/_/g, " ")} role`
+            : "You do not have permission to approve this recommendation",
+        },
+        { status: 403 },
+      );
     }
 
     const recStatus =

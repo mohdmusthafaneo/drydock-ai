@@ -1,4 +1,5 @@
 import type { DeliveryDNA, Integration, OrganizationProfile } from "@/generated/prisma/client";
+import type { CodeAnalysisAssessContext } from "@/lib/code-analysis-assess-context";
 import type { GitHubAssessContext } from "@/lib/github-assess-context";
 import type { GrafanaAssessContext } from "@/lib/grafana-assess-context";
 import type { JiraAssessContext } from "@/lib/jira-delivery-health";
@@ -12,6 +13,8 @@ import type { MetricsAssessContext, MetricsProvenance } from "@/lib/observabilit
 import type { QAAssessment } from "@/lib/qa-intelligence";
 import { assessQAIntelligence } from "@/lib/qa-intelligence";
 
+export type PrimaryRecommendation = "HOLD" | "APPROVE_WITH_SIGNOFF" | "APPROVE";
+
 export type TelemetrySnapshot = {
   deployments24h: number;
   openIncidents: number;
@@ -21,21 +24,25 @@ export type TelemetrySnapshot = {
   assessedAt?: string;
 };
 
+export type GovernanceRecommendation = {
+  title: string;
+  description: string;
+  rationale: string;
+  impact: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  confidence: number;
+  affectedSystems: string[];
+  requiredRole?: "QA_LEAD" | "DEVOPS_LEAD" | "ENGINEERING_MANAGER";
+  supporting?: boolean;
+};
+
 export type GovernanceAssessment = {
   governanceRiskScore: number;
   riskLevel: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  primaryRecommendation: PrimaryRecommendation;
   telemetry: TelemetrySnapshot;
   qa: QAAssessment;
   summary: string;
-  recommendations: Array<{
-    title: string;
-    description: string;
-    rationale: string;
-    impact: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
-    confidence: number;
-    affectedSystems: string[];
-    requiredRole?: "QA_LEAD" | "DEVOPS_LEAD" | "ENGINEERING_MANAGER";
-  }>;
+  recommendations: GovernanceRecommendation[];
 };
 
 function riskLevelFromScore(score: number): GovernanceAssessment["riskLevel"] {
@@ -67,6 +74,137 @@ function resolveDeployments24h(grafana: GrafanaAssessContext | undefined): numbe
   return 0;
 }
 
+function buildPrimaryDecision(input: {
+  releaseName: string;
+  environment: string;
+  dna: DeliveryDNA;
+  qa: QAAssessment;
+  governanceRiskScore: number;
+  riskLevel: GovernanceAssessment["riskLevel"];
+  jira?: JiraAssessContext;
+  grafana?: GrafanaAssessContext;
+  metrics: MetricsAssessContext;
+  codeAnalysis?: CodeAnalysisAssessContext;
+}): { primary: PrimaryRecommendation; recommendation: GovernanceRecommendation } {
+  const supportingPoints: string[] = [];
+  const threshold = Math.round(input.dna.riskThreshold * 100);
+
+  if (input.qa.readinessScore < threshold) {
+    supportingPoints.push(
+      `QA readiness ${input.qa.readinessScore}/100 is below governance threshold (${threshold})`,
+    );
+  }
+
+  const firingCritical = input.grafana?.snapshot?.kpis.firingCritical ?? 0;
+  if (firingCritical > 0) {
+    supportingPoints.push(`${firingCritical} critical Grafana alert(s) firing`);
+  }
+
+  const metricsDegraded =
+    input.metrics.synced &&
+    input.metrics.snapshot &&
+    (input.metrics.snapshot.kpis.healthScore < 50 || input.metrics.snapshot.kpis.errorRate > 1);
+
+  if (metricsDegraded) {
+    supportingPoints.push(
+      `Metrics health ${input.metrics.snapshot!.kpis.healthScore}/100 with error rate ${input.metrics.snapshot!.kpis.errorRate}%`,
+    );
+  }
+
+  const jiraHealth = input.jira?.health;
+  const jiraHighGaps = jiraHealth?.gaps.filter((g) => g.priority === "high") ?? [];
+  for (const gap of jiraHighGaps) {
+    supportingPoints.push(`${gap.area}: ${gap.gap}`);
+  }
+
+  for (const gap of input.qa.testGaps.filter((g) => g.priority === "high")) {
+    const line = `${gap.area}: ${gap.gap}`;
+    if (!supportingPoints.includes(line)) supportingPoints.push(line);
+  }
+
+  if (
+    input.codeAnalysis?.synced &&
+    input.codeAnalysis.aiLinesPct != null &&
+    input.codeAnalysis.reviewCoverageOnAiPrsPct != null &&
+    input.codeAnalysis.aiLinesPct > 30 &&
+    input.codeAnalysis.reviewCoverageOnAiPrsPct < 70
+  ) {
+    supportingPoints.push(
+      `AI-assisted changes at ${input.codeAnalysis.aiLinesPct}% with only ${input.codeAnalysis.reviewCoverageOnAiPrsPct}% review coverage on AI PRs`,
+    );
+  }
+
+  const shouldHold =
+    input.qa.readinessScore < threshold ||
+    firingCritical > 0 ||
+    (input.environment === "PRODUCTION" && metricsDegraded);
+
+  const shouldSignoff =
+    !shouldHold &&
+    (input.riskLevel === "HIGH" ||
+      input.riskLevel === "CRITICAL" ||
+      jiraHighGaps.length > 0);
+
+  if (shouldHold) {
+    return {
+      primary: "HOLD",
+      recommendation: {
+        title: `Hold ${input.releaseName} — resolve blockers before release`,
+        description:
+          supportingPoints.length > 0
+            ? supportingPoints.map((p) => `• ${p}`).join("\n")
+            : "Governance gate triggered — resolve blockers before release.",
+        rationale:
+          "Delivery DNA policy and live integration signals require a human-governed hold.",
+        impact: "CRITICAL",
+        confidence: 0.91,
+        affectedSystems: ["release-pipeline", "qa", "observability"],
+        requiredRole: firingCritical > 0 || metricsDegraded ? "DEVOPS_LEAD" : "QA_LEAD",
+      },
+    };
+  }
+
+  if (shouldSignoff) {
+    return {
+      primary: "APPROVE_WITH_SIGNOFF",
+      recommendation: {
+        title: `Approve ${input.releaseName} with engineering manager sign-off`,
+        description:
+          supportingPoints.length > 0
+            ? supportingPoints.map((p) => `• ${p}`).join("\n")
+            : `Governance risk score ${input.governanceRiskScore}/100 maps to ${input.riskLevel} severity.`,
+        rationale: "Elevated risk requires additional human sign-off before deployment.",
+        impact: "HIGH",
+        confidence: 0.87,
+        affectedSystems: ["approvals", "deployment"],
+        requiredRole: "ENGINEERING_MANAGER",
+      },
+    };
+  }
+
+  if (input.environment === "PRODUCTION") {
+    supportingPoints.push(
+      "Route deployment through Approval Center with audit trail before execution",
+    );
+  }
+
+  return {
+    primary: "APPROVE",
+    recommendation: {
+      title: `Approve ${input.releaseName} for deployment`,
+      description:
+        supportingPoints.length > 0
+          ? supportingPoints.map((p) => `• ${p}`).join("\n")
+          : "Telemetry and QA signals are within policy. Proceed with governed deployment.",
+      rationale: `Readiness ${input.qa.readinessScore}/100, governance risk ${input.governanceRiskScore}/100.`,
+      impact: "MEDIUM",
+      confidence: 0.89,
+      affectedSystems: ["deployment"],
+      requiredRole: input.environment === "PRODUCTION" ? "DEVOPS_LEAD" : "QA_LEAD",
+    },
+  };
+}
+
 export function assessReleaseGovernance(input: {
   profile: OrganizationProfile | null;
   dna: DeliveryDNA;
@@ -79,6 +217,7 @@ export function assessReleaseGovernance(input: {
   prometheus?: PrometheusAssessContext;
   metrics?: MetricsAssessContext;
   github?: GitHubAssessContext;
+  codeAnalysis?: CodeAnalysisAssessContext;
 }): GovernanceAssessment {
   const metrics =
     input.metrics ?? resolveMetricsAssessContext({ integrations: input.integrations });
@@ -95,6 +234,7 @@ export function assessReleaseGovernance(input: {
     prometheus: input.prometheus,
     metrics,
     github: input.github,
+    codeAnalysis: input.codeAnalysis,
   });
 
   const connected = input.integrations.filter((i) => i.status === "CONNECTED").length;
@@ -129,113 +269,24 @@ export function assessReleaseGovernance(input: {
     assessedAt,
   };
 
-  const recommendations: GovernanceAssessment["recommendations"] = [];
+  const { primary: primaryRecommendation, recommendation: primaryRec } = buildPrimaryDecision({
+    releaseName: input.releaseName,
+    environment: input.environment,
+    dna: input.dna,
+    qa,
+    governanceRiskScore,
+    riskLevel,
+    jira: input.jira,
+    grafana: input.grafana,
+    metrics,
+    codeAnalysis: input.codeAnalysis,
+  });
 
-  if (qa.readinessScore < input.dna.riskThreshold * 100) {
-    recommendations.push({
-      title: `Block ${input.releaseName} until QA readiness improves`,
-      description:
-        `Readiness score ${qa.readinessScore} is below governance threshold (${Math.round(input.dna.riskThreshold * 100)}).`,
-      rationale:
-        "Delivery DNA policy requires human-governed gate when quality signals fail threshold.",
-      impact: "CRITICAL",
-      confidence: 0.91,
-      affectedSystems: ["release-pipeline", "qa"],
-      requiredRole: "QA_LEAD",
-    });
-  }
-
-  if (riskLevel === "HIGH" || riskLevel === "CRITICAL") {
-    recommendations.push({
-      title: "Require engineering manager sign-off before deploy",
-      description:
-        "Elevated governance risk from telemetry correlation and QA gap analysis.",
-      rationale: `Governance risk score ${governanceRiskScore} maps to ${riskLevel} severity.`,
-      impact: "HIGH",
-      confidence: 0.87,
-      affectedSystems: ["approvals", "deployment"],
-      requiredRole: "ENGINEERING_MANAGER",
-    });
-  }
-
-  if (input.environment === "PRODUCTION") {
-    recommendations.push({
-      title: "Enable controlled production deployment window",
-      description:
-        "Route deployment through Approval Center with audit trail before execution.",
-      rationale: "Production releases require human-governed execution per enterprise policy.",
-      impact: "HIGH",
-      confidence: 0.94,
-      affectedSystems: ["deployment", "audit"],
-      requiredRole: "DEVOPS_LEAD",
-    });
-  }
-
-  const firingCritical = input.grafana?.snapshot?.kpis.firingCritical ?? 0;
-  const metricsDegraded =
-    metrics.synced &&
-    metrics.snapshot &&
-    (metrics.snapshot.kpis.healthScore < 50 || metrics.snapshot.kpis.errorRate > 1);
-
-  if (firingCritical > 0 || metricsDegraded) {
-    recommendations.push({
-      title: "Resolve firing alerts before production release",
-      description:
-        firingCritical > 0
-          ? `${firingCritical} critical Grafana alert(s) firing.`
-          : `Metrics health ${metrics.snapshot!.kpis.healthScore}/100 with elevated error rate.`,
-      rationale: "Operational degradation detected from live observability sync.",
-      impact: "HIGH",
-      confidence: 0.9,
-      affectedSystems: ["observability", "deployment"],
-      requiredRole: "DEVOPS_LEAD",
-    });
-  }
-
-  const jiraHealth = input.jira?.health;
-  if (jiraHealth && jiraHealth.gaps.some((g) => g.priority === "high")) {
-    recommendations.push({
-      title: "Resolve Jira delivery blockers before release",
-      description: jiraHealth.gaps
-        .filter((g) => g.priority === "high")
-        .map((g) => `${g.area}: ${g.gap}`)
-        .join("; "),
-      rationale: `Jira delivery health score ${jiraHealth.score}/100 from sync at ${jiraHealth.snapshotSyncedAt}.`,
-      impact: "HIGH",
-      confidence: 0.88,
-      affectedSystems: ["jira", "release-pipeline"],
-      requiredRole: "QA_LEAD",
-    });
-  }
-
-  if (qa.testGaps.length > 0) {
-    recommendations.push({
-      title: "Close test coverage gaps before release",
-      description: qa.testGaps.map((g) => `${g.area}: ${g.gap}`).join("; "),
-      rationale: "QA Intelligence Engine identified gaps that weaken release confidence.",
-      impact: "MEDIUM",
-      confidence: 0.84,
-      affectedSystems: ["qa", "jira"],
-      requiredRole: "QA_LEAD",
-    });
-  }
-
-  if (recommendations.length === 0) {
-    recommendations.push({
-      title: `Approve ${input.releaseName} for deployment`,
-      description:
-        "Telemetry and QA signals are within policy. Proceed with governed deployment.",
-      rationale:
-        `Readiness ${qa.readinessScore}/100, governance risk ${governanceRiskScore}/100.`,
-      impact: "MEDIUM",
-      confidence: 0.89,
-      affectedSystems: ["deployment"],
-      requiredRole: "DEVOPS_LEAD",
-    });
-  }
+  const recommendations: GovernanceRecommendation[] = [primaryRec];
 
   const summary = [
     `Release ${input.releaseName}${input.version ? ` (${input.version})` : ""} assessed for ${input.environment}.`,
+    `Primary recommendation: ${primaryRecommendation.replace(/_/g, " ")}.`,
     `Governance risk: ${governanceRiskScore}/100 (${riskLevel}). QA readiness: ${qa.readinessScore}/100.`,
     qa.regressionNotes,
   ].join(" ");
@@ -243,6 +294,7 @@ export function assessReleaseGovernance(input: {
   return {
     governanceRiskScore,
     riskLevel,
+    primaryRecommendation,
     telemetry,
     qa,
     summary,

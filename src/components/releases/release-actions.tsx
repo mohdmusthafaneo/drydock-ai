@@ -4,15 +4,30 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
-export function AssessReleaseButton({ releaseId }: { releaseId: string }) {
+type AssessReleaseButtonProps = {
+  releaseId: string;
+  reAssess?: boolean;
+};
+
+export function AssessReleaseButton({ releaseId, reAssess = false }: AssessReleaseButtonProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function assess() {
+    if (reAssess) {
+      const confirmed = window.confirm(
+        "Re-assess will replace pending recommendations and reset approvals. Continue?",
+      );
+      if (!confirmed) return;
+    }
+
     setLoading(true);
     setError(null);
-    const res = await fetch(`/api/releases/${releaseId}/assess`, { method: "POST" });
+    const res = await fetch(`/api/releases/${releaseId}/assess`, {
+      method: "POST",
+      credentials: "same-origin",
+    });
     const data = await res.json();
     setLoading(false);
     if (!res.ok) {
@@ -25,7 +40,11 @@ export function AssessReleaseButton({ releaseId }: { releaseId: string }) {
   return (
     <div>
       <Button onClick={assess} disabled={loading} variant="ai">
-        {loading ? "Assessing…" : "Run governance & QA assessment"}
+        {loading
+          ? "Assessing…"
+          : reAssess
+            ? "Re-run governance & QA assessment"
+            : "Run governance & QA assessment"}
       </Button>
       {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
     </div>
@@ -40,7 +59,10 @@ export function DeployReleaseButton({ releaseId }: { releaseId: string }) {
   async function deploy() {
     setLoading(true);
     setError(null);
-    const res = await fetch(`/api/releases/${releaseId}/deploy`, { method: "POST" });
+    const res = await fetch(`/api/releases/${releaseId}/deploy`, {
+      method: "POST",
+      credentials: "same-origin",
+    });
     const data = await res.json();
     setLoading(false);
     if (!res.ok) {

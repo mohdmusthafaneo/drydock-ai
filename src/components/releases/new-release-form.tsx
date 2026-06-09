@@ -17,12 +17,21 @@ export function NewReleaseForm() {
     setError(null);
 
     const form = new FormData(e.currentTarget);
+    const serviceScopeRaw = (form.get("serviceScope") as string)?.trim();
+    const serviceScope = serviceScopeRaw
+      ? serviceScopeRaw.split(",").map((s) => s.trim()).filter(Boolean)
+      : undefined;
+
     const res = await fetch("/api/releases", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
       body: JSON.stringify({
         name: form.get("name"),
         version: form.get("version") || undefined,
+        branch: form.get("branch") || undefined,
+        jiraFixVersion: form.get("jiraFixVersion") || undefined,
+        serviceScope,
         environment: form.get("environment"),
       }),
     });
@@ -55,6 +64,33 @@ export function NewReleaseForm() {
           <div>
             <Label htmlFor="version">Version (optional)</Label>
             <Input id="version" name="version" placeholder="e.g. 2.4.1" />
+          </div>
+          <div>
+            <Label htmlFor="branch">CI branch (optional)</Label>
+            <Input
+              id="branch"
+              name="branch"
+              placeholder="e.g. release/2.4 — defaults to production branch from toolchain"
+            />
+          </div>
+          <div>
+            <Label htmlFor="jiraFixVersion">Jira fix version (optional)</Label>
+            <Input
+              id="jiraFixVersion"
+              name="jiraFixVersion"
+              placeholder="e.g. v2.4.1 — overrides auto-match"
+            />
+          </div>
+          <div>
+            <Label htmlFor="serviceScope">Metrics service scope (optional)</Label>
+            <Input
+              id="serviceScope"
+              name="serviceScope"
+              placeholder="Comma-separated scope ids, e.g. api, checkout"
+            />
+            <p className="mt-1 text-xs text-slate-500">
+              Matches observability service scope ids configured on Integrations.
+            </p>
           </div>
           <div>
             <Label htmlFor="environment">Target environment</Label>

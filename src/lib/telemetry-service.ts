@@ -4,6 +4,10 @@ import {
   correlateIncidentFromTelemetry,
 } from "@/lib/operational-intelligence";
 import { analyzeDeployment, buildRemediationRecommendation } from "@/lib/devops-intelligence";
+import {
+  comparePostDeploy,
+  parseAssessmentSnapshot,
+} from "@/lib/release-assess-snapshot";
 
 export async function ingestTelemetryForOrganization(input: {
   organizationId: string;
@@ -50,6 +54,15 @@ export async function ingestTelemetryForOrganization(input: {
       releaseName: release.name,
     });
 
+    const baseline = parseAssessmentSnapshot(release.assessmentSnapshotJson);
+    const postDeployComparison = baseline
+      ? comparePostDeploy({
+          baseline,
+          collected,
+          rollbackRecommended: analysis.rollbackRecommended,
+        })
+      : null;
+
     deploymentEvent = await prisma.deploymentEvent.create({
       data: {
         organizationId: input.organizationId,
@@ -60,23 +73,23 @@ export async function ingestTelemetryForOrganization(input: {
         rollbackRecommended: analysis.rollbackRecommended,
         rollbackReason: analysis.rollbackReason,
         durationMs: analysis.durationMs,
-        notes: analysis.notes,
+        notes: postDeployComparison?.summary ?? analysis.notes,
       },
     });
 
     await prisma.release.update({
       where: { id: release.id },
       data: {
-        telemetryJson: JSON.stringify({
-          correlationId: collected.correlationId,
-          degradation: collected.degradationDetected,
-          health: analysis.health,
-          healthScore: analysis.healthScore,
-        }),
+        postDeployComparisonJson: JSON.stringify(postDeployComparison ?? {}),
       },
     });
 
-    if (collected.degradationDetected || analysis.rollbackRecommended) {
+    const shouldRemediate =
+      collected.degradationDetected ||
+      analysis.rollbackRecommended ||
+      postDeployComparison?.rollbackRecommended;
+
+    if (shouldRemediate) {
       const incidentData = correlateIncidentFromTelemetry({
         correlationId: collected.correlationId,
         releaseId: release.id,
@@ -89,10 +102,14 @@ export async function ingestTelemetryForOrganization(input: {
 
       incident = await prisma.incident.create({ data: { organizationId: input.organizationId, ...incidentData } });
 
-      if (analysis.rollbackRecommended && analysis.rollbackReason) {
+      const rollbackReason =
+        analysis.rollbackReason ??
+        (postDeployComparison?.degraded ? postDeployComparison.summary : null);
+
+      if ((analysis.rollbackRecommended || postDeployComparison?.rollbackRecommended) && rollbackReason) {
         const rec = buildRemediationRecommendation({
           releaseName: release.name,
-          rollbackReason: analysis.rollbackReason,
+          rollbackReason,
         });
         const recommendation = await prisma.recommendation.create({
           data: {

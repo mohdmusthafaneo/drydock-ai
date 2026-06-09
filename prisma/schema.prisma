@@ -359,21 +359,33 @@ enum ReleaseRiskLevel {
   CRITICAL
 }
 
+enum PrimaryRecommendation {
+  HOLD
+  APPROVE_WITH_SIGNOFF
+  APPROVE
+}
+
 model Release {
   id                   String              @id @default(cuid())
   organizationId       String
   name                 String
   version              String?
+  branch               String?
+  jiraFixVersion       String?
+  serviceScope         String?
   environment          ReleaseEnvironment  @default(STAGING)
   status               ReleaseStatus       @default(DETECTED)
   governanceRiskScore  Float?
   readinessScore       Float?
   riskLevel            ReleaseRiskLevel?
+  primaryRecommendation PrimaryRecommendation?
   qaSignalsJson        String              @default("[]")
   telemetryJson        String              @default("{}")
   testGapsJson         String              @default("[]")
   regressionNotes      String?
   assessmentSummary    String?
+  assessmentSnapshotJson String            @default("{}")
+  postDeployComparisonJson String          @default("{}")
   detectedAt           DateTime            @default(now())
   assessedAt           DateTime?
   deployedAt           DateTime?

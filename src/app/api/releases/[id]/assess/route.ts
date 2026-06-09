@@ -1,12 +1,31 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
+import { resolveCodeAnalysisAssessContext } from "@/lib/code-analysis-assess-context";
 import { resolveGrafanaAssessContext } from "@/lib/grafana-assess-context";
 import { resolveGitHubAssessContext } from "@/lib/github-assess-context";
+import { parseIntegrationMeta } from "@/lib/integration-meta";
 import { resolveJiraAssessContext } from "@/lib/jira-delivery-health";
-import { resolvePrometheusAssessContext, resolveMetricsAssessContext } from "@/lib/observability-connectivity";
+import {
+  resolvePrometheusAssessContext,
+  resolveMetricsAssessContext,
+  scopeMetricsContext,
+} from "@/lib/observability-connectivity";
 import { assessReleaseGovernance } from "@/lib/release-governance";
+import { buildAssessmentSnapshot } from "@/lib/release-assess-snapshot";
 import { parseToolchainMapping } from "@/lib/toolchain-mapping";
+
+const REASSESSABLE_STATUSES = new Set(["DETECTED", "ASSESSED", "PENDING_APPROVAL", "BLOCKED"]);
+
+function parseServiceScope(raw: string | null | undefined): string[] {
+  if (!raw?.trim()) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? parsed.filter((id) => typeof id === "string") : [];
+  } catch {
+    return [];
+  }
+}
 
 export async function POST(
   _request: Request,
@@ -27,7 +46,7 @@ export async function POST(
     return NextResponse.json({ error: "Release not found" }, { status: 404 });
   }
 
-  if (release.status !== "DETECTED" && release.status !== "ASSESSED") {
+  if (!REASSESSABLE_STATUSES.has(release.status)) {
     return NextResponse.json(
       { error: "Release cannot be re-assessed in current status" },
       { status: 400 },
@@ -61,20 +80,47 @@ export async function POST(
     ? toolchainMapping.github
     : undefined;
 
+  const releaseBranch =
+    release.branch?.trim() ||
+    githubMapping?.productionBranch ||
+    githubMapping?.primaryDefaultBranch ||
+    null;
+
+  const serviceScopeIds = parseServiceScope(release.serviceScope);
+
   const jira = resolveJiraAssessContext({
     integrations,
     releaseName: release.name,
     version: release.version,
+    jiraFixVersion: release.jiraFixVersion,
     mapping: jiraMapping,
   });
 
   const grafana = resolveGrafanaAssessContext({ integrations });
   const prometheus = resolvePrometheusAssessContext({ integrations });
-  const metrics = resolveMetricsAssessContext({ integrations });
+  const metrics = scopeMetricsContext(
+    resolveMetricsAssessContext({ integrations }),
+    serviceScopeIds,
+  );
+
+  const githubIntegration = integrations.find((i) => i.provider === "GITHUB");
+  const githubMeta = githubIntegration
+    ? parseIntegrationMeta(githubIntegration.metadataJson)
+    : null;
+  const analysisRepos: string[] =
+    githubMeta?.repoFullNames ??
+    githubMeta?.repos?.map((r) => r.fullName) ??
+    [];
+
   const github = resolveGitHubAssessContext({
     integrations,
-    releaseBranch:
-      githubMapping?.productionBranch ?? githubMapping?.primaryDefaultBranch ?? null,
+    releaseBranch,
+  });
+
+  const codeAnalysis = resolveCodeAnalysisAssessContext({
+    integrations,
+    repos: analysisRepos,
+    branch: releaseBranch,
   });
 
   const assessment = assessReleaseGovernance({
@@ -89,6 +135,13 @@ export async function POST(
     prometheus,
     metrics,
     github,
+    codeAnalysis,
+  });
+
+  const assessmentSnapshot = buildAssessmentSnapshot({
+    assessment,
+    metrics,
+    github,
   });
 
   const updated = await prisma.$transaction(async (tx) => {
@@ -96,30 +149,29 @@ export async function POST(
       where: { organizationId: session.organizationId, releaseId: release.id },
     });
 
-    for (const rec of assessment.recommendations) {
-      const recommendation = await tx.recommendation.create({
-        data: {
-          organizationId: session.organizationId,
-          releaseId: release.id,
-          title: rec.title,
-          description: rec.description,
-          rationale: rec.rationale,
-          impact: rec.impact,
-          confidence: rec.confidence,
-          affectedSystems: JSON.stringify(rec.affectedSystems),
-          requiredRole: rec.requiredRole ?? null,
-          status: "PENDING",
-        },
-      });
+    const primaryRec = assessment.recommendations[0];
+    const recommendation = await tx.recommendation.create({
+      data: {
+        organizationId: session.organizationId,
+        releaseId: release.id,
+        title: primaryRec.title,
+        description: primaryRec.description,
+        rationale: primaryRec.rationale,
+        impact: primaryRec.impact,
+        confidence: primaryRec.confidence,
+        affectedSystems: JSON.stringify(primaryRec.affectedSystems),
+        requiredRole: primaryRec.requiredRole ?? null,
+        status: "PENDING",
+      },
+    });
 
-      await tx.approval.create({
-        data: {
-          organizationId: session.organizationId,
-          recommendationId: recommendation.id,
-          riskScore: assessment.governanceRiskScore / 100,
-        },
-      });
-    }
+    await tx.approval.create({
+      data: {
+        organizationId: session.organizationId,
+        recommendationId: recommendation.id,
+        riskScore: assessment.governanceRiskScore / 100,
+      },
+    });
 
     const updatedRelease = await tx.release.update({
       where: { id: release.id },
@@ -128,11 +180,14 @@ export async function POST(
         governanceRiskScore: assessment.governanceRiskScore,
         readinessScore: assessment.qa.readinessScore,
         riskLevel: assessment.riskLevel,
+        primaryRecommendation: assessment.primaryRecommendation,
         qaSignalsJson: JSON.stringify(assessment.qa.signals),
         telemetryJson: JSON.stringify(assessment.telemetry),
         testGapsJson: JSON.stringify(assessment.qa.testGaps),
         regressionNotes: assessment.qa.regressionNotes,
         assessmentSummary: assessment.summary,
+        assessmentSnapshotJson: JSON.stringify(assessmentSnapshot),
+        postDeployComparisonJson: "{}",
         assessedAt: new Date(),
       },
     });
@@ -176,7 +231,7 @@ export async function POST(
       },
     });
 
-    return updatedRelease;
+    return { release: updatedRelease, recommendation };
   });
 
   await prisma.activityEvent.create({
@@ -189,6 +244,7 @@ export async function POST(
         releaseId: release.id,
         governanceRiskScore: assessment.governanceRiskScore,
         readinessScore: assessment.qa.readinessScore,
+        primaryRecommendation: assessment.primaryRecommendation,
       }),
     },
   });
@@ -203,9 +259,28 @@ export async function POST(
       metadataJson: JSON.stringify({
         riskLevel: assessment.riskLevel,
         governanceRiskScore: assessment.governanceRiskScore,
+        primaryRecommendation: assessment.primaryRecommendation,
       }),
     },
   });
 
-  return NextResponse.json({ ok: true, release: updated });
+  return NextResponse.json({
+    ok: true,
+    release: {
+      id: updated.release.id,
+      status: updated.release.status,
+      readinessScore: updated.release.readinessScore,
+      governanceRiskScore: updated.release.governanceRiskScore,
+      riskLevel: updated.release.riskLevel,
+      primaryRecommendation: assessment.primaryRecommendation,
+      assessmentSummary: updated.release.assessmentSummary,
+    },
+    recommendations: [
+      {
+        id: updated.recommendation.id,
+        title: updated.recommendation.title,
+        requiredRole: updated.recommendation.requiredRole ?? undefined,
+      },
+    ],
+  });
 }

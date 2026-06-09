@@ -6,6 +6,9 @@ import { getSession } from "@/lib/session";
 const createSchema = z.object({
   name: z.string().min(1).max(120),
   version: z.string().max(40).optional(),
+  branch: z.string().max(120).optional(),
+  jiraFixVersion: z.string().max(120).optional(),
+  serviceScope: z.array(z.string().max(80)).max(10).optional(),
   environment: z.enum(["DEVELOPMENT", "STAGING", "PRODUCTION"]),
 });
 
@@ -37,6 +40,12 @@ export async function POST(request: Request) {
         organizationId: session.organizationId,
         name: body.name.trim(),
         version: body.version?.trim() || null,
+        branch: body.branch?.trim() || null,
+        jiraFixVersion: body.jiraFixVersion?.trim() || null,
+        serviceScope:
+          body.serviceScope && body.serviceScope.length > 0
+            ? JSON.stringify(body.serviceScope)
+            : null,
         environment: body.environment,
         status: "DETECTED",
       },

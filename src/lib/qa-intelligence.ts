@@ -1,4 +1,5 @@
 import type { DeliveryDNA, Integration, OrganizationProfile } from "@/generated/prisma/client";
+import type { CodeAnalysisAssessContext } from "@/lib/code-analysis-assess-context";
 import type { GitHubAssessContext } from "@/lib/github-assess-context";
 import type { GrafanaAssessContext } from "@/lib/grafana-assess-context";
 import type { JiraAssessContext } from "@/lib/jira-delivery-health";
@@ -22,12 +23,22 @@ export const QA_INTELLIGENCE_WORKFLOW = [
   "Human approval for release",
 ] as const;
 
+export type QASignalSource =
+  | "jira"
+  | "github"
+  | "grafana"
+  | "prometheus-direct"
+  | "grafana-proxy"
+  | "dna"
+  | "synthetic";
+
 export type QASignal = {
   id: string;
   category: "regression" | "coverage" | "performance" | "stability";
   label: string;
   value: string;
   severity: "info" | "warning" | "critical";
+  source?: QASignalSource;
 };
 
 export type TestGap = {
@@ -203,6 +214,46 @@ function formatRegressionSignal(github: GitHubAssessContext | undefined): Pick<Q
   };
 }
 
+function computeWeightedReadiness(input: {
+  dna: DeliveryDNA;
+  jiraHealth: JiraAssessContext["health"];
+  metrics: MetricsAssessContext;
+  github?: GitHubAssessContext;
+  testGaps: TestGap[];
+  signals: QASignal[];
+}): number {
+  const components: Array<{ weight: number; score: number }> = [];
+
+  if (input.jiraHealth) {
+    components.push({ weight: 0.35, score: input.jiraHealth.score });
+  }
+
+  if (input.metrics.synced && input.metrics.snapshot) {
+    components.push({ weight: 0.25, score: input.metrics.snapshot.kpis.healthScore });
+  }
+
+  const ciPassRate = input.github?.ci?.passRatePct;
+  if (ciPassRate != null) {
+    components.push({ weight: 0.2, score: ciPassRate });
+  }
+
+  components.push({ weight: 0.2, score: input.dna.governanceScore });
+
+  const totalWeight = components.reduce((sum, c) => sum + c.weight, 0);
+  let blended =
+    totalWeight > 0
+      ? components.reduce((sum, c) => sum + c.score * (c.weight / totalWeight), 0)
+      : 88;
+
+  const penalty =
+    input.testGaps.filter((g) => g.priority === "high").length * 8 +
+    input.testGaps.filter((g) => g.priority === "medium").length * 4 +
+    input.signals.filter((s) => s.severity === "warning").length * 3 +
+    input.signals.filter((s) => s.severity === "critical").length * 6;
+
+  return Math.max(0, Math.min(100, Math.round(blended - penalty)));
+}
+
 export function assessQAIntelligence(input: {
   profile: OrganizationProfile | null;
   dna: DeliveryDNA;
@@ -214,6 +265,7 @@ export function assessQAIntelligence(input: {
   prometheus?: PrometheusAssessContext;
   metrics?: MetricsAssessContext;
   github?: GitHubAssessContext;
+  codeAnalysis?: CodeAnalysisAssessContext;
 }): QAAssessment {
   const tools = input.profile
     ? (JSON.parse(input.profile.toolsJson || "[]") as string[])
@@ -240,6 +292,14 @@ export function assessQAIntelligence(input: {
   const stability = formatStabilitySignal(metrics, input.environment, liveObs);
   const regression = formatRegressionSignal(github);
 
+  const metricsSource: QASignalSource | undefined = metrics.synced
+    ? metrics.provenance?.path === "prometheus-direct"
+      ? "prometheus-direct"
+      : metrics.provenance?.path === "grafana-datasource-proxy"
+        ? "grafana-proxy"
+        : undefined
+    : undefined;
+
   const signals: QASignal[] = [
     {
       id: "regression-suite",
@@ -247,13 +307,18 @@ export function assessQAIntelligence(input: {
       label: "Regression suite",
       value: regression.value,
       severity: regression.severity,
+      source: githubSynced ? "github" : undefined,
     },
     {
       id: "coverage",
       category: "coverage",
       label: "Critical path coverage",
-      value: input.dna.governanceScore >= 70 ? "82% covered" : "68% covered — below target",
+      value:
+        input.dna.governanceScore >= 70
+          ? `${input.dna.governanceScore}% governance posture`
+          : `${input.dna.governanceScore}% governance posture — below target`,
       severity: input.dna.governanceScore >= 70 ? "info" : "warning",
+      source: "dna",
     },
     {
       id: "performance",
@@ -261,6 +326,7 @@ export function assessQAIntelligence(input: {
       label: "P95 latency vs baseline",
       value: performance.value,
       severity: performance.severity,
+      source: metricsSource ?? (input.grafana?.synced ? "grafana" : undefined),
     },
     {
       id: "stability",
@@ -268,6 +334,7 @@ export function assessQAIntelligence(input: {
       label: "Error budget burn",
       value: stability.value,
       severity: stability.severity,
+      source: metricsSource,
     },
   ];
 
@@ -282,6 +349,46 @@ export function assessQAIntelligence(input: {
           ? "critical"
           : "warning"
         : "warning",
+      source: "grafana",
+    });
+  }
+
+  const codeAnalysis = input.codeAnalysis;
+  if (codeAnalysis?.synced && codeAnalysis.aiLinesPct != null) {
+    const reviewPct = codeAnalysis.reviewCoverageOnAiPrsPct;
+    signals.push({
+      id: "github-ai-coverage",
+      category: "coverage",
+      label: "AI-assisted change",
+      value:
+        reviewPct != null
+          ? `${codeAnalysis.aiLinesPct}% AI-assisted lines · ${reviewPct}% review coverage on AI PRs`
+          : `${codeAnalysis.aiLinesPct}% AI-assisted lines in release window`,
+      severity:
+        codeAnalysis.aiLinesPct > 30 && reviewPct != null && reviewPct < 70
+          ? "warning"
+          : "info",
+      source: "github",
+    });
+
+    for (const gs of codeAnalysis.governanceSignals.slice(0, 3)) {
+      signals.push({
+        id: `code-gov-${gs.id}`,
+        category: "coverage",
+        label: `Code governance — ${gs.title}`,
+        value: gs.description,
+        severity: gs.severity === "error" ? "critical" : gs.severity === "warning" ? "warning" : "info",
+        source: "github",
+      });
+    }
+  } else if (codeAnalysis?.connected && !codeAnalysis.synced) {
+    signals.push({
+      id: "code-analysis-sync",
+      category: "coverage",
+      label: "Code analysis",
+      value: "GitHub connected — run code analysis sync for AI governance signals",
+      severity: "warning",
+      source: "github",
     });
   }
 
@@ -293,6 +400,7 @@ export function assessQAIntelligence(input: {
         label: `Jira — ${js.label}`,
         value: js.value,
         severity: js.severity,
+        source: "jira",
       });
     }
   } else if (hasJira) {
@@ -302,6 +410,7 @@ export function assessQAIntelligence(input: {
       label: "Jira delivery data",
       value: jiraSynced ? "No snapshot" : "Connected — run sync on Integrations",
       severity: "warning",
+      source: "jira",
     });
   }
 
@@ -362,6 +471,20 @@ export function assessQAIntelligence(input: {
     });
   }
 
+  if (
+    codeAnalysis?.synced &&
+    codeAnalysis.aiLinesPct != null &&
+    codeAnalysis.reviewCoverageOnAiPrsPct != null &&
+    codeAnalysis.aiLinesPct > 30 &&
+    codeAnalysis.reviewCoverageOnAiPrsPct < 70
+  ) {
+    testGaps.push({
+      area: "Governance",
+      gap: `AI-assisted changes at ${codeAnalysis.aiLinesPct}% with only ${codeAnalysis.reviewCoverageOnAiPrsPct}% review coverage on AI PRs`,
+      priority: "high",
+    });
+  }
+
   if (input.environment === "PRODUCTION" && !liveObs.any) {
     testGaps.push({
       area: "Observability",
@@ -406,19 +529,14 @@ export function assessQAIntelligence(input: {
     }
   }
 
-  const penalty =
-    testGaps.filter((g) => g.priority === "high").length * 12 +
-    testGaps.filter((g) => g.priority === "medium").length * 6 +
-    signals.filter((s) => s.severity === "warning").length * 4;
-
-  const ciPassRate = github?.ci?.passRatePct;
-  const ciBonus = ciPassRate != null && ciPassRate >= 80 ? 5 : 0;
-
-  let readinessScore = Math.max(0, Math.min(100, 88 - penalty + ciBonus));
-
-  if (jiraHealth) {
-    readinessScore = Math.round(readinessScore * 0.55 + jiraHealth.score * 0.45);
-  }
+  const readinessScore = computeWeightedReadiness({
+    dna: input.dna,
+    jiraHealth,
+    metrics,
+    github,
+    testGaps,
+    signals,
+  });
 
   let regressionNotes: string;
   if (githubSynced && github?.ci?.passRatePct != null) {

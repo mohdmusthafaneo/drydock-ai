@@ -84,7 +84,29 @@ export function matchReleaseToFixVersion(
   version: string | null | undefined,
   snapshot: JiraDeliverySnapshot,
   mapping?: ToolchainMapping["jira"],
+  jiraFixVersionOverride?: string | null,
 ): JiraVersionMatch | undefined {
+  if (jiraFixVersionOverride?.trim()) {
+    const target = jiraFixVersionOverride.trim();
+    const targetNorm = normalizeLabel(target);
+
+    for (const project of snapshot.projects) {
+      for (const fixVersion of project.versions) {
+        const versionNorm = normalizeLabel(fixVersion.name);
+        if (versionNorm === targetNorm || fixVersion.name === target) {
+          return {
+            projectKey: project.key,
+            projectName: project.name,
+            versionId: fixVersion.id,
+            versionName: fixVersion.name,
+            matchedOn: "version",
+          };
+        }
+      }
+    }
+    return undefined;
+  }
+
   const tracking = mapping?.releaseTracking ?? "fixVersion";
 
   if (tracking === "sprint") {
@@ -418,6 +440,7 @@ export function analyzeJiraDeliveryHealth(input: {
   snapshot: JiraDeliverySnapshot;
   releaseName: string;
   version?: string | null;
+  jiraFixVersion?: string | null;
   mapping?: ToolchainMapping["jira"];
 }): JiraDeliveryHealth {
   const labels = mappingLabels(input.mapping);
@@ -426,6 +449,7 @@ export function analyzeJiraDeliveryHealth(input: {
     input.version,
     input.snapshot,
     input.mapping,
+    input.jiraFixVersion,
   );
   const scopedProject = pickProjectScope(input.snapshot, matchedVersion);
   const metrics = scopedProject
@@ -504,6 +528,21 @@ export function analyzeJiraDeliveryHealth(input: {
           ? "info"
           : "warning",
     });
+
+    if (matchedFixVersion.openIssuesInVersion != null) {
+      signals.push({
+        id: "jira-version-open",
+        category: "schedule",
+        label: "Open issues in version",
+        value: `${matchedFixVersion.openIssuesInVersion} open issue${matchedFixVersion.openIssuesInVersion === 1 ? "" : "s"} in ${matchedFixVersion.name}`,
+        severity:
+          matchedFixVersion.openIssuesInVersion > 10
+            ? "critical"
+            : matchedFixVersion.openIssuesInVersion > 0
+              ? "warning"
+              : "info",
+      });
+    }
   }
 
   const sprint = scopedProject?.activeSprint;
@@ -568,6 +607,17 @@ export function analyzeJiraDeliveryHealth(input: {
     });
   }
 
+  if (
+    matchedFixVersion?.openIssuesInVersion != null &&
+    matchedFixVersion.openIssuesInVersion > 0
+  ) {
+    gaps.push({
+      area: "Release",
+      gap: `${matchedFixVersion.openIssuesInVersion} open issue${matchedFixVersion.openIssuesInVersion === 1 ? "" : "s"} still tagged to fix version "${matchedFixVersion.name}"`,
+      priority: matchedFixVersion.openIssuesInVersion >= 5 ? "high" : "medium",
+    });
+  }
+
   if (sprint && sprint.committed != null && sprint.committed > 0) {
     const done = sprint.done ?? 0;
     const pct = done / sprint.committed;
@@ -598,6 +648,7 @@ export function resolveJiraAssessContext(input: {
   integrations: Integration[];
   releaseName: string;
   version?: string | null;
+  jiraFixVersion?: string | null;
   mapping?: ToolchainMapping["jira"];
 }): JiraAssessContext {
   const jira = input.integrations.find(
@@ -620,6 +671,7 @@ export function resolveJiraAssessContext(input: {
       snapshot,
       releaseName: input.releaseName,
       version: input.version,
+      jiraFixVersion: input.jiraFixVersion,
       mapping: input.mapping,
     }),
   };

@@ -129,3 +129,15 @@ export function assertCan(
     throw new Error(`Forbidden: ${role} cannot ${action} on ${module}`);
   }
 }
+
+/** Release assess recommendations may require a specific approver role. */
+export function canApproveRequiredRole(
+  userRole: UserRole,
+  requiredRole: UserRole | null | undefined,
+): boolean {
+  if (!requiredRole) return can(userRole, "approvals", "approve");
+  if (userRole === "ORG_ADMIN") return true;
+  if (userRole === "COMPLIANCE_OFFICER") return true;
+  if (userRole === "DELIVERY_MANAGER") return true;
+  return userRole === requiredRole;
+}

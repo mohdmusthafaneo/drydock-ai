@@ -92,6 +92,12 @@ export function resolveGitHubAssessContext(input: {
 
   const openPrs = repos.reduce((sum, repo) => sum + (repo.openPrs ?? 0), 0);
 
+  const stored = meta.codeAnalysisSnapshot;
+  const mergedSince = Date.now() - 7 * 86400000;
+  const mergedPrs7d = stored
+    ? stored.pullRequests.filter((pr) => new Date(pr.mergedAt).getTime() >= mergedSince).length
+    : 0;
+
   return {
     connected: true,
     synced: true,
@@ -103,7 +109,7 @@ export function resolveGitHubAssessContext(input: {
     },
     changeRisk: {
       openPrs,
-      mergedPrs7d: 0,
+      mergedPrs7d,
     },
   };
 }
