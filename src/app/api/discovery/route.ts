@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { generateDeliveryDNA, generateRecommendations } from "@/lib/delivery-dna";
+import { hasLiveObservability } from "@/lib/observability-connectivity";
 import { seedEnterpriseFoundation } from "@/lib/enterprise-seed";
 import { getLandingPathForOrganization } from "@/lib/landing-path-org";
 
@@ -129,7 +130,14 @@ export async function POST(request: Request) {
         where: { organizationId: session.organizationId },
       });
 
-      const recs = generateRecommendations(dnaResult, body.tools);
+      const integrations = await tx.integration.findMany({
+        where: { organizationId: session.organizationId },
+      });
+      const liveObs = hasLiveObservability({ integrations, tools: body.tools });
+      const recs = generateRecommendations(dnaResult, body.tools, {
+        grafanaConnected: liveObs.grafana,
+        prometheusConnected: liveObs.prometheus,
+      });
       for (const rec of recs) {
         const recommendation = await tx.recommendation.create({
           data: {

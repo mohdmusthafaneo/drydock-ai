@@ -101,6 +101,10 @@ type RecImpact = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 export function generateRecommendations(
   dna: GeneratedDeliveryDNA,
   tools: string[],
+  options?: {
+    grafanaConnected?: boolean;
+    prometheusConnected?: boolean;
+  },
 ) {
   const items: Array<{
     title: string;
@@ -142,7 +146,7 @@ export function generateRecommendations(
     },
   ];
 
-  if (!tools.includes("grafana")) {
+  if (!tools.includes("grafana") && !options?.grafanaConnected) {
     items.push({
       title: "Add Grafana observability connector",
       description:
@@ -151,6 +155,19 @@ export function generateRecommendations(
       impact: "HIGH",
       confidence: 0.81,
       affectedSystems: ["Grafana", "Observability Center"],
+    });
+  }
+
+  if (options?.grafanaConnected && !options.prometheusConnected && !tools.includes("prometheus")) {
+    items.push({
+      title: "Connect Prometheus for metric KPIs",
+      description:
+        "Add PromQL-backed error rate and latency signals alongside Grafana alerts.",
+      rationale:
+        "Grafana covers alerts and dashboards; Prometheus adds numeric metric KPIs for release assess.",
+      impact: "MEDIUM",
+      confidence: 0.76,
+      affectedSystems: ["Prometheus", "Observability Center"],
     });
   }
 

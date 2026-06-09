@@ -1,5 +1,11 @@
-import type { Integration, IntegrationProvider } from "@/generated/prisma/client";
-import type { MetricSource } from "@/generated/prisma/client";
+import type { Integration, MetricSource } from "@/generated/prisma/client";
+import {
+  isGrafanaTrulyConnected,
+  parseGrafanaMeta,
+  type GrafanaOperationalSnapshot,
+} from "@/lib/grafana-meta";
+import type { ObservabilityAnalysisSnapshot } from "@/lib/observability-analysis/types";
+import { isPrometheusTrulyConnected, parsePrometheusMeta } from "@/lib/prometheus-meta";
 
 export type MetricPoint = {
   source: MetricSource;
@@ -25,27 +31,162 @@ const CORE_METRICS = [
   { key: "active_incidents", unit: "count", base: 0 },
 ] as const;
 
-function pickSource(
-  integrations: Integration[],
-  preferred: IntegrationProvider,
-): MetricSource {
-  const connected = integrations.filter((i) => i.status === "CONNECTED");
-  if (connected.some((i) => i.provider === "PROMETHEUS")) return "PROMETHEUS";
-  if (connected.some((i) => i.provider === "GRAFANA")) return "GRAFANA";
-  if (connected.some((i) => i.provider === preferred)) {
-    return preferred === "GRAFANA" ? "GRAFANA" : "PROMETHEUS";
-  }
-  return "SYNTHETIC";
+function buildFromPrometheusSnapshot(input: {
+  snapshot: ObservabilityAnalysisSnapshot;
+  releaseName?: string;
+  environment?: string;
+  postDeploy?: boolean;
+  correlationId: string;
+}): CollectedTelemetry {
+  const { kpis } = input.snapshot;
+  const labels = {
+    release: input.releaseName ?? "platform",
+    environment: input.environment ?? "staging",
+  };
+
+  const metrics: MetricPoint[] = [
+    {
+      source: "PROMETHEUS",
+      metricKey: "http_error_rate",
+      value: kpis.errorRate,
+      unit: "%",
+      labels,
+    },
+    {
+      source: "PROMETHEUS",
+      metricKey: "p95_latency_ms",
+      value: kpis.p95LatencyMs,
+      unit: "ms",
+      labels,
+    },
+    {
+      source: "PROMETHEUS",
+      metricKey: "cpu_utilization",
+      value: kpis.cpuUtilizationPct ?? 0,
+      unit: "%",
+      labels,
+    },
+    {
+      source: "PROMETHEUS",
+      metricKey: "memory_utilization",
+      value: kpis.memoryUtilizationPct ?? 0,
+      unit: "%",
+      labels,
+    },
+    {
+      source: "PROMETHEUS",
+      metricKey: "deployment_success_rate",
+      value: Math.max(0, Math.min(100, kpis.healthScore)),
+      unit: "%",
+      labels,
+    },
+    {
+      source: "PROMETHEUS",
+      metricKey: "active_incidents",
+      value: kpis.openAlerts,
+      unit: "count",
+      labels,
+    },
+  ];
+
+  const degradationDetected =
+    kpis.errorRate > 0.8 ||
+    kpis.p95LatencyMs > 220 ||
+    kpis.openAlerts > 0 ||
+    (input.postDeploy === true && (kpis.errorRateDelta ?? 0) > 0.3);
+
+  const summary = degradationDetected
+    ? `Release degradation detected for ${input.releaseName ?? "workload"} — Prometheus error rate ${kpis.errorRate}%, P95 ${kpis.p95LatencyMs}ms, ${kpis.openAlerts} alert(s). Correlation ID ${input.correlationId}.`
+    : `Operational signals within baseline for ${input.releaseName ?? "workload"}. Source: PROMETHEUS. Correlation ID ${input.correlationId}.`;
+
+  return { metrics, correlationId: input.correlationId, summary, degradationDetected };
 }
 
-export function collectOperationalTelemetry(input: {
+function buildFromGrafanaSnapshot(input: {
+  snapshot: GrafanaOperationalSnapshot;
+  releaseName?: string;
+  environment?: string;
+  postDeploy?: boolean;
+  correlationId: string;
+}): CollectedTelemetry {
+  const { kpis } = input.snapshot;
+  const labels = {
+    release: input.releaseName ?? "platform",
+    environment: input.environment ?? "staging",
+  };
+
+  const metrics: MetricPoint[] = [
+    {
+      source: "GRAFANA",
+      metricKey: "open_alerts",
+      value: kpis.openAlerts,
+      unit: "count",
+      labels,
+    },
+    {
+      source: "GRAFANA",
+      metricKey: "firing_critical",
+      value: kpis.firingCritical,
+      unit: "count",
+      labels,
+    },
+    {
+      source: "GRAFANA",
+      metricKey: "dashboard_coverage_pct",
+      value: kpis.dashboardCoveragePct,
+      unit: "percent",
+      labels,
+    },
+    {
+      source: "GRAFANA",
+      metricKey: "annotation_count_24h",
+      value: kpis.annotations24h,
+      unit: "count",
+      labels,
+    },
+    {
+      source: "GRAFANA",
+      metricKey: "health_score",
+      value: kpis.healthScore,
+      unit: "score",
+      labels,
+    },
+    {
+      source: "GRAFANA",
+      metricKey: "active_incidents",
+      value: kpis.openAlerts,
+      unit: "count",
+      labels,
+    },
+  ];
+
+  const degradationDetected =
+    kpis.openAlerts > 0 ||
+    kpis.firingCritical > 0 ||
+    kpis.healthScore < 60 ||
+    (input.postDeploy === true && kpis.openAlerts > 0);
+
+  const summary = degradationDetected
+    ? `Release degradation detected for ${input.releaseName ?? "workload"} — ${kpis.openAlerts} Grafana alert(s) firing, health ${kpis.healthScore}/100. Correlation ID ${input.correlationId}.`
+    : `Operational signals within baseline for ${input.releaseName ?? "workload"}. Source: GRAFANA. Correlation ID ${input.correlationId}.`;
+
+  return { metrics, correlationId: input.correlationId, summary, degradationDetected };
+}
+
+function collectSyntheticTelemetry(input: {
   integrations: Integration[];
   releaseName?: string;
   environment?: string;
   postDeploy?: boolean;
+  correlationId: string;
 }): CollectedTelemetry {
-  const correlationId = `corr_${Date.now().toString(36)}`;
-  const source = pickSource(input.integrations, "PROMETHEUS");
+  const connected = input.integrations.filter((i) => i.status === "CONNECTED");
+  const source: MetricSource = connected.some((i) => i.provider === "PROMETHEUS")
+    ? "PROMETHEUS"
+    : connected.some((i) => i.provider === "GRAFANA")
+      ? "GRAFANA"
+      : "SYNTHETIC";
+
   const envFactor = input.environment === "PRODUCTION" ? 1.15 : 1;
   const deploySpike = input.postDeploy ? 1.2 : 1;
 
@@ -56,7 +197,7 @@ export function collectOperationalTelemetry(input: {
     if (m.key === "active_incidents" && input.postDeploy) value = 1;
     value = Math.round(value * 100) / 100;
     return {
-      source,
+      source: "SYNTHETIC",
       metricKey: m.key,
       value,
       unit: m.unit,
@@ -72,10 +213,50 @@ export function collectOperationalTelemetry(input: {
   const degradationDetected = errorRate > 0.8 || latency > 220;
 
   const summary = degradationDetected
-    ? `Release degradation detected for ${input.releaseName ?? "workload"} — elevated error rate (${errorRate}%) and latency (P95 ${latency}ms). Correlation ID ${correlationId}.`
-    : `Operational signals within baseline for ${input.releaseName ?? "workload"}. Source: ${source}. Correlation ID ${correlationId}.`;
+    ? `Release degradation detected for ${input.releaseName ?? "workload"} — elevated error rate (${errorRate}%) and latency (P95 ${latency}ms). Correlation ID ${input.correlationId}.`
+    : `Operational signals within baseline for ${input.releaseName ?? "workload"}. Source: ${source} (synthetic fallback). Correlation ID ${input.correlationId}.`;
 
-  return { metrics, correlationId, summary, degradationDetected };
+  return { metrics, correlationId: input.correlationId, summary, degradationDetected };
+}
+
+export function collectOperationalTelemetry(input: {
+  integrations: Integration[];
+  releaseName?: string;
+  environment?: string;
+  postDeploy?: boolean;
+}): CollectedTelemetry {
+  const correlationId = `corr_${Date.now().toString(36)}`;
+
+  const prometheus = input.integrations.find((i) => i.provider === "PROMETHEUS");
+  if (isPrometheusTrulyConnected(prometheus)) {
+    const meta = parsePrometheusMeta(prometheus!.metadataJson);
+    const snapshot = meta.operationalSnapshot as ObservabilityAnalysisSnapshot | undefined;
+    if (snapshot?.kpis) {
+      return buildFromPrometheusSnapshot({
+        snapshot,
+        releaseName: input.releaseName,
+        environment: input.environment,
+        postDeploy: input.postDeploy,
+        correlationId,
+      });
+    }
+  }
+
+  const grafana = input.integrations.find((i) => i.provider === "GRAFANA");
+  if (isGrafanaTrulyConnected(grafana)) {
+    const meta = parseGrafanaMeta(grafana!.metadataJson);
+    if (meta.operationalSnapshot) {
+      return buildFromGrafanaSnapshot({
+        snapshot: meta.operationalSnapshot,
+        releaseName: input.releaseName,
+        environment: input.environment,
+        postDeploy: input.postDeploy,
+        correlationId,
+      });
+    }
+  }
+
+  return collectSyntheticTelemetry({ ...input, correlationId });
 }
 
 export function correlateIncidentFromTelemetry(input: {
