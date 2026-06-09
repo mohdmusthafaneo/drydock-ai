@@ -1,5 +1,6 @@
 import type { Integration, IntegrationProvider } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { isGrafanaTrulyConnected, parseGrafanaMeta } from "@/lib/grafana-meta";
 
 export type IntegrationHealthSummary = {
   provider: IntegrationProvider;
@@ -28,6 +29,25 @@ export async function checkIntegrationHealth(
   } else if (integration.status === "DISCONNECTED") {
     healthy = false;
     message = "Disconnected";
+  } else if (integration.provider === "GRAFANA" && isGrafanaTrulyConnected(integration)) {
+    const meta = parseGrafanaMeta(integration.metadataJson);
+    if (!meta.dashboardScopes?.length) {
+      healthy = false;
+      message = "Connected — select dashboards to sync";
+    } else if (!integration.lastSyncAt) {
+      healthy = false;
+      message = "Dashboards selected — run initial sync";
+    } else {
+      const hoursSince =
+        (now.getTime() - integration.lastSyncAt.getTime()) / (1000 * 60 * 60);
+      if (hoursSince > 24) {
+        healthy = false;
+        message = `Last sync ${Math.floor(hoursSince)}h ago — check credentials`;
+      } else if (meta.connectionStatus === "error") {
+        healthy = false;
+        message = meta.lastError ?? "Connection error";
+      }
+    }
   } else if (integration.lastSyncAt) {
     const hoursSince =
       (now.getTime() - integration.lastSyncAt.getTime()) / (1000 * 60 * 60);

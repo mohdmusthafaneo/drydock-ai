@@ -226,6 +226,7 @@ export default async function IntegrationsPage({
                     lastError={grafanaMeta?.lastError ?? integration.lastError ?? undefined}
                     lastSyncSummary={grafanaMeta?.lastSyncSummary}
                     selectedDashboardScopes={grafanaMeta?.dashboardScopes}
+                    operationalSnapshot={grafanaMeta?.operationalSnapshot}
                     canManage={canManage}
                   />
                 ) : (

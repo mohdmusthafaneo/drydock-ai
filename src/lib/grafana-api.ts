@@ -156,3 +156,154 @@ export function formatGrafanaConnectError(err: unknown): string {
   }
   return err instanceof Error ? err.message : "Connection failed";
 }
+
+export function formatGrafanaSyncError(err: unknown): string {
+  if (err instanceof GrafanaApiError) {
+    return err.message;
+  }
+  return err instanceof Error ? err.message : "Grafana sync failed";
+}
+
+export type GrafanaSearchItem = {
+  id: number;
+  uid: string;
+  title: string;
+  type: "dash-db" | "dash-folder";
+  tags?: string[];
+  folderId?: number;
+  folderUid?: string;
+  folderTitle?: string;
+};
+
+type GrafanaDashboardPanel = {
+  type?: string;
+  panels?: GrafanaDashboardPanel[];
+  datasource?: { uid?: string; type?: string } | string | null;
+};
+
+type GrafanaDashboardResponse = {
+  dashboard?: {
+    uid?: string;
+    title?: string;
+    panels?: GrafanaDashboardPanel[];
+  };
+  meta?: {
+    folderTitle?: string;
+    isFolder?: boolean;
+  };
+};
+
+export type GrafanaAlertmanagerAlert = {
+  fingerprint: string;
+  labels: Record<string, string>;
+  annotations?: Record<string, string>;
+  startsAt: string;
+  endsAt?: string;
+  status?: { state?: string };
+};
+
+export type GrafanaAnnotation = {
+  id: number;
+  time: number;
+  timeEnd?: number;
+  text: string;
+  tags?: string[];
+  dashboardUID?: string;
+};
+
+export async function searchGrafanaItems(
+  grafanaUrl: string,
+  auth: GrafanaAuth,
+  params: { type: "dash-db" | "dash-folder"; query?: string; folderIds?: number; limit?: number },
+): Promise<GrafanaSearchItem[]> {
+  const search = new URLSearchParams({
+    type: params.type,
+    limit: String(params.limit ?? 500),
+  });
+  if (params.query?.trim()) search.set("query", params.query.trim());
+  if (params.folderIds != null) search.set("folderIds", String(params.folderIds));
+
+  const items = await grafanaFetchJson<GrafanaSearchItem[]>(
+    grafanaUrl,
+    `/api/search?${search.toString()}`,
+    auth,
+  );
+  return Array.isArray(items) ? items : [];
+}
+
+export async function getGrafanaDashboard(
+  grafanaUrl: string,
+  auth: GrafanaAuth,
+  uid: string,
+): Promise<GrafanaDashboardResponse> {
+  return grafanaFetchJson<GrafanaDashboardResponse>(
+    grafanaUrl,
+    `/api/dashboards/uid/${encodeURIComponent(uid)}`,
+    auth,
+  );
+}
+
+export async function listGrafanaAlerts(
+  grafanaUrl: string,
+  auth: GrafanaAuth,
+): Promise<GrafanaAlertmanagerAlert[]> {
+  const alerts = await grafanaFetchJson<GrafanaAlertmanagerAlert[]>(
+    grafanaUrl,
+    "/api/alertmanager/grafana/api/v2/alerts",
+    auth,
+  );
+  return Array.isArray(alerts) ? alerts : [];
+}
+
+export async function listGrafanaAnnotations(
+  grafanaUrl: string,
+  auth: GrafanaAuth,
+  fromMs: number,
+  toMs: number,
+): Promise<GrafanaAnnotation[]> {
+  const search = new URLSearchParams({
+    from: String(fromMs),
+    to: String(toMs),
+    limit: "100",
+  });
+  const annotations = await grafanaFetchJson<GrafanaAnnotation[]>(
+    grafanaUrl,
+    `/api/annotations?${search.toString()}`,
+    auth,
+  );
+  return Array.isArray(annotations) ? annotations : [];
+}
+
+export function countDashboardPanels(panels: GrafanaDashboardPanel[] | undefined): number {
+  if (!panels?.length) return 0;
+  let count = 0;
+  for (const panel of panels) {
+    if (panel.type === "row" && panel.panels?.length) {
+      count += countDashboardPanels(panel.panels);
+    } else if (panel.type !== "row") {
+      count += 1;
+    }
+  }
+  return count;
+}
+
+export function dashboardHasMissingDatasource(panels: GrafanaDashboardPanel[] | undefined): boolean {
+  if (!panels?.length) return true;
+
+  function checkPanel(panel: GrafanaDashboardPanel): boolean {
+    if (panel.type === "row" && panel.panels?.length) {
+      return panel.panels.some(checkPanel);
+    }
+    if (panel.type === "row") return false;
+
+    const ds = panel.datasource;
+    if (!ds) return true;
+    if (typeof ds === "string") {
+      return ds === "-- Mixed --" || ds === "-- Grafana --";
+    }
+    if (!ds.uid && !ds.type) return true;
+    return false;
+  }
+
+  return panels.some(checkPanel);
+}
