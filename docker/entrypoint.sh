@@ -2,6 +2,13 @@
 set -e
 
 ROLE="${AIDOS_PROCESS_ROLE:-web}"
+INSTRUCTIONS_ROOT="${AGENT_INSTRUCTIONS_ROOT:-/data/agent-instructions}"
+
+# Coolify/host volumes mount as root — ensure nextjs (uid 1001) can write agent bundles.
+fix_instructions_volume_permissions() {
+  mkdir -p "$INSTRUCTIONS_ROOT"
+  chown -R nextjs:nodejs "$INSTRUCTIONS_ROOT"
+}
 
 case "$ROLE" in
   web)
@@ -15,11 +22,13 @@ case "$ROLE" in
       exit 1
     fi
 
+    fix_instructions_volume_permissions
+
     echo "Running database migrations..."
-    npx prisma migrate deploy
+    su-exec nextjs npx prisma migrate deploy
 
     echo "Starting web (Next.js)..."
-    exec node server.js
+    exec su-exec nextjs node server.js
     ;;
 
   worker)
@@ -29,7 +38,7 @@ case "$ROLE" in
     fi
 
     echo "Starting agent worker loop (role=worker)..."
-    exec node /app/scripts/agent-worker-loop.mjs
+    exec su-exec nextjs node /app/scripts/agent-worker-loop.mjs
     ;;
 
   *)

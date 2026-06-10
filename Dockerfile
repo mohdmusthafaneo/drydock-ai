@@ -43,8 +43,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Install runtime dependencies
-RUN apk add --no-cache --update nodejs
+# Install runtime dependencies (su-exec drops root → nextjs after volume chown)
+RUN apk add --no-cache --update nodejs su-exec
 
 # Create non-root user for security
 RUN addgroup --system --gid 1001 nodejs
@@ -73,8 +73,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/scripts/agent-worker-loop.mjs ./s
 
 COPY --chmod=755 docker/entrypoint.sh /app/docker/entrypoint.sh
 
-# Set ownership
-USER nextjs
+# Writable agent instructions (Coolify volume mount target)
+RUN mkdir -p /data/agent-instructions && chown -R nextjs:nodejs /data
 
 # Expose the port
 EXPOSE 3000
@@ -82,5 +82,9 @@ EXPOSE 3000
 # Start the application
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+ENV AGENT_INSTRUCTIONS_ROOT="/data/agent-instructions"
+
+# Entrypoint runs as root briefly to fix volume ownership, then su-exec nextjs
+USER root
 
 ENTRYPOINT ["/app/docker/entrypoint.sh"]
