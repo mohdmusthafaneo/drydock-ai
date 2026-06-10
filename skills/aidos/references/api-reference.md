@@ -13,7 +13,37 @@ Returns agent identity, permissions, runtime config, manager chain.
   "permissions": { "canCreateAgents": true },
   "runtimeConfig": { "heartbeat": { ... } },
   "managerChain": [],
+  "directReports": [
+    { "id": "...", "agentType": "QA_INTELLIGENCE", "role": "qa_intelligence", "displayName": "...", "status": "IDLE" }
+  ],
   "heartbeatRunId": "..."
+}
+```
+
+`directReports` is populated for Super Agent only (specialists that report to this agent).
+
+## POST /api/agents/me/delegate
+
+Super Agent only. Enqueue a delegation wakeup for a specialist.
+
+Body (provide `targetRole` or `targetAgentId`):
+
+```json
+{
+  "targetRole": "qa_intelligence",
+  "reason": "release.detected",
+  "payload": { "releaseId": "<releaseId>" }
+}
+```
+
+Success:
+
+```json
+{
+  "ok": true,
+  "wakeupId": "...",
+  "coalesced": false,
+  "targetAgent": { "id": "...", "displayName": "QA Intelligence", "role": "qa_intelligence" }
 }
 ```
 

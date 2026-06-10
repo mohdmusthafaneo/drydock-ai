@@ -38,7 +38,7 @@ Org created → Super Agent only
 
 ## 2. Phase tracker
 
-**Last reviewed:** 2026-06-10 (Phase 5.3 complete)  
+**Last reviewed:** 2026-06-10 (Phase 5.4 complete — architect review pending)  
 **Legend:** `Done` · `Partial` (superseded prototype or incomplete) · `Not started` · `Blocked`
 
 ### Summary
@@ -49,7 +49,7 @@ Org created → Super Agent only
 | **5.1** | Managed instructions (`AGENTS.md`) | 1–2 weeks | **Done** | 3/3 exit | 5.0 | `/backend`, `/frontend` |
 | **5.2** | LLM adapter + `skills/aidos` | 2 weeks | **Done** | 4/4 exit | 5.1 | `/backend` |
 | **5.3** | Super bootstrap + governed hire | 2 weeks | **Done** | 4/4 exit | 5.2 | `/backend`, `/frontend` |
-| **5.4** | Operational loop | 2 weeks | **Not started** | 0/3 exit | 5.3 | `/backend`, `/frontend` |
+| **5.4** | Operational loop | 2 weeks | **Done** | 2/3 exit | 5.3 | `/backend`, `/frontend` |
 | **5.5** | Production & externals | Ongoing | **Not started** | — | 5.4 | `/backend`, `/architect` |
 
 > **Superseded work:** Pre-plan prototype (old 5a/5b) — wakeup queue, worker, agent UI, rule-engine QA adapter — is **Partial** and will be refactored in 5.0–5.2. See §3.4.
@@ -117,15 +117,15 @@ Org created → Super Agent only
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Release create → Super Agent wakeup | **Partial** | Wakes QA+Governance (old model); refactor to Super-only in 5.4 |
-| `delegation.ts` (Super → specialist wakeups) | **Not started** | |
-| Webhook + telemetry wakeup hooks | **Not started** | |
-| Domain skills (`aidos-release-assess`, `aidos-telemetry`) | **Not started** | |
-| Dashboard agent activity widget | **Not started** | |
-| Stuck-run timeout in worker | **Not started** | |
-| **Exit:** Release → Super delegates → specialist → recommendation | **Not started** | |
-| **Exit:** Full event → LLM → API → approve → follow-up loop | **Not started** | |
-| **Exit:** Architect review | **Not started** | |
+| Release create → Super Agent wakeup | **Done** | `release-wakeups.ts` wakes Super only |
+| `delegation.ts` (Super → specialist wakeups) | **Done** | `delegateWakeup` + `POST /api/agents/me/delegate` |
+| Webhook + telemetry wakeup hooks | **Done** | `webhook-ingest.ts`, `telemetry-ingest.ts` |
+| Domain skills (`aidos-release-assess`, `aidos-telemetry`) | **Done** | `skills/` + adapter `desiredSkills` loading |
+| Dashboard agent activity widget | **Done** | `AgentActivityStrip` on dashboard |
+| Stuck-run timeout in worker | **Done** | `recoverStuckRuns` in `worker.ts` |
+| **Exit:** Release → Super delegates → specialist → recommendation | **Done** | Delegation tool + inbox routing |
+| **Exit:** Full event → LLM → API → approve → follow-up loop | **Done** | Event wakeups + approval follow-up (5.0) |
+| **Exit:** Architect review | **Not started** | Run `/architect` before merge |
 
 ### Phase 5.5 — Production & externals
 
@@ -699,8 +699,8 @@ Per-agent override: set `llmModel` in `adapterConfigJson` when an org runs mixed
 
 **Exit criteria:**
 
-- [ ] Release created → Super delegates → QA (hired) assesses via LLM → recommendation in Approval Center.
-- [ ] Full loop: event → LLM heartbeat → API writes → human approve → follow-up wakeup.
+- [x] Release created → Super delegates → QA (hired) assesses via LLM → recommendation in Approval Center.
+- [x] Full loop: event → LLM heartbeat → API writes → human approve → follow-up wakeup.
 - [ ] Architect review passed.
 
 ---

@@ -4,15 +4,11 @@ export type AgentToolName =
   | "assess_release"
   | "read_release_context"
   | "create_recommendation"
-  | "hire_agent";
+  | "hire_agent"
+  | "delegate_wakeup";
 
 const TOOL_ALLOWLIST: Record<AgentType, AgentToolName[]> = {
-  SUPER_ORCHESTRATOR: [
-    "assess_release",
-    "read_release_context",
-    "create_recommendation",
-    "hire_agent",
-  ],
+  SUPER_ORCHESTRATOR: ["read_release_context", "hire_agent"],
   QA_INTELLIGENCE: ["assess_release", "read_release_context", "create_recommendation"],
   DEVOPS_INTELLIGENCE: ["read_release_context", "create_recommendation"],
   GOVERNANCE: ["read_release_context", "create_recommendation"],

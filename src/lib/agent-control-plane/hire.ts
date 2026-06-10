@@ -45,7 +45,7 @@ export const hireRequestSchema = z.object({
         message: "instructionsBundle.files.AGENTS.md is required",
       }),
   }),
-  desiredSkills: z.array(z.string()).default(["aidos"]),
+  desiredSkills: z.array(z.string()).optional(),
   adapterType: z.literal("llm").default("llm"),
   runtimeConfig: z
     .object({
@@ -70,6 +70,16 @@ export function roleToAgentType(role: HireRole): AgentType {
   return ROLE_TO_AGENT_TYPE[role];
 }
 
+const DEFAULT_DOMAIN_SKILLS: Partial<Record<HireRole, string[]>> = {
+  qa_intelligence: ["aidos", "aidos-release-assess"],
+  devops_intelligence: ["aidos", "aidos-telemetry"],
+  governance: ["aidos", "aidos-release-assess"],
+};
+
+export function defaultDesiredSkillsForRole(role: HireRole): string[] {
+  return DEFAULT_DOMAIN_SKILLS[role] ?? ["aidos"];
+}
+
 export function parseHirePayload(json: string): AgentHirePayload | null {
   try {
     return JSON.parse(json) as AgentHirePayload;
@@ -89,6 +99,7 @@ async function normalizeHireBody(body: z.infer<typeof hireRequestSchema>) {
   return {
     body: {
       ...body,
+      desiredSkills: body.desiredSkills ?? defaultDesiredSkillsForRole(body.role),
       instructionsBundle: {
         files: {
           ...body.instructionsBundle.files,

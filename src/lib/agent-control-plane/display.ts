@@ -69,6 +69,10 @@ export function formatWakeupSource(source: AgentWakeupSource): string {
   return source.replace(/_/g, " ");
 }
 
+export function formatRunStatusLabel(status: AgentHeartbeatRunStatus): string {
+  return status.replace(/_/g, " ");
+}
+
 export function formatTokenUsage(
   tokenUsage: {
     inputTokens?: number;

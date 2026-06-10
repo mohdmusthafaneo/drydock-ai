@@ -14,6 +14,7 @@ export async function getOrganizationContext(organizationId: string) {
     releases,
     workflow,
     agents,
+    agentRuns,
     incidents,
     auditLogs,
     telemetryMetrics,
@@ -52,6 +53,12 @@ export async function getOrganizationContext(organizationId: string) {
     prisma.agentRegistry.findMany({
       where: { organizationId },
       orderBy: { agentType: "asc" },
+    }),
+    prisma.agentHeartbeatRun.findMany({
+      where: { organizationId },
+      orderBy: { startedAt: "desc" },
+      take: 8,
+      include: { agent: { select: { id: true, displayName: true } } },
     }),
     prisma.incident.findMany({
       where: { organizationId },
@@ -141,6 +148,7 @@ export async function getOrganizationContext(organizationId: string) {
     releases,
     workflow,
     agents,
+    agentRuns,
     incidents,
     auditLogs,
     telemetryMetrics,
@@ -162,7 +170,9 @@ export async function getOrganizationContext(organizationId: string) {
       openIncidents: incidents.filter((i) => i.status === "OPEN" || i.status === "INVESTIGATING")
         .length,
       auditEventCount: auditLogs.length,
-      activeAgents: agents.filter((a) => a.status === "ACTIVE").length,
+      activeAgents: agents.filter(
+        (a) => !["PAUSED", "PENDING_APPROVAL", "TERMINATED", "ERROR"].includes(a.status),
+      ).length,
       metricCount: telemetryMetrics.length,
       telemetryEventCount: telemetryEvents.length,
       webhookEventCount: webhookEvents.length,

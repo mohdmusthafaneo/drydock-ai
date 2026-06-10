@@ -16,6 +16,42 @@ const CREATE_AGENT_SKILL_PATH = path.join(
   process.cwd(),
   "skills/aidos-create-agent/SKILL.md",
 );
+const SKILLS_ROOT = path.join(process.cwd(), "skills");
+
+function parseDesiredSkills(adapterConfigJson: string): string[] {
+  try {
+    const parsed = JSON.parse(adapterConfigJson) as { desiredSkills?: string[] };
+    return parsed.desiredSkills ?? ["aidos"];
+  } catch {
+    return ["aidos"];
+  }
+}
+
+async function loadDomainSkill(skillName: string): Promise<string | null> {
+  if (skillName === "aidos" || skillName === "aidos-create-agent") return null;
+  try {
+    return await fs.readFile(
+      path.join(SKILLS_ROOT, skillName, "SKILL.md"),
+      "utf8",
+    );
+  } catch {
+    return null;
+  }
+}
+
+async function loadDomainSkills(adapterConfigJson: string): Promise<string> {
+  const names = parseDesiredSkills(adapterConfigJson).filter(
+    (n) => n !== "aidos" && n !== "aidos-create-agent",
+  );
+  const sections: string[] = [];
+  for (const name of names) {
+    const content = await loadDomainSkill(name);
+    if (content?.trim()) {
+      sections.push(`## Skill: ${name}\n\n${content.trim()}`);
+    }
+  }
+  return sections.join("\n\n---\n\n");
+}
 
 function parsePayload(json: string): Record<string, unknown> {
   try {
@@ -87,8 +123,9 @@ export async function runLlmAdapter(
 
   const wakePayload = parsePayload(ctx.wakeup.payloadJson);
   const permissions = parsePermissions(ctx.agent.permissionsJson);
-  const [skill, createAgentSkill, bundle] = await Promise.all([
+  const [skill, domainSkills, createAgentSkill, bundle] = await Promise.all([
     loadAidosSkill(),
+    loadDomainSkills(ctx.agent.adapterConfigJson),
     permissions.canCreateAgents ? loadCreateAgentSkill() : Promise.resolve(""),
     readInstructionsBundleForAgent(ctx.organizationId, ctx.agent),
   ]);
@@ -100,6 +137,7 @@ export async function runLlmAdapter(
 
   const systemPrompt = [
     skill,
+    domainSkills ? `\n\n---\n\n${domainSkills}` : "",
     createAgentSkill ? `\n\n---\n\n${createAgentSkill}` : "",
     bundleSection("Agent charter", bundle.entryFile, agentsMd),
     bundleSection("Domain tools", "TOOLS.md", toolsMd),

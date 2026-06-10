@@ -24,6 +24,10 @@ import {
   type TimelineItem,
 } from "@/components/operational/operational-timeline";
 import { CollectTelemetryButton } from "@/components/observability/collect-telemetry-button";
+import {
+  AgentActivityStrip,
+  type AgentActivityItem,
+} from "@/components/agents/agent-activity-strip";
 
 export default async function EnterpriseDashboardPage() {
   const session = await getSession();
@@ -116,6 +120,18 @@ export default async function EnterpriseDashboardPage() {
 
   const latestRelease = ctx.releases[0];
   const recentAudit = ctx.auditLogs.slice(0, 5);
+
+  const agentActivity: AgentActivityItem[] = ctx.agentRuns.map((run) => ({
+    id: run.id,
+    agentId: run.agentId,
+    agentName: run.agent.displayName,
+    status: run.status,
+    source: run.source,
+    reason: run.reason,
+    summary: run.summary,
+    finishedAt: run.finishedAt,
+    startedAt: run.startedAt,
+  }));
 
   return (
     <div className="w-full space-y-8">
@@ -243,6 +259,15 @@ export default async function EnterpriseDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <AgentActivityStrip
+        agents={ctx.agents.map((a) => ({
+          id: a.id,
+          displayName: a.displayName,
+          status: a.status,
+        }))}
+        recentRuns={agentActivity}
+      />
 
       <section className="space-y-4">
         <div className="flex items-center justify-between gap-4">

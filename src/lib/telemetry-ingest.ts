@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { normalizeTelemetryEvent, type RawTelemetryInput } from "@/lib/telemetry-normalizer";
 import { ingestTelemetryForOrganization } from "@/lib/telemetry-service";
+import { enqueueSuperAgentEventWakeup } from "@/lib/agent-control-plane/delegation";
 
 export async function ingestNormalizedEvents(input: {
   organizationId: string;
@@ -48,6 +49,21 @@ export async function ingestNormalizedEvents(input: {
       metadataJson: JSON.stringify({ count: created.length }),
     },
   });
+
+  if (created.length > 0) {
+    const primary = created[0];
+    await enqueueSuperAgentEventWakeup(
+      input.organizationId,
+      "telemetry.ingested",
+      {
+        telemetryEventId: primary.id,
+        count: created.length,
+        eventType: primary.eventType,
+        source: primary.source,
+      },
+      `telemetry:${primary.id}`,
+    );
+  }
 
   return created;
 }

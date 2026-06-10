@@ -1,64 +1,27 @@
-import { prisma } from "@/lib/prisma";
-import { resolveRuntimeConfig } from "./runtime-config";
-import { enqueueWakeup, isAgentRunnable } from "./wakeup";
+import { enqueueSuperAgentEventWakeup } from "./delegation";
 
-const RELEASE_DETECTED_TYPES = ["QA_INTELLIGENCE", "GOVERNANCE"] as const;
-const RELEASE_ASSESSED_TYPES = ["GOVERNANCE"] as const;
-
-async function wakeAgentsForReleaseEvent(
-  organizationId: string,
-  releaseId: string,
-  agentTypes: readonly string[],
-  reason: string,
-  idempotencySuffix: string,
-) {
-  const agents = await prisma.agentRegistry.findMany({
-    where: {
-      organizationId,
-      agentType: { in: agentTypes as never[] },
-    },
-  });
-
-  for (const agent of agents) {
-    const config = resolveRuntimeConfig(agent);
-    if (!config.heartbeat.wakeOnEvent) continue;
-    if (!isAgentRunnable(agent.status)) continue;
-
-    await enqueueWakeup({
-      organizationId,
-      agentId: agent.id,
-      source: "event",
-      reason,
-      payload: { releaseId },
-      idempotencyKey: `release:${releaseId}:${idempotencySuffix}:${agent.id}`,
-    });
-  }
-}
-
-/** Wake QA + Governance when a release is detected. */
+/** Wake Super Agent when a release is detected — Super delegates to QA specialist. */
 export async function enqueueReleaseDetectedWakeups(
   organizationId: string,
   releaseId: string,
 ) {
-  await wakeAgentsForReleaseEvent(
+  await enqueueSuperAgentEventWakeup(
     organizationId,
-    releaseId,
-    RELEASE_DETECTED_TYPES,
     "release.detected",
-    "detected",
+    { releaseId, event: "release.detected" },
+    `release:${releaseId}:detected`,
   );
 }
 
-/** Wake Governance after human or agent assessment completes. */
+/** Wake Super Agent after assessment — Super may delegate follow-up to Governance. */
 export async function enqueueReleaseAssessedWakeups(
   organizationId: string,
   releaseId: string,
 ) {
-  await wakeAgentsForReleaseEvent(
+  await enqueueSuperAgentEventWakeup(
     organizationId,
-    releaseId,
-    RELEASE_ASSESSED_TYPES,
     "release.assessed",
-    "assessed",
+    { releaseId, event: "release.assessed" },
+    `release:${releaseId}:assessed`,
   );
 }

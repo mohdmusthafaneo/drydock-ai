@@ -1,10 +1,14 @@
 import type { AgentRegistry, AgentType } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { EVENT_ROLE_ROUTING } from "./delegation";
+import type { HireRole } from "./hire";
 
 export type InboxWorkType =
   | "release_assess"
+  | "release_delegate"
   | "incident_triage"
   | "webhook_process"
+  | "telemetry_review"
   | "approval_followup"
   | "team_initialization";
 
@@ -34,13 +38,27 @@ export function parseInboxItemId(
   id: string,
 ): { workType: InboxWorkType; entityId: string } | null {
   const match = id.match(
-    /^(release_assess|incident_triage|webhook_process|approval_followup|team_initialization):(.+)$/,
+    /^(release_assess|release_delegate|incident_triage|webhook_process|telemetry_review|approval_followup|team_initialization):(.+)$/,
   );
   if (!match) return null;
   return {
     workType: match[1] as InboxWorkType,
     entityId: match[2],
   };
+}
+
+function resolveEffectiveRole(
+  agent: Pick<AgentRegistry, "agentType" | "role">,
+): HireRole | null {
+  if (agent.role) return agent.role as HireRole;
+  const typeToRole: Partial<Record<AgentType, HireRole>> = {
+    QA_INTELLIGENCE: "qa_intelligence",
+    DEVOPS_INTELLIGENCE: "devops_intelligence",
+    GOVERNANCE: "governance",
+    INCIDENT_CORRELATION: "incident_correlation",
+    INTEGRATION: "integration",
+  };
+  return typeToRole[agent.agentType as AgentType] ?? null;
 }
 
 async function buildQaInbox(
@@ -84,6 +102,66 @@ async function buildQaInbox(
       },
     }))
     .sort((a, b) => a.priority - b.priority);
+}
+
+async function buildReleaseDelegateInbox(
+  organizationId: string,
+  payload: Record<string, unknown>,
+): Promise<InboxWorkItem[]> {
+  const items: InboxWorkItem[] = [];
+
+  if (typeof payload.releaseId === "string") {
+    const release = await prisma.release.findFirst({
+      where: { id: payload.releaseId, organizationId },
+    });
+    if (release) {
+      const targetRole =
+        EVENT_ROLE_ROUTING[String(payload.event ?? payload.reason ?? "release.detected")] ??
+        "qa_intelligence";
+      items.push({
+        id: inboxItemId("release_delegate", release.id),
+        workType: "release_delegate",
+        entityType: "Release",
+        entityId: release.id,
+        status: "pending",
+        priority: releasePriority(release.environment),
+        assignedAt: release.detectedAt.toISOString(),
+        title: `Delegate release work: ${release.name}`,
+        metadata: {
+          environment: release.environment,
+          version: release.version,
+          targetRole,
+          event: payload.event ?? payload.reason,
+        },
+      });
+    }
+  }
+
+  const detected = await prisma.release.findMany({
+    where: { organizationId, status: "DETECTED" },
+    orderBy: [{ environment: "asc" }, { detectedAt: "asc" }],
+    take: 10,
+  });
+
+  for (const release of detected) {
+    if (items.some((i) => i.entityId === release.id)) continue;
+    items.push({
+      id: inboxItemId("release_delegate", release.id),
+      workType: "release_delegate",
+      entityType: "Release",
+      entityId: release.id,
+      status: "pending",
+      priority: releasePriority(release.environment) + 1,
+      assignedAt: release.detectedAt.toISOString(),
+      title: `Delegate release assessment: ${release.name}`,
+      metadata: {
+        environment: release.environment,
+        targetRole: "qa_intelligence",
+      },
+    });
+  }
+
+  return items.sort((a, b) => a.priority - b.priority);
 }
 
 async function buildGovernanceInbox(
@@ -141,6 +219,69 @@ async function buildGovernanceInbox(
   }));
 }
 
+async function buildWebhookInbox(
+  organizationId: string,
+  payload: Record<string, unknown>,
+): Promise<InboxWorkItem[]> {
+  const webhookEventId =
+    typeof payload.webhookEventId === "string" ? payload.webhookEventId : null;
+  if (!webhookEventId) return [];
+
+  const event = await prisma.webhookEvent.findFirst({
+    where: { id: webhookEventId, organizationId },
+  });
+  if (!event) return [];
+
+  return [
+    {
+      id: inboxItemId("webhook_process", event.id),
+      workType: "webhook_process",
+      entityType: "WebhookEvent",
+      entityId: event.id,
+      status: "pending",
+      priority: 1,
+      assignedAt: event.receivedAt.toISOString(),
+      title: `Process webhook: ${event.provider} ${event.eventType}`,
+      metadata: {
+        provider: event.provider,
+        eventType: event.eventType,
+      },
+    },
+  ];
+}
+
+async function buildTelemetryInbox(
+  organizationId: string,
+  payload: Record<string, unknown>,
+): Promise<InboxWorkItem[]> {
+  const telemetryEventId =
+    typeof payload.telemetryEventId === "string" ? payload.telemetryEventId : null;
+  if (!telemetryEventId) return [];
+
+  const event = await prisma.telemetryEvent.findFirst({
+    where: { id: telemetryEventId, organizationId },
+  });
+  if (!event) return [];
+
+  return [
+    {
+      id: inboxItemId("telemetry_review", event.id),
+      workType: "telemetry_review",
+      entityType: "TelemetryEvent",
+      entityId: event.id,
+      status: "pending",
+      priority: 1,
+      assignedAt: event.occurredAt.toISOString(),
+      title: `Review telemetry: ${event.eventType} (${event.source})`,
+      metadata: {
+        eventType: event.eventType,
+        source: event.source,
+        severity: event.severity,
+      },
+    },
+  ];
+}
+
 async function buildTeamInitializationInbox(
   organizationId: string,
 ): Promise<InboxWorkItem[]> {
@@ -172,35 +313,80 @@ async function buildSuperOrchestratorInbox(
   organizationId: string,
   payload: Record<string, unknown>,
 ): Promise<InboxWorkItem[]> {
-  const [init, qa, governance] = await Promise.all([
+  const [init, delegate, governance] = await Promise.all([
     buildTeamInitializationInbox(organizationId),
-    buildQaInbox(organizationId),
+    buildReleaseDelegateInbox(organizationId, payload),
     buildGovernanceInbox(organizationId, payload),
   ]);
 
   const byId = new Map<string, InboxWorkItem>();
-  for (const item of [...init, ...qa, ...governance]) {
+  for (const item of [...init, ...delegate, ...governance]) {
     byId.set(item.id, item);
   }
 
   return [...byId.values()].sort((a, b) => a.priority - b.priority);
 }
 
+async function buildSpecialistInbox(
+  agent: Pick<AgentRegistry, "organizationId" | "agentType" | "role">,
+  payload: Record<string, unknown>,
+): Promise<InboxWorkItem[]> {
+  const role = resolveEffectiveRole(agent);
+  const items: InboxWorkItem[] = [];
+
+  if (role === "qa_intelligence" || agent.agentType === "QA_INTELLIGENCE") {
+    items.push(...(await buildQaInbox(agent.organizationId)));
+  }
+
+  if (role === "governance" || agent.agentType === "GOVERNANCE") {
+    items.push(...(await buildGovernanceInbox(agent.organizationId, payload)));
+  }
+
+  if (role === "integration" || agent.agentType === "INTEGRATION") {
+    items.push(...(await buildWebhookInbox(agent.organizationId, payload)));
+  }
+
+  if (role === "devops_intelligence" || agent.agentType === "DEVOPS_INTELLIGENCE") {
+    items.push(...(await buildTelemetryInbox(agent.organizationId, payload)));
+  }
+
+  if (role === "qa_intelligence" && typeof payload.releaseId === "string") {
+    const release = await prisma.release.findFirst({
+      where: { id: payload.releaseId, organizationId: agent.organizationId },
+    });
+    if (release && !items.some((i) => i.entityId === release.id)) {
+      items.push({
+        id: inboxItemId("release_assess", release.id),
+        workType: "release_assess",
+        entityType: "Release",
+        entityId: release.id,
+        status: "pending",
+        priority: 0,
+        assignedAt: release.detectedAt.toISOString(),
+        title: `Assess release: ${release.name}`,
+        metadata: {
+          environment: release.environment,
+          delegated: true,
+        },
+      });
+    }
+  }
+
+  const byId = new Map<string, InboxWorkItem>();
+  for (const item of items) {
+    byId.set(item.id, item);
+  }
+  return [...byId.values()].sort((a, b) => a.priority - b.priority);
+}
+
 /** Build virtual inbox items from domain entities (no AgentWorkItem table). */
 export async function buildAgentInbox(
-  agent: Pick<AgentRegistry, "id" | "organizationId" | "agentType">,
+  agent: Pick<AgentRegistry, "id" | "organizationId" | "agentType" | "role">,
   wakeupPayload: Record<string, unknown> = {},
 ): Promise<InboxWorkItem[]> {
-  const { organizationId, agentType } = agent;
-
-  switch (agentType as AgentType) {
-    case "SUPER_ORCHESTRATOR":
-      return buildSuperOrchestratorInbox(organizationId, wakeupPayload);
-    case "QA_INTELLIGENCE":
-      return buildQaInbox(organizationId);
-    case "GOVERNANCE":
-      return buildGovernanceInbox(organizationId, wakeupPayload);
-    default:
-      return [];
+  if (agent.agentType === "SUPER_ORCHESTRATOR") {
+    return buildSuperOrchestratorInbox(agent.organizationId, wakeupPayload);
   }
+
+  return buildSpecialistInbox(agent, wakeupPayload);
 }

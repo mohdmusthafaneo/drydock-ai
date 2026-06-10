@@ -2,6 +2,7 @@ import type { IntegrationProvider } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { markIntegrationSync } from "@/lib/integration-health";
 import { ingestNormalizedEvents } from "@/lib/telemetry-ingest";
+import { enqueueSuperAgentEventWakeup } from "@/lib/agent-control-plane/delegation";
 
 const PROVIDER_MAP: Record<string, IntegrationProvider> = {
   github: "GITHUB",
@@ -57,6 +58,17 @@ export async function receiveWebhook(input: {
       where: { organizationId: input.organizationId, provider: input.provider },
       data: { webhookEnabled: true },
     });
+
+    await enqueueSuperAgentEventWakeup(
+      input.organizationId,
+      "webhook.received",
+      {
+        webhookEventId: webhook.id,
+        provider: input.provider,
+        eventType: input.eventType,
+      },
+      `webhook:${webhook.id}`,
+    );
 
     return { webhookId: webhook.id, status: "PROCESSED" as const, action };
   } catch (err) {

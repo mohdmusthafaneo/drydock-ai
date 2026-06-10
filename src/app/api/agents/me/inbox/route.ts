@@ -20,6 +20,10 @@ export async function GET(request: Request) {
   if (decision) {
     wakeupPayload.decision = decision;
   }
+  for (const key of ["releaseId", "webhookEventId", "telemetryEventId", "event"] as const) {
+    const value = url.searchParams.get(key);
+    if (value) wakeupPayload[key] = value;
+  }
 
   const items = await buildAgentInbox(auth.agent, wakeupPayload);
   const inProgress = items.filter((i) => i.status === "in_progress");

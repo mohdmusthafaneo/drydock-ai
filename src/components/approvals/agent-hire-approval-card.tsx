@@ -59,10 +59,10 @@ export function AgentHireApprovalCard({
             <dd className="text-slate-200">{payload.capabilities}</dd>
           </div>
         )}
-        {payload.desiredSkills?.length > 0 && (
+        {(payload.desiredSkills?.length ?? 0) > 0 && (
           <div className="sm:col-span-2">
             <dt className="text-xs uppercase tracking-wide text-slate-500">Skills</dt>
-            <dd className="text-slate-200">{payload.desiredSkills.join(", ")}</dd>
+            <dd className="text-slate-200">{payload.desiredSkills!.join(", ")}</dd>
           </div>
         )}
       </dl>

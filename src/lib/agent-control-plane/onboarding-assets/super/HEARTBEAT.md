@@ -20,7 +20,7 @@ Follow this checklist on **every** wakeup. See `skills/aidos/SKILL.md` for API p
 
 ## 5. Execute
 
-- [ ] Delegate to specialists or route events per `AGENTS.md`.
+- [ ] Delegate to specialists via `aidos_delegate_wakeup` (use `targetRole` from inbox metadata).
 - [ ] Create recommendations via `POST /api/agents/me/recommendations` when specialists are unavailable (bootstrap only).
 
 ## 6. Outputs

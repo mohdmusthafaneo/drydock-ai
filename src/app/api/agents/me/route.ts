@@ -35,6 +35,25 @@ export async function GET(request: Request) {
     select: { agentTeamInitializedAt: true },
   });
 
+  const directReports =
+    agent.agentType === "SUPER_ORCHESTRATOR"
+      ? await prisma.agentRegistry.findMany({
+          where: {
+            organizationId,
+            reportsToAgentId: agent.id,
+            status: { notIn: ["TERMINATED", "PENDING_APPROVAL"] },
+          },
+          select: {
+            id: true,
+            agentType: true,
+            role: true,
+            displayName: true,
+            status: true,
+          },
+          orderBy: { createdAt: "asc" },
+        })
+      : [];
+
   return NextResponse.json({
     agent: {
       id: agent.id,
@@ -52,6 +71,7 @@ export async function GET(request: Request) {
     permissions: parsePermissions(agent.permissionsJson),
     runtimeConfig: parseRuntimeConfig(agent.runtimeConfigJson),
     managerChain,
+    directReports,
     heartbeatRunId: runId,
   });
 }

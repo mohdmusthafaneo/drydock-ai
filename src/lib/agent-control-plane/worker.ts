@@ -228,6 +228,76 @@ async function executeHeartbeatRun(wakeupId: string): Promise<boolean> {
   return runStatus === "succeeded";
 }
 
+/** Recover heartbeat runs stuck beyond maxRunDurationSec. */
+export async function recoverStuckRuns(
+  organizationId?: string,
+): Promise<number> {
+  const now = new Date();
+  const runningWakeups = await prisma.agentWakeupRequest.findMany({
+    where: {
+      status: "running",
+      ...(organizationId ? { organizationId } : {}),
+    },
+    include: { agent: true },
+  });
+
+  let recovered = 0;
+
+  for (const wakeup of runningWakeups) {
+    const config = resolveRuntimeConfig(wakeup.agent);
+    const maxSec = config.heartbeat.maxRunDurationSec || 300;
+    const startedAt = wakeup.startedAt ?? wakeup.requestedAt;
+    const elapsedSec = (now.getTime() - startedAt.getTime()) / 1000;
+    if (elapsedSec < maxSec) continue;
+
+    await prisma.$transaction(async (tx) => {
+      const run = await tx.agentHeartbeatRun.findFirst({
+        where: { wakeupRequestId: wakeup.id, status: "running" },
+      });
+
+      if (run) {
+        await tx.agentHeartbeatRun.update({
+          where: { id: run.id },
+          data: {
+            status: "timed_out",
+            finishedAt: now,
+            error: `Run exceeded max duration (${maxSec}s)`,
+            exitCode: 124,
+          },
+        });
+      }
+
+      await tx.agentWakeupRequest.update({
+        where: { id: wakeup.id },
+        data: {
+          status: "completed",
+          finishedAt: now,
+          error: `Timed out after ${Math.round(elapsedSec)}s`,
+        },
+      });
+
+      if (isAgentRunnable(wakeup.agent.status) || wakeup.agent.status === "RUNNING") {
+        await tx.agentRegistry.update({
+          where: { id: wakeup.agentId },
+          data: { status: "IDLE" },
+        });
+      }
+
+      await logAgentActivity(tx, {
+        organizationId: wakeup.organizationId,
+        type: "agent.heartbeat.timed_out",
+        title: `${wakeup.agent.displayName} heartbeat timed out`,
+        description: `Recovered stuck run after ${Math.round(elapsedSec)}s`,
+        metadata: { agentId: wakeup.agentId, wakeupId: wakeup.id, runId: run?.id },
+      });
+    });
+
+    recovered++;
+  }
+
+  return recovered;
+}
+
 /** Claim and process pending wakeups (FIFO + priority). */
 export async function drainWakeupQueue(
   organizationId?: string,
@@ -244,6 +314,8 @@ export async function drainWakeupQueue(
   if (process.env.AGENT_WORKER_ENABLED === "false") {
     return result;
   }
+
+  await recoverStuckRuns(organizationId);
 
   result.timersEnqueued = await enqueueTimerWakeups(organizationId);
 

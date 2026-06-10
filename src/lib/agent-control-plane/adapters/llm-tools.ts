@@ -124,6 +124,40 @@ const TOOL_DEFINITIONS: Record<string, LlmToolDefinition> = {
       "Mark Super Agent team initialization complete after INITIALIZE.md hires are submitted.",
     input_schema: { type: "object", properties: {} },
   },
+  aidos_delegate_wakeup: {
+    name: "aidos_delegate_wakeup",
+    description:
+      "Delegate work to a specialist agent by enqueueing a delegation wakeup (Super Agent only).",
+    input_schema: {
+      type: "object",
+      properties: {
+        targetAgentId: {
+          type: "string",
+          description: "Specialist agent id (use targetRole if unknown)",
+        },
+        targetRole: {
+          type: "string",
+          enum: [
+            "qa_intelligence",
+            "devops_intelligence",
+            "governance",
+            "incident_correlation",
+            "integration",
+          ],
+          description: "Resolve specialist by role when targetAgentId is omitted",
+        },
+        reason: {
+          type: "string",
+          description: "Delegation reason, e.g. release.detected",
+        },
+        payload: {
+          type: "object",
+          description: "Work context passed to specialist wakeup (releaseId, etc.)",
+        },
+      },
+      required: ["reason"],
+    },
+  },
 };
 
 const TOOL_TO_REGISTRY: Record<string, AgentToolName | null> = {
@@ -134,6 +168,7 @@ const TOOL_TO_REGISTRY: Record<string, AgentToolName | null> = {
   aidos_complete_work_item: null,
   aidos_hire_agent: "hire_agent",
   aidos_complete_initialization: null,
+  aidos_delegate_wakeup: null,
 };
 
 export function buildAidosLlmTools(
@@ -148,6 +183,9 @@ export function buildAidosLlmTools(
       continue;
     }
     if (toolName === "aidos_complete_initialization") {
+      if (agentType !== "SUPER_ORCHESTRATOR") continue;
+    }
+    if (toolName === "aidos_delegate_wakeup") {
       if (agentType !== "SUPER_ORCHESTRATOR") continue;
     }
     if (registryName === null || allowed.has(registryName)) {
@@ -210,6 +248,21 @@ export async function executeAidosTool(
         if (typeof ctx.wakePayload.approvalId === "string") {
           params.set("approvalId", ctx.wakePayload.approvalId);
         }
+        if (typeof ctx.wakePayload.decision === "string") {
+          params.set("decision", ctx.wakePayload.decision);
+        }
+        if (typeof ctx.wakePayload.releaseId === "string") {
+          params.set("releaseId", ctx.wakePayload.releaseId);
+        }
+        if (typeof ctx.wakePayload.webhookEventId === "string") {
+          params.set("webhookEventId", ctx.wakePayload.webhookEventId);
+        }
+        if (typeof ctx.wakePayload.telemetryEventId === "string") {
+          params.set("telemetryEventId", ctx.wakePayload.telemetryEventId);
+        }
+        if (typeof ctx.wakePayload.event === "string") {
+          params.set("event", ctx.wakePayload.event);
+        }
         const res = await agentFetch(ctx, `/api/agents/me/inbox?${params}`);
         return JSON.stringify(await parseAgentResponse(res));
       }
@@ -260,6 +313,14 @@ export async function executeAidosTool(
         const res = await agentFetch(ctx, "/api/agents/me/initialization/complete", {
           method: "POST",
           body: "{}",
+        });
+        return JSON.stringify(await parseAgentResponse(res));
+      }
+
+      case "aidos_delegate_wakeup": {
+        const res = await agentFetch(ctx, "/api/agents/me/delegate", {
+          method: "POST",
+          body: JSON.stringify(args),
         });
         return JSON.stringify(await parseAgentResponse(res));
       }
