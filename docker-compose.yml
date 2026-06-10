@@ -16,23 +16,47 @@ services:
       timeout: 5s
       retries: 5
 
-  app:
+  web:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: aidos-app
+    container_name: aidos-web
     ports:
       - "3000:3000"
     environment:
+      AIDOS_PROCESS_ROLE: web
       DATABASE_URL: "postgresql://aidos:aidos_dev_password@postgres:5432/aidos?schema=public"
       AUTH_SECRET: "aidos-dev-secret-32chars-min"
       NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+      PLATFORM_WORKER_SECRET: "dev-worker-secret"
+      AGENT_WORKER_ENABLED: "true"
+      AGENT_INSTRUCTIONS_ROOT: "/data/agent-instructions"
       NODE_ENV: "production"
       NEXT_TELEMETRY_DISABLED: "1"
+    volumes:
+      - agent_instructions:/data/agent-instructions
     depends_on:
       postgres:
         condition: service_healthy
     restart: unless-stopped
 
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aidos-worker
+    environment:
+      AIDOS_PROCESS_ROLE: worker
+      AIDOS_API_URL: "http://web:3000"
+      PLATFORM_WORKER_SECRET: "dev-worker-secret"
+      AGENT_WORKER_ENABLED: "true"
+      AGENT_WORKER_INTERVAL_SEC: "30"
+      NODE_ENV: "production"
+    depends_on:
+      web:
+        condition: service_started
+    restart: unless-stopped
+
 volumes:
   postgres_data:
+  agent_instructions:

@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import type { AgentWakeupSource } from "@/generated/prisma/client";
+import { runHttpAdapter } from "./adapters/http";
 import { runLlmAdapter } from "./adapters/llm";
+import { runProcessAdapter } from "./adapters/process";
 import {
   createEphemeralRunApiKey,
   revokeEphemeralRunApiKey,
@@ -117,38 +119,37 @@ async function executeHeartbeatRun(wakeupId: string): Promise<boolean> {
 
   let adapterResult;
   let ephemeralKey: string | null = null;
+  const adapterCtx = {
+    runId: run.id,
+    agent,
+    wakeup: {
+      id: wakeup.id,
+      source: wakeup.source as AgentWakeupSource,
+      reason: wakeup.reason,
+      payloadJson: wakeup.payloadJson,
+    },
+    organizationId,
+  };
+
   try {
-    if (agent.adapterType === "llm") {
+    if (agent.adapterType === "llm" || agent.adapterType === "http" || agent.adapterType === "process") {
       ephemeralKey = await createEphemeralRunApiKey(
         organizationId,
         agent.id,
         run.id,
       );
-      adapterResult = await runLlmAdapter({
-        runId: run.id,
-        agent,
-        wakeup: {
-          id: wakeup.id,
-          source: wakeup.source as AgentWakeupSource,
-          reason: wakeup.reason,
-          payloadJson: wakeup.payloadJson,
-        },
-        organizationId,
-        agentApiKey: ephemeralKey,
-      });
+      const ctxWithKey = { ...adapterCtx, agentApiKey: ephemeralKey };
+
+      if (agent.adapterType === "llm") {
+        adapterResult = await runLlmAdapter(ctxWithKey);
+      } else if (agent.adapterType === "http") {
+        adapterResult = await runHttpAdapter(ctxWithKey);
+      } else {
+        adapterResult = await runProcessAdapter(ctxWithKey);
+      }
     } else {
       const { runInternalAdapter } = await import("./adapters/internal");
-      adapterResult = await runInternalAdapter({
-        runId: run.id,
-        agent,
-        wakeup: {
-          id: wakeup.id,
-          source: wakeup.source as AgentWakeupSource,
-          reason: wakeup.reason,
-          payloadJson: wakeup.payloadJson,
-        },
-        organizationId,
-      });
+      adapterResult = await runInternalAdapter(adapterCtx);
     }
   } catch (err) {
     adapterResult = {

@@ -28,6 +28,7 @@ import {
   AgentActivityStrip,
   type AgentActivityItem,
 } from "@/components/agents/agent-activity-strip";
+import { formatTokenRollup } from "@/lib/agent-control-plane/token-rollup";
 
 export default async function EnterpriseDashboardPage() {
   const session = await getSession();
@@ -237,6 +238,18 @@ export default async function EnterpriseDashboardPage() {
             <div className="flex items-center justify-between rounded-lg border border-border bg-elevated/50 px-3 py-2">
               <span className="text-secondary">Active agents</span>
               <span className="font-medium">{ctx.stats.activeAgents}</span>
+            </div>
+            <div className="flex items-center justify-between rounded-lg border border-border bg-elevated/50 px-3 py-2">
+              <span className="text-secondary">Agent tokens (30d)</span>
+              <span className="font-medium">
+                {formatTokenRollup({
+                  runCount: ctx.stats.agentHeartbeatRuns30d,
+                  succeededRuns: 0,
+                  inputTokens: ctx.stats.agentTokenInput,
+                  outputTokens: ctx.stats.agentTokenOutput,
+                  periodDays: 30,
+                })}
+              </span>
             </div>
             <div className="flex items-center justify-between rounded-lg border border-border bg-elevated/50 px-3 py-2">
               <span className="text-secondary">P95 latency</span>

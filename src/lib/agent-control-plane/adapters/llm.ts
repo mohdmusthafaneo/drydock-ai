@@ -1,4 +1,3 @@
-import fs from "node:fs/promises";
 import path from "node:path";
 import { runAnthropicWithTools } from "../llm/anthropic";
 import {
@@ -8,6 +7,7 @@ import {
 } from "../llm/config";
 import { readInstructionsBundleForAgent } from "../instructions/service";
 import { parsePermissions } from "../agent-auth";
+import { readCachedUtf8File } from "../prompt-cache";
 import type { AdapterExecutionContext, AdapterExecutionResult } from "../types";
 import { buildAidosLlmTools, executeAidosTool } from "./llm-tools";
 
@@ -30,9 +30,8 @@ function parseDesiredSkills(adapterConfigJson: string): string[] {
 async function loadDomainSkill(skillName: string): Promise<string | null> {
   if (skillName === "aidos" || skillName === "aidos-create-agent") return null;
   try {
-    return await fs.readFile(
+    return await readCachedUtf8File(
       path.join(SKILLS_ROOT, skillName, "SKILL.md"),
-      "utf8",
     );
   } catch {
     return null;
@@ -63,7 +62,7 @@ function parsePayload(json: string): Record<string, unknown> {
 
 async function loadAidosSkill(): Promise<string> {
   try {
-    return await fs.readFile(AIDOS_SKILL_PATH, "utf8");
+    return await readCachedUtf8File(AIDOS_SKILL_PATH);
   } catch {
     return "# AIDOS skill missing — see skills/aidos/SKILL.md";
   }
@@ -73,7 +72,7 @@ async function loadCreateAgentSkill(): Promise<string> {
   try {
     const { loadCreateAgentRoleTemplates } = await import("../hire-templates");
     const [skill, templates] = await Promise.all([
-      fs.readFile(CREATE_AGENT_SKILL_PATH, "utf8"),
+      readCachedUtf8File(CREATE_AGENT_SKILL_PATH),
       loadCreateAgentRoleTemplates(),
     ]);
     return templates ? `${skill.trim()}\n\n---\n\n${templates}` : skill;

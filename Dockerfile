@@ -66,6 +66,11 @@ COPY --from=builder --chown=nextjs:nodejs /app/src/generated/prisma ./src/genera
 # Copy node_modules for runtime (prisma CLI + client needed for migrate)
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 
+# Agent control plane runtime assets (LLM skills + instruction templates)
+COPY --from=builder --chown=nextjs:nodejs /app/skills ./skills
+COPY --from=builder --chown=nextjs:nodejs /app/src/lib/agent-control-plane/onboarding-assets ./src/lib/agent-control-plane/onboarding-assets
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/agent-worker-loop.mjs ./scripts/agent-worker-loop.mjs
+
 COPY --chmod=755 docker/entrypoint.sh /app/docker/entrypoint.sh
 
 # Set ownership

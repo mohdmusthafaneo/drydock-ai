@@ -46,7 +46,7 @@ export const hireRequestSchema = z.object({
       }),
   }),
   desiredSkills: z.array(z.string()).optional(),
-  adapterType: z.literal("llm").default("llm"),
+  adapterType: z.enum(["llm", "http", "process"]).default("llm"),
   runtimeConfig: z
     .object({
       heartbeat: z

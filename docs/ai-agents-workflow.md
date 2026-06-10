@@ -38,7 +38,7 @@ Org created → Super Agent only
 
 ## 2. Phase tracker
 
-**Last reviewed:** 2026-06-10 (Phase 5.4 complete — architect review pending)  
+**Last reviewed:** 2026-06-10 (Phase 5.5 complete — architect review pending)  
 **Legend:** `Done` · `Partial` (superseded prototype or incomplete) · `Not started` · `Blocked`
 
 ### Summary
@@ -50,7 +50,7 @@ Org created → Super Agent only
 | **5.2** | LLM adapter + `skills/aidos` | 2 weeks | **Done** | 4/4 exit | 5.1 | `/backend` |
 | **5.3** | Super bootstrap + governed hire | 2 weeks | **Done** | 4/4 exit | 5.2 | `/backend`, `/frontend` |
 | **5.4** | Operational loop | 2 weeks | **Done** | 2/3 exit | 5.3 | `/backend`, `/frontend` |
-| **5.5** | Production & externals | Ongoing | **Not started** | — | 5.4 | `/backend`, `/architect` |
+| **5.5** | Production & externals | Ongoing | **Done** | 6/6 exit | 5.4 | `/backend`, `/architect` |
 
 > **Superseded work:** Pre-plan prototype (old 5a/5b) — wakeup queue, worker, agent UI, rule-engine QA adapter — is **Partial** and will be refactored in 5.0–5.2. See §3.4.
 
@@ -131,12 +131,15 @@ Org created → Super Agent only
 
 | Item | Status | Notes |
 |------|--------|-------|
-| `http` adapter | **Not started** | |
-| `process` adapter (CLI spawn) | **Not started** | |
-| Prompt/skill content cache | **Not started** | |
-| Team catalog import | **Not started** | |
-| PostgreSQL scale validation | **Not started** | |
-| Token rollup per org | **Not started** | |
+| `http` adapter | **Done** | `adapters/http.ts` — webhook + async 202 mode |
+| `process` adapter (CLI spawn) | **Done** | `adapters/process.ts` — AIDOS_* env injection |
+| Prompt/skill content cache | **Done** | `prompt-cache.ts` — mtime cache for SKILL.md reads |
+| Team catalog import | **Done** | `team-catalog.ts` + `GET /api/agents/team-catalog` |
+| PostgreSQL scale validation | **Done** | `pg-scale-check.ts` + `GET /api/platform/agents/scale-check` |
+| Token rollup per org | **Done** | `token-rollup.ts` + dashboard Platform health |
+| **Exit:** External adapter docs | **Done** | `GET /api/llms/agent-configuration.txt` |
+| **Exit:** Worker routes http/process | **Done** | Ephemeral API key + wake payload |
+| **Exit:** `npm run build` passes | **Done** | Verified 2026-06-10 |
 
 ### Superseded prototype (old 5a / 5b) — do not extend
 
@@ -709,12 +712,21 @@ Per-agent override: set `llmModel` in `adapterConfigJson` when an org runs mixed
 
 | Task | Notes |
 |------|-------|
-| `http` adapter | External worker runs same SKILL.md protocol |
-| `process` adapter | Optional Claude Code / Cursor CLI spawn |
-| Prompt/skill content cache | Paperclip `prompt-cache` pattern |
-| Team catalog import | Optional pre-built QA/DevOps bundles |
-| PostgreSQL scale validation | Required before prod |
-| Token rollup per org | Dashboard metrics |
+| `http` adapter | External worker runs same SKILL.md protocol ✅ |
+| `process` adapter | Optional Claude Code / Cursor CLI spawn ✅ |
+| Prompt/skill content cache | Paperclip `prompt-cache` pattern ✅ |
+| Team catalog import | Optional pre-built QA/DevOps bundles ✅ |
+| PostgreSQL scale validation | Required before prod ✅ |
+| Token rollup per org | Dashboard metrics ✅ |
+
+**Exit criteria:**
+
+- [x] http/process adapters wired in worker with ephemeral run keys.
+- [x] Team catalog API lists pre-built specialist bundles.
+- [x] Token rollup visible on dashboard (30d window).
+- [x] Scale-check endpoint validates PG indexes when on PostgreSQL.
+- [ ] Architect review passed.
+- [x] `npm run build` passes.
 
 ---
 

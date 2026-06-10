@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { computeCompletedStepIds } from "@/lib/enterprise-workflow";
 import { hasObservabilitySynced } from "@/lib/observability-connectivity";
+import { rollupAgentTokens } from "@/lib/agent-control-plane/token-rollup";
 
 export async function getOrganizationContext(organizationId: string) {
   const [
@@ -22,6 +23,7 @@ export async function getOrganizationContext(organizationId: string) {
     telemetryEvents,
     webhookEvents,
     governancePolicy,
+    agentTokenRollup,
   ] = await Promise.all([
     prisma.organization.findUnique({ where: { id: organizationId } }),
     prisma.organizationProfile.findUnique({ where: { organizationId } }),
@@ -94,6 +96,7 @@ export async function getOrganizationContext(organizationId: string) {
       take: 12,
     }),
     prisma.governancePolicy.findUnique({ where: { organizationId } }),
+    rollupAgentTokens(organizationId, 30),
   ]);
 
   const pendingApprovals = approvals.filter((a) => !a.decision);
@@ -156,6 +159,7 @@ export async function getOrganizationContext(organizationId: string) {
     telemetryEvents,
     webhookEvents,
     governancePolicy,
+    agentTokenRollup,
     completedStepIds,
     stats: {
       governanceScore: dna?.governanceScore ?? 0,
@@ -183,6 +187,9 @@ export async function getOrganizationContext(organizationId: string) {
       p95Latency: p95,
       degradedDeployments: degradedDeployments.length,
       rollbackPending: deploymentEvents.filter((d) => d.rollbackRecommended).length,
+      agentTokenInput: agentTokenRollup.inputTokens,
+      agentTokenOutput: agentTokenRollup.outputTokens,
+      agentHeartbeatRuns30d: agentTokenRollup.runCount,
     },
   };
 }
