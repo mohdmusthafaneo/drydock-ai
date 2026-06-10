@@ -79,6 +79,13 @@ enum RecommendationStatus {
   MODIFIED
 }
 
+enum ApprovalType {
+  RECOMMENDATION
+  AGENT_HIRE
+  AGENT_ACTION
+  ORCHESTRATION_PLAN
+}
+
 enum RecommendationImpact {
   LOW
   MEDIUM
@@ -314,15 +321,16 @@ enum IncidentStatus {
 }
 
 model DeliveryWorkflow {
-  id                 String                    @id @default(cuid())
-  organizationId     String                    @unique
-  workflowType       String                    @default("enterprise-governed")
-  executionStatus    WorkflowExecutionStatus   @default(NOT_CONFIGURED)
-  currentStepId      String?
-  stepsCompletedJson String                    @default("[]")
-  configuredAt       DateTime?
-  createdAt          DateTime                  @default(now())
-  updatedAt          DateTime                  @updatedAt
+  id                       String                    @id @default(cuid())
+  organizationId           String                    @unique
+  workflowType             String                    @default("enterprise-governed")
+  executionStatus          WorkflowExecutionStatus   @default(NOT_CONFIGURED)
+  currentStepId            String?
+  stepsCompletedJson       String                    @default("[]")
+  configuredAt             DateTime?
+  agentTeamInitializedAt   DateTime?
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }
@@ -331,6 +339,7 @@ model AgentRegistry {
   id                 String       @id @default(cuid())
   organizationId     String
   agentType          AgentType
+  role               String?
   displayName        String
   description        String?
   status             AgentStatus  @default(IDLE)
@@ -354,8 +363,8 @@ model AgentRegistry {
   wakeupRequests  AgentWakeupRequest[]
   heartbeatRuns   AgentHeartbeatRun[]
 
-  @@unique([organizationId, agentType])
   @@index([organizationId, status])
+  @@index([organizationId, role])
 }
 
 model AgentApiKey {
@@ -673,19 +682,25 @@ model Recommendation {
 }
 
 model Approval {
-  id               String           @id @default(cuid())
-  organizationId   String
-  recommendationId String
-  approverId       String?
-  decision         ApprovalDecision?
-  riskScore        Float?
-  comment          String?
-  decidedAt        DateTime?
-  createdAt        DateTime         @default(now())
+  id                 String            @id @default(cuid())
+  organizationId     String
+  type               ApprovalType      @default(RECOMMENDATION)
+  recommendationId   String?
+  title              String?
+  payloadJson        String            @default("{}")
+  requestedByAgentId String?
+  approverId         String?
+  decision           ApprovalDecision?
+  riskScore          Float?
+  comment            String?
+  decidedAt          DateTime?
+  createdAt          DateTime          @default(now())
 
-  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  recommendation Recommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
-  approver       User?          @relation("Approver", fields: [approverId], references: [id])
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  recommendation Recommendation? @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+  approver       User?           @relation("Approver", fields: [approverId], references: [id])
+
+  @@index([organizationId, type])
 }
 
 model AuditLog {

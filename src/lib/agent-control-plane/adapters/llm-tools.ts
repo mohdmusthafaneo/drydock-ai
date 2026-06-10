@@ -1,6 +1,7 @@
 import type { AgentType } from "@/generated/prisma/client";
 import type { LlmToolDefinition } from "../llm/types";
 import { getAllowedTools, type AgentToolName } from "../tools/registry";
+import type { AgentPermissions } from "../types";
 
 export type AidosToolContext = {
   apiBaseUrl: string;
@@ -78,6 +79,51 @@ const TOOL_DEFINITIONS: Record<string, LlmToolDefinition> = {
       required: ["workItemId"],
     },
   },
+  aidos_hire_agent: {
+    name: "aidos_hire_agent",
+    description:
+      "Request hiring a specialist agent with custom AGENTS.md (requires human AGENT_HIRE approval).",
+    input_schema: {
+      type: "object",
+      properties: {
+        displayName: { type: "string" },
+        role: {
+          type: "string",
+          enum: [
+            "qa_intelligence",
+            "devops_intelligence",
+            "governance",
+            "incident_correlation",
+            "integration",
+          ],
+        },
+        capabilities: { type: "string" },
+        reportsToAgentId: { type: "string" },
+        instructionsBundle: {
+          type: "object",
+          properties: {
+            files: {
+              type: "object",
+              description: "Must include AGENTS.md with role charter",
+            },
+          },
+          required: ["files"],
+        },
+        desiredSkills: {
+          type: "array",
+          items: { type: "string" },
+        },
+        runtimeConfig: { type: "object" },
+      },
+      required: ["displayName", "role", "instructionsBundle"],
+    },
+  },
+  aidos_complete_initialization: {
+    name: "aidos_complete_initialization",
+    description:
+      "Mark Super Agent team initialization complete after INITIALIZE.md hires are submitted.",
+    input_schema: { type: "object", properties: {} },
+  },
 };
 
 const TOOL_TO_REGISTRY: Record<string, AgentToolName | null> = {
@@ -86,13 +132,24 @@ const TOOL_TO_REGISTRY: Record<string, AgentToolName | null> = {
   aidos_assess_release: "assess_release",
   aidos_create_recommendation: "create_recommendation",
   aidos_complete_work_item: null,
+  aidos_hire_agent: "hire_agent",
+  aidos_complete_initialization: null,
 };
 
-export function buildAidosLlmTools(agentType: AgentType): LlmToolDefinition[] {
+export function buildAidosLlmTools(
+  agentType: AgentType,
+  permissions?: AgentPermissions,
+): LlmToolDefinition[] {
   const allowed = new Set(getAllowedTools(agentType));
   const tools: LlmToolDefinition[] = [];
 
   for (const [toolName, registryName] of Object.entries(TOOL_TO_REGISTRY)) {
+    if (toolName === "aidos_hire_agent" && !permissions?.canCreateAgents) {
+      continue;
+    }
+    if (toolName === "aidos_complete_initialization") {
+      if (agentType !== "SUPER_ORCHESTRATOR") continue;
+    }
     if (registryName === null || allowed.has(registryName)) {
       const def = TOOL_DEFINITIONS[toolName];
       if (def) tools.push(def);
@@ -118,6 +175,22 @@ async function agentFetch(
   });
 }
 
+async function parseAgentResponse(res: Response): Promise<unknown> {
+  const contentType = res.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) {
+    const snippet = (await res.text()).slice(0, 120);
+    return {
+      error: `Expected JSON from agent API but got ${res.status} ${contentType || "unknown"}`,
+      hint:
+        res.status === 401 || snippet.includes("<!DOCTYPE")
+          ? "Route may be blocked by session middleware — agent Bearer routes must bypass login redirect"
+          : undefined,
+      bodyPreview: snippet,
+    };
+  }
+  return res.json();
+}
+
 export async function executeAidosTool(
   name: string,
   args: Record<string, unknown>,
@@ -127,7 +200,7 @@ export async function executeAidosTool(
     switch (name) {
       case "aidos_get_me": {
         const res = await agentFetch(ctx, "/api/agents/me");
-        return JSON.stringify(await res.json());
+        return JSON.stringify(await parseAgentResponse(res));
       }
 
       case "aidos_get_inbox": {
@@ -138,7 +211,7 @@ export async function executeAidosTool(
           params.set("approvalId", ctx.wakePayload.approvalId);
         }
         const res = await agentFetch(ctx, `/api/agents/me/inbox?${params}`);
-        return JSON.stringify(await res.json());
+        return JSON.stringify(await parseAgentResponse(res));
       }
 
       case "aidos_assess_release": {
@@ -151,7 +224,7 @@ export async function executeAidosTool(
           `/api/agents/me/releases/${encodeURIComponent(releaseId)}/assess`,
           { method: "POST", body: "{}" },
         );
-        return JSON.stringify(await res.json());
+        return JSON.stringify(await parseAgentResponse(res));
       }
 
       case "aidos_create_recommendation": {
@@ -159,7 +232,7 @@ export async function executeAidosTool(
           method: "POST",
           body: JSON.stringify(args),
         });
-        return JSON.stringify(await res.json());
+        return JSON.stringify(await parseAgentResponse(res));
       }
 
       case "aidos_complete_work_item": {
@@ -172,7 +245,23 @@ export async function executeAidosTool(
           `/api/agents/me/work-items/${encodeURIComponent(workItemId)}/complete`,
           { method: "POST", body: "{}" },
         );
-        return JSON.stringify(await res.json());
+        return JSON.stringify(await parseAgentResponse(res));
+      }
+
+      case "aidos_hire_agent": {
+        const res = await agentFetch(ctx, "/api/agents/hire", {
+          method: "POST",
+          body: JSON.stringify(args),
+        });
+        return JSON.stringify(await parseAgentResponse(res));
+      }
+
+      case "aidos_complete_initialization": {
+        const res = await agentFetch(ctx, "/api/agents/me/initialization/complete", {
+          method: "POST",
+          body: "{}",
+        });
+        return JSON.stringify(await parseAgentResponse(res));
       }
 
       default:

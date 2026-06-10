@@ -5,7 +5,8 @@ export type InboxWorkType =
   | "release_assess"
   | "incident_triage"
   | "webhook_process"
-  | "approval_followup";
+  | "approval_followup"
+  | "team_initialization";
 
 export type InboxWorkItem = {
   id: string;
@@ -33,7 +34,7 @@ export function parseInboxItemId(
   id: string,
 ): { workType: InboxWorkType; entityId: string } | null {
   const match = id.match(
-    /^(release_assess|incident_triage|webhook_process|approval_followup):(.+)$/,
+    /^(release_assess|incident_triage|webhook_process|approval_followup|team_initialization):(.+)$/,
   );
   if (!match) return null;
   return {
@@ -140,17 +141,45 @@ async function buildGovernanceInbox(
   }));
 }
 
+async function buildTeamInitializationInbox(
+  organizationId: string,
+): Promise<InboxWorkItem[]> {
+  const workflow = await prisma.deliveryWorkflow.findUnique({
+    where: { organizationId },
+    select: { agentTeamInitializedAt: true },
+  });
+
+  if (workflow?.agentTeamInitializedAt) return [];
+
+  return [
+    {
+      id: inboxItemId("team_initialization", organizationId),
+      workType: "team_initialization",
+      entityType: "Organization",
+      entityId: organizationId,
+      status: "pending",
+      priority: -1,
+      assignedAt: new Date().toISOString(),
+      title: "Initialize agent team (INITIALIZE.md)",
+      metadata: {
+        playbook: "INITIALIZE.md",
+      },
+    },
+  ];
+}
+
 async function buildSuperOrchestratorInbox(
   organizationId: string,
   payload: Record<string, unknown>,
 ): Promise<InboxWorkItem[]> {
-  const [qa, governance] = await Promise.all([
+  const [init, qa, governance] = await Promise.all([
+    buildTeamInitializationInbox(organizationId),
     buildQaInbox(organizationId),
     buildGovernanceInbox(organizationId, payload),
   ]);
 
   const byId = new Map<string, InboxWorkItem>();
-  for (const item of [...qa, ...governance]) {
+  for (const item of [...init, ...qa, ...governance]) {
     byId.set(item.id, item);
   }
 

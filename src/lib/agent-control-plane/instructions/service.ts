@@ -37,6 +37,9 @@ const SUPER_ONBOARDING_DIR = path.join(
   "src/lib/agent-control-plane/onboarding-assets/super",
 );
 
+const SPECIALIST_HEARTBEAT_FILE = "HEARTBEAT.md";
+const SPECIALIST_TOOLS_FILE = "TOOLS.md";
+
 export function buildInstructionsAdapterConfig(
   organizationId: string,
   agentId: string,
@@ -172,19 +175,62 @@ export async function ensureSuperAgentInstructions(
   });
   return {
     materialized,
-    adapterConfig: buildInstructionsAdapterConfig(organizationId, agentId),
+    adapterConfig: buildInstructionsAdapterConfig(organizationId, agentId, [
+      "aidos",
+      "aidos-create-agent",
+    ]),
   };
+}
+
+/** Backfill HEARTBEAT.md + TOOLS.md for hired specialists missing companion files. */
+export async function ensureSpecialistCompanionFiles(
+  organizationId: string,
+  agent: { id: string; role: string | null },
+): Promise<string[]> {
+  if (!agent.role) return [];
+
+  const { buildHiredAgentInstructionFiles } = await import("../hire-templates");
+  const bundle = await readInstructionsBundle(organizationId, agent.id);
+  const agentsMd = bundle.files[INSTRUCTIONS_ENTRY_FILE]?.content ?? "";
+  if (!agentsMd.trim()) return [];
+
+  const fullFiles = await buildHiredAgentInstructionFiles(
+    agent.role as import("../hire").HireRole,
+    agentsMd,
+  );
+
+  const missing: Record<string, string> = {};
+  for (const [name, content] of Object.entries(fullFiles)) {
+    if (name === INSTRUCTIONS_ENTRY_FILE) continue;
+    if (!bundle.files[name]?.exists) {
+      missing[name] = content;
+    }
+  }
+
+  if (Object.keys(missing).length === 0) return [];
+  return writeInstructionsFiles(organizationId, agent.id, missing);
 }
 
 export async function readInstructionsBundleForAgent(
   organizationId: string,
-  agent: { id: string; agentType: string },
+  agent: { id: string; agentType: string; role?: string | null },
 ): Promise<InstructionsBundle> {
   let bundle = await readInstructionsBundle(organizationId, agent.id);
   const entry = bundle.files[INSTRUCTIONS_ENTRY_FILE];
 
   if (!entry?.exists && agent.agentType === "SUPER_ORCHESTRATOR") {
     await ensureSuperAgentInstructions(organizationId, agent.id);
+    bundle = await readInstructionsBundle(organizationId, agent.id);
+  } else if (
+    agent.agentType !== "SUPER_ORCHESTRATOR" &&
+    entry?.exists &&
+    (!bundle.files[SPECIALIST_HEARTBEAT_FILE]?.exists ||
+      !bundle.files[SPECIALIST_TOOLS_FILE]?.exists)
+  ) {
+    await ensureSpecialistCompanionFiles(organizationId, {
+      id: agent.id,
+      role: agent.role ?? null,
+    });
     bundle = await readInstructionsBundle(organizationId, agent.id);
   }
 

@@ -12,6 +12,8 @@ import {
   formatHeartbeatAge,
 } from "@/lib/agent-control-plane/display";
 import { readInstructionsBundleForAgent } from "@/lib/agent-control-plane/instructions/service";
+import { resolveRuntimeConfig } from "@/lib/agent-control-plane/runtime-config";
+import type { InstructionsAdapterConfig } from "@/lib/agent-control-plane/instructions/service";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -39,6 +41,16 @@ export default async function AgentDetailPage({ params }: PageProps) {
   const bundle = await readInstructionsBundleForAgent(session.organizationId, agent);
   const lastRun = agent.heartbeatRuns[0];
   const isLead = agent.agentType === "SUPER_ORCHESTRATOR";
+  const runtimeConfig = resolveRuntimeConfig(agent);
+
+  let adapterConfig: InstructionsAdapterConfig | null = null;
+  try {
+    adapterConfig = JSON.parse(agent.adapterConfigJson) as InstructionsAdapterConfig;
+  } catch {
+    adapterConfig = null;
+  }
+
+  const heartbeat = runtimeConfig.heartbeat;
 
   return (
     <div className="space-y-6">
@@ -82,6 +94,38 @@ export default async function AgentDetailPage({ params }: PageProps) {
               {lastRun.summary ? ` — ${lastRun.summary.slice(0, 120)}` : ""}
             </p>
           )}
+          <dl className="grid gap-2 rounded-lg border border-white/8 bg-[#0B1020]/40 p-3 text-xs text-slate-400 sm:grid-cols-2">
+            <div>
+              <dt className="text-slate-500">Adapter</dt>
+              <dd className="text-slate-200">{agent.adapterType}</dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">Skills</dt>
+              <dd className="text-slate-200">
+                {adapterConfig?.desiredSkills?.join(", ") ?? "aidos"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">Timer heartbeat</dt>
+              <dd className="text-slate-200">
+                {heartbeat.enabled
+                  ? `Every ${heartbeat.intervalSec}s`
+                  : "Off (event-driven)"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">Wake triggers</dt>
+              <dd className="text-slate-200">
+                {[
+                  heartbeat.wakeOnEvent && "events",
+                  heartbeat.wakeOnApproval && "approvals",
+                  heartbeat.wakeOnDelegation && "delegation",
+                ]
+                  .filter(Boolean)
+                  .join(" · ") || "none"}
+              </dd>
+            </div>
+          </dl>
           <AgentActions agentId={agent.id} status={agent.status} />
         </CardContent>
       </Card>

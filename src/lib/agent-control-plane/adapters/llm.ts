@@ -7,10 +7,15 @@ import {
   resolveAidosApiBaseUrl,
 } from "../llm/config";
 import { readInstructionsBundleForAgent } from "../instructions/service";
+import { parsePermissions } from "../agent-auth";
 import type { AdapterExecutionContext, AdapterExecutionResult } from "../types";
 import { buildAidosLlmTools, executeAidosTool } from "./llm-tools";
 
 const AIDOS_SKILL_PATH = path.join(process.cwd(), "skills/aidos/SKILL.md");
+const CREATE_AGENT_SKILL_PATH = path.join(
+  process.cwd(),
+  "skills/aidos-create-agent/SKILL.md",
+);
 
 function parsePayload(json: string): Record<string, unknown> {
   try {
@@ -25,6 +30,19 @@ async function loadAidosSkill(): Promise<string> {
     return await fs.readFile(AIDOS_SKILL_PATH, "utf8");
   } catch {
     return "# AIDOS skill missing — see skills/aidos/SKILL.md";
+  }
+}
+
+async function loadCreateAgentSkill(): Promise<string> {
+  try {
+    const { loadCreateAgentRoleTemplates } = await import("../hire-templates");
+    const [skill, templates] = await Promise.all([
+      fs.readFile(CREATE_AGENT_SKILL_PATH, "utf8"),
+      loadCreateAgentRoleTemplates(),
+    ]);
+    return templates ? `${skill.trim()}\n\n---\n\n${templates}` : skill;
+  } catch {
+    return "";
   }
 }
 
@@ -68,25 +86,30 @@ export async function runLlmAdapter(
   }
 
   const wakePayload = parsePayload(ctx.wakeup.payloadJson);
-  const [skill, bundle] = await Promise.all([
+  const permissions = parsePermissions(ctx.agent.permissionsJson);
+  const [skill, createAgentSkill, bundle] = await Promise.all([
     loadAidosSkill(),
+    permissions.canCreateAgents ? loadCreateAgentSkill() : Promise.resolve(""),
     readInstructionsBundleForAgent(ctx.organizationId, ctx.agent),
   ]);
 
   const agentsMd = bundle.files[bundle.entryFile]?.content ?? "";
   const heartbeatMd = bundle.files.HEARTBEAT?.content ?? null;
+  const toolsMd = bundle.files.TOOLS?.content ?? null;
   const initializeMd = bundle.files.INITIALIZE?.content ?? null;
 
   const systemPrompt = [
     skill,
+    createAgentSkill ? `\n\n---\n\n${createAgentSkill}` : "",
     bundleSection("Agent charter", bundle.entryFile, agentsMd),
+    bundleSection("Domain tools", "TOOLS.md", toolsMd),
     bundleSection("Heartbeat checklist", "HEARTBEAT.md", heartbeatMd),
     bundleSection("Initialization playbook", "INITIALIZE.md", initializeMd),
   ]
     .filter(Boolean)
     .join("");
 
-  const tools = buildAidosLlmTools(ctx.agent.agentType);
+  const tools = buildAidosLlmTools(ctx.agent.agentType, permissions);
   const toolCtx = {
     apiBaseUrl: resolveAidosApiBaseUrl(),
     agentApiKey: ctx.agentApiKey,

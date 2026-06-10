@@ -19,6 +19,7 @@ const publicPathPrefixes = [
   "/api/integrations/external/",
   "/api/platform/",
   "/api/agents/me",
+  "/api/agents/hire",
   "/api/webhooks/",
 ];
 

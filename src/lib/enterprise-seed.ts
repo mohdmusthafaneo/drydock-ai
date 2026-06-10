@@ -36,49 +36,52 @@ export async function seedEnterpriseFoundation(
   const runtimeConfig = defaultRuntimeConfigForAgentType(SUPER_AGENT.agentType);
   const permissionsJson = JSON.stringify({ canCreateAgents: true });
 
-  const superAgent = await tx.agentRegistry.upsert({
+  const superAgent = await tx.agentRegistry.findFirst({
     where: {
-      organizationId_agentType: {
-        organizationId,
-        agentType: SUPER_AGENT.agentType,
-      },
-    },
-    create: {
       organizationId,
       agentType: SUPER_AGENT.agentType,
-      displayName: SUPER_AGENT.displayName,
-      description: SUPER_AGENT.description,
-      confidenceScore: SUPER_AGENT.defaultConfidence,
-      autonomyMode: SUPER_AGENT.autonomyMode,
-      status: "IDLE",
-      runtimeConfigJson: serializeRuntimeConfig(runtimeConfig),
-      permissionsJson,
-      adapterType: "llm",
-      adapterConfigJson: "{}",
-      lastActiveAt: new Date(),
-    },
-    update: {
-      displayName: SUPER_AGENT.displayName,
-      description: SUPER_AGENT.description,
-      runtimeConfigJson: serializeRuntimeConfig(runtimeConfig),
-      permissionsJson,
-      adapterType: "llm",
     },
   });
 
+  const agentData = {
+    displayName: SUPER_AGENT.displayName,
+    description: SUPER_AGENT.description,
+    confidenceScore: SUPER_AGENT.defaultConfidence,
+    autonomyMode: SUPER_AGENT.autonomyMode,
+    status: "IDLE" as const,
+    runtimeConfigJson: serializeRuntimeConfig(runtimeConfig),
+    permissionsJson,
+    adapterType: "llm",
+  };
+
+  const superAgentRecord = superAgent
+    ? await tx.agentRegistry.update({
+        where: { id: superAgent.id },
+        data: agentData,
+      })
+    : await tx.agentRegistry.create({
+        data: {
+          organizationId,
+          agentType: SUPER_AGENT.agentType,
+          ...agentData,
+          adapterConfigJson: "{}",
+          lastActiveAt: new Date(),
+        },
+      });
+
   const { adapterConfig } = await ensureSuperAgentInstructions(
     organizationId,
-    superAgent.id,
+    superAgentRecord.id,
   );
 
   await tx.agentRegistry.update({
-    where: { id: superAgent.id },
+    where: { id: superAgentRecord.id },
     data: {
       adapterConfigJson: JSON.stringify(adapterConfig),
     },
   });
 
-  await ensureAgentApiKey(tx, organizationId, superAgent.id, "bootstrap");
+  await ensureAgentApiKey(tx, organizationId, superAgentRecord.id, "bootstrap");
 
   await tx.governancePolicy.upsert({
     where: { organizationId },

@@ -4,6 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { canApproveRequiredRole } from "@/lib/permissions";
 import { getSession } from "@/lib/session";
 import { enqueueApprovalFollowUpWakeups } from "@/lib/agent-control-plane/wakeup";
+import {
+  activateHiredAgent,
+  enqueueHireFollowUpWakeups,
+  parseHirePayload,
+  rejectHiredAgent,
+} from "@/lib/agent-control-plane/hire";
 
 const schema = z.object({
   approvalId: z.string(),
@@ -30,6 +36,76 @@ export async function POST(request: Request) {
 
     if (!approval) {
       return NextResponse.json({ error: "Approval not found" }, { status: 404 });
+    }
+
+    if (approval.decision) {
+      return NextResponse.json({ error: "Approval already decided" }, { status: 409 });
+    }
+
+    if (approval.type === "AGENT_HIRE") {
+      if (body.decision === "MODIFIED") {
+        return NextResponse.json(
+          { error: "Agent hire approvals support Approve or Reject only" },
+          { status: 400 },
+        );
+      }
+
+      if (!canApproveRequiredRole(session.role, "ORG_ADMIN")) {
+        return NextResponse.json(
+          { error: "Agent hire requires ORG_ADMIN approval" },
+          { status: 403 },
+        );
+      }
+
+      const payload = parseHirePayload(approval.payloadJson);
+      if (!payload?.agentId) {
+        return NextResponse.json({ error: "Invalid hire payload" }, { status: 400 });
+      }
+
+      await prisma.$transaction(async (tx) => {
+        await tx.approval.update({
+          where: { id: approval.id },
+          data: {
+            approverId: session.userId,
+            decision: body.decision,
+            comment: body.comment,
+            decidedAt: new Date(),
+          },
+        });
+
+        if (body.decision === "APPROVED") {
+          await activateHiredAgent(tx, session.organizationId, approval.id, payload);
+        } else {
+          await rejectHiredAgent(
+            tx,
+            session.organizationId,
+            approval.id,
+            payload,
+            body.comment,
+          );
+        }
+      });
+
+      if (body.decision === "APPROVED") {
+        await enqueueHireFollowUpWakeups(
+          session.organizationId,
+          approval.id,
+          payload.agentId,
+          approval.requestedByAgentId,
+        );
+      }
+
+      await enqueueApprovalFollowUpWakeups(
+        session.organizationId,
+        approval.id,
+        body.decision,
+      );
+
+      return NextResponse.json({ ok: true });
+    }
+
+    if (!approval.recommendation) {
+      return NextResponse.json({ error: "Recommendation not found" }, { status: 404 });
     }
 
     if (
@@ -60,12 +136,12 @@ export async function POST(request: Request) {
           decision: body.decision,
           comment: body.comment,
           decidedAt: new Date(),
-          riskScore: approval.recommendation.confidence,
+          riskScore: approval.recommendation!.confidence,
         },
       });
 
       await tx.recommendation.update({
-        where: { id: approval.recommendationId },
+        where: { id: approval.recommendationId! },
         data: { status: recStatus },
       });
 
@@ -74,7 +150,7 @@ export async function POST(request: Request) {
           organizationId: session.organizationId,
           type: "approval.decided",
           title: `Recommendation ${body.decision.toLowerCase()}`,
-          description: approval.recommendation.title,
+          description: approval.recommendation!.title,
           metadataJson: JSON.stringify({ decision: body.decision }),
         },
       });
@@ -85,12 +161,12 @@ export async function POST(request: Request) {
           userId: session.userId,
           action: `recommendation.${body.decision.toLowerCase()}`,
           entityType: "Recommendation",
-          entityId: approval.recommendationId,
+          entityId: approval.recommendationId!,
           metadataJson: JSON.stringify({ comment: body.comment }),
         },
       });
 
-      const releaseId = approval.recommendation.releaseId;
+      const releaseId = approval.recommendation!.releaseId;
       if (releaseId) {
         const releaseApprovals = await tx.approval.findMany({
           where: {

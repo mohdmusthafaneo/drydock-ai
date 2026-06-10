@@ -47,6 +47,8 @@ Environment (injected by adapter):
 | `aidos_assess_release` | `POST /api/agents/me/releases/{id}/assess` | Governance assessment |
 | `aidos_create_recommendation` | `POST /api/agents/me/recommendations` | New recommendation + approval |
 | `aidos_complete_work_item` | `POST /api/agents/me/work-items/{id}/complete` | Ack inbox item done |
+| `aidos_hire_agent` | `POST /api/agents/hire` | Request specialist hire (Super Agent) |
+| `aidos_complete_initialization` | `POST /api/agents/me/initialization/complete` | Mark team bootstrap complete |
 
 Full request/response shapes: `references/api-reference.md`.
 

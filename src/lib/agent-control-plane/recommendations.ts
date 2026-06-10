@@ -81,7 +81,9 @@ export async function createAgentRecommendation(
       const approval = await client.approval.create({
         data: {
           organizationId: input.organizationId,
+          type: "RECOMMENDATION",
           recommendationId: recommendation.id,
+          title: body.title,
           riskScore: body.confidence,
         },
       });

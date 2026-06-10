@@ -38,7 +38,7 @@ Org created → Super Agent only
 
 ## 2. Phase tracker
 
-**Last reviewed:** 2026-06-09 (Phase 5.2 complete)  
+**Last reviewed:** 2026-06-10 (Phase 5.3 complete)  
 **Legend:** `Done` · `Partial` (superseded prototype or incomplete) · `Not started` · `Blocked`
 
 ### Summary
@@ -48,7 +48,7 @@ Org created → Super Agent only
 | **5.0** | Control plane reset | 1 week | **Done** | 3/3 exit | — | `/backend` |
 | **5.1** | Managed instructions (`AGENTS.md`) | 1–2 weeks | **Done** | 3/3 exit | 5.0 | `/backend`, `/frontend` |
 | **5.2** | LLM adapter + `skills/aidos` | 2 weeks | **Done** | 4/4 exit | 5.1 | `/backend` |
-| **5.3** | Super bootstrap + governed hire | 2 weeks | **Not started** | 0/4 exit | 5.2 | `/backend`, `/frontend` |
+| **5.3** | Super bootstrap + governed hire | 2 weeks | **Done** | 4/4 exit | 5.2 | `/backend`, `/frontend` |
 | **5.4** | Operational loop | 2 weeks | **Not started** | 0/3 exit | 5.3 | `/backend`, `/frontend` |
 | **5.5** | Production & externals | Ongoing | **Not started** | — | 5.4 | `/backend`, `/architect` |
 
@@ -103,15 +103,15 @@ Org created → Super Agent only
 
 | Item | Status | Notes |
 |------|--------|-------|
-| `skills/aidos-create-agent/SKILL.md` + role templates | **Not started** | |
-| `POST /api/agents/hire` + `instructionsBundle` | **Not started** | |
-| `ApprovalType.AGENT_HIRE` migration | **Not started** | |
-| Approval UI: hire payload + `AGENTS.md` preview | **Not started** | |
-| `agentTeamInitializedAt` + initialization complete API | **Not started** | |
-| Relax `@@unique([organizationId, agentType])` | **Not started** | |
-| **Exit:** INITIALIZE proposes hires | **Not started** | |
-| **Exit:** Hire in Approval Center | **Not started** | |
-| **Exit:** Approve → runnable agent; only Super at seed | **Not started** | |
+| `skills/aidos-create-agent/SKILL.md` + role templates | **Done** | `skills/aidos-create-agent/references/agents/` |
+| `POST /api/agents/hire` + `instructionsBundle` | **Done** | `hire.ts` + agent-auth |
+| `ApprovalType.AGENT_HIRE` migration | **Done** | `20260610120000_agent_hire_5_3` |
+| Approval UI: hire payload + `AGENTS.md` preview | **Done** | `AgentHireApprovalCard` |
+| `agentTeamInitializedAt` + initialization complete API | **Done** | `DeliveryWorkflow` + `/me/initialization/complete` |
+| Relax `@@unique([organizationId, agentType])` | **Done** | Hired agents use `role` field |
+| **Exit:** INITIALIZE proposes hires | **Done** | Super inbox `team_initialization` + hire tools |
+| **Exit:** Hire in Approval Center | **Done** | AGENT_HIRE type with preview |
+| **Exit:** Approve → runnable agent; only Super at seed | **Done** | Materialize bundle + API key + wakeup |
 
 ### Phase 5.4 — Operational loop
 
@@ -677,10 +677,10 @@ Per-agent override: set `llmModel` in `adapterConfigJson` when an org runs mixed
 
 **Exit criteria:**
 
-- [ ] Fresh org: Super Agent INITIALIZE heartbeat proposes hires.
-- [ ] Hire appears in Approval Center with AGENTS.md body.
-- [ ] Approve → specialist agent runnable; reject → terminated.
-- [ ] Only Super Agent at seed; all others from hire flow.
+- [x] Fresh org: Super Agent INITIALIZE heartbeat proposes hires.
+- [x] Hire appears in Approval Center with AGENTS.md body.
+- [x] Approve → specialist agent runnable; reject → terminated.
+- [x] Only Super Agent at seed; all others from hire flow.
 
 ---
 
@@ -846,7 +846,7 @@ See **§2 Phase tracker** for current status on each phase and deliverable.
 | **5.0** | Control plane kept; Super Agent only; prototype adapter deprecated |
 | **5.1** | Managed AGENTS.md + INITIALIZE.md bundle per agent ✅ |
 | **5.2** | **LLM on every wakeup**; SKILL.md; Anthropic tool bridge ✅ |
-| **5.3** | Super Agent hires specialists with custom AGENTS.md; human approval |
+| **5.3** | Super Agent hires specialists with custom AGENTS.md; human approval ✅ |
 | **5.4** | Full operational loop (releases, telemetry, delegation) |
 | **5.5** | http/process adapters, caching, team catalog |
 

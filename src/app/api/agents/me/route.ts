@@ -30,16 +30,25 @@ export async function GET(request: Request) {
 
   const runId = request.headers.get("x-run-id");
 
+  const workflow = await prisma.deliveryWorkflow.findUnique({
+    where: { organizationId },
+    select: { agentTeamInitializedAt: true },
+  });
+
   return NextResponse.json({
     agent: {
       id: agent.id,
       agentType: agent.agentType,
+      role: agent.role,
       displayName: agent.displayName,
       status: agent.status,
       autonomyMode: agent.autonomyMode,
       adapterType: agent.adapterType,
     },
     organizationId,
+    organization: {
+      agentTeamInitializedAt: workflow?.agentTeamInitializedAt?.toISOString() ?? null,
+    },
     permissions: parsePermissions(agent.permissionsJson),
     runtimeConfig: parseRuntimeConfig(agent.runtimeConfigJson),
     managerChain,

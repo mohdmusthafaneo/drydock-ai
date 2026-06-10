@@ -25,13 +25,23 @@ export const LEAD_HEARTBEAT: AgentHeartbeatConfig = {
   maxRunDurationSec: 300,
 };
 
+export const SPECIALIST_HEARTBEAT: AgentHeartbeatConfig = {
+  enabled: false,
+  intervalSec: 0,
+  wakeOnEvent: true,
+  wakeOnApproval: true,
+  wakeOnDelegation: true,
+  cooldownSec: 30,
+  maxRunDurationSec: 300,
+};
+
 export function defaultRuntimeConfigForAgentType(
   agentType: AgentType,
 ): AgentRuntimeConfig {
   const heartbeat =
     agentType === "SUPER_ORCHESTRATOR"
       ? { ...LEAD_HEARTBEAT }
-      : { ...DEFAULT_HEARTBEAT };
+      : { ...SPECIALIST_HEARTBEAT };
 
   return { heartbeat };
 }
