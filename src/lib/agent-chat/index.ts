@@ -8,6 +8,13 @@ export { buildChatContextMarkdown, AGENT_CHAT_CONTEXT_LIMIT } from "./context";
 export { inviteAgentToThread, isInvitedSpecialist, isAgentThreadParticipant } from "./participants";
 export { postAgentThreadMessage } from "./messages";
 export { postChatRunReplyIfNeeded } from "./reply-bridge";
+export {
+  createChatStreamSession,
+  formatChunkForSse,
+  getStreamChunksAfter,
+} from "./stream";
+export { parseReasoningJson, buildReasoningJson } from "./types";
+export type { ReasoningJson, StreamChunkSsePayload } from "./types";
 export type { CreateThreadInput, CreateThreadResult } from "./threads";
 export {
   DEFAULT_THREAD_LIST_LIMIT,

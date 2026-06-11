@@ -43,7 +43,44 @@ export async function postAgentThreadMessage(input: {
       where: { organizationId, runId },
     });
     if (existing) {
-      return { ok: true, messageId: existing.id };
+      const message = await prisma.$transaction(async (tx) => {
+        const updated = await tx.agentChatMessage.update({
+          where: { id: existing.id },
+          data: {
+            contentMarkdown: trimmed.slice(0, 8000),
+            ...(reasoningJson ? { reasoningJson } : {}),
+          },
+        });
+
+        const statusUpdate =
+          thread.status === "open" || thread.status === "routing"
+            ? "active"
+            : thread.status;
+
+        await tx.agentChatThread.update({
+          where: { id: threadId },
+          data: { status: statusUpdate, updatedAt: new Date() },
+        });
+
+        await logChatActivity(tx, {
+          organizationId,
+          type: "agent_chat.message.posted",
+          title: "Agent reply posted in thread",
+          metadata: { threadId, messageId: updated.id, authorAgentId, runId },
+        });
+
+        await logChatAudit(tx, {
+          organizationId,
+          action: "agent_chat.message.posted",
+          entityType: "AgentChatMessage",
+          entityId: updated.id,
+          metadata: { threadId, kind: "agent_reply", authorAgentId },
+        });
+
+        return updated;
+      });
+
+      return { ok: true, messageId: message.id };
     }
   }
 

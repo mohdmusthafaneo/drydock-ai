@@ -1,5 +1,5 @@
 import path from "node:path";
-import { runAnthropicWithTools } from "../llm/anthropic";
+import { runAnthropicWithTools, runAnthropicWithToolsStreaming } from "../llm/anthropic";
 import {
   assertAnthropicConfigured,
   resolveAnthropicConfig,
@@ -9,6 +9,8 @@ import { readInstructionsBundleForAgent } from "../instructions/service";
 import { parsePermissions } from "../agent-auth";
 import { readCachedUtf8File } from "../prompt-cache";
 import { buildChatContextMarkdown } from "@/lib/agent-chat/context";
+import { createChatStreamSession, type ChatStreamSession } from "@/lib/agent-chat/stream";
+import type { LlmStreamEvent } from "../llm/types";
 import type { AdapterExecutionContext, AdapterExecutionResult } from "../types";
 import { buildAidosLlmTools, executeAidosTool } from "./llm-tools";
 
@@ -132,6 +134,36 @@ function bundleSection(
   return `\n\n---\n\n## ${label} (${fileName})\n\n${content}`;
 }
 
+function isChatStreamingRun(ctx: AdapterExecutionContext): string | undefined {
+  const payload = parsePayload(ctx.wakeup.payloadJson);
+  const threadId =
+    typeof payload.threadId === "string" ? payload.threadId : undefined;
+  if (!threadId) return undefined;
+  if (ctx.wakeup.source === "chat") return threadId;
+  if (ctx.wakeup.source === "delegation") return threadId;
+  return undefined;
+}
+
+async function mapStreamEvent(
+  session: ChatStreamSession,
+  event: LlmStreamEvent,
+): Promise<void> {
+  switch (event.kind) {
+    case "text_delta":
+      await session.emitTextDelta(event.text);
+      break;
+    case "thinking_delta":
+      await session.emitThinkingDelta(event.thinking);
+      break;
+    case "tool_start":
+      await session.emitToolStart(event.tool, event.input);
+      break;
+    case "tool_end":
+      await session.emitToolEnd(event.tool, event.outputPreview);
+      break;
+  }
+}
+
 export async function runLlmAdapter(
   ctx: AdapterExecutionContext & { agentApiKey: string },
 ): Promise<AdapterExecutionResult> {
@@ -183,15 +215,52 @@ export async function runLlmAdapter(
     wakePayload,
   };
 
-  try {
-    const result = await runAnthropicWithTools({
-      config: anthropicConfig,
-      systemPrompt,
-      userMessage: await renderWakeUserMessage(ctx),
-      tools,
-      executeTool: (name, args) => executeAidosTool(name, args, toolCtx),
-      maxRounds: 15,
+  const chatThreadId = isChatStreamingRun(ctx);
+  let streamSession: ChatStreamSession | null = null;
+
+  if (chatThreadId) {
+    streamSession = await createChatStreamSession({
+      organizationId: ctx.organizationId,
+      threadId: chatThreadId,
+      runId: ctx.runId,
+      agentId: ctx.agent.id,
     });
+  }
+
+  const wrappedExecuteTool = async (
+    name: string,
+    args: Record<string, unknown>,
+  ): Promise<string> => {
+    const result = await executeAidosTool(name, args, toolCtx);
+    return result;
+  };
+
+  try {
+    const userMessage = await renderWakeUserMessage(ctx);
+
+    const result = streamSession
+      ? await runAnthropicWithToolsStreaming({
+          config: anthropicConfig,
+          systemPrompt,
+          userMessage,
+          tools,
+          executeTool: wrappedExecuteTool,
+          maxRounds: 15,
+          onStreamEvent: (event) => mapStreamEvent(streamSession!, event),
+        })
+      : await runAnthropicWithTools({
+          config: anthropicConfig,
+          systemPrompt,
+          userMessage,
+          tools,
+          executeTool: wrappedExecuteTool,
+          maxRounds: 15,
+        });
+
+    if (streamSession) {
+      await streamSession.emitRunComplete();
+      await streamSession.finalize({ contentMarkdown: result.summary });
+    }
 
     return {
       status: "succeeded",
@@ -203,9 +272,14 @@ export async function runLlmAdapter(
       },
     };
   } catch (err) {
+    const message = err instanceof Error ? err.message : "LLM adapter failed";
+    if (streamSession) {
+      await streamSession.emitRunError(message).catch(() => undefined);
+      await streamSession.finalize({ error: message }).catch(() => undefined);
+    }
     return {
       status: "failed",
-      error: err instanceof Error ? err.message : "LLM adapter failed",
+      error: message,
       tokenUsage: { inputTokens: 0, outputTokens: 0, mode: "anthropic" },
     };
   }

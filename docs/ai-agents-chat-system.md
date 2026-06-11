@@ -93,24 +93,24 @@ Update checkboxes as subtasks complete. **Done when** column is the acceptance t
 
 | ID | Subtask | Owner | Done when | Status |
 |----|---------|-------|-----------|--------|
-| 5.6c.1 | `runAnthropicWithToolsStreaming` in `llm/anthropic.ts` | `/backend` | `stream: true`; yields text deltas + tool_use events | ⬜ |
-| 5.6c.2 | Stream event bus: persist chunks to `AgentChatStreamChunk` | `/backend` | Chunks linked to `runId` + provisional `messageId` | ⬜ |
-| 5.6c.3 | LLM adapter branch: emit chunks when `wakeup.source === "chat"` | `/backend` | Chunks written during run; finalized on run complete | ⬜ |
-| 5.6c.4 | Chunk kinds: `text_delta`, `thinking_delta`, `tool_start`, `tool_end`, `run_complete`, `run_error` | `/backend` | Enum + consistent JSON shape (§7) | ⬜ |
-| 5.6c.5 | `GET /api/agent-threads/[id]/stream` — SSE endpoint | `/backend` | Session auth; `Last-Event-ID` replay; heartbeat every 15s | ⬜ |
-| 5.6c.6 | Finalize stream → `AgentChatMessage` with `contentMarkdown` + `reasoningJson` | `/backend` | Partial chunks discarded after finalize; message id stable | ⬜ |
-| 5.6c.7 | `useAgentThreadStream` client hook | `/frontend` | Connects SSE; merges deltas into message placeholders | ⬜ |
-| 5.6c.8 | Streaming message bubble (token-by-token) | `/frontend` | Cursor-style live text; agent avatar + name | ⬜ |
-| 5.6c.9 | **Show reasoning** expander per agent message | `/frontend` | Collapsed by default; shows thinking + tool trace from `reasoningJson` | ⬜ |
-| 5.6c.10 | Disconnect handling: UI shows "Agent still working…" + poll fallback | `/frontend` | On reconnect, SSE resumes from `Last-Event-ID` or GET messages | ⬜ |
-| 5.6c.11 | Reuse `MarkdownContent` for finalized messages | `/frontend` | Consistent with run detail page | ⬜ |
+| 5.6c.1 | `runAnthropicWithToolsStreaming` in `llm/anthropic.ts` | `/backend` | `stream: true`; yields text deltas + tool_use events | ✅ |
+| 5.6c.2 | Stream event bus: persist chunks to `AgentChatStreamChunk` | `/backend` | Chunks linked to `runId` + provisional `messageId` | ✅ |
+| 5.6c.3 | LLM adapter branch: emit chunks when `wakeup.source === "chat"` | `/backend` | Chunks written during run; finalized on run complete | ✅ |
+| 5.6c.4 | Chunk kinds: `text_delta`, `thinking_delta`, `tool_start`, `tool_end`, `run_complete`, `run_error` | `/backend` | Enum + consistent JSON shape (§7) | ✅ |
+| 5.6c.5 | `GET /api/agent-threads/[id]/stream` — SSE endpoint | `/backend` | Session auth; `Last-Event-ID` replay; heartbeat every 15s | ✅ |
+| 5.6c.6 | Finalize stream → `AgentChatMessage` with `contentMarkdown` + `reasoningJson` | `/backend` | Partial chunks discarded after finalize; message id stable | ✅ |
+| 5.6c.7 | `useAgentThreadStream` client hook | `/frontend` | Connects SSE; merges deltas into message placeholders | ✅ |
+| 5.6c.8 | Streaming message bubble (token-by-token) | `/frontend` | Cursor-style live text; agent avatar + name | ✅ |
+| 5.6c.9 | **Show reasoning** expander per agent message | `/frontend` | Collapsed by default; shows thinking + tool trace from `reasoningJson` | ✅ |
+| 5.6c.10 | Disconnect handling: UI shows "Agent still working…" + poll fallback | `/frontend` | On reconnect, SSE resumes from `Last-Event-ID` or GET messages | ✅ |
+| 5.6c.11 | Reuse `MarkdownContent` for finalized messages | `/frontend` | Consistent with run detail page | ✅ |
 
 **Phase 5.6c exit criteria**
 
-- [ ] User on thread page sees Super + specialist replies stream live.
-- [ ] User navigates away mid-stream → returns → sees completed message (no broken state).
-- [ ] Reasoning hidden by default; expand shows tool calls.
-- [ ] `npm run build` passes.
+- [x] User on thread page sees Super + specialist replies stream live.
+- [x] User navigates away mid-stream → returns → sees completed message (no broken state).
+- [x] Reasoning hidden by default; expand shows tool calls.
+- [x] `npm run build` passes.
 
 ---
 

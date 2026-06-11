@@ -146,6 +146,7 @@ export type AgentThreadDetailResponse = {
       id: string;
       kind: AgentChatMessageKind;
       contentMarkdown: string;
+      reasoningJson?: string;
       createdAt: string;
       authorUser: { id: string; name: string } | null;
       authorAgent: { id: string; displayName: string } | null;

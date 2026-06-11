@@ -14,6 +14,52 @@ export type ChatWakeupPayload = {
   decision?: "APPROVED" | "REJECTED" | "MODIFIED";
 };
 
+export type ReasoningJson = {
+  thinking: string;
+  tools: Array<{
+    name: string;
+    input: Record<string, unknown>;
+    outputPreview?: string;
+    startedAt: string;
+    endedAt?: string;
+  }>;
+};
+
+export type StreamChunkSsePayload = {
+  runId: string;
+  agentId: string;
+  messageId?: string;
+  kind: string;
+  text?: string;
+  thinking?: string;
+  tool?: string;
+  input?: Record<string, unknown>;
+  outputPreview?: string;
+  error?: string;
+};
+
+export function parseReasoningJson(json: string): ReasoningJson {
+  try {
+    const parsed = JSON.parse(json) as Partial<ReasoningJson>;
+    return {
+      thinking: parsed.thinking ?? "",
+      tools: Array.isArray(parsed.tools) ? parsed.tools : [],
+    };
+  } catch {
+    return { thinking: "", tools: [] };
+  }
+}
+
+export function buildReasoningJson(state: {
+  thinking: string;
+  tools: ReasoningJson["tools"];
+}): string {
+  return JSON.stringify({
+    thinking: state.thinking,
+    tools: state.tools,
+  } satisfies ReasoningJson);
+}
+
 export type ThreadListStatusFilter = "open" | "done" | "all";
 
 export const OPEN_THREAD_STATUSES: AgentChatThreadStatus[] = [
