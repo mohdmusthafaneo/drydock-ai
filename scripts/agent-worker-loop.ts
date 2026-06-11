@@ -1,5 +1,5 @@
 /**
- * Local dev helper — polls POST /api/platform/agents/worker on an interval.
+ * Local dev helper — polls POST /api/cron/agents/worker on an interval.
  *
  * Usage:
  *   npm run worker:agents
@@ -24,7 +24,7 @@ async function tick() {
   }
 
   try {
-    const res = await fetch(`${baseUrl}/api/platform/agents/worker`, {
+    const res = await fetch(`${baseUrl}/api/cron/agents/worker`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${secret}`,
@@ -53,7 +53,7 @@ async function tick() {
 }
 
 console.log(
-  `Agent worker loop → ${baseUrl}/api/platform/agents/worker every ${intervalSec}s`,
+  `Agent worker loop → ${baseUrl}/api/cron/agents/worker every ${intervalSec}s`,
 );
 
 void tick();

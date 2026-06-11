@@ -53,11 +53,12 @@ export type AdapterExecutionResult = {
   };
 };
 
-/** Priority: on_demand > approval/delegation > event > timer */
+/** Priority: on_demand > approval/delegation/chat > event > timer */
 export const WAKEUP_SOURCE_PRIORITY: Record<AgentWakeupSource, number> = {
   on_demand: 0,
   approval: 1,
   delegation: 1,
+  chat: 1,
   event: 2,
   timer: 3,
 };

@@ -140,6 +140,10 @@ model Organization {
   codeAnalysisPullRequests CodeAnalysisPullRequest[]
   integrationConnectInvites IntegrationConnectInvite[]
   deliveryAnalysisSnapshots DeliveryAnalysisSnapshot[]
+  agentChatThreads         AgentChatThread[]
+  agentChatParticipants    AgentChatParticipant[]
+  agentChatMessages        AgentChatMessage[]
+  agentChatStreamChunks    AgentChatStreamChunk[]
 }
 
 enum MetricSource {
@@ -295,6 +299,46 @@ enum AgentWakeupSource {
   approval
   on_demand
   delegation
+  chat
+}
+
+enum AgentChatThreadStatus {
+  open
+  routing
+  active
+  awaiting_human
+  done
+  stalled
+}
+
+enum AgentChatMessageKind {
+  human
+  agent_reply
+  system
+  approval_request
+  approval_resolved
+}
+
+enum AgentChatParticipantRole {
+  coordinator
+  specialist
+  human
+}
+
+enum AgentChatStreamChunkKind {
+  text_delta
+  thinking_delta
+  tool_start
+  tool_end
+  run_complete
+  run_error
+}
+
+enum AgentChatExternalSource {
+  web
+  slack
+  discord
+  api
 }
 
 enum AgentWakeupStatus {
@@ -361,7 +405,9 @@ model AgentRegistry {
   directReports   AgentRegistry[]       @relation("AgentReportsTo")
   apiKeys         AgentApiKey[]
   wakeupRequests  AgentWakeupRequest[]
-  heartbeatRuns   AgentHeartbeatRun[]
+  heartbeatRuns        AgentHeartbeatRun[]
+  chatParticipants     AgentChatParticipant[]
+  chatMessagesAuthored AgentChatMessage[] @relation("ChatMessageAuthorAgent")
 
   @@index([organizationId, status])
   @@index([organizationId, role])
@@ -581,7 +627,10 @@ model User {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   approvals      Approval[]   @relation("Approver")
   auditLogs      AuditLog[]
-  acceleratorProjects AcceleratorProject[]
+  acceleratorProjects   AcceleratorProject[]
+  agentChatThreadsCreated AgentChatThread[] @relation("ChatThreadCreator")
+  chatParticipants      AgentChatParticipant[]
+  chatMessagesAuthored  AgentChatMessage[] @relation("ChatMessageAuthorUser")
 }
 
 model OrganizationProfile {
@@ -699,6 +748,7 @@ model Approval {
   organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   recommendation Recommendation? @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
   approver       User?           @relation("Approver", fields: [approverId], references: [id])
+  chatMessages   AgentChatMessage[]
 
   @@index([organizationId, type])
 }
@@ -811,4 +861,88 @@ model DeliveryAnalysisSnapshot {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, syncedAt])
+}
+
+model AgentChatThread {
+  id                 String                   @id @default(cuid())
+  organizationId     String
+  title              String
+  status             AgentChatThreadStatus    @default(open)
+  contextSummary     String?
+  createdByUserId    String?
+  externalSource     AgentChatExternalSource  @default(web)
+  externalChannelId  String?
+  externalThreadId   String?
+  closedAt           DateTime?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+
+  organization  Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy     User?                    @relation("ChatThreadCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  participants  AgentChatParticipant[]
+  messages      AgentChatMessage[]
+
+  @@unique([organizationId, externalSource, externalThreadId])
+  @@index([organizationId, status, updatedAt])
+}
+
+model AgentChatParticipant {
+  id               String                   @id @default(cuid())
+  organizationId   String
+  threadId         String
+  role             AgentChatParticipantRole
+  agentId          String?
+  userId           String?
+  invitedAt        DateTime                 @default(now())
+  invitedByAgentId String?
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  thread       AgentChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  agent        AgentRegistry?  @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  user         User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([threadId, agentId])
+  @@unique([threadId, userId])
+  @@index([organizationId, threadId])
+}
+
+model AgentChatMessage {
+  id              String               @id @default(cuid())
+  organizationId  String
+  threadId        String
+  kind            AgentChatMessageKind
+  contentMarkdown String               @default("")
+  reasoningJson   String               @default("{}")
+  authorUserId    String?
+  authorAgentId   String?
+  targetAgentId   String?
+  approvalId      String?
+  runId           String?
+  createdAt       DateTime             @default(now())
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  thread       AgentChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  authorUser   User?           @relation("ChatMessageAuthorUser", fields: [authorUserId], references: [id], onDelete: SetNull)
+  authorAgent  AgentRegistry?  @relation("ChatMessageAuthorAgent", fields: [authorAgentId], references: [id], onDelete: SetNull)
+  approval     Approval?       @relation(fields: [approvalId], references: [id], onDelete: SetNull)
+
+  @@index([threadId, createdAt])
+  @@index([organizationId, threadId])
+}
+
+model AgentChatStreamChunk {
+  id             String                   @id @default(cuid())
+  organizationId String
+  threadId       String
+  runId          String
+  messageId      String?
+  sequence       Int
+  kind           AgentChatStreamChunkKind
+  payloadJson    String                   @default("{}")
+  createdAt      DateTime                 @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, runId, sequence])
+  @@index([threadId, createdAt])
 }

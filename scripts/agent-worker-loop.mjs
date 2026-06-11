@@ -1,5 +1,5 @@
 /**
- * Production agent worker — polls POST /api/platform/agents/worker.
+ * Production agent worker — polls POST /api/cron/agents/worker.
  * Used by Docker when AIDOS_PROCESS_ROLE=worker (no tsx required).
  */
 const baseUrl = (
@@ -18,7 +18,7 @@ async function tick() {
   }
 
   try {
-    const res = await fetch(`${baseUrl}/api/platform/agents/worker`, {
+    const res = await fetch(`${baseUrl}/api/cron/agents/worker`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${secret}`,
@@ -47,7 +47,7 @@ async function tick() {
 }
 
 console.log(
-  `AIDOS agent worker → ${baseUrl}/api/platform/agents/worker every ${intervalSec}s`,
+  `AIDOS agent worker → ${baseUrl}/api/cron/agents/worker every ${intervalSec}s`,
 );
 
 await tick();

@@ -110,7 +110,7 @@ export default async function AgentsManagementPage() {
       <p className="text-xs text-slate-600">
         Invoke queues a wakeup (async). Drain the queue with{" "}
         <code className="text-slate-500">npm run worker:agents</code> in dev or{" "}
-        <code className="text-slate-500">POST /api/platform/agents/worker</code>{" "}
+        <code className="text-slate-500">POST /api/cron/agents/worker</code>{" "}
         (Bearer PLATFORM_WORKER_SECRET) every 30–60s in production.
       </p>
     </div>

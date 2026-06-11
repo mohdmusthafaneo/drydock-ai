@@ -14,6 +14,7 @@ import {
   isAgentRunnable,
 } from "./wakeup";
 import { resolveRuntimeConfig } from "./runtime-config";
+import { postChatRunReplyIfNeeded } from "@/lib/agent-chat/reply-bridge";
 
 export type WorkerRunResult = {
   timersEnqueued: number;
@@ -225,6 +226,17 @@ async function executeHeartbeatRun(wakeupId: string): Promise<boolean> {
       metadata: { source: wakeup.source, reason: wakeup.reason },
     });
   });
+
+  if (wakeup.source === "chat") {
+    await postChatRunReplyIfNeeded({
+      organizationId,
+      agentId: agent.id,
+      runId: run.id,
+      wakeupPayloadJson: wakeup.payloadJson,
+      summary: adapterResult.summary,
+      error: adapterResult.error,
+    }).catch(() => undefined);
+  }
 
   return runStatus === "succeeded";
 }

@@ -1,0 +1,53 @@
+import { prisma } from "@/lib/prisma";
+import type { ChatWakeupPayload } from "./types";
+
+/** After a chat-source heartbeat, mirror run summary into the thread timeline (5.6a bridge until 5.6b tools). */
+export async function postChatRunReplyIfNeeded(input: {
+  organizationId: string;
+  agentId: string;
+  runId: string;
+  wakeupPayloadJson: string;
+  summary?: string;
+  error?: string;
+}): Promise<void> {
+  const payload = parsePayload(input.wakeupPayloadJson);
+  const threadId = payload.threadId;
+  if (!threadId) return;
+
+  const existing = await prisma.agentChatMessage.findFirst({
+    where: { organizationId: input.organizationId, runId: input.runId },
+  });
+  if (existing) return;
+
+  const content =
+    input.summary?.trim() ||
+    (input.error ? `I could not complete this request: ${input.error}` : "");
+
+  if (!content) return;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.agentChatMessage.create({
+      data: {
+        organizationId: input.organizationId,
+        threadId,
+        kind: "agent_reply",
+        contentMarkdown: content.slice(0, 8000),
+        authorAgentId: input.agentId,
+        runId: input.runId,
+      },
+    });
+
+    await tx.agentChatThread.update({
+      where: { id: threadId },
+      data: { status: "active", updatedAt: new Date() },
+    });
+  });
+}
+
+function parsePayload(json: string): ChatWakeupPayload & Record<string, unknown> {
+  try {
+    return JSON.parse(json) as ChatWakeupPayload & Record<string, unknown>;
+  } catch {
+    return {} as ChatWakeupPayload & Record<string, unknown>;
+  }
+}

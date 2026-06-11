@@ -18,6 +18,7 @@ const publicPaths = [
 const publicPathPrefixes = [
   "/connect/",
   "/api/integrations/external/",
+  "/api/cron/",
   "/api/platform/",
   "/api/agents/me",
   "/api/agents/hire",

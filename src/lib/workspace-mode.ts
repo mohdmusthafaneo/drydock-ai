@@ -16,6 +16,7 @@ import {
   BarChart3,
   ScrollText,
   Bot,
+  MessagesSquare,
   Server,
   AlertTriangle,
   Plug,
@@ -172,6 +173,7 @@ export function getEnterpriseNavLayout(): EnterpriseNavLayout {
           { href: "/reports", label: "Reports", icon: BarChart3 },
           { href: "/audit", label: "Audit logs", icon: ScrollText },
           { href: "/agents", label: "Agents", icon: Bot },
+          { href: "/agent-threads", label: "Agent threads", icon: MessagesSquare },
           { href: "/admin", label: "Admin", icon: Users },
         ],
       },
@@ -293,6 +295,7 @@ export function isEnterpriseOnlyPath(pathname: string): boolean {
     "/reports",
     "/audit",
     "/agents",
+    "/agent-threads",
     "/admin",
   ];
   return prefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`));
