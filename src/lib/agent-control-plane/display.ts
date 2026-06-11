@@ -28,13 +28,21 @@ export function displayAgentStatus(status: string): string {
   return status;
 }
 
-export function formatHeartbeatAge(date: Date | null | undefined): string {
-  if (!date) return "Never";
-  const sec = Math.floor((Date.now() - date.getTime()) / 1000);
+function toDate(value: Date | string | null | undefined): Date | null {
+  if (!value) return null;
+  return value instanceof Date ? value : new Date(value);
+}
+
+export function formatHeartbeatAge(
+  date: Date | string | null | undefined,
+): string {
+  const parsed = toDate(date);
+  if (!parsed) return "Never";
+  const sec = Math.floor((Date.now() - parsed.getTime()) / 1000);
   if (sec < 60) return `${sec}s ago`;
   if (sec < 3600) return `${Math.floor(sec / 60)}m ago`;
   if (sec < 86400) return `${Math.floor(sec / 3600)}h ago`;
-  return date.toLocaleString();
+  return parsed.toLocaleString();
 }
 
 export function runStatusVariant(
@@ -56,11 +64,13 @@ export function runStatusVariant(
 }
 
 export function formatDuration(
-  startedAt: Date,
-  finishedAt: Date | null,
+  startedAt: Date | string,
+  finishedAt: Date | string | null,
 ): string {
-  const end = finishedAt ?? new Date();
-  const ms = end.getTime() - startedAt.getTime();
+  const start = toDate(startedAt);
+  const end = toDate(finishedAt) ?? new Date();
+  if (!start) return "—";
+  const ms = end.getTime() - start.getTime();
   if (ms < 1000) return `${ms}ms`;
   return `${(ms / 1000).toFixed(1)}s`;
 }

@@ -193,6 +193,52 @@ Update checkboxes as subtasks complete. **Done when** column is the acceptance t
 
 ---
 
+### Phase 5.6h — TanStack Query live data layer (agents & threads)
+
+**Scope:** Cross-cutting frontend infrastructure for all agent control-plane and agent-thread surfaces. Today these pages are Server Components with direct Prisma reads — status, tables, and timelines go stale until a full navigation or hard refresh. This phase introduces **TanStack Query** (`@tanstack/react-query`) with **manual refetch**, **interval polling** for in-flight work, and **mutation invalidation** after user actions.
+
+**Prerequisite:** JSON session APIs already exist (`GET /api/agents`, `GET /api/agents/[id]`, `GET /api/agents/[id]/runs`, `GET /api/agents/[id]/runs/[runId]`, `GET /api/agent-threads`, `GET /api/agent-threads/[id]`). Pages may keep RSC shells for auth redirects; data tables and live panels become client islands backed by these routes.
+
+| ID | Subtask | Owner | Done when | Status |
+|----|---------|-------|-----------|--------|
+| 5.6h.1 | Add `@tanstack/react-query` dependency | `/frontend` | `package.json` updated; `npm install` succeeds | ✅ |
+| 5.6h.2 | `QueryProvider` in `(platform)` layout with shared defaults (`staleTime`, `retry`, `refetchOnWindowFocus`) | `/frontend` | All platform routes can use hooks; dev-only Devtools optional | ✅ |
+| 5.6h.3 | Query key factory `src/lib/queries/keys.ts` — `agentKeys`, `runKeys`, `threadKeys` | `/frontend` | Stable hierarchical keys; documented in file header | ✅ |
+| 5.6h.4 | `useAgentsQuery` — `GET /api/agents` | `/frontend` | Returns typed agent list; `credentials: "same-origin"` | ✅ |
+| 5.6h.5 | Agents list (`/agents`) — client table island + **Refresh** button | `/frontend` | Manual refetch works; no full page reload | ✅ |
+| 5.6h.6 | Agents list auto-poll — `refetchInterval: 5000` when any agent status is `running` or `queuedWakeups > 0` | `/frontend` | Invoke / worker activity updates cards in place | ✅ |
+| 5.6h.7 | `useAgentDetailQuery` — `GET /api/agents/[id]` | `/frontend` | Agent detail header reflects live status + wakeup queue | ✅ |
+| 5.6h.8 | `useAgentRunsQuery` — `GET /api/agents/[id]/runs` | `/frontend` | Runs table data typed; supports `limit` param | ✅ |
+| 5.6h.9 | Runs table (`/agents/[id]/runs`) — client island + **Refresh** + poll while latest run is non-terminal | `/frontend` | Row status / duration updates without navigation | ✅ |
+| 5.6h.10 | `useRunDetailQuery` — `GET /api/agents/[id]/runs/[runId]` + poll until `completed` / `failed` / `cancelled` | `/frontend` | Run detail page shows completion live | ✅ |
+| 5.6h.11 | `useAgentThreadsQuery` — `GET /api/agent-threads?status=` | `/frontend` | Thread list respects open/done tab filter | ✅ |
+| 5.6h.12 | Thread list (`/agent-threads`) — client island + **Refresh** + poll when any listed thread is `routing` / `active` / `awaiting_human` | `/frontend` | New replies and status badges appear without reload | ✅ |
+| 5.6h.13 | `useAgentThreadQuery` — `GET /api/agent-threads/[id]` | `/frontend` | Thread detail timeline + participants typed | ✅ |
+| 5.6h.14 | Thread detail poll fallback — interval refetch on `/agent-threads/[id]` (complements 5.6c SSE; primary path before SSE lands) | `/frontend` | New messages appear within poll interval after compose / agent reply | ✅ |
+| 5.6h.15 | Mutation invalidation map — Invoke, Pause, Resume, Wakeup, Hire, post message, create thread | `/frontend` | Each mutation invalidates affected `agentKeys` / `runKeys` / `threadKeys` | ✅ |
+| 5.6h.16 | Shared `DataRefreshButton` component (loading spinner, last-updated label) | `/frontend` | Reused on agents, runs, thread list, thread detail | ✅ |
+| 5.6h.17 | Loading / error / empty states for all query-backed islands | `/frontend` | Skeleton or spinner on first fetch; retry on error | ✅ |
+| 5.6h.18 | Update `.cursor/rules/frontend-scope.mdc` — when to use TanStack Query vs RSC | `/frontend` | Rule documents client-island pattern for live data | ✅ |
+
+**Phase 5.6h exit criteria**
+
+- [x] `/agents` table updates after Invoke without page reload.
+- [x] `/agents/[id]/runs` shows run status transitions while worker is active.
+- [x] `/agents/[id]/runs/[runId]` polls until run reaches terminal state.
+- [x] `/agent-threads` and `/agent-threads/[id]` pick up new messages and status changes via refetch / poll.
+- [x] Mutations (invoke, pause, send message, create thread) invalidate the correct queries.
+- [x] `npm run build` passes.
+
+**Implementation thread prompt (copy into new chat):**
+
+```text
+Implement Phase 5.6h from docs/ai-agents-chat-system.md — TanStack Query live data layer.
+Start with 5.6h.1–5.6h.3 (provider + keys), then agents list (5.6h.4–5.6h.6), runs (5.6h.8–5.6h.10), threads (5.6h.11–5.6h.14), mutations (5.6h.15).
+Keep RSC shells for auth; convert tables and live panels to client islands using existing GET APIs.
+```
+
+---
+
 ## 3. Architecture
 
 ```
@@ -783,6 +829,7 @@ Week 2   5.6b — Super routing, invite, specialist replies
 Week 3   5.6c — SSE streaming + reasoning expander
 Week 4   5.6d + 5.6e — lifecycle + in-thread approvals
 Week 5   5.6f + 5.6g — context limits, multi-agent, ingress stub
+Week 6   5.6h — TanStack Query live data (agents, runs, threads)
          Architect review + npm run build
 ```
 
@@ -821,3 +868,4 @@ Parallelization:
 | Date | Change |
 |------|--------|
 | 2026-06-11 | Initial plan from product clarification session |
+| 2026-06-11 | Added Phase 5.6h — TanStack Query live data layer for agents & threads |

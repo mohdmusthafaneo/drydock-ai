@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import {
+  invalidateThreadDetail,
+  invalidateThreadList,
+} from "@/lib/queries/invalidate";
 import { Input, Label } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -19,6 +24,7 @@ export function ComposeBox({
   mentionableAgents?: MentionableAgent[];
 }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [content, setContent] = useState("");
   const [targetAgentId, setTargetAgentId] = useState("");
   const [loading, setLoading] = useState(false);
@@ -52,7 +58,7 @@ export function ComposeBox({
 
     setContent("");
     setTargetAgentId("");
-    router.refresh();
+    await invalidateThreadDetail(queryClient, threadId);
   }
 
   function onMentionSelect(agentId: string) {
@@ -121,6 +127,7 @@ export function ComposeBox({
 
 export function CreateThreadForm() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -157,8 +164,8 @@ export function CreateThreadForm() {
       return;
     }
 
+    await invalidateThreadList(queryClient);
     router.push(`/agent-threads/${data.threadId}`);
-    router.refresh();
   }
 
   return (

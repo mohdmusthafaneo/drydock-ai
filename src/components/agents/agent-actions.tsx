@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { invalidateAgentDetail } from "@/lib/queries/invalidate";
 
 type AgentActionsProps = {
   agentId: string;
@@ -30,9 +31,13 @@ function sleep(ms: number) {
 }
 
 export function AgentActions({ agentId, status }: AgentActionsProps) {
-  const router = useRouter();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+
+  async function refreshAgentData() {
+    await invalidateAgentDetail(queryClient, agentId);
+  }
 
   async function pollWakeup(wakeupId: string): Promise<WakeupStatusResponse | null> {
     const deadline = Date.now() + POLL_TIMEOUT_MS;
@@ -89,14 +94,14 @@ export function AgentActions({ agentId, status }: AgentActionsProps) {
             "Wakeup queued — enable AGENT_WORKER_ENABLED and run npm run worker:agents",
           );
           setLoading(null);
-          router.refresh();
+          await refreshAgentData();
           return;
         }
 
         if (!data.wakeupId) {
           setMessage("Wakeup queued");
           setLoading(null);
-          router.refresh();
+          await refreshAgentData();
           return;
         }
 
@@ -113,7 +118,7 @@ export function AgentActions({ agentId, status }: AgentActionsProps) {
           setMessage(
             "Still queued or running — check run history (start npm run worker:agents in dev)",
           );
-          router.refresh();
+          await refreshAgentData();
           return;
         }
 
@@ -132,11 +137,11 @@ export function AgentActions({ agentId, status }: AgentActionsProps) {
           setMessage("Heartbeat finished");
         }
 
-        router.refresh();
+        await refreshAgentData();
         return;
       }
 
-      router.refresh();
+      await refreshAgentData();
       return;
     }
 

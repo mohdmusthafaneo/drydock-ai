@@ -4,6 +4,7 @@ import { getOrganizationContext } from "@/lib/org-data";
 import { getOnboardingSteps } from "@/lib/onboarding";
 import { OnboardingBanner } from "@/components/layout/onboarding-banner";
 import { AppShell } from "@/components/layout/app-shell";
+import { QueryProvider } from "@/components/providers/query-provider";
 import { prisma } from "@/lib/prisma";
 import type { SessionPayload } from "@/lib/session";
 import { isNavPathEnabled } from "@/lib/feature-flags";
@@ -123,7 +124,7 @@ export async function PlatformShell({
       homePath={homePath}
     >
       <OnboardingBanner steps={steps} workspaceMode={workspaceMode} />
-      {children}
+      <QueryProvider>{children}</QueryProvider>
     </AppShell>
   );
 }

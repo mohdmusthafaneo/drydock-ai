@@ -9,7 +9,8 @@ alwaysApply: false
 - Design tokens: bg `#0B1020`, card `#1B2435`, accent `#4F8CFF`, AI `#8B5CF6`.
 - Reuse `src/components/ui/*`, `AppShell`, `MobileNav`, `OnboardingBanner`.
 - `fetch` must use `credentials: "same-origin"`.
-- Prefer Server Components; client only for forms/wizards/nav.
+- Prefer Server Components for auth redirects and static shells; use **TanStack Query client islands** for live agent/thread data (`src/lib/queries/*`, `DataRefreshButton`).
+- Client components: forms, wizards, nav, and query-backed tables/timelines that need refetch or polling.
 - Keep mobile bottom nav visible; pad main content (`pb-24` on mobile).
 
 @src/components/layout/app-shell.tsx

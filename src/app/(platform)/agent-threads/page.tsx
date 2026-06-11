@@ -2,9 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { getOrganizationContext } from "@/lib/org-data";
-import { listAgentChatThreads } from "@/lib/agent-chat";
 import { Button } from "@/components/ui/button";
-import { ThreadList, ThreadListTabs } from "@/components/agent-chat/thread-list";
+import { ThreadListTabs } from "@/components/agent-chat/thread-list";
+import { ThreadListPanel } from "@/components/agent-chat/thread-list-panel";
 
 type PageProps = {
   searchParams: Promise<{ status?: string }>;
@@ -19,9 +19,6 @@ export default async function AgentThreadsPage({ searchParams }: PageProps) {
 
   const params = await searchParams;
   const statusParam = params.status === "done" ? "done" : "open";
-  const { threads } = await listAgentChatThreads(session.organizationId, {
-    status: statusParam,
-  });
 
   return (
     <div className="space-y-6">
@@ -39,8 +36,8 @@ export default async function AgentThreadsPage({ searchParams }: PageProps) {
 
       <ThreadListTabs active={statusParam} />
 
-      <ThreadList
-        threads={threads}
+      <ThreadListPanel
+        status={statusParam}
         emptyLabel={
           statusParam === "done"
             ? "No closed threads yet."
