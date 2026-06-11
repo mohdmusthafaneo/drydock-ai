@@ -140,21 +140,21 @@ Update checkboxes as subtasks complete. **Done when** column is the acceptance t
 
 | ID | Subtask | Owner | Done when | Status |
 |----|---------|-------|-----------|--------|
-| 5.6e.1 | `Approval.payloadJson` includes `threadId`, `messageId` (optional) | `/backend` | Existing approval create paths accept chat context | ⬜ |
-| 5.6e.2 | New tool: `aidos_request_approval` | `/backend` | Creates `Approval` row; posts `approval_request` message kind | ⬜ |
-| 5.6e.3 | Thread status → `awaiting_human` on approval request | `/backend` | Automatic on tool success | ⬜ |
-| 5.6e.4 | `POST /api/agent-threads/[id]/approvals/[approvalId]/decide` — thin wrapper | `/backend` | Delegates to existing approval logic + audit | ⬜ |
-| 5.6e.5 | Approval decided → enqueue `approval` wakeup to `requestedByAgentId` with `threadId` | `/backend` | Reuses existing approval handler pattern | ⬜ |
-| 5.6e.6 | Agent posts `approval_resolved` system message after decision | `/backend` | Visible in thread timeline | ⬜ |
-| 5.6e.7 | In-thread approval card component (Approve / Reject) | `/frontend` | Calls decide API; role-gated like Approval Center | ⬜ |
-| 5.6e.8 | Deep link to `/approvals` from card | `/frontend` | Same approval id | ⬜ |
-| 5.6e.9 | Update `skills/aidos/SKILL.md` — chat + approval flow | `/backend` | LLM knows to use `aidos_request_approval` for critical actions | ⬜ |
+| 5.6e.1 | `Approval.payloadJson` includes `threadId`, `messageId` (optional) | `/backend` | Existing approval create paths accept chat context | ✅ |
+| 5.6e.2 | New tool: `aidos_request_approval` | `/backend` | Creates `Approval` row; posts `approval_request` message kind | ✅ |
+| 5.6e.3 | Thread status → `awaiting_human` on approval request | `/backend` | Automatic on tool success | ✅ |
+| 5.6e.4 | `POST /api/agent-threads/[id]/approvals/[approvalId]/decide` — thin wrapper | `/backend` | Delegates to existing approval logic + audit | ✅ |
+| 5.6e.5 | Approval decided → enqueue `approval` wakeup to `requestedByAgentId` with `threadId` | `/backend` | Reuses existing approval handler pattern | ✅ |
+| 5.6e.6 | Agent posts `approval_resolved` system message after decision | `/backend` | Visible in thread timeline | ✅ |
+| 5.6e.7 | In-thread approval card component (Approve / Reject) | `/frontend` | Calls decide API; role-gated like Approval Center | ✅ |
+| 5.6e.8 | Deep link to `/approvals` from card | `/frontend` | Same approval id | ✅ |
+| 5.6e.9 | Update `skills/aidos/SKILL.md` — chat + approval flow | `/backend` | LLM knows to use `aidos_request_approval` for critical actions | ✅ |
 
 **Phase 5.6e exit criteria**
 
-- [ ] Agent proposes critical action → approval card in thread → human approves → agent wakes and completes → reply in thread.
-- [ ] Audit log entries match Approval Center decisions.
-- [ ] `npm run build` passes.
+- [x] Agent proposes critical action → approval card in thread → human approves → agent wakes and completes → reply in thread.
+- [x] Audit log entries match Approval Center decisions.
+- [x] `npm run build` passes.
 
 ---
 

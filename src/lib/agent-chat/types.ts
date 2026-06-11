@@ -85,6 +85,14 @@ export type AgentChatThreadDetail = AgentChatThread & {
   messages: (AgentChatMessage & {
     authorUser: { id: string; name: string } | null;
     authorAgent: { id: string; displayName: string } | null;
+    approval: {
+      id: string;
+      type: string;
+      title: string | null;
+      decision: string | null;
+      payloadJson: string;
+      recommendation: { title: string; requiredRole: string | null } | null;
+    } | null;
   })[];
 };
 

@@ -12,6 +12,10 @@ import {
   parseRuntimeConfig,
   serializeRuntimeConfig,
 } from "./runtime-config";
+import {
+  mergeApprovalPayload,
+  type ApprovalChatContext,
+} from "@/lib/approvals/chat-context";
 import { enqueueWakeup } from "./wakeup";
 import { resolveHireAgentsMd, buildHiredAgentInstructionFiles } from "./hire-templates";
 
@@ -115,6 +119,7 @@ export async function createAgentHireRequest(input: {
   organizationId: string;
   requestingAgentId: string;
   body: z.infer<typeof hireRequestSchema>;
+  chatContext?: ApprovalChatContext;
 }) {
   const parsed = hireRequestSchema.parse(input.body);
   const { body, agentsMdEnriched } = await normalizeHireBody(parsed);
@@ -184,7 +189,9 @@ export async function createAgentHireRequest(input: {
         organizationId: input.organizationId,
         type: "AGENT_HIRE",
         title: `Hire agent: ${body.displayName}`,
-        payloadJson: JSON.stringify(hirePayload),
+        payloadJson: input.chatContext
+          ? mergeApprovalPayload(hirePayload, input.chatContext)
+          : JSON.stringify(hirePayload),
         requestedByAgentId: input.requestingAgentId,
         riskScore: 0.5,
       },

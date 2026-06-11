@@ -242,6 +242,40 @@ const TOOL_DEFINITIONS: Record<string, LlmToolDefinition> = {
       required: ["threadId"],
     },
   },
+  aidos_request_approval: {
+    name: "aidos_request_approval",
+    description:
+      "Request human approval for a critical action in an operational chat thread. Posts an approval card and sets thread to awaiting_human.",
+    input_schema: {
+      type: "object",
+      properties: {
+        threadId: { type: "string", description: "Agent chat thread id" },
+        title: { type: "string", description: "Short approval title" },
+        description: {
+          type: "string",
+          description: "What action requires approval and why",
+        },
+        rationale: {
+          type: "string",
+          description: "Optional governance rationale",
+        },
+        action: {
+          type: "string",
+          description: "Action key, e.g. assess_release, integration_mutation",
+        },
+        requiredRole: {
+          type: "string",
+          enum: ["QA_LEAD", "DEVOPS_LEAD", "ENGINEERING_MANAGER", "ORG_ADMIN"],
+        },
+        riskScore: { type: "number", description: "0.0 to 1.0" },
+        payload: {
+          type: "object",
+          description: "Optional extra context (releaseId, etc.)",
+        },
+      },
+      required: ["threadId", "title", "description", "action"],
+    },
+  },
 };
 
 const TOOL_TO_REGISTRY: Record<string, AgentToolName | null> = {
@@ -258,6 +292,7 @@ const TOOL_TO_REGISTRY: Record<string, AgentToolName | null> = {
   aidos_close_thread: null,
   aidos_reopen_thread: null,
   aidos_await_human_input: null,
+  aidos_request_approval: null,
 };
 
 export function buildAidosLlmTools(
@@ -497,6 +532,30 @@ export async function executeAidosTool(
             method: "POST",
             body: JSON.stringify({
               promptMarkdown: args.promptMarkdown,
+            }),
+          },
+        );
+        return JSON.stringify(await parseAgentResponse(res));
+      }
+
+      case "aidos_request_approval": {
+        const threadId = args.threadId;
+        if (typeof threadId !== "string" || !threadId) {
+          return JSON.stringify({ error: "threadId is required" });
+        }
+        const res = await agentFetch(
+          ctx,
+          `/api/agents/me/chat/threads/${encodeURIComponent(threadId)}/approvals`,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              title: args.title,
+              description: args.description,
+              rationale: args.rationale,
+              action: args.action,
+              requiredRole: args.requiredRole,
+              riskScore: args.riskScore,
+              payload: args.payload,
             }),
           },
         );

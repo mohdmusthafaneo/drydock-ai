@@ -5,6 +5,8 @@ import type {
   AgentStatus,
   AgentHeartbeatRunStatus,
   AgentWakeupSource,
+  ApprovalDecision,
+  ApprovalType,
 } from "@/generated/prisma/client";
 
 export type AgentListItem = {
@@ -152,6 +154,14 @@ export type AgentThreadDetailResponse = {
       createdAt: string;
       authorUser: { id: string; name: string } | null;
       authorAgent: { id: string; displayName: string } | null;
+      approval: {
+        id: string;
+        type: ApprovalType;
+        title: string | null;
+        decision: ApprovalDecision | null;
+        payloadJson: string;
+        recommendation: { title: string; requiredRole: string | null } | null;
+      } | null;
     }>;
   };
 };

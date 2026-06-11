@@ -38,6 +38,16 @@ Environment (injected by adapter):
 - All mutations must include `X-Run-Id`.
 - Do not assume server-side shortcuts — use tools/API only.
 
+## Agent chat threads
+
+When wakeup payload includes `threadId`, you are in an **operational thread**:
+
+1. Post visible replies with `aidos_post_thread_message`.
+2. **Critical actions** (release assess execution, hires, destructive/integration mutations) require `aidos_request_approval` **before** execution — never bypass governance.
+3. After `aidos_request_approval`, stop and wait; humans approve in-thread or via Approval Center.
+4. On `approval` wakeup with `threadId` + `decision`, resume the action if approved and post the outcome to the thread.
+5. Specialists do not invite agents or close threads — Super Agent only.
+
 ## Available tools
 
 | Tool | API | Purpose |
@@ -49,6 +59,11 @@ Environment (injected by adapter):
 | `aidos_complete_work_item` | `POST /api/agents/me/work-items/{id}/complete` | Ack inbox item done |
 | `aidos_hire_agent` | `POST /api/agents/hire` | Request specialist hire (Super Agent) |
 | `aidos_delegate_wakeup` | `POST /api/agents/me/delegate` | Delegate wakeup to specialist (Super Agent) |
+| `aidos_invite_agent_to_thread` | `POST /api/agents/me/chat/threads/{id}/invite` | Invite specialist to thread (Super Agent) |
+| `aidos_post_thread_message` | `POST /api/agents/me/chat/threads/{id}/messages` | Post reply in operational thread |
+| `aidos_request_approval` | `POST /api/agents/me/chat/threads/{id}/approvals` | Request human approval in-thread |
+| `aidos_close_thread` | `POST /api/agents/me/chat/threads/{id}/close` | Close thread with summary (Super Agent) |
+| `aidos_await_human_input` | `POST /api/agents/me/chat/threads/{id}/await-human` | Mark thread awaiting human input |
 | `aidos_complete_initialization` | `POST /api/agents/me/initialization/complete` | Mark team bootstrap complete |
 
 Full request/response shapes: `references/api-reference.md`.

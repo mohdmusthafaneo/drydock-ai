@@ -8,6 +8,12 @@ import type { AgentChatMessageKind } from "@/generated/prisma/client";
 import { ReasoningExpander } from "@/components/agent-chat/reasoning-expander";
 import { StreamingMessageBubble } from "@/components/agent-chat/streaming-message";
 import type { StreamingMessageState } from "@/components/agent-chat/use-agent-thread-stream";
+import {
+  ApprovalInlineCard,
+  resolveApprovalRequiredRole,
+  resolveApprovalTitle,
+  type ThreadApprovalSnapshot,
+} from "@/components/agent-chat/approval-inline-card";
 
 export type TimelineMessage = {
   id: string;
@@ -17,6 +23,7 @@ export type TimelineMessage = {
   createdAt: Date | string;
   authorUser: { id: string; name: string } | null;
   authorAgent: { id: string; displayName: string } | null;
+  approval?: ThreadApprovalSnapshot | null;
 };
 
 function authorLabel(message: TimelineMessage): string {
@@ -33,16 +40,37 @@ function parseReasoning(json?: string): ReasoningJson {
   return parseReasoningJson(json ?? "{}");
 }
 
-export function MessageBubble({ message }: { message: TimelineMessage }) {
+type MessageBubbleProps = {
+  message: TimelineMessage;
+  threadId?: string;
+};
+
+export function MessageBubble({ message, threadId }: MessageBubbleProps) {
   const isHuman = message.kind === "human";
-  const isSystem =
-    message.kind === "system" ||
-    message.kind === "approval_request" ||
-    message.kind === "approval_resolved";
+  const isApprovalRequest = message.kind === "approval_request";
+  const isApprovalResolved = message.kind === "approval_resolved";
+  const isSystem = message.kind === "system";
   const isAgentReply = message.kind === "agent_reply";
   const reasoning = isAgentReply ? parseReasoning(message.reasoningJson) : null;
 
-  if (isSystem) {
+  if (isApprovalRequest && threadId && message.approval) {
+    const approval = message.approval;
+    return (
+      <div className="flex justify-center px-2 py-2">
+        <ApprovalInlineCard
+          threadId={threadId}
+          approvalId={approval.id}
+          title={resolveApprovalTitle(message.contentMarkdown, approval)}
+          contentMarkdown={message.contentMarkdown}
+          type={approval.type}
+          decision={approval.decision}
+          requiredRole={resolveApprovalRequiredRole(approval)}
+        />
+      </div>
+    );
+  }
+
+  if (isApprovalResolved || isSystem) {
     return (
       <div className="flex justify-center px-2 py-1">
         <div className="max-w-lg rounded-lg border border-white/10 bg-[#131A2A]/80 px-4 py-2 text-center text-xs text-slate-400">
@@ -91,12 +119,14 @@ export function MessageBubble({ message }: { message: TimelineMessage }) {
 }
 
 type MessageTimelineProps = {
+  threadId: string;
   messages: TimelineMessage[];
   streamingMessages?: StreamingMessageState[];
   agentNameById?: Record<string, string>;
 };
 
 export function MessageTimeline({
+  threadId,
   messages,
   streamingMessages = [],
   agentNameById = {},
@@ -117,7 +147,7 @@ export function MessageTimeline({
   return (
     <div className="flex flex-col gap-2">
       {messages.map((message) => (
-        <MessageBubble key={message.id} message={message} />
+        <MessageBubble key={message.id} message={message} threadId={threadId} />
       ))}
       {activeStreaming.map((stream) => (
         <StreamingMessageBubble

@@ -221,6 +221,7 @@ export async function assessReleaseForAgent(input: {
       data: {
         organizationId: input.organizationId,
         recommendationId: recommendation.id,
+        requestedByAgentId: input.agentId,
         riskScore: assessment.governanceRiskScore / 100,
       },
     });

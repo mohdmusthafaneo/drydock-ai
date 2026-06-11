@@ -1,6 +1,10 @@
 import { z } from "zod";
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import {
+  mergeApprovalPayload,
+  type ApprovalChatContext,
+} from "@/lib/approvals/chat-context";
 import { logAgentActivity, logAgentAudit } from "./audit";
 
 const createSchema = z.object({
@@ -21,6 +25,7 @@ const createSchema = z.object({
 export type CreateAgentRecommendationInput = z.infer<typeof createSchema> & {
   organizationId: string;
   agentId: string;
+  chatContext?: ApprovalChatContext;
 };
 
 export async function createAgentRecommendation(
@@ -84,7 +89,14 @@ export async function createAgentRecommendation(
           type: "RECOMMENDATION",
           recommendationId: recommendation.id,
           title: body.title,
+          requestedByAgentId: input.agentId,
           riskScore: body.confidence,
+          payloadJson: input.chatContext
+            ? mergeApprovalPayload(
+                { recommendationId: recommendation.id },
+                input.chatContext,
+              )
+            : "{}",
         },
       });
       approvalId = approval.id;

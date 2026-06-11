@@ -96,6 +96,18 @@ async function renderWakeUserMessage(ctx: AdapterExecutionContext): Promise<stri
       ctx.agent.id,
     );
     if (chatContext) {
+      const approvalLines =
+        ctx.wakeup.source === "approval" && typeof payload.approvalId === "string"
+          ? [
+              "",
+              "## Approval decision",
+              `- approvalId: ${payload.approvalId}`,
+              `- decision: ${String(payload.decision ?? "unknown")}`,
+              "- Resume the requested action if approved; post your result via aidos_post_thread_message.",
+              "- If rejected, explain the outcome briefly in the thread.",
+            ]
+          : [];
+
       return [
         chatContext,
         "",
@@ -104,10 +116,12 @@ async function renderWakeUserMessage(ctx: AdapterExecutionContext): Promise<stri
         `- reason: ${ctx.wakeup.reason}`,
         `- runId: ${ctx.runId}`,
         `- triggerMessageId: ${String(payload.triggerMessageId ?? "")}`,
+        ...approvalLines,
         "",
         "Follow HEARTBEAT.md and skills/aidos/SKILL.md.",
         "Use tools for all mutations. Post thread replies via aidos_post_thread_message.",
         "Super Agent may close resolved threads via aidos_close_thread.",
+        "Critical actions require aidos_request_approval before execution.",
         "When work is blocked pending human approval, summarize and stop.",
       ].join("\n");
     }

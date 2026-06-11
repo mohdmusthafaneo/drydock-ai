@@ -11,6 +11,11 @@ export {
   closeAgentChatThread,
   reopenAgentChatThread,
 } from "./lifecycle";
+export {
+  enqueueThreadApprovalWakeup,
+  postApprovalResolvedMessage,
+  requestThreadApproval,
+} from "./approvals";
 export { postAgentThreadMessage } from "./messages";
 export { postChatRunReplyIfNeeded } from "./reply-bridge";
 export {

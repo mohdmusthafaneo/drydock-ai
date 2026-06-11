@@ -245,6 +245,18 @@ export async function getAgentChatThread(
         include: {
           authorUser: { select: { id: true, name: true } },
           authorAgent: { select: { id: true, displayName: true } },
+          approval: {
+            select: {
+              id: true,
+              type: true,
+              title: true,
+              decision: true,
+              payloadJson: true,
+              recommendation: {
+                select: { title: true, requiredRole: true },
+              },
+            },
+          },
         },
       },
     },

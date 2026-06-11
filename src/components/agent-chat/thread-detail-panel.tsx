@@ -115,6 +115,7 @@ export function ThreadDetailPanel({ threadId }: ThreadDetailPanelProps) {
       <div className="flex min-h-[50vh] flex-col overflow-hidden rounded-xl border border-white/10 bg-[#131A2A]/30">
         <div className="flex-1 overflow-y-auto p-4">
           <MessageTimeline
+            threadId={thread.id}
             messages={thread.messages}
             streamingMessages={streamingMessages}
             agentNameById={agentNameById}
