@@ -4,6 +4,7 @@ import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { MarkdownContent } from "@/components/ui/markdown-content";
 import {
   formatDuration,
   formatTokenUsage,
@@ -107,7 +108,13 @@ export default async function AgentRunDetailPage({ params }: PageProps) {
             <CardTitle className="text-base">Summary</CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-slate-300">
-            {run.summary ?? run.error ?? "No summary recorded."}
+            {run.summary ? (
+              <MarkdownContent content={run.summary} normalizeInlineLists />
+            ) : run.error ? (
+              <MarkdownContent content={run.error} normalizeInlineLists />
+            ) : (
+              "No summary recorded."
+            )}
           </CardContent>
         </Card>
       </div>
