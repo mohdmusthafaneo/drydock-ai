@@ -20,6 +20,11 @@ export function appUrl(path: string): URL {
   return new URL(path, getAppUrl());
 }
 
+/** Absolute URL string — use with next/navigation redirect() behind reverse proxies. */
+export function appPath(path: string): string {
+  return appUrl(path).toString();
+}
+
 export function isAppUrlConfigured(): boolean {
   const raw = process.env.NEXT_PUBLIC_APP_URL?.trim();
   return Boolean(raw);

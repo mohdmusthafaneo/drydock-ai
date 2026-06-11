@@ -10,7 +10,7 @@ import { persistGitHubAppInstallation } from "@/lib/github-app-install";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/rbac";
 import { signOAuthState } from "@/lib/oauth-state";
-import { getAppUrl, isAppUrlConfigured } from "@/lib/app-url";
+import { appPath, getAppUrl, isAppUrlConfigured } from "@/lib/app-url";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -48,7 +48,7 @@ export default async function IntegrationsPage({
   searchParams: SearchParams;
 }) {
   const session = await getSession();
-  if (!session) redirect("/login");
+  if (!session) redirect(appPath("/login"));
 
   const sp = await searchParams;
   const installationIdRaw = firstParam(sp.installation_id);
@@ -60,7 +60,7 @@ export default async function IntegrationsPage({
   if (installationIdRaw && setupAction) {
     const installationId = Number.parseInt(installationIdRaw, 10);
     if (!Number.isFinite(installationId)) {
-      redirect("/integrations?error=github_app_invalid_installation");
+      redirect(appPath("/integrations?error=github_app_invalid_installation"));
     }
 
     try {
@@ -72,10 +72,10 @@ export default async function IntegrationsPage({
       });
     } catch (err) {
       console.error("[integrations] persistGitHubAppInstallation failed:", err);
-      redirect("/integrations?error=github_app_persist_failed");
+      redirect(appPath("/integrations?error=github_app_persist_failed"));
     }
 
-    redirect("/integrations?connected=github_app");
+    redirect(appPath("/integrations?connected=github_app"));
   }
 
   const appUrl = getAppUrl();

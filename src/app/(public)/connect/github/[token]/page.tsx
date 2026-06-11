@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { appPath } from "@/lib/app-url";
 import { prisma } from "@/lib/prisma";
 import { signOAuthState } from "@/lib/oauth-state";
 import {
@@ -30,11 +31,11 @@ export default async function GitHubConnectEntryPage({ params }: PageProps) {
     });
 
     if (connectedIntegration?.status === "CONNECTED") {
-      redirect("/connect/error?code=already_connected&provider=github");
+      redirect(appPath("/connect/error?code=already_connected&provider=github"));
     }
 
     if (!appSlug) {
-      redirect("/connect/error?code=config_missing&provider=github");
+      redirect(appPath("/connect/error?code=config_missing&provider=github"));
     }
 
     const state = await signOAuthState({
@@ -76,7 +77,7 @@ export default async function GitHubConnectEntryPage({ params }: PageProps) {
     );
   } catch (err) {
     if (err instanceof ConnectInviteError) {
-      redirect(`/connect/error?code=${err.code}&provider=github`);
+      redirect(appPath(`/connect/error?code=${err.code}&provider=github`));
     }
     throw err;
   }

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { appPath } from "@/lib/app-url";
 import { prisma } from "@/lib/prisma";
 import { signOAuthState } from "@/lib/oauth-state";
 import { buildJiraAuthorizeUrl, getJiraOAuthConfig, JIRA_OAUTH_SCOPES } from "@/lib/jira-oauth";
@@ -30,12 +31,12 @@ export default async function JiraConnectEntryPage({ params }: PageProps) {
     });
 
     if (connectedIntegration?.status === "CONNECTED") {
-      redirect("/connect/error?code=already_connected&provider=jira");
+      redirect(appPath("/connect/error?code=already_connected&provider=jira"));
     }
 
     const { configured } = getJiraOAuthConfig("external");
     if (!configured) {
-      redirect("/connect/error?code=config_missing&provider=jira");
+      redirect(appPath("/connect/error?code=config_missing&provider=jira"));
     }
 
     const state = await signOAuthState({
@@ -83,7 +84,7 @@ export default async function JiraConnectEntryPage({ params }: PageProps) {
     );
   } catch (err) {
     if (err instanceof ConnectInviteError) {
-      redirect(`/connect/error?code=${err.code}&provider=jira`);
+      redirect(appPath(`/connect/error?code=${err.code}&provider=jira`));
     }
     throw err;
   }
