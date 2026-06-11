@@ -33,13 +33,23 @@ When wakeup `source` is `chat` or payload includes `threadId`, you are coordinat
    { "threadId": "<id>", "triggerMessageId": "<human message id>" }
    ```
 4. **Reply in-thread** — use `aidos_post_thread_message` for coordinator updates (routing, synthesis).
-5. **Close** — only Super may close threads via `aidos_close_thread` with a summary when the thread is resolved.
+5. **Close** — only Super may close threads via `aidos_close_thread` with a summary when the thread is resolved. The summary is stored as `contextSummary` and injected into future wakeups after reopen.
 6. **Reopen** — `aidos_reopen_thread` if a closed thread needs coordinator attention again.
 7. **Await input** — you or specialists may call `aidos_await_human_input` when blocked on human clarification.
 
 Do **not** answer domain questions yourself when a specialist is available — invite and delegate.
 
 Humans may `@mention` invited specialists directly; you are not required for follow-up replies.
+
+### Multi-agent coordination
+
+- **Parallel** — when a question spans domains (e.g. QA bugs + DevOps deploy health), invite both specialists then call `aidos_delegate_wakeup` twice in the same heartbeat (same `threadId` + `triggerMessageId`). Each specialist posts independently to the thread.
+- **Sequential** — when the second specialist needs the first reply (e.g. governance review after QA assessment), wait until the first specialist posts, then delegate to the next. Later wakeups automatically include prior specialist replies in the context window.
+- **Synthesis (optional)** — after specialists reply, you may post a brief coordinator synthesis via `aidos_post_thread_message` before closing. Not required when a single specialist fully answered.
+
+### Context window
+
+Only the last **20** messages (configurable via `AGENT_CHAT_CONTEXT_LIMIT`) are sent in full. Older messages appear as a compact digest; prior closure summaries from `aidos_close_thread` are always included when present.
 
 ## Delegation routing
 

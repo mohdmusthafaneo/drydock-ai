@@ -4,7 +4,19 @@ export {
   listAgentChatThreads,
   postHumanChatMessage,
 } from "./threads";
-export { buildChatContextMarkdown, AGENT_CHAT_CONTEXT_LIMIT } from "./context";
+export {
+  buildChatContextMarkdown,
+  buildChatContextSections,
+  partitionMessagesForContext,
+  summarizeOmittedMessages,
+  formatMessageLine,
+  AGENT_CHAT_CONTEXT_LIMIT,
+  AGENT_CHAT_OMITTED_SAMPLE_LIMIT,
+  MAX_SPECIALISTS_PER_THREAD,
+} from "./context";
+export type { ContextMessage, BuildChatContextSectionsInput } from "./context";
+export { rollupThreadTokenUsage } from "./token-rollup";
+export type { ThreadTokenRollup } from "./token-rollup";
 export { inviteAgentToThread, isInvitedSpecialist, isAgentThreadParticipant } from "./participants";
 export {
   awaitHumanInputOnThread,

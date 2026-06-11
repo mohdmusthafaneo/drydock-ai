@@ -10,6 +10,7 @@
     "start": "next start",
     "start:prod": "prisma migrate deploy && node server.js",
     "lint": "eslint",
+    "test:agent-chat": "tsx --test src/lib/agent-chat/context.test.ts",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate",

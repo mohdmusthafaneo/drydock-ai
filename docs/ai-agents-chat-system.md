@@ -162,18 +162,18 @@ Update checkboxes as subtasks complete. **Done when** column is the acceptance t
 
 | ID | Subtask | Owner | Done when | Status |
 |----|---------|-------|-----------|--------|
-| 5.6f.1 | Thread context window policy (last 20 messages + summary) | `/backend` | Configurable constant; older messages summarized | ⬜ |
-| 5.6f.2 | Super writes `contextSummary` on close (tool field) | `/backend` | Stored on thread; injected on reopen | ⬜ |
-| 5.6f.3 | Parallel delegate: Super invites QA + DevOps in one heartbeat | `/backend` | Two delegation wakeups; both post to same thread | ⬜ |
-| 5.6f.4 | Sequential chain: second agent sees first agent's reply in context | `/backend` | Integration test with ordered wakeups | ⬜ |
-| 5.6f.5 | Super synthesis message optional after specialists reply | `/backend` | Documented in Super AGENTS.md | ⬜ |
-| 5.6f.6 | Token usage rollup per thread (sum of runs) | `/backend` | Exposed on thread detail API | ⬜ |
+| 5.6f.1 | Thread context window policy (last 20 messages + summary) | `/backend` | Configurable constant; older messages summarized | ✅ |
+| 5.6f.2 | Super writes `contextSummary` on close (tool field) | `/backend` | Stored on thread; injected on reopen | ✅ |
+| 5.6f.3 | Parallel delegate: Super invites QA + DevOps in one heartbeat | `/backend` | Two delegation wakeups; both post to same thread | ✅ |
+| 5.6f.4 | Sequential chain: second agent sees first agent's reply in context | `/backend` | Integration test with ordered wakeups | ✅ |
+| 5.6f.5 | Super synthesis message optional after specialists reply | `/backend` | Documented in Super AGENTS.md | ✅ |
+| 5.6f.6 | Token usage rollup per thread (sum of runs) | `/backend` | Exposed on thread detail API | ✅ |
 
 **Phase 5.6f exit criteria**
 
-- [ ] Long thread does not exceed token budget (summary + window).
-- [ ] Multi-agent thread completes with two specialist replies visible.
-- [ ] `npm run build` passes.
+- [x] Long thread does not exceed token budget (summary + window).
+- [x] Multi-agent thread completes with two specialist replies visible.
+- [x] `npm run build` passes.
 
 ---
 

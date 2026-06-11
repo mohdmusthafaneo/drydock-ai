@@ -127,7 +127,7 @@ const TOOL_DEFINITIONS: Record<string, LlmToolDefinition> = {
   aidos_delegate_wakeup: {
     name: "aidos_delegate_wakeup",
     description:
-      "Delegate work to a specialist agent by enqueueing a delegation wakeup (Super Agent only).",
+      "Delegate work to a specialist agent by enqueueing a delegation wakeup (Super Agent only). May be called multiple times in one heartbeat for parallel specialists (e.g. QA + DevOps) — each target gets its own wakeup on the same thread.",
     input_schema: {
       type: "object",
       properties: {
@@ -201,14 +201,15 @@ const TOOL_DEFINITIONS: Record<string, LlmToolDefinition> = {
   aidos_close_thread: {
     name: "aidos_close_thread",
     description:
-      "Close an operational chat thread with a summary (Super Agent only). Sets status to done.",
+      "Close an operational chat thread with a summary (Super Agent only). Sets status to done and persists summaryMarkdown as thread contextSummary for future wakeups after reopen.",
     input_schema: {
       type: "object",
       properties: {
         threadId: { type: "string", description: "Agent chat thread id" },
         summaryMarkdown: {
           type: "string",
-          description: "Closure summary shown to humans in the thread timeline",
+          description:
+            "Closure summary shown in the timeline and stored as contextSummary for LLM context on reopen",
         },
       },
       required: ["threadId", "summaryMarkdown"],

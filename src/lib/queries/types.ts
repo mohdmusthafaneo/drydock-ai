@@ -131,8 +131,16 @@ export type AgentThreadsListResponse = {
   nextCursor: string | null;
 };
 
+export type ThreadTokenUsageResponse = {
+  runCount: number;
+  succeededRuns: number;
+  inputTokens: number;
+  outputTokens: number;
+};
+
 export type AgentThreadDetailResponse = {
   ok: true;
+  tokenUsage: ThreadTokenUsageResponse;
   thread: {
     id: string;
     title: string;

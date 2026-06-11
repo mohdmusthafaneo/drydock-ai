@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { getAgentChatThread } from "@/lib/agent-chat";
+import { rollupThreadTokenUsage } from "@/lib/agent-chat/token-rollup";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -11,11 +12,14 @@ export async function GET(_request: Request, { params }: RouteParams) {
   }
 
   const { id } = await params;
-  const thread = await getAgentChatThread(session.organizationId, id);
+  const [thread, tokenUsage] = await Promise.all([
+    getAgentChatThread(session.organizationId, id),
+    rollupThreadTokenUsage(session.organizationId, id),
+  ]);
 
   if (!thread) {
     return NextResponse.json({ error: "Thread not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ ok: true, thread });
+  return NextResponse.json({ ok: true, thread, tokenUsage });
 }

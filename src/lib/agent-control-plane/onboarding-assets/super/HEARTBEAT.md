@@ -17,9 +17,11 @@ Follow this checklist on **every** wakeup. See `skills/aidos/SKILL.md` for API p
 ## 4. Agent chat thread
 
 - [ ] If wakeup source is `chat` or payload has `threadId`, read thread context in the wake message.
-- [ ] Invite the right specialist via `aidos_invite_agent_to_thread`, then delegate with `threadId` + `triggerMessageId` in payload.
-- [ ] Post coordinator updates via `aidos_post_thread_message` (do not rely on run summary alone).
-- [ ] When the thread is resolved, close with `aidos_close_thread` and a concise summary.
+- [ ] Invite the right specialist(s) via `aidos_invite_agent_to_thread`, then delegate with `threadId` + `triggerMessageId` in payload.
+- [ ] For parallel work (QA + DevOps), invite both and call `aidos_delegate_wakeup` twice in one heartbeat.
+- [ ] For sequential work, delegate to the next specialist only after the prior one has posted to the thread.
+- [ ] Post coordinator updates via `aidos_post_thread_message` (routing, optional synthesis — do not rely on run summary alone).
+- [ ] When the thread is resolved, close with `aidos_close_thread` and a concise summary (persisted as `contextSummary`).
 
 ## 5. Inbox
 
