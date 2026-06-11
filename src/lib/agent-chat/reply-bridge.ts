@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { ChatWakeupPayload } from "./types";
 
-/** After a chat-source heartbeat, mirror run summary into the thread timeline (5.6a bridge until 5.6b tools). */
+/** Fallback: mirror run summary when agent did not call aidos_post_thread_message (idempotent by runId). */
 export async function postChatRunReplyIfNeeded(input: {
   organizationId: string;
   agentId: string;

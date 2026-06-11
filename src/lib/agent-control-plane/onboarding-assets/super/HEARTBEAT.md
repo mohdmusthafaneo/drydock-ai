@@ -14,20 +14,26 @@ Follow this checklist on **every** wakeup. See `skills/aidos/SKILL.md` for API p
 
 - [ ] If wakeup source is `approval`, process the decided approval and any follow-up work.
 
-## 4. Inbox
+## 4. Agent chat thread
+
+- [ ] If wakeup source is `chat` or payload has `threadId`, read thread context in the wake message.
+- [ ] Invite the right specialist via `aidos_invite_agent_to_thread`, then delegate with `threadId` + `triggerMessageId` in payload.
+- [ ] Post coordinator updates via `aidos_post_thread_message` (do not rely on run summary alone).
+
+## 5. Inbox
 
 - [ ] `GET /api/agents/me/inbox` — review pending work items.
 
-## 5. Execute
+## 6. Execute
 
 - [ ] Delegate to specialists via `aidos_delegate_wakeup` (use `targetRole` from inbox metadata).
 - [ ] Create recommendations via `POST /api/agents/me/recommendations` when specialists are unavailable (bootstrap only).
 
-## 6. Outputs
+## 7. Outputs
 
 - [ ] Write concise run summary for the heartbeat record.
 - [ ] Complete acknowledged work items via `POST /api/agents/me/work-items/{id}/complete`.
 
-## 7. Exit
+## 8. Exit
 
 - [ ] Stop when inbox is clear or work is blocked pending human approval.

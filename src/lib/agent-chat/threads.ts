@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { findSuperAgent } from "@/lib/agent-control-plane/delegation";
 import { enqueueWakeup, isAgentRunnable } from "@/lib/agent-control-plane/wakeup";
 import { logChatActivity, logChatAudit } from "./audit";
+import { isInvitedSpecialist } from "./participants";
 import {
   DEFAULT_THREAD_LIST_LIMIT,
   OPEN_THREAD_STATUSES,
@@ -334,24 +335,57 @@ export async function postHumanChatMessage(input: {
     return created;
   });
 
-  if (!isAgentRunnable(superAgent.status)) {
-    return {
-      ok: true,
-      data: { messageId: message.id, wakeupId: null, coalesced: false },
-    };
-  }
-
   const payload: ChatWakeupPayload = {
     threadId,
     triggerMessageId: message.id,
     ...(targetAgentId ? { targetAgentId } : {}),
   };
 
+  let wakeupAgentId = superAgent.id;
+  let wakeupReason = "chat.human_message";
+
+  if (targetAgentId) {
+    if (targetAgentId === superAgent.id) {
+      return { ok: false, error: "Cannot @mention Super Agent directly", status: 400 };
+    }
+
+    const isSpecialist = await isInvitedSpecialist(
+      organizationId,
+      threadId,
+      targetAgentId,
+    );
+    if (!isSpecialist) {
+      return {
+        ok: false,
+        error: "Target agent is not an invited specialist in this thread",
+        status: 400,
+      };
+    }
+
+    const targetAgent = await prisma.agentRegistry.findFirst({
+      where: { id: targetAgentId, organizationId },
+    });
+    if (!targetAgent || !isAgentRunnable(targetAgent.status)) {
+      return {
+        ok: true,
+        data: { messageId: message.id, wakeupId: null, coalesced: false },
+      };
+    }
+
+    wakeupAgentId = targetAgentId;
+    wakeupReason = "chat.human_mention";
+  } else if (!isAgentRunnable(superAgent.status)) {
+    return {
+      ok: true,
+      data: { messageId: message.id, wakeupId: null, coalesced: false },
+    };
+  }
+
   const wakeup = await enqueueWakeup({
     organizationId,
-    agentId: superAgent.id,
+    agentId: wakeupAgentId,
     source: "chat",
-    reason: "chat.human_message",
+    reason: wakeupReason,
     payload,
     idempotencyKey: `chat:${threadId}:${message.id}`,
   });

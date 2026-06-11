@@ -1,5 +1,65 @@
 import type { AnthropicConfig, LlmRunResult, LlmToolDefinition } from "./types";
 
+const MAX_API_RETRIES = 3;
+const RETRY_BASE_MS = 1000;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** MiniMax and other Anthropic-compatible providers return transient 5xx / api_error bodies. */
+function isRetryableApiFailure(status: number, body: string): boolean {
+  if (status === 429 || status === 500 || status === 502 || status === 503 || status === 520 || status === 529) {
+    return true;
+  }
+  const lower = body.toLowerCase();
+  return (
+    lower.includes('"type":"api_error"') ||
+    lower.includes("overloaded_error") ||
+    lower.includes("request timeout") ||
+    lower.includes("520 (1000)") ||
+    lower.includes("rate limit")
+  );
+}
+
+async function postAnthropicMessages(
+  config: AnthropicConfig,
+  body: Record<string, unknown>,
+): Promise<Response> {
+  let lastRes: Response | null = null;
+  let lastBody = "";
+
+  for (let attempt = 0; attempt <= MAX_API_RETRIES; attempt++) {
+    const res = await fetch(`${config.baseUrl}/v1/messages`, {
+      method: "POST",
+      headers: {
+        "x-api-key": config.apiKey,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (res.ok) return res;
+
+    lastRes = res;
+    lastBody = await res.text();
+
+    if (attempt < MAX_API_RETRIES && isRetryableApiFailure(res.status, lastBody)) {
+      await sleep(RETRY_BASE_MS * 2 ** attempt);
+      continue;
+    }
+
+    throw new Error(
+      `Anthropic API error: ${res.status} ${lastBody.slice(0, 300)}`,
+    );
+  }
+
+  throw new Error(
+    `Anthropic API error: ${lastRes?.status ?? "unknown"} ${lastBody.slice(0, 300)}`,
+  );
+}
+
 type AnthropicContentBlock =
   | { type: "text"; text: string }
   | { type: "tool_use"; id: string; name: string; input: Record<string, unknown> }
@@ -37,29 +97,14 @@ export async function runAnthropicWithTools(input: {
   const maxRounds = input.maxRounds ?? 15;
 
   for (let round = 0; round < maxRounds; round++) {
-    const res = await fetch(`${input.config.baseUrl}/v1/messages`, {
-      method: "POST",
-      headers: {
-        "x-api-key": input.config.apiKey,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        model: input.config.model,
-        max_tokens: 4096,
-        system: input.systemPrompt,
-        tools: input.tools,
-        messages,
-        temperature: 0.2,
-      }),
+    const res = await postAnthropicMessages(input.config, {
+      model: input.config.model,
+      max_tokens: 4096,
+      system: input.systemPrompt,
+      tools: input.tools,
+      messages,
+      temperature: 0.2,
     });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(
-        `Anthropic API error: ${res.status} ${errText.slice(0, 300)}`,
-      );
-    }
 
     const data = (await res.json()) as AnthropicResponse;
     inputTokens += data.usage?.input_tokens ?? 0;

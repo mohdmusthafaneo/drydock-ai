@@ -116,7 +116,17 @@ export async function delegateWakeup(input: DelegateWakeupInput) {
     return { ok: false as const, error: "Target agent has wakeOnDelegation disabled" };
   }
 
-  const idempotencyKey = `delegation:${delegator.id}:${target.id}:${reason}:${JSON.stringify(payload ?? {})}`;
+  const chatThreadId =
+    typeof payload?.threadId === "string" ? payload.threadId : undefined;
+  const chatTriggerId =
+    typeof payload?.triggerMessageId === "string"
+      ? payload.triggerMessageId
+      : undefined;
+
+  const idempotencyKey =
+    chatThreadId && chatTriggerId
+      ? `chat:${chatThreadId}:${chatTriggerId}:${target.id}`
+      : `delegation:${delegator.id}:${target.id}:${reason}:${JSON.stringify(payload ?? {})}`;
 
   const wakeupResult = await enqueueWakeup({
     organizationId,

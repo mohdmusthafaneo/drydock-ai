@@ -98,8 +98,9 @@ export async function buildHiredAgentInstructionFiles(
   role: HireRole,
   agentsMd: string,
 ): Promise<Record<string, string>> {
-  const [heartbeat, tools] = await Promise.all([
+  const [heartbeat, chat, tools] = await Promise.all([
     loadSpecialistTemplate("HEARTBEAT.md"),
+    loadSpecialistTemplate("CHAT.md"),
     loadSpecialistToolsMd(role),
   ]);
 
@@ -108,6 +109,7 @@ export async function buildHiredAgentInstructionFiles(
   };
 
   if (heartbeat) files["HEARTBEAT.md"] = heartbeat;
+  if (chat) files["CHAT.md"] = chat;
   if (tools) files["TOOLS.md"] = tools;
 
   return files;

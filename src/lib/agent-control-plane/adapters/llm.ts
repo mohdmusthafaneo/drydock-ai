@@ -8,6 +8,7 @@ import {
 import { readInstructionsBundleForAgent } from "../instructions/service";
 import { parsePermissions } from "../agent-auth";
 import { readCachedUtf8File } from "../prompt-cache";
+import { buildChatContextMarkdown } from "@/lib/agent-chat/context";
 import type { AdapterExecutionContext, AdapterExecutionResult } from "../types";
 import { buildAidosLlmTools, executeAidosTool } from "./llm-tools";
 
@@ -81,8 +82,34 @@ async function loadCreateAgentSkill(): Promise<string> {
   }
 }
 
-function renderWakeUserMessage(ctx: AdapterExecutionContext): string {
+async function renderWakeUserMessage(ctx: AdapterExecutionContext): Promise<string> {
   const payload = parsePayload(ctx.wakeup.payloadJson);
+  const threadId =
+    typeof payload.threadId === "string" ? payload.threadId : undefined;
+
+  if (threadId) {
+    const chatContext = await buildChatContextMarkdown(
+      ctx.organizationId,
+      threadId,
+      ctx.agent.id,
+    );
+    if (chatContext) {
+      return [
+        chatContext,
+        "",
+        "## Wake metadata",
+        `- source: ${ctx.wakeup.source}`,
+        `- reason: ${ctx.wakeup.reason}`,
+        `- runId: ${ctx.runId}`,
+        `- triggerMessageId: ${String(payload.triggerMessageId ?? "")}`,
+        "",
+        "Follow HEARTBEAT.md and skills/aidos/SKILL.md.",
+        "Use tools for all mutations. Post thread replies via aidos_post_thread_message.",
+        "When work is blocked pending human approval, summarize and stop.",
+      ].join("\n");
+    }
+  }
+
   return [
     "## Heartbeat wake context",
     `- source: ${ctx.wakeup.source}`,
@@ -131,6 +158,7 @@ export async function runLlmAdapter(
 
   const agentsMd = bundle.files[bundle.entryFile]?.content ?? "";
   const heartbeatMd = bundle.files.HEARTBEAT?.content ?? null;
+  const chatMd = bundle.files.CHAT?.content ?? null;
   const toolsMd = bundle.files.TOOLS?.content ?? null;
   const initializeMd = bundle.files.INITIALIZE?.content ?? null;
 
@@ -141,6 +169,7 @@ export async function runLlmAdapter(
     bundleSection("Agent charter", bundle.entryFile, agentsMd),
     bundleSection("Domain tools", "TOOLS.md", toolsMd),
     bundleSection("Heartbeat checklist", "HEARTBEAT.md", heartbeatMd),
+    bundleSection("Chat participation", "CHAT.md", chatMd),
     bundleSection("Initialization playbook", "INITIALIZE.md", initializeMd),
   ]
     .filter(Boolean)
@@ -158,7 +187,7 @@ export async function runLlmAdapter(
     const result = await runAnthropicWithTools({
       config: anthropicConfig,
       systemPrompt,
-      userMessage: renderWakeUserMessage(ctx),
+      userMessage: await renderWakeUserMessage(ctx),
       tools,
       executeTool: (name, args) => executeAidosTool(name, args, toolCtx),
       maxRounds: 15,

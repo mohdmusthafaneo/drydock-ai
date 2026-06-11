@@ -66,26 +66,26 @@ Update checkboxes as subtasks complete. **Done when** column is the acceptance t
 
 | ID | Subtask | Owner | Done when | Status |
 |----|---------|-------|-----------|--------|
-| 5.6b.1 | Extend wakeup payload contract for `chat` source | `/backend` | Documented in §6; worker passes payload to adapter | ⬜ |
-| 5.6b.2 | Chat context builder: last N messages + participant list + thread metadata | `/backend` | Function returns compact markdown for LLM user message | ⬜ |
-| 5.6b.3 | Update Super `AGENTS.md` + `HEARTBEAT.md` for chat routing | `/backend` | Instructions describe invite vs delegate vs close | ⬜ |
-| 5.6b.4 | New tool: `aidos_invite_agent_to_thread` | `/backend` | Super-only; adds `AgentChatParticipant`; posts system message | ⬜ |
-| 5.6b.5 | New tool: `aidos_post_thread_message` | `/backend` | Agent posts reply; sets `authorAgentId`; kind `agent_reply` | ⬜ |
-| 5.6b.6 | Extend `aidos_delegate_wakeup` payload with `threadId`, `triggerMessageId` | `/backend` | Specialist wakeup includes chat context keys | ⬜ |
-| 5.6b.7 | Specialist `AGENTS.md` addendum: chat participation rules | `/backend` | Hired specialists know they may reply in invited threads | ⬜ |
-| 5.6b.8 | `POST /api/agents/me/chat/...` agent-auth routes backing new tools | `/backend` | Agent API key + `X-Run-Id`; org scoped | ⬜ |
-| 5.6b.9 | Thread status transitions: `open` → `routing` → `active` | `/backend` | Updated on Super invite / first specialist reply | ⬜ |
-| 5.6b.10 | UI: routing cards ("Super Agent invited QA Intelligence") | `/frontend` | `messageKind=system` renders distinct card | ⬜ |
-| 5.6b.11 | UI: participant strip (avatars + roles) | `/frontend` | Shows Super + invited specialists | ⬜ |
-| 5.6b.12 | UI: @mention autocomplete for invited agents only | `/frontend` | User can target invited agent; message stored with `targetAgentId` | ⬜ |
-| 5.6b.13 | Targeted human message enqueues wakeup for mentioned agent (not Super) | `/backend` | Payload includes `threadId`, `replyToMessageId`, `targetAgentId` | ⬜ |
-| 5.6b.14 | E2E manual test script in §12.1 | `/backend` | Documented happy path passes on dev | ⬜ |
+| 5.6b.1 | Extend wakeup payload contract for `chat` source | `/backend` | Documented in §6; worker passes payload to adapter | ✅ |
+| 5.6b.2 | Chat context builder: last N messages + participant list + thread metadata | `/backend` | Function returns compact markdown for LLM user message | ✅ |
+| 5.6b.3 | Update Super `AGENTS.md` + `HEARTBEAT.md` for chat routing | `/backend` | Instructions describe invite vs delegate vs close | ✅ |
+| 5.6b.4 | New tool: `aidos_invite_agent_to_thread` | `/backend` | Super-only; adds `AgentChatParticipant`; posts system message | ✅ |
+| 5.6b.5 | New tool: `aidos_post_thread_message` | `/backend` | Agent posts reply; sets `authorAgentId`; kind `agent_reply` | ✅ |
+| 5.6b.6 | Extend `aidos_delegate_wakeup` payload with `threadId`, `triggerMessageId` | `/backend` | Specialist wakeup includes chat context keys | ✅ |
+| 5.6b.7 | Specialist `AGENTS.md` addendum: chat participation rules | `/backend` | Hired specialists know they may reply in invited threads | ✅ |
+| 5.6b.8 | `POST /api/agents/me/chat/...` agent-auth routes backing new tools | `/backend` | Agent API key + `X-Run-Id`; org scoped | ✅ |
+| 5.6b.9 | Thread status transitions: `open` → `routing` → `active` | `/backend` | Updated on Super invite / first specialist reply | ✅ |
+| 5.6b.10 | UI: routing cards ("Super Agent invited QA Intelligence") | `/frontend` | `messageKind=system` renders distinct card | ✅ |
+| 5.6b.11 | UI: participant strip (avatars + roles) | `/frontend` | Shows Super + invited specialists | ✅ |
+| 5.6b.12 | UI: @mention autocomplete for invited agents only | `/frontend` | User can target invited agent; message stored with `targetAgentId` | ✅ |
+| 5.6b.13 | Targeted human message enqueues wakeup for mentioned agent (not Super) | `/backend` | Payload includes `threadId`, `triggerMessageId`, `targetAgentId` | ✅ |
+| 5.6b.14 | E2E manual test script in §12.1 | `/backend` | Documented happy path passes on dev | ✅ |
 
 **Phase 5.6b exit criteria**
 
-- [ ] User asks "how many bugs are open?" → Super invites QA → QA replies in same thread.
-- [ ] User `@QA` follow-up wakes QA directly (Super not required for reply).
-- [ ] `npm run build` passes.
+- [x] User asks "how many bugs are open?" → Super invites QA → QA replies in same thread.
+- [x] User `@QA` follow-up wakes QA directly (Super not required for reply).
+- [x] `npm run build` passes.
 
 ---
 

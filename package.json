@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "worker:agents": "tsx scripts/agent-worker-loop.ts",
+    "db:backfill-chat-md": "tsx scripts/backfill-agent-chat-md.ts",
     "build": "prisma generate && next build",
     "start": "next start",
     "start:prod": "prisma migrate deploy && node server.js",

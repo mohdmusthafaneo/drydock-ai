@@ -148,14 +148,54 @@ const TOOL_DEFINITIONS: Record<string, LlmToolDefinition> = {
         },
         reason: {
           type: "string",
-          description: "Delegation reason, e.g. release.detected",
+          description: "Delegation reason, e.g. release.detected or chat.delegate",
         },
         payload: {
           type: "object",
-          description: "Work context passed to specialist wakeup (releaseId, etc.)",
+          description:
+            "Work context passed to specialist wakeup. For agent chat threads include threadId and triggerMessageId.",
+          properties: {
+            threadId: { type: "string", description: "Agent chat thread id" },
+            triggerMessageId: {
+              type: "string",
+              description: "Human message id that triggered the chat wakeup",
+            },
+          },
         },
       },
       required: ["reason"],
+    },
+  },
+  aidos_invite_agent_to_thread: {
+    name: "aidos_invite_agent_to_thread",
+    description:
+      "Invite a specialist agent to an operational chat thread and post a system routing message (Super Agent only).",
+    input_schema: {
+      type: "object",
+      properties: {
+        threadId: { type: "string", description: "Agent chat thread id" },
+        targetAgentId: {
+          type: "string",
+          description: "Specialist agent id to invite",
+        },
+      },
+      required: ["threadId", "targetAgentId"],
+    },
+  },
+  aidos_post_thread_message: {
+    name: "aidos_post_thread_message",
+    description:
+      "Post a visible agent reply to an operational chat thread (coordinator or invited specialist).",
+    input_schema: {
+      type: "object",
+      properties: {
+        threadId: { type: "string", description: "Agent chat thread id" },
+        contentMarkdown: {
+          type: "string",
+          description: "Reply content shown to humans in the thread timeline",
+        },
+      },
+      required: ["threadId", "contentMarkdown"],
     },
   },
 };
@@ -169,6 +209,8 @@ const TOOL_TO_REGISTRY: Record<string, AgentToolName | null> = {
   aidos_hire_agent: "hire_agent",
   aidos_complete_initialization: null,
   aidos_delegate_wakeup: null,
+  aidos_invite_agent_to_thread: null,
+  aidos_post_thread_message: null,
 };
 
 export function buildAidosLlmTools(
@@ -186,6 +228,9 @@ export function buildAidosLlmTools(
       if (agentType !== "SUPER_ORCHESTRATOR") continue;
     }
     if (toolName === "aidos_delegate_wakeup") {
+      if (agentType !== "SUPER_ORCHESTRATOR") continue;
+    }
+    if (toolName === "aidos_invite_agent_to_thread") {
       if (agentType !== "SUPER_ORCHESTRATOR") continue;
     }
     if (registryName === null || allowed.has(registryName)) {
@@ -322,6 +367,40 @@ export async function executeAidosTool(
           method: "POST",
           body: JSON.stringify(args),
         });
+        return JSON.stringify(await parseAgentResponse(res));
+      }
+
+      case "aidos_invite_agent_to_thread": {
+        const threadId = args.threadId;
+        if (typeof threadId !== "string" || !threadId) {
+          return JSON.stringify({ error: "threadId is required" });
+        }
+        const res = await agentFetch(
+          ctx,
+          `/api/agents/me/chat/threads/${encodeURIComponent(threadId)}/invite`,
+          {
+            method: "POST",
+            body: JSON.stringify({ targetAgentId: args.targetAgentId }),
+          },
+        );
+        return JSON.stringify(await parseAgentResponse(res));
+      }
+
+      case "aidos_post_thread_message": {
+        const threadId = args.threadId;
+        if (typeof threadId !== "string" || !threadId) {
+          return JSON.stringify({ error: "threadId is required" });
+        }
+        const res = await agentFetch(
+          ctx,
+          `/api/agents/me/chat/threads/${encodeURIComponent(threadId)}/messages`,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              contentMarkdown: args.contentMarkdown,
+            }),
+          },
+        );
         return JSON.stringify(await parseAgentResponse(res));
       }
 

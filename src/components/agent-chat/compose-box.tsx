@@ -6,9 +6,21 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 
-export function ComposeBox({ threadId }: { threadId: string }) {
+export type MentionableAgent = {
+  id: string;
+  displayName: string;
+};
+
+export function ComposeBox({
+  threadId,
+  mentionableAgents = [],
+}: {
+  threadId: string;
+  mentionableAgents?: MentionableAgent[];
+}) {
   const router = useRouter();
   const [content, setContent] = useState("");
+  const [targetAgentId, setTargetAgentId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,7 +36,10 @@ export function ComposeBox({ threadId }: { threadId: string }) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "same-origin",
-      body: JSON.stringify({ content: trimmed }),
+      body: JSON.stringify({
+        content: trimmed,
+        ...(targetAgentId ? { targetAgentId } : {}),
+      }),
     });
 
     const data = await res.json();
@@ -36,7 +51,18 @@ export function ComposeBox({ threadId }: { threadId: string }) {
     }
 
     setContent("");
+    setTargetAgentId("");
     router.refresh();
+  }
+
+  function onMentionSelect(agentId: string) {
+    setTargetAgentId(agentId);
+    const agent = mentionableAgents.find((a) => a.id === agentId);
+    if (!agent) return;
+    const mention = `@${agent.displayName} `;
+    if (!content.includes(mention)) {
+      setContent((prev) => (prev.trim() ? `${prev.trim()} ${mention}` : mention));
+    }
   }
 
   return (
@@ -58,10 +84,36 @@ export function ComposeBox({ threadId }: { threadId: string }) {
             className="w-full resize-none rounded-lg border border-white/10 bg-[#0B1020] px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-brand/50 focus:outline-none"
           />
         </div>
+        {mentionableAgents.length > 0 && (
+          <div className="sm:w-40">
+            <Label htmlFor="mention" className="sr-only">
+              Mention agent
+            </Label>
+            <select
+              id="mention"
+              value={targetAgentId}
+              onChange={(e) => onMentionSelect(e.target.value)}
+              className="w-full rounded-lg border border-white/10 bg-[#0B1020] px-3 py-2 text-sm text-slate-100 focus:border-brand/50 focus:outline-none"
+            >
+              <option value="">@ Agent…</option>
+              {mentionableAgents.map((agent) => (
+                <option key={agent.id} value={agent.id}>
+                  @{agent.displayName}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <Button type="submit" disabled={loading || !content.trim()}>
           {loading ? "Sending…" : "Send"}
         </Button>
       </div>
+      {targetAgentId && (
+        <p className="mt-1 text-xs text-slate-500">
+          Directing message to{" "}
+          {mentionableAgents.find((a) => a.id === targetAgentId)?.displayName}
+        </p>
+      )}
       {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
     </form>
   );

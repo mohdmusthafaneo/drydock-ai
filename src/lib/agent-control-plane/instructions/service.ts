@@ -38,6 +38,7 @@ const SUPER_ONBOARDING_DIR = path.join(
 );
 
 const SPECIALIST_HEARTBEAT_FILE = "HEARTBEAT.md";
+const SPECIALIST_CHAT_FILE = "CHAT.md";
 const SPECIALIST_TOOLS_FILE = "TOOLS.md";
 
 export function buildInstructionsAdapterConfig(
@@ -225,6 +226,7 @@ export async function readInstructionsBundleForAgent(
     agent.agentType !== "SUPER_ORCHESTRATOR" &&
     entry?.exists &&
     (!bundle.files[SPECIALIST_HEARTBEAT_FILE]?.exists ||
+      !bundle.files[SPECIALIST_CHAT_FILE]?.exists ||
       !bundle.files[SPECIALIST_TOOLS_FILE]?.exists)
   ) {
     await ensureSpecialistCompanionFiles(organizationId, {

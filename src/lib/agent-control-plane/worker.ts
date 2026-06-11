@@ -227,7 +227,18 @@ async function executeHeartbeatRun(wakeupId: string): Promise<boolean> {
     });
   });
 
-  if (wakeup.source === "chat") {
+  const chatPayload = (() => {
+    try {
+      return JSON.parse(wakeup.payloadJson) as { threadId?: string };
+    } catch {
+      return {};
+    }
+  })();
+
+  if (
+    wakeup.source === "chat" ||
+    (wakeup.source === "delegation" && chatPayload.threadId)
+  ) {
     await postChatRunReplyIfNeeded({
       organizationId,
       agentId: agent.id,
