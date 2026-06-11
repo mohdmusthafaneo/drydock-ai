@@ -28,6 +28,9 @@ export async function postAgentThreadMessage(input: {
   if (!thread) {
     return { ok: false, error: "Thread not found" };
   }
+  if (thread.status === "done") {
+    return { ok: false, error: "Thread is closed" };
+  }
 
   const isParticipant = await isAgentThreadParticipant(
     organizationId,
@@ -53,7 +56,9 @@ export async function postAgentThreadMessage(input: {
         });
 
         const statusUpdate =
-          thread.status === "open" || thread.status === "routing"
+          thread.status === "open" ||
+          thread.status === "routing" ||
+          thread.status === "awaiting_human"
             ? "active"
             : thread.status;
 
@@ -98,7 +103,9 @@ export async function postAgentThreadMessage(input: {
     });
 
     const statusUpdate =
-      thread.status === "open" || thread.status === "routing"
+      thread.status === "open" ||
+      thread.status === "routing" ||
+      thread.status === "awaiting_human"
         ? "active"
         : thread.status;
 

@@ -276,6 +276,8 @@ export async function postHumanChatMessage(input: {
     return { ok: false, error: "Thread not found", status: 404 };
   }
 
+  const wasClosed = thread.status === "done";
+
   const superAgent = await findSuperAgent(organizationId);
   if (!superAgent) {
     return { ok: false, error: "Super Agent is not configured", status: 503 };
@@ -306,10 +308,44 @@ export async function postHumanChatMessage(input: {
       },
     });
 
+    const threadStatusUpdate = wasClosed
+      ? { status: "active" as const, closedAt: null, updatedAt: new Date() }
+      : thread.status === "awaiting_human"
+        ? { status: "active" as const, updatedAt: new Date() }
+        : { updatedAt: new Date() };
+
     await tx.agentChatThread.update({
       where: { id: threadId },
-      data: { updatedAt: new Date() },
+      data: threadStatusUpdate,
     });
+
+    if (wasClosed) {
+      await tx.agentChatMessage.create({
+        data: {
+          organizationId,
+          threadId,
+          kind: "system",
+          contentMarkdown: "Thread reopened by human follow-up",
+          authorUserId: userId,
+        },
+      });
+
+      await logChatActivity(tx, {
+        organizationId,
+        type: "agent_chat.thread.reopened",
+        title: "Thread reopened by human follow-up",
+        metadata: { threadId, userId, triggerMessageId: created.id },
+      });
+
+      await logChatAudit(tx, {
+        organizationId,
+        userId,
+        action: "agent_chat.thread.reopened",
+        entityType: "AgentChatThread",
+        entityId: threadId,
+        metadata: { source: "human_message" },
+      });
+    }
 
     await logChatActivity(tx, {
       organizationId,
@@ -342,9 +378,11 @@ export async function postHumanChatMessage(input: {
   };
 
   let wakeupAgentId = superAgent.id;
-  let wakeupReason = "chat.human_message";
+  let wakeupReason = wasClosed ? "chat.human_reopen" : "chat.human_message";
 
-  if (targetAgentId) {
+  if (wasClosed) {
+    // Closed threads always wake Super Agent to re-coordinate follow-ups.
+  } else if (targetAgentId) {
     if (targetAgentId === superAgent.id) {
       return { ok: false, error: "Cannot @mention Super Agent directly", status: 400 };
     }

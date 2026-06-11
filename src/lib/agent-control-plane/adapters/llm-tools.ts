@@ -198,6 +198,50 @@ const TOOL_DEFINITIONS: Record<string, LlmToolDefinition> = {
       required: ["threadId", "contentMarkdown"],
     },
   },
+  aidos_close_thread: {
+    name: "aidos_close_thread",
+    description:
+      "Close an operational chat thread with a summary (Super Agent only). Sets status to done.",
+    input_schema: {
+      type: "object",
+      properties: {
+        threadId: { type: "string", description: "Agent chat thread id" },
+        summaryMarkdown: {
+          type: "string",
+          description: "Closure summary shown to humans in the thread timeline",
+        },
+      },
+      required: ["threadId", "summaryMarkdown"],
+    },
+  },
+  aidos_reopen_thread: {
+    name: "aidos_reopen_thread",
+    description:
+      "Reopen a closed operational chat thread (Super Agent only). Sets status to active.",
+    input_schema: {
+      type: "object",
+      properties: {
+        threadId: { type: "string", description: "Agent chat thread id" },
+      },
+      required: ["threadId"],
+    },
+  },
+  aidos_await_human_input: {
+    name: "aidos_await_human_input",
+    description:
+      "Mark thread as awaiting human input and post a system prompt (coordinator or invited specialist).",
+    input_schema: {
+      type: "object",
+      properties: {
+        threadId: { type: "string", description: "Agent chat thread id" },
+        promptMarkdown: {
+          type: "string",
+          description: "Optional prompt explaining what input is needed",
+        },
+      },
+      required: ["threadId"],
+    },
+  },
 };
 
 const TOOL_TO_REGISTRY: Record<string, AgentToolName | null> = {
@@ -211,6 +255,9 @@ const TOOL_TO_REGISTRY: Record<string, AgentToolName | null> = {
   aidos_delegate_wakeup: null,
   aidos_invite_agent_to_thread: null,
   aidos_post_thread_message: null,
+  aidos_close_thread: null,
+  aidos_reopen_thread: null,
+  aidos_await_human_input: null,
 };
 
 export function buildAidosLlmTools(
@@ -231,6 +278,9 @@ export function buildAidosLlmTools(
       if (agentType !== "SUPER_ORCHESTRATOR") continue;
     }
     if (toolName === "aidos_invite_agent_to_thread") {
+      if (agentType !== "SUPER_ORCHESTRATOR") continue;
+    }
+    if (toolName === "aidos_close_thread" || toolName === "aidos_reopen_thread") {
       if (agentType !== "SUPER_ORCHESTRATOR") continue;
     }
     if (registryName === null || allowed.has(registryName)) {
@@ -398,6 +448,55 @@ export async function executeAidosTool(
             method: "POST",
             body: JSON.stringify({
               contentMarkdown: args.contentMarkdown,
+            }),
+          },
+        );
+        return JSON.stringify(await parseAgentResponse(res));
+      }
+
+      case "aidos_close_thread": {
+        const threadId = args.threadId;
+        if (typeof threadId !== "string" || !threadId) {
+          return JSON.stringify({ error: "threadId is required" });
+        }
+        const res = await agentFetch(
+          ctx,
+          `/api/agents/me/chat/threads/${encodeURIComponent(threadId)}/close`,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              summaryMarkdown: args.summaryMarkdown,
+            }),
+          },
+        );
+        return JSON.stringify(await parseAgentResponse(res));
+      }
+
+      case "aidos_reopen_thread": {
+        const threadId = args.threadId;
+        if (typeof threadId !== "string" || !threadId) {
+          return JSON.stringify({ error: "threadId is required" });
+        }
+        const res = await agentFetch(
+          ctx,
+          `/api/agents/me/chat/threads/${encodeURIComponent(threadId)}/reopen`,
+          { method: "POST", body: "{}" },
+        );
+        return JSON.stringify(await parseAgentResponse(res));
+      }
+
+      case "aidos_await_human_input": {
+        const threadId = args.threadId;
+        if (typeof threadId !== "string" || !threadId) {
+          return JSON.stringify({ error: "threadId is required" });
+        }
+        const res = await agentFetch(
+          ctx,
+          `/api/agents/me/chat/threads/${encodeURIComponent(threadId)}/await-human`,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              promptMarkdown: args.promptMarkdown,
             }),
           },
         );

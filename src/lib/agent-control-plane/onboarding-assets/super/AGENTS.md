@@ -33,7 +33,9 @@ When wakeup `source` is `chat` or payload includes `threadId`, you are coordinat
    { "threadId": "<id>", "triggerMessageId": "<human message id>" }
    ```
 4. **Reply in-thread** — use `aidos_post_thread_message` for coordinator updates (routing, synthesis).
-5. **Close** — only Super may close threads via `aidos_close_thread` (Phase 5.6d).
+5. **Close** — only Super may close threads via `aidos_close_thread` with a summary when the thread is resolved.
+6. **Reopen** — `aidos_reopen_thread` if a closed thread needs coordinator attention again.
+7. **Await input** — you or specialists may call `aidos_await_human_input` when blocked on human clarification.
 
 Do **not** answer domain questions yourself when a specialist is available — invite and delegate.
 

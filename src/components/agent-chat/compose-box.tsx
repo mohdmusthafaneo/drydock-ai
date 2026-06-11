@@ -19,9 +19,11 @@ export type MentionableAgent = {
 export function ComposeBox({
   threadId,
   mentionableAgents = [],
+  isDone = false,
 }: {
   threadId: string;
   mentionableAgents?: MentionableAgent[];
+  isDone?: boolean;
 }) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -59,6 +61,7 @@ export function ComposeBox({
     setContent("");
     setTargetAgentId("");
     await invalidateThreadDetail(queryClient, threadId);
+    await invalidateThreadList(queryClient);
   }
 
   function onMentionSelect(agentId: string) {
@@ -76,6 +79,11 @@ export function ComposeBox({
       onSubmit={onSubmit}
       className="border-t border-white/10 bg-[#131A2A]/50 p-4"
     >
+      {isDone && (
+        <p className="mb-2 text-xs text-slate-500">
+          This thread is closed. Send a message to reopen and wake the Super Agent.
+        </p>
+      )}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
         <div className="flex-1">
           <Label htmlFor="message" className="sr-only">
@@ -85,7 +93,11 @@ export function ComposeBox({
             id="message"
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="Message the agent team…"
+            placeholder={
+              isDone
+                ? "Send a message to reopen this thread…"
+                : "Message the agent team…"
+            }
             rows={2}
             className="w-full resize-none rounded-lg border border-white/10 bg-[#0B1020] px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-brand/50 focus:outline-none"
           />
@@ -111,7 +123,7 @@ export function ComposeBox({
           </div>
         )}
         <Button type="submit" disabled={loading || !content.trim()}>
-          {loading ? "Sending…" : "Send"}
+          {loading ? "Sending…" : isDone ? "Send & reopen" : "Send"}
         </Button>
       </div>
       {targetAgentId && (

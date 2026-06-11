@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MarkdownContent } from "@/components/ui/markdown-content";
@@ -39,6 +40,10 @@ export function AgentRunDetailPanel({ agentId, runId }: AgentRunDetailPanelProps
   const { run, agent } = data;
   const tokenUsage = run.tokenUsage;
   const isLive = !TERMINAL_RUN_STATUSES.has(run.status);
+  const threadId =
+    typeof run.contextSnapshot.threadId === "string"
+      ? run.contextSnapshot.threadId
+      : null;
 
   return (
     <div className="space-y-6">
@@ -51,6 +56,16 @@ export function AgentRunDetailPanel({ agentId, runId }: AgentRunDetailPanelProps
             {new Date(run.startedAt).toLocaleString()} ·{" "}
             {formatWakeupSource(run.source)} · {run.reason}
           </p>
+          {threadId && (
+            <p className="mt-1">
+              <Link
+                href={`/agent-threads/${threadId}`}
+                className="text-sm text-brand hover:underline"
+              >
+                View agent thread →
+              </Link>
+            </p>
+          )}
           {isLive && (
             <p className="mt-1 text-xs text-brand">Live — polling for updates</p>
           )}

@@ -94,8 +94,8 @@ export async function buildChatContextMarkdown(
       ? "- Triage the human request, invite specialists with `aidos_invite_agent_to_thread`, then delegate with `aidos_delegate_wakeup` (include `threadId` and `triggerMessageId` in payload)."
       : "- Answer the human's question using your tools; post your reply with `aidos_post_thread_message`.",
     isCoordinator
-      ? "- Assess specialist replies; synthesize when helpful. Only you may close threads (Phase 5.6d)."
-      : "- Do not invite other agents or close the thread.",
+      ? "- Assess specialist replies; synthesize when helpful. Close with `aidos_close_thread` when resolved; reopen with `aidos_reopen_thread` if needed."
+      : "- Do not invite other agents or close the thread. Use `aidos_await_human_input` when you need clarification from the human.",
     "- Critical mutations require `aidos_request_approval` (Phase 5.6e); do not bypass governance.",
     "- Post visible replies via `aidos_post_thread_message` — do not rely on run summary alone.",
   ];

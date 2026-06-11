@@ -15,6 +15,7 @@ import {
 } from "@/components/agent-chat/participant-strip";
 import { useAgentThreadStream } from "@/components/agent-chat/use-agent-thread-stream";
 import { LIVE_THREAD_STATUSES } from "@/lib/queries/types";
+import { MarkdownContent } from "@/components/ui/markdown-content";
 
 type ThreadDetailPanelProps = {
   threadId: string;
@@ -66,6 +67,7 @@ export function ThreadDetailPanel({ threadId }: ThreadDetailPanelProps) {
 
   const thread = data.thread;
   const mentionableAgents = invitedSpecialists(thread.participants);
+  const isDone = thread.status === "done";
 
   return (
     <>
@@ -92,6 +94,22 @@ export function ThreadDetailPanel({ threadId }: ThreadDetailPanelProps) {
         />
       </div>
 
+      {isDone && thread.contextSummary?.trim() && (
+        <div className="mt-3 rounded-lg border border-white/10 bg-[#131A2A]/80 px-4 py-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            Closure summary
+          </p>
+          <div className="mt-1 text-sm text-slate-300">
+            <MarkdownContent content={thread.contextSummary} />
+          </div>
+          {thread.closedAt && (
+            <p className="mt-2 text-xs text-slate-500">
+              Closed {new Date(thread.closedAt).toLocaleString()}
+            </p>
+          )}
+        </div>
+      )}
+
       <ParticipantStrip participants={thread.participants} className="mt-2" />
 
       <div className="flex min-h-[50vh] flex-col overflow-hidden rounded-xl border border-white/10 bg-[#131A2A]/30">
@@ -102,7 +120,11 @@ export function ThreadDetailPanel({ threadId }: ThreadDetailPanelProps) {
             agentNameById={agentNameById}
           />
         </div>
-        <ComposeBox threadId={thread.id} mentionableAgents={mentionableAgents} />
+        <ComposeBox
+          threadId={thread.id}
+          mentionableAgents={mentionableAgents}
+          isDone={isDone}
+        />
       </div>
     </>
   );

@@ -107,6 +107,7 @@ async function renderWakeUserMessage(ctx: AdapterExecutionContext): Promise<stri
         "",
         "Follow HEARTBEAT.md and skills/aidos/SKILL.md.",
         "Use tools for all mutations. Post thread replies via aidos_post_thread_message.",
+        "Super Agent may close resolved threads via aidos_close_thread.",
         "When work is blocked pending human approval, summarize and stop.",
       ].join("\n");
     }

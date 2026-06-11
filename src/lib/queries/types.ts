@@ -135,6 +135,8 @@ export type AgentThreadDetailResponse = {
     id: string;
     title: string;
     status: AgentChatThreadStatus;
+    contextSummary?: string | null;
+    closedAt?: string | null;
     updatedAt: string;
     participants: Array<{
       id: string;

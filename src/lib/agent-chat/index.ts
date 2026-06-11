@@ -6,6 +6,11 @@ export {
 } from "./threads";
 export { buildChatContextMarkdown, AGENT_CHAT_CONTEXT_LIMIT } from "./context";
 export { inviteAgentToThread, isInvitedSpecialist, isAgentThreadParticipant } from "./participants";
+export {
+  awaitHumanInputOnThread,
+  closeAgentChatThread,
+  reopenAgentChatThread,
+} from "./lifecycle";
 export { postAgentThreadMessage } from "./messages";
 export { postChatRunReplyIfNeeded } from "./reply-bridge";
 export {

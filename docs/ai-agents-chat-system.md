@@ -118,21 +118,21 @@ Update checkboxes as subtasks complete. **Done when** column is the acceptance t
 
 | ID | Subtask | Owner | Done when | Status |
 |----|---------|-------|-----------|--------|
-| 5.6d.1 | New tool: `aidos_close_thread` (Super only) | `/backend` | Sets status `done`; writes summary message; `closedAt` | ⬜ |
-| 5.6d.2 | New tool: `aidos_reopen_thread` (Super only) | `/backend` | `done` → `active`; system message | ⬜ |
-| 5.6d.3 | Status `awaiting_human` when agent needs input | `/backend` | Super or specialist can set via tool | ⬜ |
-| 5.6d.4 | Human message on `done` thread auto-reopens (status → `active`) + Super wakeup | `/backend` | User does not need explicit reopen | ⬜ |
-| 5.6d.5 | Thread list: status badges, last activity, participant count | `/frontend` | Sort by `updatedAt` desc | ⬜ |
-| 5.6d.6 | Thread header: status chip + closure summary when done | `/frontend` | Super closure card pinned or in timeline | ⬜ |
-| 5.6d.7 | Disable compose when `done` (show "Send message to reopen") | `/frontend` | UX hint; compose still works | ⬜ |
-| 5.6d.8 | Link `AgentHeartbeatRun` → `threadId` in `contextSnapshotJson` | `/backend` | Run detail page links back to thread | ⬜ |
+| 5.6d.1 | New tool: `aidos_close_thread` (Super only) | `/backend` | Sets status `done`; writes summary message; `closedAt` | ✅ |
+| 5.6d.2 | New tool: `aidos_reopen_thread` (Super only) | `/backend` | `done` → `active`; system message | ✅ |
+| 5.6d.3 | Status `awaiting_human` when agent needs input | `/backend` | Super or specialist can set via tool | ✅ |
+| 5.6d.4 | Human message on `done` thread auto-reopens (status → `active`) + Super wakeup | `/backend` | User does not need explicit reopen | ✅ |
+| 5.6d.5 | Thread list: status badges, last activity, participant count | `/frontend` | Sort by `updatedAt` desc | ✅ |
+| 5.6d.6 | Thread header: status chip + closure summary when done | `/frontend` | Super closure card pinned or in timeline | ✅ |
+| 5.6d.7 | Disable compose when `done` (show "Send message to reopen") | `/frontend` | UX hint; compose still works | ✅ |
+| 5.6d.8 | Link `AgentHeartbeatRun` → `threadId` in `contextSnapshotJson` | `/backend` | Run detail page links back to thread | ✅ |
 
 **Phase 5.6d exit criteria**
 
-- [ ] Super assesses QA reply and closes thread with summary.
-- [ ] User cannot close thread via API (403).
-- [ ] Follow-up on done thread reopens and wakes Super.
-- [ ] `npm run build` passes.
+- [x] Super assesses QA reply and closes thread with summary.
+- [x] User cannot close thread via API (403).
+- [x] Follow-up on done thread reopens and wakes Super.
+- [x] `npm run build` passes.
 
 ---
 
@@ -528,6 +528,7 @@ Replace generic heartbeat prompt when `source === "chat"`:
 | `aidos_post_thread_message` | All invited | Post `agent_reply` to thread |
 | `aidos_close_thread` | Super | `done` + summary message |
 | `aidos_reopen_thread` | Super | Reopen closed thread |
+| `aidos_await_human_input` | All invited | Set `awaiting_human` + optional prompt |
 | `aidos_request_approval` | All | Create approval + `approval_request` message |
 
 ### 6.3 Streaming adapter path
