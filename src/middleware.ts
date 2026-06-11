@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
+import { appUrl } from "@/lib/app-url";
 const COOKIE_NAME = "aidos_session";
 const publicPaths = [
   "/",
@@ -59,7 +60,7 @@ export async function middleware(request: NextRequest) {
 
   const token = request.cookies.get(COOKIE_NAME)?.value;
   if (!token) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(appUrl("/login"));
   }
 
   try {
@@ -68,7 +69,7 @@ export async function middleware(request: NextRequest) {
       request: { headers: requestHeaders },
     });
   } catch {
-    const response = NextResponse.redirect(new URL("/login", request.url));
+    const response = NextResponse.redirect(appUrl("/login"));
     response.cookies.delete(COOKIE_NAME);
     return response;
   }
