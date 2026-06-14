@@ -19,3 +19,15 @@ export {
   resolveMastraObservabilityPath,
   resolveMastraStorageUrl,
 } from "./config/storage";
+export {
+  aidosAgents,
+  getAidosAgentForType,
+  getMastraAgentIdForType,
+} from "./agents";
+export {
+  createAidosRequestContext,
+  createAidosToolContext,
+  aidosTools,
+  AIDOS_TOOL_IDS,
+} from "./tools/aidos";
+export { loadAgentInstructionContext } from "./context/instructions";

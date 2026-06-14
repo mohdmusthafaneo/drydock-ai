@@ -1,86 +1,22 @@
-import path from "node:path";
 import { runAnthropicWithTools, runAnthropicWithToolsStreaming } from "../llm/anthropic";
 import {
   assertAnthropicConfigured,
   resolveAnthropicConfig,
   resolveAidosApiBaseUrl,
 } from "../llm/config";
-import { readInstructionsBundleForAgent } from "../instructions/service";
 import { parsePermissions } from "../agent-auth";
-import { readCachedUtf8File } from "../prompt-cache";
 import { buildChatContextMarkdown } from "@/lib/agent-chat/context";
 import { createChatStreamSession, type ChatStreamSession } from "@/lib/agent-chat/stream";
+import { loadAgentInstructionContext } from "@/mastra/context/instructions";
 import type { LlmStreamEvent } from "../llm/types";
 import type { AdapterExecutionContext, AdapterExecutionResult } from "../types";
 import { buildAidosLlmTools, executeAidosTool } from "./llm-tools";
-
-const AIDOS_SKILL_PATH = path.join(process.cwd(), "skills/aidos/SKILL.md");
-const CREATE_AGENT_SKILL_PATH = path.join(
-  process.cwd(),
-  "skills/aidos-create-agent/SKILL.md",
-);
-const SKILLS_ROOT = path.join(process.cwd(), "skills");
-
-function parseDesiredSkills(adapterConfigJson: string): string[] {
-  try {
-    const parsed = JSON.parse(adapterConfigJson) as { desiredSkills?: string[] };
-    return parsed.desiredSkills ?? ["aidos"];
-  } catch {
-    return ["aidos"];
-  }
-}
-
-async function loadDomainSkill(skillName: string): Promise<string | null> {
-  if (skillName === "aidos" || skillName === "aidos-create-agent") return null;
-  try {
-    return await readCachedUtf8File(
-      path.join(SKILLS_ROOT, skillName, "SKILL.md"),
-    );
-  } catch {
-    return null;
-  }
-}
-
-async function loadDomainSkills(adapterConfigJson: string): Promise<string> {
-  const names = parseDesiredSkills(adapterConfigJson).filter(
-    (n) => n !== "aidos" && n !== "aidos-create-agent",
-  );
-  const sections: string[] = [];
-  for (const name of names) {
-    const content = await loadDomainSkill(name);
-    if (content?.trim()) {
-      sections.push(`## Skill: ${name}\n\n${content.trim()}`);
-    }
-  }
-  return sections.join("\n\n---\n\n");
-}
 
 function parsePayload(json: string): Record<string, unknown> {
   try {
     return JSON.parse(json) as Record<string, unknown>;
   } catch {
     return {};
-  }
-}
-
-async function loadAidosSkill(): Promise<string> {
-  try {
-    return await readCachedUtf8File(AIDOS_SKILL_PATH);
-  } catch {
-    return "# AIDOS skill missing — see skills/aidos/SKILL.md";
-  }
-}
-
-async function loadCreateAgentSkill(): Promise<string> {
-  try {
-    const { loadCreateAgentRoleTemplates } = await import("../hire-templates");
-    const [skill, templates] = await Promise.all([
-      readCachedUtf8File(CREATE_AGENT_SKILL_PATH),
-      loadCreateAgentRoleTemplates(),
-    ]);
-    return templates ? `${skill.trim()}\n\n---\n\n${templates}` : skill;
-  } catch {
-    return "";
   }
 }
 
@@ -140,15 +76,6 @@ async function renderWakeUserMessage(ctx: AdapterExecutionContext): Promise<stri
   ].join("\n");
 }
 
-function bundleSection(
-  label: string,
-  fileName: string,
-  content: string | null | undefined,
-): string {
-  if (!content?.trim()) return "";
-  return `\n\n---\n\n## ${label} (${fileName})\n\n${content}`;
-}
-
 function isChatStreamingRun(ctx: AdapterExecutionContext): string | undefined {
   const payload = parsePayload(ctx.wakeup.payloadJson);
   const threadId =
@@ -196,31 +123,13 @@ export async function runLlmAdapter(
 
   const wakePayload = parsePayload(ctx.wakeup.payloadJson);
   const permissions = parsePermissions(ctx.agent.permissionsJson);
-  const [skill, domainSkills, createAgentSkill, bundle] = await Promise.all([
-    loadAidosSkill(),
-    loadDomainSkills(ctx.agent.adapterConfigJson),
-    permissions.canCreateAgents ? loadCreateAgentSkill() : Promise.resolve(""),
-    readInstructionsBundleForAgent(ctx.organizationId, ctx.agent),
-  ]);
-
-  const agentsMd = bundle.files[bundle.entryFile]?.content ?? "";
-  const heartbeatMd = bundle.files.HEARTBEAT?.content ?? null;
-  const chatMd = bundle.files.CHAT?.content ?? null;
-  const toolsMd = bundle.files.TOOLS?.content ?? null;
-  const initializeMd = bundle.files.INITIALIZE?.content ?? null;
-
-  const systemPrompt = [
-    skill,
-    domainSkills ? `\n\n---\n\n${domainSkills}` : "",
-    createAgentSkill ? `\n\n---\n\n${createAgentSkill}` : "",
-    bundleSection("Agent charter", bundle.entryFile, agentsMd),
-    bundleSection("Domain tools", "TOOLS.md", toolsMd),
-    bundleSection("Heartbeat checklist", "HEARTBEAT.md", heartbeatMd),
-    bundleSection("Chat participation", "CHAT.md", chatMd),
-    bundleSection("Initialization playbook", "INITIALIZE.md", initializeMd),
-  ]
-    .filter(Boolean)
-    .join("");
+  const { systemPrompt } = await loadAgentInstructionContext(ctx.organizationId, {
+    id: ctx.agent.id,
+    agentType: ctx.agent.agentType,
+    role: ctx.agent.role,
+    adapterConfigJson: ctx.agent.adapterConfigJson,
+    permissionsJson: ctx.agent.permissionsJson,
+  });
 
   const tools = buildAidosLlmTools(ctx.agent.agentType, permissions);
   const toolCtx = {

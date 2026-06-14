@@ -15,6 +15,7 @@ import {
   resolveMastraObservabilityPath,
   resolveMastraStorageUrl,
 } from "./config/storage";
+import { aidosAgents } from "./agents";
 import { weatherAgent } from "./examples/agents/weather-agent";
 import { weatherWorkflow } from "./examples/workflows/weather-workflow";
 import { noopWorkflow } from "./workflows/noop-workflow";
@@ -39,7 +40,10 @@ export function createMastraInstance(options: CreateMastraOptions = {}): Mastra 
     workflows.weatherWorkflow = weatherWorkflow;
   }
 
-  const agents = options.includeExamples ? { weatherAgent } : undefined;
+  const agents = {
+    ...aidosAgents,
+    ...(options.includeExamples ? { weatherAgent } : {}),
+  };
 
   return new Mastra({
     workflows,
