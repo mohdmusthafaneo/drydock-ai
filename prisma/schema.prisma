@@ -467,6 +467,8 @@ model AgentHeartbeatRun {
   exitCode            Int?
   error               String?
   summary             String?
+  mastraRunId         String?
+  mastraTraceId       String?
   tokenUsageJson      String                  @default("{}")
   logsJson            String                  @default("[]")
 

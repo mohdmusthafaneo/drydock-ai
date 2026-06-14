@@ -1,7 +1,18 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: 'standalone',
+  output: "standalone",
+  serverExternalPackages: [
+    "@mastra/core",
+    "@mastra/duckdb",
+    "@mastra/libsql",
+    "@mastra/loggers",
+    "@mastra/memory",
+    "@mastra/observability",
+    "@mastra/schema-compat",
+    "@mastra/server",
+    "mastra",
+  ],
   async rewrites() {
     return [
       {

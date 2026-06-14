@@ -15,6 +15,7 @@ import {
 } from "./wakeup";
 import { resolveRuntimeConfig } from "./runtime-config";
 import { postChatRunReplyIfNeeded } from "@/lib/agent-chat/reply-bridge";
+import { ensureMastraFoundation } from "@/mastra/verify";
 
 export type WorkerRunResult = {
   timersEnqueued: number;
@@ -338,6 +339,8 @@ export async function drainWakeupQueue(
   if (process.env.AGENT_WORKER_ENABLED === "false") {
     return result;
   }
+
+  await ensureMastraFoundation();
 
   await recoverStuckRuns(organizationId);
 
