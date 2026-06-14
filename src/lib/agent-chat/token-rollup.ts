@@ -86,7 +86,7 @@ export async function rollupThreadTokenUsage(
   for (const run of runs) {
     if (run.status === "succeeded") succeededRuns++;
     const usage = parseTokenUsage(run.tokenUsageJson);
-    if (usage.mode === "anthropic" || usage.mode === "openai") {
+    if (usage.mode === "anthropic" || usage.mode === "openai" || usage.mode === "mastra") {
       inputTokens += usage.inputTokens ?? 0;
       outputTokens += usage.outputTokens ?? 0;
     }

@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { AgentWakeupSource } from "@/generated/prisma/client";
 import { runHttpAdapter } from "./adapters/http";
-import { runLlmAdapter } from "./adapters/llm";
+import { runMastraAdapter } from "./adapters/mastra";
 import { runProcessAdapter } from "./adapters/process";
 import {
   createEphemeralRunApiKey,
@@ -134,7 +134,11 @@ async function executeHeartbeatRun(wakeupId: string): Promise<boolean> {
   };
 
   try {
-    if (agent.adapterType === "llm" || agent.adapterType === "http" || agent.adapterType === "process") {
+    if (
+      agent.adapterType === "mastra" ||
+      agent.adapterType === "http" ||
+      agent.adapterType === "process"
+    ) {
       ephemeralKey = await createEphemeralRunApiKey(
         organizationId,
         agent.id,
@@ -142,8 +146,8 @@ async function executeHeartbeatRun(wakeupId: string): Promise<boolean> {
       );
       const ctxWithKey = { ...adapterCtx, agentApiKey: ephemeralKey };
 
-      if (agent.adapterType === "llm") {
-        adapterResult = await runLlmAdapter(ctxWithKey);
+      if (agent.adapterType === "mastra") {
+        adapterResult = await runMastraAdapter(ctxWithKey);
       } else if (agent.adapterType === "http") {
         adapterResult = await runHttpAdapter(ctxWithKey);
       } else {
@@ -180,6 +184,8 @@ async function executeHeartbeatRun(wakeupId: string): Promise<boolean> {
         finishedAt,
         summary: adapterResult.summary,
         error: adapterResult.error,
+        mastraRunId: adapterResult.mastraRunId,
+        mastraTraceId: adapterResult.mastraTraceId,
         tokenUsageJson: JSON.stringify(adapterResult.tokenUsage ?? {}),
         logsJson: JSON.stringify([
           {

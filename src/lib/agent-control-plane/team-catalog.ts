@@ -73,7 +73,7 @@ export async function buildCatalogHirePayload(
   capabilities: string;
   instructionsBundle: { files: Record<string, string> };
   desiredSkills: string[];
-  adapterType: "llm";
+  adapterType: "mastra";
   runtimeConfig: {
     heartbeat: {
       enabled: boolean;
@@ -104,7 +104,7 @@ export async function buildCatalogHirePayload(
     capabilities: meta.capabilities,
     instructionsBundle: { files },
     desiredSkills: defaultDesiredSkillsForRole(role),
-    adapterType: "llm",
+    adapterType: "mastra",
     runtimeConfig: {
       heartbeat: {
         enabled: false,

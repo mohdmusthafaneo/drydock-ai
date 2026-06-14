@@ -46,10 +46,12 @@ export type AdapterExecutionResult = {
   status: "succeeded" | "failed" | "timed_out";
   summary?: string;
   error?: string;
+  mastraRunId?: string;
+  mastraTraceId?: string;
   tokenUsage?: {
     inputTokens: number;
     outputTokens: number;
-    mode?: "anthropic" | "openai" | "rule-engine";
+    mode?: "anthropic" | "openai" | "rule-engine" | "mastra";
   };
 };
 

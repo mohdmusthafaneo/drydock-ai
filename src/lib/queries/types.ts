@@ -103,6 +103,8 @@ export type RunDetailResponse = {
     logs: Array<{ at: string; level: string; message?: string }>;
     contextSnapshot: Record<string, unknown>;
     wakeupRequestId: string;
+    mastraRunId: string | null;
+    mastraTraceId: string | null;
   };
   agent: {
     id: string;

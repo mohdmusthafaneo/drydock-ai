@@ -51,7 +51,7 @@ export async function seedEnterpriseFoundation(
     status: "IDLE" as const,
     runtimeConfigJson: serializeRuntimeConfig(runtimeConfig),
     permissionsJson,
-    adapterType: "llm",
+    adapterType: "mastra",
   };
 
   const superAgentRecord = superAgent

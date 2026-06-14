@@ -93,7 +93,9 @@ export function AgentRunDetailPanel({ agentId, runId }: AgentRunDetailPanelProps
               <p className="text-slate-400">Exit code: {run.exitCode}</p>
             )}
             <p className="text-slate-400">Tokens: {formatTokenUsage(tokenUsage)}</p>
-            {(tokenUsage.mode === "anthropic" || tokenUsage.mode === "openai") && (
+            {(tokenUsage.mode === "anthropic" ||
+              tokenUsage.mode === "openai" ||
+              tokenUsage.mode === "mastra") && (
               <p className="text-xs text-slate-500">
                 In: {tokenUsage.inputTokens ?? 0} · Out: {tokenUsage.outputTokens ?? 0}
               </p>
@@ -161,6 +163,38 @@ export function AgentRunDetailPanel({ agentId, runId }: AgentRunDetailPanelProps
                 <span className="text-slate-300">{entry.message ?? "—"}</span>
               </div>
             ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {(run.mastraRunId || run.mastraTraceId) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Mastra trace</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm text-slate-300">
+            {run.mastraTraceId && (
+              <p>
+                <span className="text-slate-500">Trace ID:</span>{" "}
+                <code className="rounded bg-black/30 px-1.5 py-0.5 text-xs">
+                  {run.mastraTraceId}
+                </code>
+              </p>
+            )}
+            {run.mastraRunId && (
+              <p>
+                <span className="text-slate-500">Run ID:</span>{" "}
+                <code className="rounded bg-black/30 px-1.5 py-0.5 text-xs">
+                  {run.mastraRunId}
+                </code>
+              </p>
+            )}
+            {process.env.NODE_ENV === "development" && run.mastraTraceId && (
+              <p className="text-xs text-slate-500">
+                Open Mastra Studio locally to inspect this trace (
+                <code className="text-slate-400">npm run mastra:studio</code>).
+              </p>
+            )}
           </CardContent>
         </Card>
       )}

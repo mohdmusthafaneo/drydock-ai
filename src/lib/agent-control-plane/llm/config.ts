@@ -1,4 +1,8 @@
-import type { AnthropicConfig } from "./types";
+export type AnthropicConfig = {
+  apiKey: string;
+  baseUrl: string;
+  model: string;
+};
 
 const DEFAULT_ANTHROPIC_BASE_URL = "https://api.minimax.io/anthropic";
 const DEFAULT_MODEL = "MiniMax-M3";

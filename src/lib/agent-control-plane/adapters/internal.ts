@@ -15,7 +15,7 @@ function parsePayload(json: string): Record<string, unknown> {
   }
 }
 
-/** @deprecated Use `runLlmAdapter` from `./llm` (Phase 5.2). */
+/** @deprecated Use `runMastraAdapter` from `./mastra` (Phase M2). */
 export async function runInternalAdapter(
   ctx: AdapterExecutionContext,
 ): Promise<AdapterExecutionResult> {
@@ -26,7 +26,7 @@ export async function runInternalAdapter(
     `Heartbeat for ${ctx.agent.displayName} (${ctx.agent.agentType})`,
     `source=${ctx.wakeup.source} reason=${ctx.wakeup.reason}`,
     inbox.length > 0
-      ? `${inbox.length} inbox item(s) — configure adapterType=llm for LLM execution`
+      ? `${inbox.length} inbox item(s) — configure adapterType=mastra for LLM execution`
       : "No inbox items",
   ].join(" · ");
 

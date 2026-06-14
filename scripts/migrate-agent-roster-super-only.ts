@@ -1,6 +1,6 @@
 /**
  * Phase 5.0 — migrate existing orgs to Super-Agent-only roster.
- * Removes specialist agents; updates Super Agent to llm adapter + Phase 5.0 config.
+ * Removes specialist agents; updates Super Agent to mastra adapter + Phase 5.0 config.
  *
  * Usage:
  *   npx tsx scripts/migrate-agent-roster-super-only.ts          # dry-run
@@ -44,7 +44,7 @@ async function main() {
 
     if (specialists.length === 0 && superAgent) {
       const needsUpdate =
-        superAgent.adapterType !== "llm" ||
+        superAgent.adapterType !== "mastra" ||
         superAgent.displayName !== SUPER_AGENT.displayName ||
         !superAgent.permissionsJson.includes("canCreateAgents");
 
@@ -90,7 +90,7 @@ async function main() {
             description: SUPER_AGENT.description,
             runtimeConfigJson: serializeRuntimeConfig(runtimeConfig),
             permissionsJson,
-            adapterType: "llm",
+            adapterType: "mastra",
             reportsToAgentId: null,
           },
         });
@@ -113,7 +113,7 @@ async function main() {
             status: "IDLE",
             runtimeConfigJson: serializeRuntimeConfig(runtimeConfig),
             permissionsJson,
-            adapterType: "llm",
+            adapterType: "mastra",
             adapterConfigJson: "{}",
             lastActiveAt: new Date(),
           },
@@ -150,7 +150,7 @@ async function updateSuperAgent(organizationId: string, agentId: string) {
         description: SUPER_AGENT.description,
         runtimeConfigJson: serializeRuntimeConfig(runtimeConfig),
         permissionsJson: JSON.stringify({ canCreateAgents: true }),
-        adapterType: "llm",
+        adapterType: "mastra",
         reportsToAgentId: null,
       },
     });

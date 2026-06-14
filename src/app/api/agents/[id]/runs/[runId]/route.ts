@@ -70,6 +70,8 @@ export async function GET(_request: Request, { params }: RouteParams) {
       logs,
       contextSnapshot,
       wakeupRequestId: run.wakeupRequestId,
+      mastraRunId: run.mastraRunId,
+      mastraTraceId: run.mastraTraceId,
     },
     agent,
   });

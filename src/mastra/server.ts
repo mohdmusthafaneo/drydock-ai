@@ -18,6 +18,9 @@ import {
 import { aidosAgents } from "./agents";
 import { weatherAgent } from "./examples/agents/weather-agent";
 import { weatherWorkflow } from "./examples/workflows/weather-workflow";
+import { chatRoutingWorkflow } from "./workflows/chat-routing";
+import { heartbeatWorkflow } from "./workflows/heartbeat";
+import { hireAgentWorkflow } from "./workflows/hire-agent";
 import { noopWorkflow } from "./workflows/noop-workflow";
 
 export type CreateMastraOptions = {
@@ -32,10 +35,19 @@ export function createMastraInstance(options: CreateMastraOptions = {}): Mastra 
     path: resolveMastraObservabilityPath(),
   });
 
-  const workflows: Record<string, typeof noopWorkflow | typeof weatherWorkflow> =
-    {
-      noopWorkflow,
-    };
+  const workflows: Record<
+    string,
+    | typeof noopWorkflow
+    | typeof heartbeatWorkflow
+    | typeof chatRoutingWorkflow
+    | typeof hireAgentWorkflow
+    | typeof weatherWorkflow
+  > = {
+    noopWorkflow,
+    heartbeatWorkflow,
+    chatRoutingWorkflow,
+    hireAgentWorkflow,
+  };
   if (options.includeExamples) {
     workflows.weatherWorkflow = weatherWorkflow;
   }

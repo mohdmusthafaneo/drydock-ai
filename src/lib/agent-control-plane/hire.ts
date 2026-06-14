@@ -50,7 +50,7 @@ export const hireRequestSchema = z.object({
       }),
   }),
   desiredSkills: z.array(z.string()).optional(),
-  adapterType: z.enum(["llm", "http", "process"]).default("llm"),
+  adapterType: z.enum(["mastra", "http", "process"]).default("mastra"),
   runtimeConfig: z
     .object({
       heartbeat: z

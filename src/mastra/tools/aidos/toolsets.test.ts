@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import type { AgentType } from "@/generated/prisma/client";
-import { buildAidosLlmTools } from "@/lib/agent-control-plane/adapters/llm-tools";
 import {
   listAidosToolIdsForAgent,
   isAidosToolAllowedForAgent,
@@ -18,25 +17,38 @@ const ALL_AGENT_TYPES: AgentType[] = [
   "INTEGRATION",
 ];
 
+const EXPECTED_TOOL_COUNTS: Record<
+  AgentType,
+  { withHire: number; withoutHire: number }
+> = {
+  SUPER_ORCHESTRATOR: { withHire: 12, withoutHire: 11 },
+  QA_INTELLIGENCE: { withHire: 8, withoutHire: 8 },
+  DEVOPS_INTELLIGENCE: { withHire: 7, withoutHire: 7 },
+  GOVERNANCE: { withHire: 7, withoutHire: 7 },
+  INCIDENT_CORRELATION: { withHire: 7, withoutHire: 7 },
+  INTEGRATION: { withHire: 6, withoutHire: 6 },
+};
+
 describe("AIDOS Mastra tool allowlists", () => {
-  it("defines all 14 legacy aidos_* tools", () => {
+  it("defines all 14 aidos_* tools", () => {
     assert.equal(AIDOS_TOOL_IDS.length, 14);
   });
 
   for (const agentType of ALL_AGENT_TYPES) {
-    it(`matches legacy tool count for ${agentType}`, () => {
-      const permissions = {
+    it(`returns expected tool count for ${agentType}`, () => {
+      const withHire = {
         canCreateAgents: agentType === "SUPER_ORCHESTRATOR",
       };
-      const legacyNames = buildAidosLlmTools(agentType, permissions).map(
-        (tool) => tool.name,
-      );
-      const mastraNames = listAidosToolIdsForAgent(agentType, permissions);
+      const withoutHire = { canCreateAgents: false };
+      const expected = EXPECTED_TOOL_COUNTS[agentType];
 
-      assert.deepEqual(
-        [...mastraNames].sort(),
-        [...legacyNames].sort(),
-        `tool allowlist mismatch for ${agentType}`,
+      assert.equal(
+        listAidosToolIdsForAgent(agentType, withHire).length,
+        expected.withHire,
+      );
+      assert.equal(
+        listAidosToolIdsForAgent(agentType, withoutHire).length,
+        expected.withoutHire,
       );
     });
   }
