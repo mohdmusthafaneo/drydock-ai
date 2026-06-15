@@ -22,7 +22,7 @@ const EXPECTED_TOOL_COUNTS: Record<
   { withHire: number; withoutHire: number }
 > = {
   SUPER_ORCHESTRATOR: { withHire: 12, withoutHire: 11 },
-  QA_INTELLIGENCE: { withHire: 8, withoutHire: 8 },
+  QA_INTELLIGENCE: { withHire: 9, withoutHire: 9 },
   DEVOPS_INTELLIGENCE: { withHire: 7, withoutHire: 7 },
   GOVERNANCE: { withHire: 7, withoutHire: 7 },
   INCIDENT_CORRELATION: { withHire: 7, withoutHire: 7 },
@@ -30,8 +30,8 @@ const EXPECTED_TOOL_COUNTS: Record<
 };
 
 describe("AIDOS Mastra tool allowlists", () => {
-  it("defines all 14 aidos_* tools", () => {
-    assert.equal(AIDOS_TOOL_IDS.length, 14);
+  it("defines all 15 aidos_* tools", () => {
+    assert.equal(AIDOS_TOOL_IDS.length, 15);
   });
 
   for (const agentType of ALL_AGENT_TYPES) {
@@ -94,6 +94,17 @@ describe("AIDOS Mastra tool allowlists", () => {
         "aidos_assess_release",
         "DEVOPS_INTELLIGENCE",
       ),
+      false,
+    );
+  });
+
+  it("allows query_jira_jql only for QA_INTELLIGENCE", () => {
+    assert.equal(
+      isAidosToolAllowedForAgent("aidos_query_jira_jql", "QA_INTELLIGENCE"),
+      true,
+    );
+    assert.equal(
+      isAidosToolAllowedForAgent("aidos_query_jira_jql", "DEVOPS_INTELLIGENCE"),
       false,
     );
   });

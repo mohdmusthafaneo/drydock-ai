@@ -15,6 +15,7 @@ export {
 export {
   aidosTools,
   aidosAssessReleaseTool,
+  aidosQueryJiraJqlTool,
   aidosAwaitHumanInputTool,
   aidosCloseThreadTool,
   aidosCompleteInitializationTool,

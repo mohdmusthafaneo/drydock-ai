@@ -126,20 +126,30 @@ export async function loadAgentInstructionContext(
   systemPrompt: string;
 }> {
   const permissions = parsePermissions(agent.permissionsJson);
-  const [skill, domainSkills, createAgentSkill, bundle] = await Promise.all([
-    loadAidosSkill(),
-    loadDomainSkills(agent.adapterConfigJson),
-    permissions.canCreateAgents ? loadCreateAgentSkill() : Promise.resolve(""),
-    readInstructionsBundleForAgent(organizationId, agent),
-  ]);
+  const [skill, domainSkills, createAgentSkill, bundle, qaJiraContext] =
+    await Promise.all([
+      loadAidosSkill(),
+      loadDomainSkills(agent.adapterConfigJson),
+      permissions.canCreateAgents ? loadCreateAgentSkill() : Promise.resolve(""),
+      readInstructionsBundleForAgent(organizationId, agent),
+      agent.agentType === "QA_INTELLIGENCE"
+        ? import("@/lib/agent-control-plane/context/qa-jira-context").then((m) =>
+            m.buildQaJiraContextMarkdown(organizationId),
+          )
+        : Promise.resolve(""),
+    ]);
+
+  const basePrompt = buildSystemPromptFromBundle({
+    bundle,
+    skill,
+    domainSkills,
+    createAgentSkill,
+  });
 
   return {
     bundle,
-    systemPrompt: buildSystemPromptFromBundle({
-      bundle,
-      skill,
-      domainSkills,
-      createAgentSkill,
-    }),
+    systemPrompt: qaJiraContext
+      ? `${basePrompt}\n\n---\n\n${qaJiraContext}`
+      : basePrompt,
   };
 }

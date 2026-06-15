@@ -72,6 +72,45 @@ export const aidosAssessReleaseTool = createTool({
   },
 });
 
+export const aidosQueryJiraJqlTool = createTool({
+  id: "aidos_query_jira_jql",
+  description:
+    "Query the connected Jira board with JQL (read-only). Use for chat questions about open bugs, blocked work, sprint scope, or release readiness. Prefer mode=count for totals; use preset shortcuts when the question matches open_bugs, blocked, open, or done.",
+  inputSchema: z
+    .object({
+      jql: z
+        .string()
+        .optional()
+        .describe(
+          "JQL fragment scoped to org projects automatically, e.g. issuetype = Bug AND status != Done",
+        ),
+      preset: z
+        .enum(["open_bugs", "blocked", "open", "done"])
+        .optional()
+        .describe(
+          "Toolchain-aware preset instead of raw JQL — open_bugs, blocked, open, or done",
+        ),
+      mode: z
+        .enum(["count", "issues"])
+        .optional()
+        .describe("count returns only approximate total; issues returns sample rows"),
+      maxResults: z
+        .number()
+        .optional()
+        .describe("Max issues to return when mode=issues (default 20, max 50)"),
+    })
+    .refine((value) => Boolean(value.jql || value.preset), {
+      message: "Provide jql or preset",
+    }),
+  execute: async (input, context) => {
+    const ctx = getAidosToolContext(context);
+    return agentJson(ctx, "/api/agents/me/jira/query", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  },
+});
+
 export const aidosCreateRecommendationTool = createTool({
   id: "aidos_create_recommendation",
   description: "Create a governance recommendation (and approval when required).",
@@ -347,6 +386,7 @@ export const aidosTools = {
   aidos_get_me: aidosGetMeTool,
   aidos_get_inbox: aidosGetInboxTool,
   aidos_assess_release: aidosAssessReleaseTool,
+  aidos_query_jira_jql: aidosQueryJiraJqlTool,
   aidos_create_recommendation: aidosCreateRecommendationTool,
   aidos_complete_work_item: aidosCompleteWorkItemTool,
   aidos_hire_agent: aidosHireAgentTool,
