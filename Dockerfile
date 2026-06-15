@@ -73,8 +73,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/scripts/agent-worker-loop.mjs ./s
 
 COPY --chmod=755 docker/entrypoint.sh /app/docker/entrypoint.sh
 
-# Writable agent instructions (Coolify volume mount target)
-RUN mkdir -p /data/agent-instructions && chown -R nextjs:nodejs /data
+# Writable agent instructions + Mastra storage (Coolify volume mount targets)
+RUN mkdir -p /data/agent-instructions /data/mastra && chown -R nextjs:nodejs /data
 
 # Expose the port
 EXPOSE 3000

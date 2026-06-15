@@ -154,8 +154,11 @@ async function executeHeartbeatRun(wakeupId: string): Promise<boolean> {
         adapterResult = await runProcessAdapter(ctxWithKey);
       }
     } else {
-      const { runInternalAdapter } = await import("./adapters/internal");
-      adapterResult = await runInternalAdapter(adapterCtx);
+      adapterResult = {
+        status: "failed",
+        error: `Unsupported adapterType "${agent.adapterType}" — run scripts/migrate-adapter-type-mastra.ts --apply to migrate legacy agents to mastra`,
+        tokenUsage: { inputTokens: 0, outputTokens: 0, mode: "mastra" },
+      };
     }
   } catch (err) {
     adapterResult = {

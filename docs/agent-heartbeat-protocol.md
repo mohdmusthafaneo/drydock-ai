@@ -1,10 +1,24 @@
 # Agent Heartbeat Protocol
 
-**Status:** Active (revised for LLM + skills model) · See [ai-agents-workflow.md](./ai-agents-workflow.md)
+**Status:** Active (Mastra + skills model) · See [ai-agents-workflow.md](./ai-agents-workflow.md) · [migration-plan.md](./migration-plan.md)
 
-Runtime agents are **LLM workers** — not server-side rule engines. Each heartbeat, the adapter loads the agent's **`AGENTS.md`** and the shared **`skills/aidos/SKILL.md`**, then runs the model with tools that call AIDOS agent APIs.
+Runtime agents are **LLM workers** orchestrated by **Mastra** — not server-side rule engines. Each heartbeat, the Mastra adapter loads the agent's **`AGENTS.md`** and the shared **`skills/aidos/SKILL.md`**, then runs a Mastra agent/workflow with tools that call AIDOS agent APIs.
 
 > **Note:** [AGENTS.md](../AGENTS.md) at the repo root is for **Cursor development subagents**. Runtime agents use managed instructions at `organizations/{orgId}/agents/{agentId}/instructions/AGENTS.md`.
+
+---
+
+## Execution path
+
+```text
+Worker drain → runMastraAdapter
+  → loadAgentInstructionContext (AGENTS.md + skills)
+  → heartbeatWorkflow | chatRoutingWorkflow
+  → Mastra agent + AIDOS tools (HTTP to /api/agents/me/*)
+  → AgentHeartbeatRun (summary, mastraRunId, mastraTraceId, token rollup)
+```
+
+Detailed traces live in **Mastra storage** (LibSQL + DuckDB observability). Prisma stores governance pointers on `AgentHeartbeatRun`.
 
 ---
 
@@ -13,12 +27,14 @@ Runtime agents are **LLM workers** — not server-side rule engines. Each heartb
 | Variable | Purpose |
 |----------|---------|
 | `AIDOS_API_URL` | Base URL (e.g. `http://localhost:3000`) |
-| `AIDOS_API_KEY` | Bearer token for agent auth |
+| `AIDOS_API_KEY` | Bearer token for agent auth (ephemeral per run) |
 | `AIDOS_AGENT_ID` | Current agent id |
 | `AIDOS_ORGANIZATION_ID` | Org scope |
 | `AIDOS_RUN_ID` | Current heartbeat run id — **required on all mutating API calls** |
-| `AIDOS_WAKE_REASON` | e.g. `release.detected`, `manual.invoke`, `approval.approved` |
-| `AIDOS_WAKE_PAYLOAD_JSON` | Compact wake context (releaseId, approvalId, etc.) |
+| `AIDOS_WAKE_REASON` | e.g. `release.detected`, `manual.invoke`, `approval.approved`, `chat.human_message` |
+| `AIDOS_WAKE_PAYLOAD_JSON` | Compact wake context (releaseId, approvalId, threadId, etc.) |
+
+Mastra tools receive the same context via `createAidosToolContext` (API key, run id, wake payload).
 
 ---
 
@@ -29,7 +45,7 @@ Runtime agents are **LLM workers** — not server-side rule engines. Each heartb
 3. **`HEARTBEAT.md`** (if present) — per-agent checklist.
 4. **Wake delta** — reason, payload, scoped entity ids.
 
-The LLM follows these documents. The adapter does **not** branch on `agentType` in code.
+The LLM follows these documents. The adapter does **not** branch on `agentType` in code — tool allowlists are applied per agent type in `src/mastra/agents/toolsets.ts`.
 
 ---
 
@@ -101,7 +117,7 @@ Domain rule engines run **behind** these API routes — agents never call lib fu
 
 ### Step 7 — Exit
 
-Adapter records `AgentHeartbeatRun`: summary, token usage, errors.
+Adapter records `AgentHeartbeatRun`: summary, token usage, `mastraRunId`, `mastraTraceId`, errors.
 
 ---
 
@@ -119,19 +135,32 @@ Adapter records `AgentHeartbeatRun`: summary, token usage, errors.
 
 ```bash
 # Every 30–60s (production cron)
-curl -X POST "$APP_URL/api/platform/agents/worker" \
+curl -X POST "$APP_URL/api/cron/agents/worker" \
   -H "Authorization: Bearer $PLATFORM_WORKER_SECRET"
 ```
 
-Invoke from UI **queues** a wakeup and polls until the worker completes it. In dev, run `npm run worker:agents` in a second terminal (or schedule `POST /api/platform/agents/worker` in production).
+Invoke from UI **queues** a wakeup and polls until the worker completes it. In dev, run `npm run worker:agents` in a second terminal (or schedule `POST /api/cron/agents/worker` in production).
 
 | Variable | Purpose |
 |----------|---------|
 | `PLATFORM_WORKER_SECRET` | Worker auth |
-| `ANTHROPIC_API_KEY` | Required for LLM adapter |
+| `ANTHROPIC_API_KEY` | Required for Mastra model provider |
 | `ANTHROPIC_BASE_URL` | Anthropic Messages API base (default MiniMax-compatible endpoint) |
 | `ANTHROPIC_MODEL` | Model id (e.g. `MiniMax-M3`) |
+| `MASTRA_STORAGE_URL` | LibSQL store, e.g. `file:/data/mastra/store.db` |
+| `MASTRA_OBSERVABILITY_PATH` | DuckDB traces path, e.g. `/data/mastra/observability.duckdb` |
 | `AIDOS_API_URL` | Agent adapter → API tool calls (defaults to `NEXT_PUBLIC_APP_URL`) |
 | `AGENT_WORKER_ENABLED` | Set `false` to disable |
 | `AGENT_WORKER_INTERVAL_SEC` | Dev loop interval for `npm run worker:agents` (default 15) |
 | `AGENT_DEFAULT_HEARTBEAT_SEC` | Super Agent timer (default 900) |
+
+**Production (Coolify):** Mount shared `/data/mastra` on web + worker. See [coolify-deploy.md](./coolify-deploy.md).
+
+**Load test:** `npm run load-test:chat-wakeups` — enqueues concurrent chat wakeups and verifies worker drain.
+
+---
+
+## Trace lookup
+
+- **Run summary:** Agents UI → run detail → `mastraRunId` / `mastraTraceId` link.
+- **Detailed spans:** Mastra storage (DuckDB observability domain) or `npm run mastra:studio` in local dev.

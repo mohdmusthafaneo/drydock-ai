@@ -1,8 +1,10 @@
 # AIDOS AI Agents — Implementation Plan
 
-**Status:** Draft (revised) · **Last updated:** 2026-06-09  
+**Status:** Draft (revised) · **Last updated:** 2026-06-15  
 **Audience:** Engineering (backend, frontend, architect)  
 **References:**
+- [Mastra migration plan](./migration-plan.md) — Phase M0–M4 (Mastra adapter cutover complete)
+- [Coolify deploy](./coolify-deploy.md) — shared Mastra volume for web + worker
 - [Paperclip minimal agent control plane](file:///Users/musthafa/warehouse/paperclip/doc/minimal-agent-control-plane-guide.md)
 - Paperclip runtime patterns: `skills/paperclip/`, `skills/paperclip-create-agent/`, `server/src/services/agent-instructions.ts`, `packages/adapter-utils/`
 
@@ -11,6 +13,8 @@
 ## 1. Executive summary
 
 AIDOS needs a **governed agent control plane** where a **single Super Agent** bootstraps the org, hires specialists under human approval, and every runtime agent is an **LLM worker** that reads its own **`AGENTS.md`** on every wakeup and follows **`SKILL.md`** to call AIDOS APIs.
+
+**Execution (Phase M2+):** Agent heartbeats run through the **Mastra adapter** (`adapters/mastra.ts`) — Mastra agents + workflows orchestrate the tool loop; Prisma stores governance pointers (`mastraRunId`, `mastraTraceId` on `AgentHeartbeatRun`). See [migration-plan.md](./migration-plan.md).
 
 This replaces the prior plan (pre-seeded specialist types + rule-engine-first `internal` adapter). That prototype (Phases 5a/5b) proved the wakeup queue and UI; **execution moves to Paperclip-style LLM + instructions + skills**.
 
@@ -53,6 +57,18 @@ Org created → Super Agent only
 | **5.5** | Production & externals | Ongoing | **Done** | 6/6 exit | 5.4 | `/backend`, `/architect` |
 
 > **Superseded work:** Pre-plan prototype (old 5a/5b) — wakeup queue, worker, agent UI, rule-engine QA adapter — is **Partial** and will be refactored in 5.0–5.2. See §3.4.
+
+### Phase M — Mastra migration (M0–M4)
+
+| Phase | Name | Status | Notes |
+|-------|------|--------|-------|
+| **M0** | Foundation (`getMastra()`, storage env, Prisma pointers) | **Done** | See [migration-plan.md](./migration-plan.md) |
+| **M1** | Mastra tools + agent definitions | **Done** | `src/mastra/tools/aidos/` |
+| **M2** | Workflows + worker cutover | **Done** | `runMastraAdapter`; legacy LLM adapter removed |
+| **M3** | Future LLM surfaces (DNA, accelerator, ingress) | **Done** | Feature-flagged |
+| **M4** | Cleanup & hardening | **Done** | Internal adapter removed; Coolify doc; load test script; governance review |
+
+**Adapter types in production:** `mastra` (default), `http`, `process`. Legacy `internal` and `llm` — migrate via `scripts/migrate-adapter-type-mastra.ts --apply`.
 
 ### Phase 5.0 — Control plane reset
 
@@ -141,15 +157,16 @@ Org created → Super Agent only
 | **Exit:** Worker routes http/process | **Done** | Ephemeral API key + wake payload |
 | **Exit:** `npm run build` passes | **Done** | Verified 2026-06-10 |
 
-### Superseded prototype (old 5a / 5b) — do not extend
+### Superseded prototype (old 5a / 5b) — removed in M4
 
 | Item | Status | Disposition |
 |------|--------|-------------|
-| `adapters/internal.ts` rule-engine QA path | **Partial** | Replace with `adapters/llm.ts` in 5.2 |
-| `prompts/qa.ts`, `tools/registry.ts` (adapter-side) | **Partial** | Replace with `AGENTS.md` + skills |
-| `inbox.ts` server-side virtual inbox in adapter | **Partial** | Inbox stays API-only for LLM |
-| Pre-seeded 6 `AgentType` rows | **Done** (wrong model) | Remove in 5.0 |
-| `docs/agent-heartbeat-protocol.md` (revised) | **Done** | Aligned to new model |
+| `adapters/internal.ts` rule-engine QA path | **Removed** | M4.1 — use `adapterType: mastra` |
+| `adapters/llm.ts`, `llm/anthropic.ts`, `llm-tools.ts` | **Removed** | Replaced by Mastra adapter + `src/mastra/tools/aidos/` |
+| `prompts/qa.ts`, adapter-side tool registry | **Partial** | Replaced with `AGENTS.md` + skills |
+| `inbox.ts` server-side virtual inbox in adapter | **Done** | Inbox is API-only (`GET /api/agents/me/inbox`) |
+| Pre-seeded 6 `AgentType` rows | **Done** (wrong model) | Removed in 5.0 |
+| `docs/agent-heartbeat-protocol.md` | **Done** | Aligned to Mastra + skills model |
 
 ---
 
@@ -162,7 +179,7 @@ Org created → Super Agent only
 | Human UI | Approvals, agent visibility, instruction editing | `(platform)/approvals`, `(platform)/agents` |
 | Control plane API | Agents, wakeups, runs, hire, governance | `src/app/api/agents/**` |
 | Background worker | Timer heartbeats, queue drain | `POST /api/platform/agents/worker` |
-| **LLM adapter** | Load AGENTS.md + skills → run LLM → agent phones home | `src/lib/agent-control-plane/adapters/llm.ts` |
+| **Mastra adapter** | Load AGENTS.md + skills → Mastra agent/workflow → agent phones home | `src/lib/agent-control-plane/adapters/mastra.ts`, `src/mastra/` |
 | **Managed instructions** | Per-agent `AGENTS.md` bundle on disk/DB | `src/lib/agent-control-plane/instructions/` |
 | **Skills** | How LLM interacts with AIDOS APIs | `skills/aidos/SKILL.md`, `skills/aidos-create-agent/` |
 
@@ -177,7 +194,7 @@ Agents do **not** run continuously. They run in **heartbeats**. The adapter **do
 | `INITIALIZE` / bootstrap prompt | `INITIALIZE.md` in Super Agent bundle — first-run onboarding |
 | `skills/paperclip/SKILL.md` | `skills/aidos/SKILL.md` — heartbeat + API contract |
 | `skills/paperclip-create-agent/` | `skills/aidos-create-agent/` — governed hire workflow |
-| Adapter injects instructions + skills | LLM adapter loads bundle every wakeup |
+| Adapter injects instructions + skills | Mastra adapter loads bundle every wakeup |
 | `POST .../agent-hires` + board approval | `POST /api/agents/hire` + `AGENT_HIRE` approval |
 | Env: `PAPERCLIP_*` | Env: `AIDOS_AGENT_ID`, `AIDOS_RUN_ID`, `AIDOS_API_KEY`, `AIDOS_API_URL` |
 | Agent phones home via API key | Same — all mutations include `X-Run-Id` |
@@ -187,7 +204,7 @@ Agents do **not** run continuously. They run in **heartbeats**. The adapter **do
 | Paperclip | AIDOS | Reason |
 |-----------|-------|--------|
 | Issues / checkout / 409 | Releases, Incidents, Recommendations, WebhookEvents | Operational intelligence domain, not issue tracker |
-| `process` adapter (shell/Claude Code) | **LLM adapter** in-process first; `http` later | Simpler v1; same protocol |
+| `process` adapter (shell/Claude Code) | **Mastra adapter** in-process; `http`/`process` for externals | Simpler v1; same protocol |
 | Code workspaces / git worktrees | — | Not AIDOS scope |
 | Plugin marketplace | Org skill library (small catalog) | Defer to 5.5 |
 | Budget hard-stop | Token logging only | Defer |
@@ -199,12 +216,13 @@ The following was built as a spike and **will be refactored or removed**:
 | Prototype | Disposition |
 |-----------|-------------|
 | `enqueueWakeup`, worker, `AgentWakeupRequest`, `AgentHeartbeatRun`, API keys | **Keep** — control plane core |
-| Pre-seeded 6 `AgentType` rows in `enterprise-seed.ts` | **Remove** — seed Super Agent only |
-| `adapters/internal.ts` rule-engine-first QA path | **Replace** with `adapters/llm.ts` |
+| Pre-seeded 6 `AgentType` rows in `enterprise-seed.ts` | **Removed** — seed Super Agent only |
+| `adapters/internal.ts` rule-engine-first QA path | **Removed** (M4.1) |
+| `adapters/llm.ts`, `llm/anthropic.ts` | **Removed** — Mastra adapter (M2) |
 | `prompts/qa.ts`, per-type TS prompts | **Replace** with managed `AGENTS.md` |
-| `inbox.ts` server-side virtual inbox builder | **Demote** — inbox becomes API the LLM calls; optional server helpers for API routes only |
+| `inbox.ts` server-side virtual inbox builder | **API-only** — LLM calls `GET /api/agents/me/inbox` |
 | `tools/release-tools.ts` called from adapter | **Expose as API tools** the LLM invokes via SKILL procedures |
-| Rule-engine as default execution | **Demote** — optional tool `assess_release_governance` LLM may call; not adapter default |
+| Rule-engine as default execution | **Removed** — Mastra is the only in-process execution path |
 
 ---
 
@@ -220,7 +238,7 @@ AgentRegistry:
   displayName: "Super Agent" (or org-specific name)
   status: IDLE
   permissionsJson: { "canCreateAgents": true }
-  adapterType: "llm"
+  adapterType: "mastra"
   runtimeConfigJson: { heartbeat: { enabled: true, intervalSec: 900, wakeOnEvent: true, ... } }
 ```
 

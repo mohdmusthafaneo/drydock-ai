@@ -10,6 +10,12 @@ fix_instructions_volume_permissions() {
   chown -R nextjs:nodejs "$INSTRUCTIONS_ROOT"
 }
 
+fix_mastra_volume_permissions() {
+  MASTRA_ROOT="/data/mastra"
+  mkdir -p "$MASTRA_ROOT"
+  chown -R nextjs:nodejs "$MASTRA_ROOT"
+}
+
 case "$ROLE" in
   web)
     if [ -z "$DATABASE_URL" ]; then
@@ -23,6 +29,7 @@ case "$ROLE" in
     fi
 
     fix_instructions_volume_permissions
+    fix_mastra_volume_permissions
 
     echo "Running database migrations..."
     su-exec nextjs npx prisma migrate deploy
@@ -36,6 +43,8 @@ case "$ROLE" in
       echo "ERROR: PLATFORM_WORKER_SECRET is not set (required for worker role)."
       exit 1
     fi
+
+    fix_mastra_volume_permissions
 
     echo "Starting agent worker loop (role=worker)..."
     exec su-exec nextjs node /app/scripts/agent-worker-loop.mjs

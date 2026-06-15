@@ -390,7 +390,7 @@ model AgentRegistry {
   confidenceScore    Float        @default(0.85)
   autonomyMode       AutonomyMode @default(RECOMMEND)
   reportsToAgentId   String?
-  adapterType        String       @default("internal")
+  adapterType        String       @default("mastra")
   adapterConfigJson  String       @default("{}")
   runtimeConfigJson  String       @default("{}")
   permissionsJson    String       @default("{}")
