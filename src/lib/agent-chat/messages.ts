@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { logChatActivity, logChatAudit } from "./audit";
+import { emitThreadMessagePostedWebhook } from "./outbound-webhook";
 import { isAgentThreadParticipant } from "./participants";
 
 export type PostAgentMessageResult =
@@ -85,6 +86,14 @@ export async function postAgentThreadMessage(input: {
         return updated;
       });
 
+      await maybeEmitExternalReplyWebhook({
+        organizationId,
+        threadId,
+        messageId: message.id,
+        contentMarkdown: trimmed,
+        authorAgentId,
+      });
+
       return { ok: true, messageId: message.id };
     }
   }
@@ -132,5 +141,43 @@ export async function postAgentThreadMessage(input: {
     return created;
   });
 
+  await maybeEmitExternalReplyWebhook({
+    organizationId,
+    threadId,
+    messageId: message.id,
+    contentMarkdown: trimmed,
+    authorAgentId,
+  });
+
   return { ok: true, messageId: message.id };
+}
+
+async function maybeEmitExternalReplyWebhook(input: {
+  organizationId: string;
+  threadId: string;
+  messageId: string;
+  contentMarkdown: string;
+  authorAgentId: string;
+}): Promise<void> {
+  const thread = await prisma.agentChatThread.findFirst({
+    where: { id: input.threadId, organizationId: input.organizationId },
+    select: {
+      externalSource: true,
+      externalChannelId: true,
+      externalThreadId: true,
+    },
+  });
+
+  if (!thread || thread.externalSource === "web") return;
+
+  await emitThreadMessagePostedWebhook({
+    organizationId: input.organizationId,
+    threadId: input.threadId,
+    messageId: input.messageId,
+    contentMarkdown: input.contentMarkdown,
+    externalSource: thread.externalSource,
+    externalChannelId: thread.externalChannelId,
+    externalThreadId: thread.externalThreadId,
+    authorAgentId: input.authorAgentId,
+  }).catch(() => undefined);
 }

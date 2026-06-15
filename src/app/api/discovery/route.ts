@@ -3,6 +3,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { generateDeliveryDNA, generateRecommendations } from "@/lib/delivery-dna";
+import { enrichDeliveryDnaWithMastra } from "@/lib/discovery/mastra-enrichment";
+import { isDiscoveryDnaLlmEnabled } from "@/lib/mastra-feature-flags";
 import { hasLiveObservability } from "@/lib/observability-connectivity";
 import { seedEnterpriseFoundation } from "@/lib/enterprise-seed";
 import { getLandingPathForOrganization } from "@/lib/landing-path-org";
@@ -41,6 +43,24 @@ export async function POST(request: Request) {
 
     const dnaResult = generateDeliveryDNA(answers);
 
+    let summary = dnaResult.summary;
+    if (isDiscoveryDnaLlmEnabled()) {
+      try {
+        const enriched = await enrichDeliveryDnaWithMastra({
+          answers,
+          deterministicDna: dnaResult,
+        });
+        summary = enriched.summary;
+        if (enriched.llmRationale) {
+          summary = `${summary} ${enriched.llmRationale}`.slice(0, 4000);
+        }
+      } catch (err) {
+        console.warn("[discovery] Mastra DNA enrichment skipped:", err);
+      }
+    }
+
+    const persistedDna = { ...dnaResult, summary };
+
     await prisma.$transaction(async (tx) => {
       await tx.organizationProfile.upsert({
         where: { organizationId: session.organizationId },
@@ -75,26 +95,26 @@ export async function POST(request: Request) {
         where: { organizationId: session.organizationId },
         create: {
           organizationId: session.organizationId,
-          workflowMode: dnaResult.workflowMode,
-          approvalLevel: dnaResult.approvalLevel,
-          riskThreshold: dnaResult.riskThreshold,
-          autonomyMode: dnaResult.autonomyMode,
-          autonomyLevel: dnaResult.autonomyLevel,
-          governanceScore: dnaResult.governanceScore,
-          escalationMatrix: JSON.stringify(dnaResult.escalationMatrix),
-          observabilityStrategy: dnaResult.observabilityStrategy,
-          summary: dnaResult.summary,
+          workflowMode: persistedDna.workflowMode,
+          approvalLevel: persistedDna.approvalLevel,
+          riskThreshold: persistedDna.riskThreshold,
+          autonomyMode: persistedDna.autonomyMode,
+          autonomyLevel: persistedDna.autonomyLevel,
+          governanceScore: persistedDna.governanceScore,
+          escalationMatrix: JSON.stringify(persistedDna.escalationMatrix),
+          observabilityStrategy: persistedDna.observabilityStrategy,
+          summary: persistedDna.summary,
         },
         update: {
-          workflowMode: dnaResult.workflowMode,
-          approvalLevel: dnaResult.approvalLevel,
-          riskThreshold: dnaResult.riskThreshold,
-          autonomyMode: dnaResult.autonomyMode,
-          autonomyLevel: dnaResult.autonomyLevel,
-          governanceScore: dnaResult.governanceScore,
-          escalationMatrix: JSON.stringify(dnaResult.escalationMatrix),
-          observabilityStrategy: dnaResult.observabilityStrategy,
-          summary: dnaResult.summary,
+          workflowMode: persistedDna.workflowMode,
+          approvalLevel: persistedDna.approvalLevel,
+          riskThreshold: persistedDna.riskThreshold,
+          autonomyMode: persistedDna.autonomyMode,
+          autonomyLevel: persistedDna.autonomyLevel,
+          governanceScore: persistedDna.governanceScore,
+          escalationMatrix: JSON.stringify(persistedDna.escalationMatrix),
+          observabilityStrategy: persistedDna.observabilityStrategy,
+          summary: persistedDna.summary,
         },
       });
 
@@ -134,7 +154,7 @@ export async function POST(request: Request) {
         where: { organizationId: session.organizationId },
       });
       const liveObs = hasLiveObservability({ integrations, tools: body.tools });
-      const recs = generateRecommendations(dnaResult, body.tools, {
+      const recs = generateRecommendations(persistedDna, body.tools, {
         grafanaConnected: liveObs.grafana,
         prometheusConnected: liveObs.prometheus,
       });

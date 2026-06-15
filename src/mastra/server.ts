@@ -16,11 +16,14 @@ import {
   resolveMastraStorageUrl,
 } from "./config/storage";
 import { aidosAgents } from "./agents";
+import { productIntelligenceAgent } from "./agents/product-intelligence";
 import { weatherAgent } from "./examples/agents/weather-agent";
 import { weatherWorkflow } from "./examples/workflows/weather-workflow";
 import { chatRoutingWorkflow } from "./workflows/chat-routing";
+import { discoveryDnaWorkflow } from "./workflows/discovery-dna";
 import { heartbeatWorkflow } from "./workflows/heartbeat";
 import { hireAgentWorkflow } from "./workflows/hire-agent";
+import { mvpAcceleratorWorkflow } from "./workflows/mvp-accelerator";
 import { noopWorkflow } from "./workflows/noop-workflow";
 
 export type CreateMastraOptions = {
@@ -41,12 +44,16 @@ export function createMastraInstance(options: CreateMastraOptions = {}): Mastra 
     | typeof heartbeatWorkflow
     | typeof chatRoutingWorkflow
     | typeof hireAgentWorkflow
+    | typeof discoveryDnaWorkflow
+    | typeof mvpAcceleratorWorkflow
     | typeof weatherWorkflow
   > = {
     noopWorkflow,
     heartbeatWorkflow,
     chatRoutingWorkflow,
     hireAgentWorkflow,
+    discoveryDnaWorkflow,
+    mvpAcceleratorWorkflow,
   };
   if (options.includeExamples) {
     workflows.weatherWorkflow = weatherWorkflow;
@@ -54,6 +61,7 @@ export function createMastraInstance(options: CreateMastraOptions = {}): Mastra 
 
   const agents = {
     ...aidosAgents,
+    productIntelligenceAgent,
     ...(options.includeExamples ? { weatherAgent } : {}),
   };
 

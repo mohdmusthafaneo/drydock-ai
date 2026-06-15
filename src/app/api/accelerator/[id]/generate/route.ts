@@ -2,6 +2,14 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { generateMvpAccelerator } from "@/lib/mvp-accelerator";
+import {
+  mapSuspendedStepToAcceleratorStep,
+  storeAcceleratorWorkflowRun,
+} from "@/lib/accelerator/workflow-state";
+import { resolveSuspendedStepKey, readStepOutput } from "@/lib/accelerator/workflow-run-result";
+import { isMvpAcceleratorLlmEnabled } from "@/lib/mastra-feature-flags";
+import { getMastra } from "@/mastra";
+import { stepApprovalSuspendSchema } from "@/mastra/workflows/mvp-accelerator";
 
 export async function POST(
   _request: Request,
@@ -36,29 +44,172 @@ export async function POST(
     return NextResponse.json({ error: "Organization not found" }, { status: 404 });
   }
 
+  const acceleratorInput = {
+    title: project.title,
+    idea: project.idea,
+    targetUser: project.targetUser ?? undefined,
+    problemStatement: project.problemStatement ?? undefined,
+  };
+
+  if (isMvpAcceleratorLlmEnabled()) {
+    try {
+      const mastra = await getMastra();
+      const workflow = mastra.getWorkflow("mvpAcceleratorWorkflow");
+      const run = await workflow.createRun();
+      const runId = run.runId;
+
+      const result = await run.start({
+        inputData: {
+          projectId: project.id,
+          organizationId: session.organizationId,
+          orgName: org.name,
+          workflowMode: dna?.workflowMode ?? "lean-mvp",
+          teamSize: profile?.teamSize ?? "11-50",
+          deployStrategy: profile?.deploymentStrategy ?? "continuous",
+          input: acceleratorInput,
+        },
+      });
+
+      if (result.status === "suspended") {
+        const suspendedStepId = resolveSuspendedStepKey(result.suspended);
+        const stepResult = suspendedStepId
+          ? result.steps?.[suspendedStepId]
+          : undefined;
+        const suspendPayload = stepApprovalSuspendSchema.safeParse(
+          stepResult?.suspendPayload,
+        );
+
+        const stepOutput = readStepOutput<{
+          prdMarkdown?: string;
+          architectureMarkdown?: string;
+        }>(stepResult);
+
+        const prdMarkdown =
+          stepOutput?.prdMarkdown ??
+          readStepOutput<{ prdMarkdown?: string }>(
+            result.steps?.["generate-prd"],
+          )?.prdMarkdown;
+
+        const architectureMarkdown =
+          stepOutput?.architectureMarkdown ??
+          readStepOutput<{ architectureMarkdown?: string }>(
+            result.steps?.["generate-architecture"],
+          )?.architectureMarkdown;
+
+        const pendingStep = suspendPayload.success
+          ? mapSuspendedStepToAcceleratorStep(suspendPayload.data.step)
+          : "PRD";
+
+        await storeAcceleratorWorkflowRun({
+          organizationId: session.organizationId,
+          projectId: project.id,
+          runId,
+          suspendedStep: pendingStep,
+        });
+
+        const updated = await prisma.acceleratorProject.update({
+          where: { id: project.id },
+          data: {
+            ...(prdMarkdown ? { prdMarkdown } : {}),
+            ...(architectureMarkdown ? { architectureMarkdown } : {}),
+            currentStep: pendingStep,
+            status: "IN_PROGRESS",
+          },
+        });
+
+        return NextResponse.json({
+          ok: true,
+          workflowStatus: "suspended",
+          runId,
+          pendingStep,
+          suspendMessage: suspendPayload.success
+            ? suspendPayload.data.message
+            : "Human approval required before continuing",
+          project: updated,
+        });
+      }
+
+      if (result.status !== "success" || !result.result) {
+        throw new Error(`MVP accelerator workflow failed: ${result.status}`);
+      }
+
+      const generated = result.result;
+      const updated = await persistGeneratedProject({
+        organizationId: session.organizationId,
+        userId: session.userId,
+        projectId: project.id,
+        projectTitle: project.title,
+        generated,
+      });
+
+      return NextResponse.json({
+        ok: true,
+        workflowStatus: "success",
+        runId,
+        project: updated,
+      });
+    } catch (err) {
+      console.warn("[accelerator] Mastra workflow failed, falling back:", err);
+    }
+  }
+
   const generated = generateMvpAccelerator({
     org,
     profile,
     dna,
-    input: {
-      title: project.title,
-      idea: project.idea,
-      targetUser: project.targetUser ?? undefined,
-      problemStatement: project.problemStatement ?? undefined,
-    },
+    input: acceleratorInput,
   });
 
-  const updated = await prisma.$transaction(async (tx) => {
+  const updated = await persistGeneratedProject({
+    organizationId: session.organizationId,
+    userId: session.userId,
+    projectId: project.id,
+    projectTitle: project.title,
+    generated,
+  });
+
+  return NextResponse.json({ ok: true, project: updated });
+}
+
+async function persistGeneratedProject(input: {
+  organizationId: string;
+  userId: string;
+  projectId: string;
+  projectTitle: string;
+  generated: {
+    prdMarkdown: string;
+    architectureMarkdown: string;
+    featuresJson?: string;
+    jiraEpicsJson?: string;
+    features?: unknown;
+    jiraEpics?: unknown;
+    qaPlanMarkdown: string;
+    deploymentPlanMarkdown: string;
+    roadmapJson?: string;
+    roadmap?: unknown;
+  };
+}) {
+  const featuresJson =
+    input.generated.featuresJson ??
+    JSON.stringify(input.generated.features ?? []);
+  const jiraEpicsJson =
+    input.generated.jiraEpicsJson ??
+    JSON.stringify(input.generated.jiraEpics ?? []);
+  const roadmapJson =
+    input.generated.roadmapJson ??
+    JSON.stringify(input.generated.roadmap ?? []);
+
+  return prisma.$transaction(async (tx) => {
     const p = await tx.acceleratorProject.update({
-      where: { id: project.id },
+      where: { id: input.projectId },
       data: {
-        prdMarkdown: generated.prdMarkdown,
-        architectureMarkdown: generated.architectureMarkdown,
-        featuresJson: JSON.stringify(generated.features),
-        jiraEpicsJson: JSON.stringify(generated.jiraEpics),
-        qaPlanMarkdown: generated.qaPlanMarkdown,
-        deploymentPlanMarkdown: generated.deploymentPlanMarkdown,
-        roadmapJson: JSON.stringify(generated.roadmap),
+        prdMarkdown: input.generated.prdMarkdown,
+        architectureMarkdown: input.generated.architectureMarkdown,
+        featuresJson,
+        jiraEpicsJson,
+        qaPlanMarkdown: input.generated.qaPlanMarkdown,
+        deploymentPlanMarkdown: input.generated.deploymentPlanMarkdown,
+        roadmapJson,
         currentStep: "COMPLETE",
         status: "PENDING_APPROVAL",
       },
@@ -66,26 +217,25 @@ export async function POST(
 
     await tx.activityEvent.create({
       data: {
-        organizationId: session.organizationId,
+        organizationId: input.organizationId,
         type: "accelerator.generated",
-        title: `MVP package generated: ${project.title}`,
-        description: "PRD, architecture, features, Jira epics, QA and deployment plans ready for review",
-        metadataJson: JSON.stringify({ projectId: project.id }),
+        title: `MVP package generated: ${input.projectTitle}`,
+        description:
+          "PRD, architecture, features, Jira epics, QA and deployment plans ready for review",
+        metadataJson: JSON.stringify({ projectId: input.projectId }),
       },
     });
 
     await tx.auditLog.create({
       data: {
-        organizationId: session.organizationId,
-        userId: session.userId,
+        organizationId: input.organizationId,
+        userId: input.userId,
         action: "accelerator.generated",
         entityType: "AcceleratorProject",
-        entityId: project.id,
+        entityId: input.projectId,
       },
     });
 
     return p;
   });
-
-  return NextResponse.json({ ok: true, project: updated });
 }

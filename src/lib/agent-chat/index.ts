@@ -29,6 +29,9 @@ export {
   requestThreadApproval,
 } from "./approvals";
 export { postAgentThreadMessage } from "./messages";
+export { handleAgentThreadIngress } from "./ingress";
+export type { ThreadIngressInput, ThreadIngressResult } from "./ingress";
+export { emitThreadMessagePostedWebhook } from "./outbound-webhook";
 export { postChatRunReplyIfNeeded } from "./reply-bridge";
 export {
   createChatStreamSession,
