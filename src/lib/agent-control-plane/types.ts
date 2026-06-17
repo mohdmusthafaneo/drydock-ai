@@ -9,6 +9,8 @@ export type AgentHeartbeatConfig = {
   wakeOnEvent: boolean;
   wakeOnApproval: boolean;
   wakeOnDelegation: boolean;
+  /** When false, each wakeup is queued independently (better chat UX). */
+  coalescingEnabled: boolean;
   cooldownSec: number;
   maxRunDurationSec: number;
 };

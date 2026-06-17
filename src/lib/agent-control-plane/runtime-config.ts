@@ -11,6 +11,7 @@ export const DEFAULT_HEARTBEAT: AgentHeartbeatConfig = {
   wakeOnEvent: true,
   wakeOnApproval: false,
   wakeOnDelegation: true,
+  coalescingEnabled: true,
   cooldownSec: 30,
   maxRunDurationSec: 300,
 };
@@ -21,6 +22,7 @@ export const LEAD_HEARTBEAT: AgentHeartbeatConfig = {
   wakeOnEvent: true,
   wakeOnApproval: true,
   wakeOnDelegation: true,
+  coalescingEnabled: false,
   cooldownSec: 30,
   maxRunDurationSec: 300,
 };
@@ -31,6 +33,7 @@ export const SPECIALIST_HEARTBEAT: AgentHeartbeatConfig = {
   wakeOnEvent: true,
   wakeOnApproval: true,
   wakeOnDelegation: true,
+  coalescingEnabled: false,
   cooldownSec: 30,
   maxRunDurationSec: 300,
 };

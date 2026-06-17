@@ -107,7 +107,12 @@ export async function runMastraAdapter(
     const mastra = await getMastra();
     let result: WorkflowRunOutput;
 
-    if (streamSession) {
+    const chatWakeup = isChatWakeup({
+      source: ctx.wakeup.source,
+      payloadJson: ctx.wakeup.payloadJson,
+    });
+
+    if (chatWakeup || streamSession) {
       result = await executeAidosAgentRun({
         mastra,
         agentType: ctx.agent.agentType,
@@ -117,34 +122,10 @@ export async function runMastraAdapter(
         permissions,
         streamSession,
       });
-      await streamSession.emitRunComplete();
-      await streamSession.finalize({ contentMarkdown: result.summary });
-    } else if (
-      isChatWakeup({
-        source: ctx.wakeup.source,
-        payloadJson: ctx.wakeup.payloadJson,
-      })
-    ) {
-      const workflow = mastra.getWorkflow("chatRoutingWorkflow");
-      const run = await workflow.createRun();
-      const workflowResult = await run.start({
-        inputData: {
-          agentType: ctx.agent.agentType,
-          source: ctx.wakeup.source,
-          reason: ctx.wakeup.reason,
-          systemPrompt,
-          userMessage: baseUserMessage,
-          streamEnabled: false,
-        },
-        requestContext,
-      });
-
-      if (workflowResult.status !== "success" || !workflowResult.result) {
-        throw new Error(
-          `Chat routing workflow failed: ${workflowResult.status}`,
-        );
+      if (streamSession) {
+        await streamSession.emitRunComplete();
+        await streamSession.finalize({ contentMarkdown: result.summary });
       }
-      result = workflowResult.result as WorkflowRunOutput;
     } else {
       const workflow = mastra.getWorkflow("heartbeatWorkflow");
       const run = await workflow.createRun();
@@ -153,7 +134,7 @@ export async function runMastraAdapter(
           agentType: ctx.agent.agentType,
           systemPrompt,
           userMessage,
-          streamEnabled: false,
+          streamEnabled: true,
         },
         requestContext,
       });

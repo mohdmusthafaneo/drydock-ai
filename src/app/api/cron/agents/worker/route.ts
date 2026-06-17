@@ -9,13 +9,16 @@ import { drainWakeupQueue } from "@/lib/agent-control-plane/worker";
 const bodySchema = z
   .object({
     organizationId: z.string().min(1).optional(),
+    wakeupId: z.string().min(1).optional(),
+    limit: z.number().int().min(1).max(20).optional(),
   })
   .optional();
 
 /**
  * Platform worker endpoint for external schedulers (cron every 30–60s).
+ * Also invoked immediately after enqueueWakeup for event-driven dispatch.
  * Auth: `Authorization: Bearer $PLATFORM_WORKER_SECRET`
- * Body (optional): `{ "organizationId": "..." }` — omit to drain all orgs.
+ * Body (optional): `{ "organizationId": "...", "wakeupId": "...", "limit": 1 }`
  */
 export async function POST(request: Request) {
   if (platformWorkerNotConfigured()) {
@@ -34,15 +37,22 @@ export async function POST(request: Request) {
   }
 
   let organizationId: string | undefined;
+  let wakeupId: string | undefined;
+  let limit: number | undefined;
   try {
     const raw = await request.json().catch(() => undefined);
     const parsed = bodySchema.parse(raw);
     organizationId = parsed?.organizationId;
+    wakeupId = parsed?.wakeupId;
+    limit = parsed?.limit;
   } catch {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const result = await drainWakeupQueue(organizationId);
+  const result = await drainWakeupQueue(organizationId, {
+    wakeupId,
+    limit,
+  });
 
   return NextResponse.json({ ok: true, ...result });
 }

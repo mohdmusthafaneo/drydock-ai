@@ -25,6 +25,16 @@ export type WorkerRunResult = {
   errors: string[];
 };
 
+export type DrainWakeupQueueOptions = {
+  limit?: number;
+  wakeupId?: string;
+};
+
+function workerConcurrency(): number {
+  const n = Number(process.env.AGENT_WORKER_CONCURRENCY ?? "5");
+  return Math.max(1, Math.min(20, Number.isFinite(n) ? n : 5));
+}
+
 function timerBucket(agentId: string, intervalSec: number, now: Date): string {
   const bucket = Math.floor(now.getTime() / 1000 / intervalSec);
   return `timer:${agentId}:${bucket}`;
@@ -262,6 +272,19 @@ async function executeHeartbeatRun(wakeupId: string): Promise<boolean> {
   return runStatus === "succeeded";
 }
 
+/** Process a single queued wakeup immediately (event-driven dispatch). */
+export async function processWakeupById(wakeupId: string): Promise<boolean> {
+  if (process.env.AGENT_WORKER_ENABLED === "false") return false;
+
+  await ensureMastraFoundation();
+
+  try {
+    return await executeHeartbeatRun(wakeupId);
+  } catch {
+    return false;
+  }
+}
+
 /** Recover heartbeat runs stuck beyond maxRunDurationSec. */
 export async function recoverStuckRuns(
   organizationId?: string,
@@ -332,11 +355,16 @@ export async function recoverStuckRuns(
   return recovered;
 }
 
-/** Claim and process pending wakeups (FIFO + priority). */
+/** Claim and process pending wakeups (priority + parallel by agent). */
 export async function drainWakeupQueue(
   organizationId?: string,
-  limit = 10,
+  options: DrainWakeupQueueOptions | number = {},
 ): Promise<WorkerRunResult> {
+  const resolved =
+    typeof options === "number" ? { limit: options } : options;
+  const limit = resolved.limit ?? 10;
+  const priorityWakeupId = resolved.wakeupId;
+
   const result: WorkerRunResult = {
     timersEnqueued: 0,
     wakeupsProcessed: 0,
@@ -367,19 +395,48 @@ export async function drainWakeupQueue(
 
   pending.sort(compareWakeupPriority);
 
-  const toProcess = pending.slice(0, limit);
+  const selected: typeof pending = [];
+  const seen = new Set<string>();
 
-  for (const wakeup of toProcess) {
-    try {
-      const ok = await executeHeartbeatRun(wakeup.id);
+  if (priorityWakeupId) {
+    const priority = pending.find((w) => w.id === priorityWakeupId);
+    if (priority) {
+      selected.push(priority);
+      seen.add(priority.id);
+    }
+  }
+
+  for (const wakeup of pending) {
+    if (selected.length >= limit) break;
+    if (seen.has(wakeup.id)) continue;
+    selected.push(wakeup);
+    seen.add(wakeup.id);
+  }
+
+  const concurrency = workerConcurrency();
+
+  for (let i = 0; i < selected.length; i += concurrency) {
+    const batch = selected.slice(i, i + concurrency);
+    const batchResults = await Promise.allSettled(
+      batch.map((wakeup) => executeHeartbeatRun(wakeup.id)),
+    );
+
+    for (let j = 0; j < batchResults.length; j++) {
+      const settled = batchResults[j];
+      const wakeup = batch[j];
       result.wakeupsProcessed++;
-      if (ok) result.runsSucceeded++;
-      else result.runsFailed++;
-    } catch (err) {
-      result.errors.push(
-        err instanceof Error ? err.message : `Failed wakeup ${wakeup.id}`,
-      );
-      result.runsFailed++;
+
+      if (settled.status === "fulfilled") {
+        if (settled.value) result.runsSucceeded++;
+        else result.runsFailed++;
+      } else {
+        result.runsFailed++;
+        result.errors.push(
+          settled.reason instanceof Error
+            ? settled.reason.message
+            : `Failed wakeup ${wakeup.id}`,
+        );
+      }
     }
   }
 

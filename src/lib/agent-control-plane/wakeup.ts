@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import type { AgentWakeupSource } from "@/generated/prisma/client";
 import { logAgentActivity, logAgentAudit } from "./audit";
 import { resolveRuntimeConfig } from "./runtime-config";
+import { triggerWakeupProcessing } from "./worker-poke";
 import {
   NON_RUNNABLE_STATUSES,
   WAKEUP_SOURCE_PRIORITY,
@@ -12,9 +13,27 @@ export function isAgentRunnable(status: string): boolean {
   return !NON_RUNNABLE_STATUSES.has(status);
 }
 
+async function shouldCoalesceWithActiveWakeup(input: {
+  organizationId: string;
+  agentId: string;
+  coalescingEnabled: boolean;
+}): Promise<{ id: string } | null> {
+  if (!input.coalescingEnabled) return null;
+
+  return prisma.agentWakeupRequest.findFirst({
+    where: {
+      organizationId: input.organizationId,
+      agentId: input.agentId,
+      status: { in: ["queued", "running"] },
+    },
+    orderBy: { requestedAt: "asc" },
+    select: { id: true },
+  });
+}
+
 /**
  * Enqueue a wakeup for an agent. Coalesces duplicate queued/running wakeups
- * for the same agent. Respects idempotency keys.
+ * for the same agent when coalescingEnabled. Respects idempotency keys.
  */
 export async function enqueueWakeup(input: EnqueueWakeupInput) {
   const { organizationId, agentId, source, reason, payload, idempotencyKey } =
@@ -32,6 +51,9 @@ export async function enqueueWakeup(input: EnqueueWakeupInput) {
     return { ok: false as const, error: `Agent is ${agent.status}` };
   }
 
+  const runtimeConfig = resolveRuntimeConfig(agent);
+  const { coalescingEnabled } = runtimeConfig.heartbeat;
+
   if (idempotencyKey) {
     const existing = await prisma.agentWakeupRequest.findFirst({
       where: { organizationId, idempotencyKey },
@@ -41,21 +63,18 @@ export async function enqueueWakeup(input: EnqueueWakeupInput) {
     }
   }
 
-  const activeWakeup = await prisma.agentWakeupRequest.findFirst({
-    where: {
-      organizationId,
-      agentId,
-      status: { in: ["queued", "running"] },
-    },
-    orderBy: { requestedAt: "asc" },
+  const coalesceTarget = await shouldCoalesceWithActiveWakeup({
+    organizationId,
+    agentId,
+    coalescingEnabled,
   });
 
-  if (activeWakeup) {
+  if (coalesceTarget) {
     await prisma.agentWakeupRequest.update({
-      where: { id: activeWakeup.id },
+      where: { id: coalesceTarget.id },
       data: { coalescedCount: { increment: 1 } },
     });
-    return { ok: true as const, wakeupId: activeWakeup.id, coalesced: true };
+    return { ok: true as const, wakeupId: coalesceTarget.id, coalesced: true };
   }
 
   const wakeup = await prisma.$transaction(async (tx) => {
@@ -90,6 +109,14 @@ export async function enqueueWakeup(input: EnqueueWakeupInput) {
 
     return created;
   });
+
+  if (source !== "timer") {
+    void triggerWakeupProcessing({
+      organizationId,
+      wakeupId: wakeup.id,
+      immediate: source === "delegation",
+    });
+  }
 
   return { ok: true as const, wakeupId: wakeup.id, coalesced: false };
 }
