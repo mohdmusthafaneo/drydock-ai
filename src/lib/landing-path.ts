@@ -27,20 +27,12 @@ export function resolveLandingPath(input: {
     return "/governance/setup";
   }
 
-  const workflowComplete =
-    input.completedStepIds !== undefined &&
-    isEnterpriseWorkflowComplete(input.completedStepIds);
-
-  if (workflowComplete && isNavHrefEnabled("/dashboard")) {
+  if (isNavHrefEnabled("/dashboard")) {
     return "/dashboard";
   }
 
   if (isNavHrefEnabled("/workflow")) {
     return "/workflow";
-  }
-
-  if (isNavHrefEnabled("/dashboard")) {
-    return "/dashboard";
   }
 
   return getEnabledHomePath("ENTERPRISE");

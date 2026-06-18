@@ -51,7 +51,7 @@ export const WORKSPACE_META: Record<
     tagline: "Phase 1 · Governance & observability foundation",
     description:
       "Enterprise operational intelligence shell — govern, observe, and orchestrate AI-native delivery (no autonomous agents yet).",
-    homePath: "/workflow",
+    homePath: "/dashboard",
     accentClass: "from-accent to-amber-300",
     badgeClass: "bg-accent/15 text-accent",
   },
@@ -114,8 +114,8 @@ export function getNavForMode(mode: WorkspaceMode): NavItem[] {
 export function getEnterpriseNavLayout(): EnterpriseNavLayout {
   return {
     topItems: [
-      { href: "/workflow", label: "Workflow center", icon: GitBranch, primary: true },
-      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, primary: true },
+      { href: "/workflow", label: "Workflow center", icon: GitBranch },
     ],
     sections: [
       {
@@ -271,8 +271,8 @@ export function getHomePath(mode: WorkspaceMode, hasDna: boolean): string {
     return getEnabledHomePath("MVP");
   }
   if (!hasDna && isNavHrefEnabled("/governance")) return "/governance/setup";
-  if (isNavHrefEnabled("/workflow")) return "/workflow";
   if (isNavHrefEnabled("/dashboard")) return "/dashboard";
+  if (isNavHrefEnabled("/workflow")) return "/workflow";
   return getEnabledHomePath("ENTERPRISE");
 }
 
