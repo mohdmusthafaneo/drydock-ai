@@ -32,7 +32,7 @@ export function ExecutiveBriefingHero({ briefing, orgName }: Props) {
       <div
         className={cn(
           "grid gap-8 lg:gap-12",
-          hasHighlights && "lg:grid-cols-[minmax(0,1fr)_minmax(220px,280px)] lg:items-start",
+          hasHighlights && "lg:grid-cols-[minmax(0,1fr)_minmax(260px,320px)] lg:items-start",
         )}
       >
         <div className="space-y-6">

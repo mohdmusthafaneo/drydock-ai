@@ -8,6 +8,14 @@ import { cn } from "@/lib/utils";
 
 const ORDER = ["blocked", "overdue", "bugs", "otherOpen"] as const;
 
+function centerTotalClass(total: number): string {
+  const digits = total.toLocaleString().length;
+  if (digits <= 2) return "text-2xl";
+  if (digits === 3) return "text-xl";
+  if (digits === 4) return "text-lg";
+  return "text-sm";
+}
+
 export function RiskMixChart({
   riskMix,
   compact = false,
@@ -110,11 +118,11 @@ export function RiskMixChart({
               });
               })()}
             </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className={cn("font-semibold", compact ? "text-xl" : "text-2xl")}>
+            <div className="absolute inset-0 flex flex-col items-center justify-center px-1 text-center">
+              <span className={cn("font-semibold leading-none tabular-nums", centerTotalClass(total))}>
                 {total.toLocaleString()}
               </span>
-              <span className="text-[10px] text-muted">open issues</span>
+              <span className="mt-0.5 text-[9px] leading-tight text-muted">open</span>
             </div>
           </div>
 

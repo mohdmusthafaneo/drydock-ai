@@ -1,6 +1,5 @@
 import Link from "next/link";
 import {
-  Activity,
   ArrowRight,
   CheckCircle2,
   Gauge,
@@ -11,12 +10,6 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import {
-  AgentActivityStrip,
-  type AgentActivityItem,
-} from "@/components/agents/agent-activity-strip";
-import { formatTokenRollup } from "@/lib/agent-control-plane/token-rollup";
 import type { getOrganizationContext } from "@/lib/org-data";
 
 type Props = {
@@ -31,12 +24,10 @@ export function FullOperationalDeck({ ctx, orgName }: Props) {
     {
       label: "Integrations healthy",
       value: `${ctx.stats.integrationsHealthy}/${ctx.stats.connectedTools}`,
-      icon: Activity,
+      icon: CheckCircle2,
     },
     { label: "Pending approvals", value: String(ctx.stats.pendingApprovals), icon: CheckCircle2 },
   ];
-
-  const recentEvents = ctx.events.slice(0, 6);
 
   const phase2Links = [
     {
@@ -63,19 +54,6 @@ export function FullOperationalDeck({ ctx, orgName }: Props) {
   ];
 
   const latestRelease = ctx.releases[0];
-  const recentAudit = ctx.auditLogs.slice(0, 5);
-
-  const agentActivity: AgentActivityItem[] = ctx.agentRuns.map((run) => ({
-    id: run.id,
-    agentId: run.agentId,
-    agentName: run.agent.displayName,
-    status: run.status,
-    source: run.source,
-    reason: run.reason,
-    summary: run.summary,
-    finishedAt: run.finishedAt,
-    startedAt: run.startedAt,
-  }));
 
   return (
     <section id="full-deck" className="scroll-mt-24 space-y-10 py-16">
@@ -180,22 +158,6 @@ export function FullOperationalDeck({ ctx, orgName }: Props) {
               <span className="font-medium text-ink">{ctx.stats.connectedTools}</span>
             </div>
             <div className="flex items-center justify-between rounded-[16px] bg-fog px-3 py-2.5">
-              <span className="text-ash">Active agents</span>
-              <span className="font-medium text-ink">{ctx.stats.activeAgents}</span>
-            </div>
-            <div className="flex items-center justify-between rounded-[16px] bg-fog px-3 py-2.5">
-              <span className="text-ash">Agent tokens (30d)</span>
-              <span className="font-medium">
-                {formatTokenRollup({
-                  runCount: ctx.stats.agentHeartbeatRuns30d,
-                  succeededRuns: 0,
-                  inputTokens: ctx.stats.agentTokenInput,
-                  outputTokens: ctx.stats.agentTokenOutput,
-                  periodDays: 30,
-                })}
-              </span>
-            </div>
-            <div className="flex items-center justify-between rounded-[16px] bg-fog px-3 py-2.5">
               <span className="text-ash">P95 latency</span>
               <span className="font-medium text-ink">
                 {ctx.stats.p95Latency != null ? `${ctx.stats.p95Latency}ms` : "—"}
@@ -216,15 +178,6 @@ export function FullOperationalDeck({ ctx, orgName }: Props) {
           </CardContent>
         </Card>
       </div>
-
-      <AgentActivityStrip
-        agents={ctx.agents.map((a) => ({
-          id: a.id,
-          displayName: a.displayName,
-          status: a.status,
-        }))}
-        recentRuns={agentActivity}
-      />
 
       <section className="space-y-5">
         <div className="flex items-center justify-between gap-4">
@@ -259,73 +212,33 @@ export function FullOperationalDeck({ ctx, orgName }: Props) {
         </div>
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        {latestRelease && (
-          <Card className="border-none">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-[15px] font-medium">
-                <GitBranch className="h-5 w-5 text-graphite" strokeWidth={1.5} />
-                Latest release
-              </CardTitle>
-              <CardDescription>{latestRelease.name}</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-wrap items-center gap-3">
-              <Badge variant="ai">{latestRelease.status.replace(/_/g, " ")}</Badge>
-              {latestRelease.readinessScore != null && (
-                <span className="text-[14px] text-ash">
-                  QA readiness {Math.round(latestRelease.readinessScore)}%
-                </span>
-              )}
-              {latestRelease.governanceRiskScore != null && (
-                <span className="text-[14px] text-ash">
-                  Risk {Math.round(latestRelease.governanceRiskScore)}%
-                </span>
-              )}
-              <Button asChild size="sm" variant="link" className="ml-auto h-auto px-0">
-                <Link href={`/releases/${latestRelease.id}`}>Open release</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        <Card className={cn("border-none", !latestRelease && "xl:col-span-2")}>
+      {latestRelease && (
+        <Card className="border-none">
           <CardHeader>
-            <CardTitle className="text-[15px] font-medium">Recent activity</CardTitle>
-            <CardDescription>Operational events & audit trail</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-[15px] font-medium">
+              <GitBranch className="h-5 w-5 text-graphite" strokeWidth={1.5} />
+              Latest release
+            </CardTitle>
+            <CardDescription>{latestRelease.name}</CardDescription>
           </CardHeader>
-          <CardContent>
-            {recentEvents.length === 0 && recentAudit.length === 0 ? (
-              <p className="text-[14px] text-graphite">No recent activity yet.</p>
-            ) : (
-              <ul className="divide-y divide-border-subtle">
-                {recentEvents.map((ev) => (
-                  <li key={ev.id} className="py-3 first:pt-0 last:pb-0">
-                    <p className="font-medium text-ink">{ev.title}</p>
-                    {ev.description && (
-                      <p className="mt-0.5 text-[14px] text-ash">{ev.description}</p>
-                    )}
-                  </li>
-                ))}
-                {recentAudit.map((log) => (
-                  <li key={log.id} className="py-3">
-                    <p className="text-[14px]">
-                      <span className="font-medium text-rust">{log.action}</span>
-                      <span className="text-ash"> · {log.entityType}</span>
-                    </p>
-                    <p className="text-[13px] text-graphite">
-                      {log.user?.name ?? "System"} ·{" "}
-                      {new Date(log.createdAt).toLocaleString()}
-                    </p>
-                  </li>
-                ))}
-              </ul>
+          <CardContent className="flex flex-wrap items-center gap-3">
+            <Badge variant="ai">{latestRelease.status.replace(/_/g, " ")}</Badge>
+            {latestRelease.readinessScore != null && (
+              <span className="text-[14px] text-ash">
+                QA readiness {Math.round(latestRelease.readinessScore)}%
+              </span>
             )}
-            <Button asChild size="sm" variant="link" className="mt-4 h-auto px-0">
-              <Link href="/audit">View audit logs</Link>
+            {latestRelease.governanceRiskScore != null && (
+              <span className="text-[14px] text-ash">
+                Risk {Math.round(latestRelease.governanceRiskScore)}%
+              </span>
+            )}
+            <Button asChild size="sm" variant="link" className="ml-auto h-auto px-0">
+              <Link href={`/releases/${latestRelease.id}`}>Open release</Link>
             </Button>
           </CardContent>
         </Card>
-      </div>
+      )}
     </section>
   );
 }

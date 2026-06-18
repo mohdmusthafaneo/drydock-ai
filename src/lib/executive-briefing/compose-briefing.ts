@@ -252,6 +252,7 @@ function buildInsight(
     return {
       tone: "attention",
       message: `${input.stats.pendingApprovals} release approval${input.stats.pendingApprovals === 1 ? "" : "s"} need your sign-off before deploy.`,
+      href: "/approvals",
     };
   }
 
@@ -259,6 +260,7 @@ function buildInsight(
     return {
       tone: "critical",
       message: "A deployment may need rollback — review the recommendation before the next release.",
+      href: "/devops",
     };
   }
 
@@ -266,6 +268,7 @@ function buildInsight(
     return {
       tone: "critical",
       message: `${input.stats.openIncidents} production incident${input.stats.openIncidents === 1 ? " is" : "s are"} open — triage before shipping.`,
+      href: "/incidents",
     };
   }
 
@@ -279,6 +282,7 @@ function buildInsight(
     return {
       tone: "attention",
       message: `${staleSources.join(" and ")} data is over a day old — re-sync for current signals.`,
+      href: "/integrations",
     };
   }
 
@@ -287,6 +291,7 @@ function buildInsight(
     return {
       tone: "attention",
       message: `${momentum.blocked} blocked item${momentum.blocked === 1 ? "" : "s"} in Jira — clear blockers to keep the release on track.`,
+      href: "/delivery-analysis",
     };
   }
 
@@ -294,6 +299,7 @@ function buildInsight(
     return {
       tone: "attention",
       message: `${momentum.overdue} overdue item${momentum.overdue === 1 ? "" : "s"} — review schedule risk before deploy.`,
+      href: "/delivery-analysis",
     };
   }
 
@@ -301,6 +307,7 @@ function buildInsight(
     return {
       tone: "info",
       message: `Steady week — ${momentum.resolvedLast7d} tickets closed with no open blockers.`,
+      href: "/delivery-analysis",
     };
   }
 
@@ -320,6 +327,7 @@ function buildHighlights(
       label: "Delivery confidence",
       value: String(health.overall),
       subtext: health.bandLabel,
+      href: "/dashboard#breakdown",
       tone:
         health.band === "strong"
           ? "good"
@@ -337,6 +345,7 @@ function buildHighlights(
       label: "Ready to ship",
       value: `${Math.round(release.readinessScore)}%`,
       subtext: release.name,
+      href: `/releases/${release.id}`,
       tone: release.readinessScore >= 75 ? "good" : release.readinessScore >= 50 ? "attention" : "risk",
     });
   }
@@ -349,6 +358,7 @@ function buildHighlights(
         label: "This week",
         value: String(momentum.resolvedLast7d),
         subtext: "tickets closed",
+        href: "/delivery-analysis",
         tone: "good",
       });
     } else if (momentum.openWork != null) {
@@ -357,6 +367,7 @@ function buildHighlights(
         label: "Open work",
         value: String(momentum.openWork),
         subtext: momentum.blocked > 0 ? `${momentum.blocked} blocked` : "in Jira",
+        href: "/delivery-analysis",
         tone: momentum.blocked > 0 ? "attention" : "neutral",
       });
     }
@@ -366,6 +377,7 @@ function buildHighlights(
       label: "Contributors",
       value: String(input.activeAuthors),
       subtext: "active this week",
+      href: "/code-analysis",
       tone: "neutral",
     });
   }
@@ -377,6 +389,7 @@ function buildHighlights(
       label: "Production",
       value: incidents === 0 ? "Clear" : String(incidents),
       subtext: incidents === 0 ? "no open incidents" : `incident${incidents === 1 ? "" : "s"} open`,
+      href: incidents > 0 ? "/incidents" : "/observability",
       tone: incidents === 0 ? "good" : "risk",
     });
   } else if (input.stats.pendingApprovals > 0) {
@@ -385,6 +398,7 @@ function buildHighlights(
       label: "Approvals",
       value: String(input.stats.pendingApprovals),
       subtext: "waiting for you",
+      href: "/approvals",
       tone: "attention",
     });
   }

@@ -39,12 +39,14 @@ export type BriefingHighlight = {
   label: string;
   value: string;
   subtext?: string;
+  href?: string;
   tone?: "neutral" | "good" | "attention" | "risk";
 };
 
 export type BriefingInsight = {
   message: string;
   tone: "info" | "attention" | "critical";
+  href?: string;
 };
 
 export type ExecutiveBriefing = {

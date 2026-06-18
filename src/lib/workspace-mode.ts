@@ -314,3 +314,34 @@ export function isNavItemActive(pathname: string, href: string): boolean {
       pathname !== "/accelerator/new")
   );
 }
+
+/** Best-effort page title from pathname for the app header. */
+export function resolvePageTitleForPath(
+  pathname: string,
+  mode: WorkspaceMode,
+  gates: IntegrationNavGates = DEFAULT_INTEGRATION_NAV_GATES,
+): string {
+  const items = getEnabledNavForMode(mode, gates);
+  const sorted = [...items].sort((a, b) => b.href.length - a.href.length);
+  const match = sorted.find((item) => isNavItemActive(pathname, item.href));
+  if (match) return match.label;
+
+  const segments = pathname.split("/").filter(Boolean);
+  if (segments.length === 0) return WORKSPACE_META[mode].label;
+
+  const last = segments[segments.length - 1]!;
+  if (/^[a-f0-9-]{8,}$/i.test(last) || /^\d+$/.test(last)) {
+    const parent = segments[segments.length - 2];
+    if (parent) {
+      return parent
+        .split("-")
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(" ");
+    }
+  }
+
+  return last
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
