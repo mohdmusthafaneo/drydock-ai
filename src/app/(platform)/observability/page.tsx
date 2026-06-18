@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { getOrganizationContext } from "@/lib/org-data";
-import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/rbac";
 import {
   isPrometheusTrulyConnected,
@@ -15,15 +14,6 @@ import type { ObservabilityAnalysisSnapshot } from "@/lib/observability-analysis
 export default async function ObservabilityPage() {
   const session = await getSession();
   if (!session) redirect("/login");
-
-  const org = await prisma.organization.findUnique({
-    where: { id: session.organizationId },
-    select: { workspaceMode: true },
-  });
-
-  if (org?.workspaceMode === "MVP") {
-    redirect("/accelerator");
-  }
 
   const ctx = await getOrganizationContext(session.organizationId);
   if (!ctx.dna) redirect("/governance/setup");

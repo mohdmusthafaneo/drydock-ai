@@ -9,7 +9,7 @@ const schema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
   organizationName: z.string().min(2),
-  workspaceMode: z.enum(["MVP", "ENTERPRISE"]).default("MVP"),
+  workspaceMode: z.enum(["MVP", "ENTERPRISE"]).default("ENTERPRISE"),
 });
 
 export async function POST(request: Request) {
@@ -27,10 +27,7 @@ export async function POST(request: Request) {
       },
       {
         ok: true,
-        redirect:
-          body.workspaceMode === "MVP"
-            ? "/accelerator/new"
-            : getHomePath("ENTERPRISE", false),
+        redirect: getHomePath("ENTERPRISE", false),
       },
     );
   } catch (error) {

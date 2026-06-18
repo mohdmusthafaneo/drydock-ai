@@ -123,7 +123,7 @@ describe("computeDeliveryHealthScore", () => {
 });
 
 describe("composeExecutiveBriefing", () => {
-  it("sets primaryCta when pending approvals exist", () => {
+  it("sets insight when pending approvals exist", () => {
     const briefing = composeExecutiveBriefing({
       orgName: "Acme Corp",
       stats: { ...baseStats, pendingApprovals: 1 },
@@ -142,9 +142,9 @@ describe("composeExecutiveBriefing", () => {
       },
     });
 
-    assert.ok(briefing.primaryCta);
-    assert.match(briefing.primaryCta!.label, /approval/i);
-    assert.equal(briefing.primaryCta!.href, "/approvals");
+    assert.ok(briefing.insight);
+    assert.match(briefing.insight!.message, /approval/i);
+    assert.equal(briefing.insight!.href, "/approvals");
     assert.match(briefing.narrative, /approval/i);
   });
 

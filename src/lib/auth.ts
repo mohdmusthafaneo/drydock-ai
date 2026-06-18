@@ -37,7 +37,7 @@ export async function registerUser(input: {
       data: {
         name: input.organizationName.trim(),
         slug,
-        workspaceMode: input.workspaceMode ?? "MVP",
+        workspaceMode: input.workspaceMode ?? "ENTERPRISE",
       },
     });
 

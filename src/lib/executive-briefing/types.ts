@@ -63,7 +63,6 @@ export type ExecutiveBriefing = {
   wordCount: number;
   health: DeliveryHealthScore;
   claims: BriefingClaim[];
-  primaryCta?: { label: string; href: string };
   freshness: {
     asOf: string;
     stale: boolean;

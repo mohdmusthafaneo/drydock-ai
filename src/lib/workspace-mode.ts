@@ -23,6 +23,8 @@ import {
   Settings,
   Users,
   Plus,
+  Cog,
+  Layers,
 } from "lucide-react";
 
 export type WorkspaceMode = "MVP" | "ENTERPRISE";
@@ -74,6 +76,7 @@ export type ResolvedNavItem = NavItem & {
 export type NavSection = {
   id: string;
   label: string;
+  icon: LucideIcon;
   defaultCollapsed?: boolean;
   items: NavItem[];
 };
@@ -81,6 +84,7 @@ export type NavSection = {
 export type ResolvedNavSection = {
   id: string;
   label: string;
+  icon: LucideIcon;
   defaultCollapsed?: boolean;
   items: ResolvedNavItem[];
 };
@@ -121,6 +125,7 @@ export function getEnterpriseNavLayout(): EnterpriseNavLayout {
       {
         id: "analysis",
         label: "Analysis",
+        icon: Code2,
         items: [
           {
             href: "/code-analysis",
@@ -148,6 +153,7 @@ export function getEnterpriseNavLayout(): EnterpriseNavLayout {
       {
         id: "operations",
         label: "Operations",
+        icon: Cog,
         defaultCollapsed: true,
         items: [
           { href: "/qa", label: "QA intelligence", icon: FlaskConical },
@@ -158,6 +164,7 @@ export function getEnterpriseNavLayout(): EnterpriseNavLayout {
       {
         id: "governance",
         label: "Governance",
+        icon: Shield,
         defaultCollapsed: true,
         items: [
           { href: "/recommendations", label: "Recommendations", icon: Lightbulb },
@@ -168,6 +175,7 @@ export function getEnterpriseNavLayout(): EnterpriseNavLayout {
       {
         id: "platform",
         label: "Platform",
+        icon: Layers,
         defaultCollapsed: true,
         items: [
           { href: "/reports", label: "Reports", icon: BarChart3 },

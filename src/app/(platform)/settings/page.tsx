@@ -3,11 +3,10 @@ import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { ROLE_LABELS } from "@/lib/roles";
 import { hasPermission } from "@/lib/rbac";
-import { WORKSPACE_META, type WorkspaceMode } from "@/lib/workspace-mode";
+import { WORKSPACE_META } from "@/lib/workspace-mode";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ModeSwitcher } from "@/components/layout/mode-switcher";
 import { TeamInviteForm } from "@/components/team/team-invite-form";
 
 export default async function SettingsPage() {
@@ -23,25 +22,12 @@ export default async function SettingsPage() {
     prisma.deliveryDNA.findUnique({ where: { organizationId: session.organizationId } }),
   ]);
 
-  const mode = (org?.workspaceMode ?? "MVP") as WorkspaceMode;
-  const meta = WORKSPACE_META[mode];
+  const meta = WORKSPACE_META.ENTERPRISE;
   const canInvite = hasPermission(session, "admin", "manage_team");
 
   return (
     <div className="mx-auto max-w-3xl space-y-8">
       <PageHeader title="Settings" description={`${meta.label} · ${meta.tagline}`} />
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Workspace experience</CardTitle>
-          <CardDescription>
-            MVP for incubation; Enterprise for governance & operational intelligence (Phase 1).
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ModeSwitcher current={mode} />
-        </CardContent>
-      </Card>
 
       <Card>
         <CardHeader>
@@ -53,7 +39,7 @@ export default async function SettingsPage() {
             <span className="text-muted">Your role: </span>
             <span className="text-primary">{ROLE_LABELS[session.role]}</span>
           </p>
-          {dna && mode === "ENTERPRISE" && (
+          {dna && (
             <p>
               <span className="text-muted">Autonomy: </span>
               <Badge variant="ai">{dna.autonomyMode}</Badge>

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
-import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import { loadExecutiveBriefing } from "@/lib/executive-briefing/load-briefing-context";
 import { ExecutiveBriefingHero } from "@/components/executive-briefing/executive-briefing-hero";
@@ -11,15 +10,6 @@ import { FullOperationalDeck } from "@/components/executive-briefing/full-operat
 export default async function EnterpriseDashboardPage() {
   const session = await getSession();
   if (!session) redirect("/login");
-
-  const org = await prisma.organization.findUnique({
-    where: { id: session.organizationId },
-    select: { workspaceMode: true, name: true },
-  });
-
-  if (org?.workspaceMode === "MVP") {
-    redirect("/accelerator");
-  }
 
   const { briefing, charts, ctx, orgName } = await loadExecutiveBriefing(session.organizationId);
 

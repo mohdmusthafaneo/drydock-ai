@@ -1,14 +1,9 @@
 import { isNavPathEnabled } from "@/lib/feature-flags";
-import type { WorkspaceMode } from "@/lib/workspace-mode";
 
 type Ctx = {
-  mode: WorkspaceMode;
   hasProfile: boolean;
   hasDna: boolean;
   workflowConfigured: boolean;
-  hasAcceleratorProject: boolean;
-  hasGeneratedPackage: boolean;
-  hasApprovedAccelerator: boolean;
   hasRelease: boolean;
   hasAssessedRelease: boolean;
   connectedCount: number;
@@ -28,35 +23,6 @@ function filterEnabledSteps(steps: OnboardingStep[]): OnboardingStep[] {
 }
 
 export function getOnboardingSteps(ctx: Ctx) {
-  if (ctx.mode === "MVP") {
-    return filterEnabledSteps([
-      {
-        id: "first-mvp",
-        label: "Create your first MVP",
-        href: "/accelerator/new",
-        done: ctx.hasAcceleratorProject,
-      },
-      {
-        id: "generate",
-        label: "Generate delivery package",
-        href: "/accelerator",
-        done: ctx.hasGeneratedPackage,
-      },
-      {
-        id: "approve-mvp",
-        label: "Approve MVP package",
-        href: "/accelerator",
-        done: ctx.hasApprovedAccelerator,
-      },
-      {
-        id: "tools",
-        label: "Connect GitHub or Jira",
-        href: "/integrations",
-        done: ctx.connectedCount > 0,
-      },
-    ]);
-  }
-
   return filterEnabledSteps([
     {
       id: "governance-setup",

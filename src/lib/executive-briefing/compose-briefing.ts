@@ -504,34 +504,6 @@ function buildClaims(input: ComposeBriefingInput, health: ExecutiveBriefing["hea
   return claims.slice(0, 5);
 }
 
-function resolvePrimaryCta(
-  input: ComposeBriefingInput,
-): ExecutiveBriefing["primaryCta"] | undefined {
-  if (input.stats.pendingApprovals > 0) {
-    const n = input.stats.pendingApprovals;
-    return {
-      label: n === 1 ? "Review 1 pending approval" : `Review ${n} pending approvals`,
-      href: "/approvals",
-    };
-  }
-  if (input.stats.rollbackPending > 0) {
-    return {
-      label: "Review rollback recommendation",
-      href: "/devops",
-    };
-  }
-  if (input.stats.openIncidents > 0) {
-    return {
-      label:
-        input.stats.openIncidents === 1
-          ? "Review open incident"
-          : `Review ${input.stats.openIncidents} open incidents`,
-      href: "/incidents",
-    };
-  }
-  return undefined;
-}
-
 function resolveFreshness(input: ComposeBriefingInput): ExecutiveBriefing["freshness"] {
   const timestamps = [
     input.integrationFreshness.jiraSyncedAt,
@@ -578,7 +550,6 @@ export function composeExecutiveBriefing(input: ComposeBriefingInput): Executive
     wordCount,
     health,
     claims: buildClaims(input, health),
-    primaryCta: resolvePrimaryCta(input),
     freshness: resolveFreshness(input),
     source: "deterministic",
   };

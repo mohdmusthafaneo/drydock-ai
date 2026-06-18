@@ -8,17 +8,28 @@ import {
   isNavItemActive,
   type ResolvedEnterpriseNavLayout,
   type ResolvedNavItem,
+  type ResolvedNavSection,
 } from "@/lib/workspace-mode";
 import { cn } from "@/lib/utils";
 
+function resolveSectionHref(section: ResolvedNavSection, pathname: string): string {
+  const activeItem = section.items.find(
+    (item) => !item.locked && isNavItemActive(pathname, item.href),
+  );
+  if (activeItem) return activeItem.resolvedHref;
+
+  const firstUnlocked = section.items.find((item) => !item.locked);
+  if (firstUnlocked) return firstUnlocked.resolvedHref;
+
+  return section.items[0]?.resolvedHref ?? "/integrations";
+}
+
 function NavLink({
   item,
-  isMvp,
   steep = false,
   collapsed = false,
 }: {
   item: ResolvedNavItem;
-  isMvp: boolean;
   steep?: boolean;
   collapsed?: boolean;
 }) {
@@ -38,9 +49,7 @@ function NavLink({
         active
           ? steep
             ? "bg-pure-white font-medium text-ink shadow-[0_0_0_1px_rgba(163,166,175,0.25)]"
-            : isMvp
-              ? "bg-mvp-muted text-mvp"
-              : "bg-enterprise-muted text-enterprise"
+            : "bg-enterprise-muted text-enterprise"
           : !item.locked &&
               (steep
                 ? "text-ash hover:bg-hover hover:text-ink"
@@ -64,14 +73,40 @@ function NavLink({
   );
 }
 
+function CollapsedSectionLink({
+  section,
+  steep = false,
+}: {
+  section: ResolvedNavSection;
+  steep?: boolean;
+}) {
+  const pathname = usePathname();
+  const sectionActive = section.items.some((item) => isNavItemActive(pathname, item.href));
+  const Icon = section.icon;
+  const href = resolveSectionHref(section, pathname);
+
+  return (
+    <Link
+      href={href}
+      title={section.label}
+      className={cn(
+        "flex items-center justify-center rounded-xl px-2 py-2.5 transition-colors",
+        sectionActive
+          ? "bg-pure-white font-medium text-ink shadow-[0_0_0_1px_rgba(163,166,175,0.25)]"
+          : "text-ash hover:bg-hover hover:text-ink",
+      )}
+    >
+      <Icon className="h-4 w-4 shrink-0" strokeWidth={steep ? 1.5 : 2} />
+    </Link>
+  );
+}
+
 function NavSectionBlock({
   section,
-  isMvp,
   steep = false,
   collapsed = false,
 }: {
-  section: ResolvedEnterpriseNavLayout["sections"][number];
-  isMvp: boolean;
+  section: ResolvedNavSection;
   steep?: boolean;
   collapsed?: boolean;
 }) {
@@ -82,13 +117,7 @@ function NavSectionBlock({
   );
 
   if (collapsed) {
-    return (
-      <div className="space-y-0.5 pt-1">
-        {section.items.map((item) => (
-          <NavLink key={item.href} item={item} isMvp={isMvp} steep={steep} collapsed />
-        ))}
-      </div>
-    );
+    return <CollapsedSectionLink section={section} steep={steep} />;
   }
 
   return (
@@ -112,7 +141,7 @@ function NavSectionBlock({
       {!collapsedSection && (
         <div className="mt-0.5 space-y-0.5">
           {section.items.map((item) => (
-            <NavLink key={item.href} item={item} isMvp={isMvp} steep={steep} />
+            <NavLink key={item.href} item={item} steep={steep} />
           ))}
         </div>
       )}
@@ -122,12 +151,10 @@ function NavSectionBlock({
 
 export function EnterpriseSidebarNav({
   layout,
-  isMvp,
   steep = false,
   collapsed = false,
 }: {
   layout: ResolvedEnterpriseNavLayout;
-  isMvp: boolean;
   steep?: boolean;
   collapsed?: boolean;
 }) {
@@ -135,19 +162,20 @@ export function EnterpriseSidebarNav({
     <>
       <div className="space-y-0.5">
         {layout.topItems.map((item) => (
-          <NavLink key={item.href} item={item} isMvp={isMvp} steep={steep} collapsed={collapsed} />
+          <NavLink key={item.href} item={item} steep={steep} collapsed={collapsed} />
         ))}
       </div>
 
-      {layout.sections.map((section) => (
-        <NavSectionBlock
-          key={section.id}
-          section={section}
-          isMvp={isMvp}
-          steep={steep}
-          collapsed={collapsed}
-        />
-      ))}
+      <div className={cn(collapsed ? "mt-2 space-y-1" : undefined)}>
+        {layout.sections.map((section) => (
+          <NavSectionBlock
+            key={section.id}
+            section={section}
+            steep={steep}
+            collapsed={collapsed}
+          />
+        ))}
+      </div>
 
       {layout.bottomItems.length > 0 && (
         <div
@@ -157,7 +185,7 @@ export function EnterpriseSidebarNav({
           )}
         >
           {layout.bottomItems.map((item) => (
-            <NavLink key={item.href} item={item} isMvp={isMvp} steep={steep} collapsed={collapsed} />
+            <NavLink key={item.href} item={item} steep={steep} collapsed={collapsed} />
           ))}
         </div>
       )}

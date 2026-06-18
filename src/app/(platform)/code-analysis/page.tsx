@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { getOrganizationContext } from "@/lib/org-data";
-import { prisma } from "@/lib/prisma";
 import { parseIntegrationMeta } from "@/lib/integration-meta";
 import { PageHeader } from "@/components/layout/page-header";
 import { CodeAnalysisDashboard } from "@/components/code-analysis/code-analysis-dashboard";
@@ -12,15 +11,6 @@ import { resolveStoredCodeAnalysis } from "@/lib/code-analysis/sync";
 export default async function CodeAnalysisPage() {
   const session = await getSession();
   if (!session) redirect("/login");
-
-  const org = await prisma.organization.findUnique({
-    where: { id: session.organizationId },
-    select: { workspaceMode: true, name: true },
-  });
-
-  if (org?.workspaceMode === "MVP") {
-    redirect("/accelerator");
-  }
 
   const ctx = await getOrganizationContext(session.organizationId);
   if (!ctx.dna) redirect("/governance/setup");

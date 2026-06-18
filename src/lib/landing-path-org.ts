@@ -4,23 +4,8 @@ import { computeCompletedStepIds } from "@/lib/enterprise-workflow";
 import { hasObservabilitySynced } from "@/lib/observability-connectivity";
 import { resolveLandingPath } from "@/lib/landing-path";
 import { prisma } from "@/lib/prisma";
-import type { WorkspaceMode } from "@/lib/workspace-mode";
 
 export async function getLandingPathForOrganization(organizationId: string): Promise<string> {
-  const org = await prisma.organization.findUnique({
-    where: { id: organizationId },
-    select: { workspaceMode: true },
-  });
-  const mode = (org?.workspaceMode ?? "MVP") as WorkspaceMode;
-
-  if (mode === "MVP") {
-    const dna = await prisma.deliveryDNA.findUnique({
-      where: { organizationId },
-      select: { id: true },
-    });
-    return resolveLandingPath({ mode, hasDna: Boolean(dna) });
-  }
-
   const [profile, dna, integrations, releases, approvals, workflow, incidents] =
     await Promise.all([
       prisma.organizationProfile.findUnique({
@@ -70,7 +55,6 @@ export async function getLandingPathForOrganization(organizationId: string): Pro
   });
 
   return resolveLandingPath({
-    mode: "ENTERPRISE",
     hasDna: Boolean(dna),
     completedStepIds,
   });

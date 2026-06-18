@@ -3,132 +3,134 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { ROLE_LABELS } from "@/lib/roles";
 import type { SessionPayload } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import type { IntegrationNavGates } from "@/lib/nav-availability";
 import {
   WORKSPACE_META,
-  getEnabledNavForMode,
   getResolvedEnterpriseNavLayout,
-  isNavItemActive,
   resolvePageTitleForPath,
-  type WorkspaceMode,
 } from "@/lib/workspace-mode";
 import { AidosLogo } from "@/components/brand/aidos-logo";
 import { EnterpriseSidebarNav } from "@/components/layout/enterprise-sidebar-nav";
 import { MobileNav } from "@/components/layout/mobile-nav";
-import { ModeSwitcher } from "@/components/layout/mode-switcher";
 
 const SIDEBAR_STORAGE_KEY = "aidos-sidebar-collapsed";
 
-function MvpSidebarNav({ collapsed }: { collapsed: boolean }) {
-  const pathname = usePathname();
-  const items = getEnabledNavForMode("MVP");
+const AUTO_COLLAPSE_PATHS = ["/dashboard"];
+
+function shouldAutoCollapse(pathname: string): boolean {
+  return AUTO_COLLAPSE_PATHS.some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`),
+  );
+}
+
+function HeaderTagline({ text }: { text: string }) {
+  const short = text.split("·")[0]?.trim() ?? text;
 
   return (
-    <div className="space-y-0.5">
-      {items.map((item) => {
-        const Icon = item.icon;
-        const active = isNavItemActive(pathname, item.href);
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            title={collapsed ? item.label : undefined}
-            className={cn(
-              "flex items-center gap-2.5 rounded-xl py-2.5 text-[15px] transition-colors",
-              collapsed ? "justify-center px-2" : "px-3",
-              active
-                ? "bg-pure-white font-medium text-ink shadow-[0_0_0_1px_rgba(163,166,175,0.25)]"
-                : "text-ash hover:bg-hover hover:text-ink",
-              item.primary && !active && "font-medium text-ink",
-            )}
-          >
-            <Icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
-            {!collapsed && item.label}
-          </Link>
-        );
-      })}
-    </div>
+    <span
+      className={cn(
+        "group/tag hidden shrink-0 sm:inline-flex items-center justify-end overflow-hidden",
+        "rounded-full border border-dove/40 bg-pure-white/80 px-3 py-1.5",
+        "text-xs font-medium leading-none text-graphite shadow-[0_1px_2px_rgba(22,22,22,0.04)]",
+        "max-w-[5.5rem] transition-[max-width,background-color,border-color,padding,box-shadow] duration-300 ease-out",
+        "hover:max-w-[24rem] hover:border-dove/55 hover:bg-pure-white hover:px-3.5 hover:text-ash hover:shadow-[0_2px_10px_rgba(22,22,22,0.06)]",
+      )}
+    >
+      <span className="whitespace-nowrap">
+        <span className="group-hover/tag:hidden">{short}</span>
+        <span className="hidden group-hover/tag:inline">{text}</span>
+      </span>
+    </span>
   );
 }
 
 export function AppShell({
   session,
-  workspaceMode,
   integrationGates,
   homePath,
   children,
 }: {
   session: SessionPayload;
-  workspaceMode: WorkspaceMode;
   integrationGates?: IntegrationNavGates;
   homePath: string;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const meta = WORKSPACE_META[workspaceMode];
-  const isMvp = workspaceMode === "MVP";
-  const enterpriseLayout =
-    workspaceMode === "ENTERPRISE"
-      ? getResolvedEnterpriseNavLayout(integrationGates)
-      : null;
+  const meta = WORKSPACE_META.ENTERPRISE;
+  const enterpriseLayout = getResolvedEnterpriseNavLayout(integrationGates);
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarHovered, setSidebarHovered] = useState(false);
+
+  const sidebarExpanded = !sidebarCollapsed || sidebarHovered;
 
   useEffect(() => {
     const stored = localStorage.getItem(SIDEBAR_STORAGE_KEY);
     if (stored === "true") setSidebarCollapsed(true);
   }, []);
 
-  function toggleSidebar() {
-    setSidebarCollapsed((prev) => {
-      const next = !prev;
-      localStorage.setItem(SIDEBAR_STORAGE_KEY, String(next));
-      return next;
-    });
+  useEffect(() => {
+    if (shouldAutoCollapse(pathname)) {
+      setSidebarCollapsed(true);
+      localStorage.setItem(SIDEBAR_STORAGE_KEY, "true");
+    }
+  }, [pathname]);
+
+  function setCollapsed(next: boolean) {
+    setSidebarCollapsed(next);
+    localStorage.setItem(SIDEBAR_STORAGE_KEY, String(next));
   }
 
-  const pageTitle = resolvePageTitleForPath(pathname, workspaceMode, integrationGates);
+  function handleMainInteract() {
+    if (sidebarExpanded && sidebarCollapsed === false && shouldAutoCollapse(pathname)) {
+      setCollapsed(true);
+    }
+  }
+
+  const pageTitle = resolvePageTitleForPath(pathname, "ENTERPRISE", integrationGates);
 
   return (
     <div className="app-canvas flex h-dvh overflow-hidden bg-base text-primary">
       <aside
+        onMouseEnter={() => sidebarCollapsed && setSidebarHovered(true)}
+        onMouseLeave={() => setSidebarHovered(false)}
         className={cn(
-          "hidden h-full shrink-0 flex-col overflow-hidden border-r border-dove/40 bg-fog transition-[width] duration-200 lg:flex",
-          sidebarCollapsed ? "w-[72px]" : "w-60 xl:w-[240px]",
+          "hidden h-full shrink-0 flex-col overflow-hidden border-r border-dove/40 bg-fog transition-[width,box-shadow] duration-200 lg:flex",
+          sidebarExpanded ? "z-30 w-60 shadow-none xl:w-[240px]" : "w-[72px]",
+          sidebarCollapsed && sidebarHovered && "shadow-[4px_0_24px_rgba(22,22,22,0.08)]",
         )}
       >
-        <div className={cn("flex shrink-0 items-center gap-2 p-4", sidebarCollapsed && "justify-center px-2")}>
+        <div
+          className={cn(
+            "flex shrink-0 items-center gap-2 p-4",
+            !sidebarExpanded && "justify-center px-2",
+          )}
+        >
           <Link
             href={homePath}
-            className={cn("flex min-w-0 items-center gap-2.5", sidebarCollapsed && "justify-center")}
+            className={cn("flex min-w-0 items-center gap-2.5", !sidebarExpanded && "justify-center")}
           >
             <AidosLogo size={32} />
-            {!sidebarCollapsed && (
+            {sidebarExpanded && (
               <p className="truncate text-[15px] font-medium tracking-tight text-ink">AIDOS</p>
             )}
           </Link>
         </div>
 
         <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3">
-          {isMvp ? (
-            <MvpSidebarNav collapsed={sidebarCollapsed} />
-          ) : enterpriseLayout ? (
-            <EnterpriseSidebarNav
-              layout={enterpriseLayout}
-              isMvp={isMvp}
-              steep
-              collapsed={sidebarCollapsed}
-            />
-          ) : null}
+          <EnterpriseSidebarNav
+            layout={enterpriseLayout}
+            steep
+            collapsed={!sidebarExpanded}
+          />
         </nav>
 
         <div className="shrink-0 space-y-3 border-t border-dove/40 p-3">
-          {!sidebarCollapsed && <ModeSwitcher current={workspaceMode} compact />}
-          {!sidebarCollapsed && (
+          {sidebarExpanded && (
             <div>
               <p className="truncate text-sm font-medium">{session.name}</p>
               <p className="truncate text-xs text-muted">{session.email}</p>
@@ -141,69 +143,34 @@ export function AppShell({
               title="Sign out"
               className={cn(
                 "flex w-full items-center gap-2 rounded-xl py-2 text-sm text-secondary hover:bg-hover hover:text-primary",
-                sidebarCollapsed ? "justify-center px-2" : "px-3",
+                !sidebarExpanded ? "justify-center px-2" : "px-3",
               )}
             >
               <LogOut className="h-4 w-4 shrink-0" strokeWidth={1.5} />
-              {!sidebarCollapsed && "Sign out"}
+              {sidebarExpanded && "Sign out"}
             </button>
           </form>
-          <button
-            type="button"
-            onClick={toggleSidebar}
-            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            className={cn(
-              "flex w-full items-center gap-2 rounded-xl py-2 text-sm text-graphite hover:bg-hover hover:text-ink",
-              sidebarCollapsed ? "justify-center px-2" : "px-3",
-            )}
-          >
-            {sidebarCollapsed ? (
-              <PanelLeftOpen className="h-4 w-4 shrink-0" strokeWidth={1.5} />
-            ) : (
-              <>
-                <PanelLeftClose className="h-4 w-4 shrink-0" strokeWidth={1.5} />
-                Collapse
-              </>
-            )}
-          </button>
         </div>
       </aside>
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="z-10 flex h-16 shrink-0 items-center justify-between gap-3 border-b border-dove/50 bg-pure-white px-4 lg:px-8">
-          <div className="flex min-w-0 items-center gap-3">
-            <button
-              type="button"
-              onClick={toggleSidebar}
-              className="hidden rounded-lg p-2 text-graphite hover:bg-hover hover:text-ink lg:inline-flex"
-              aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              {sidebarCollapsed ? (
-                <PanelLeftOpen className="h-5 w-5" strokeWidth={1.5} />
-              ) : (
-                <PanelLeftClose className="h-5 w-5" strokeWidth={1.5} />
-              )}
-            </button>
-            <div className="min-w-0">
-              <p className="truncate font-display text-[18px] leading-tight tracking-[-0.14px] text-ink lg:text-[22px] lg:tracking-[-0.2px]">
-                {pageTitle}
-              </p>
-              <p className="truncate text-xs text-graphite lg:hidden">{meta.label}</p>
-            </div>
-          </div>
-          <div className="flex shrink-0 items-center gap-3">
-            <span className="hidden rounded-full bg-fog px-3 py-1 text-xs text-ash sm:inline">
-              {meta.tagline}
-            </span>
-            <p className="hidden max-w-[10rem] truncate text-sm text-graphite md:block">
-              {session.name}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-fog">
+        <header className="z-10 flex shrink-0 items-center justify-between gap-4 px-4 pt-5 pb-2 lg:px-10 lg:pt-8 lg:pb-3">
+          <div className="min-w-0">
+            <p className="truncate font-display text-[22px] leading-tight tracking-[-0.2px] text-ink lg:text-[26px] lg:tracking-[-0.28px]">
+              {pageTitle}
             </p>
+            <p className="mt-0.5 truncate text-xs text-graphite lg:hidden">{meta.label}</p>
           </div>
+          <HeaderTagline text={meta.tagline} />
         </header>
-        <main className="min-h-0 w-full flex-1 overflow-y-auto overscroll-contain bg-fog px-4 py-6 pb-24 lg:px-10 lg:py-10 lg:pb-8">
+        <main
+          className="min-h-0 w-full flex-1 overflow-y-auto overscroll-contain px-4 pb-24 pt-2 lg:px-10 lg:pb-8 lg:pt-3"
+          onClick={handleMainInteract}
+          onScroll={handleMainInteract}
+        >
           <div className="mx-auto max-w-[1200px]">{children}</div>
         </main>
-        <MobileNav workspaceMode={workspaceMode} integrationGates={integrationGates} steep />
+        <MobileNav integrationGates={integrationGates} steep />
       </div>
     </div>
   );

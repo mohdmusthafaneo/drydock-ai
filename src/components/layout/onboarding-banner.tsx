@@ -4,17 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { CheckCircle2, ChevronDown, ChevronUp, Circle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { WorkspaceMode } from "@/lib/workspace-mode";
-
 type Step = { id: string; label: string; href: string; done: boolean };
 
 export function OnboardingBanner({
   steps,
-  workspaceMode,
   title,
 }: {
   steps: Step[];
-  workspaceMode: WorkspaceMode;
   title?: string;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -24,11 +20,10 @@ export function OnboardingBanner({
 
   if (allDone || !nextStep) return null;
 
-  const isMvp = workspaceMode === "MVP";
-  const defaultTitle = isMvp ? "Next on your launch path" : "Next in enterprise setup";
+  const defaultTitle = "Next in setup";
 
   return (
-    <div className="mb-8 rounded-[24px] border border-dove/50 bg-apricot-wash/40 p-5">
+    <div className="mb-4 rounded-[24px] border border-dove/50 bg-apricot-wash/40 p-5">
       <div className="flex flex-wrap items-center gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-[13px] font-medium uppercase tracking-[0.04em] text-graphite">

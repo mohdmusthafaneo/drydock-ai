@@ -34,8 +34,6 @@ const PROVIDER_LABELS: Record<string, string> = {
   SLACK: "Slack",
 };
 
-const MVP_PROVIDERS = new Set(["GITHUB", "JIRA"]);
-
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 function firstParam(value: string | string[] | undefined): string | undefined {
@@ -83,12 +81,6 @@ export default async function IntegrationsPage({
   const grafanaWebhookUrl = `${appUrl}/api/webhooks/grafana?organizationId=${session.organizationId}`;
   const appUrlConfigured = isAppUrlConfigured();
 
-  const org = await prisma.organization.findUnique({
-    where: { id: session.organizationId },
-    select: { workspaceMode: true },
-  });
-
-  const isMvp = org?.workspaceMode === "MVP";
   const ctx = await getOrganizationContext(session.organizationId);
   const githubAppSlug = process.env.GITHUB_APP_SLUG;
   const jiraOAuthConfigured = getJiraOAuthConfig().configured;
@@ -100,8 +92,7 @@ export default async function IntegrationsPage({
     ? parseGrafanaMeta(grafanaIntegration.metadataJson)
     : null;
   const showObservabilityBanner =
-    !isMvp &&
-    (isGrafanaTrulyConnected(grafanaIntegration) || isPrometheusTrulyConnected(prometheusIntegration));
+    isGrafanaTrulyConnected(grafanaIntegration) || isPrometheusTrulyConnected(prometheusIntegration);
 
   const githubInstallState =
     canManage && githubAppSlug
@@ -112,23 +103,17 @@ export default async function IntegrationsPage({
         })
       : undefined;
 
-  const integrations = ctx.integrations.filter(
-    (i) => !isMvp || MVP_PROVIDERS.has(i.provider),
-  );
+  const integrations = ctx.integrations;
 
   const health = await Promise.all(integrations.map((i) => checkIntegrationHealth(i)));
 
   return (
     <div className="space-y-8">
       <PageHeader
-        title={isMvp ? "Connect your stack" : "Integration hub"}
-        description={
-          isMvp
-            ? "Link GitHub and Jira so your MVP package flows into delivery tools."
-            : "Phase 1 — GitHub App, webhooks, metadata sync, and health monitoring for your operational stack."
-        }
+        title="Integration hub"
+        description="Phase 1 — GitHub App, webhooks, metadata sync, and health monitoring for your operational stack."
       >
-        {!isMvp && canManage && <SyncIntegrationsButton />}
+        {canManage && <SyncIntegrationsButton />}
       </PageHeader>
 
       <Suspense fallback={null}>

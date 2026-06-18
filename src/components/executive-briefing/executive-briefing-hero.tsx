@@ -2,7 +2,6 @@ import type { ExecutiveBriefing } from "@/lib/executive-briefing/types";
 import { BriefingHeadline } from "@/components/executive-briefing/briefing-headline";
 import { BriefingHighlights } from "@/components/executive-briefing/briefing-highlights";
 import { BriefingInsightBox } from "@/components/executive-briefing/briefing-insight";
-import { BriefingPrimaryCta } from "@/components/executive-briefing/briefing-primary-cta";
 import { ScrollCue } from "@/components/executive-briefing/scroll-cue";
 import { cn } from "@/lib/utils";
 
@@ -17,7 +16,7 @@ export function ExecutiveBriefingHero({ briefing, orgName }: Props) {
   return (
     <section
       className={cn(
-        "steep-hero-glow -mx-4 rounded-[24px] px-4 py-10 lg:-mx-6 lg:px-6 lg:py-14",
+        "steep-hero-glow -mx-4 rounded-[24px] px-4 pt-4 pb-10 lg:-mx-6 lg:px-6 lg:pt-6 lg:pb-14",
       )}
     >
       <div className="mb-8 space-y-2">
@@ -44,15 +43,7 @@ export function ExecutiveBriefingHero({ briefing, orgName }: Props) {
         {hasHighlights && <BriefingHighlights highlights={briefing.highlights} />}
       </div>
 
-      <div className="mt-10 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-4">
-          {briefing.primaryCta && (
-            <BriefingPrimaryCta
-              label={briefing.primaryCta.label}
-              href={briefing.primaryCta.href}
-            />
-          )}
-        </div>
+      <div className="mt-10 flex justify-center sm:justify-end">
         <ScrollCue />
       </div>
     </section>
