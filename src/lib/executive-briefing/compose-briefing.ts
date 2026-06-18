@@ -1,7 +1,10 @@
 import { computeDeliveryHealthScore } from "@/lib/executive-briefing/health-score";
 import type {
   BriefingClaim,
+  BriefingHighlight,
+  BriefingInsight,
   ExecutiveBriefing,
+  HeadlineSegment,
   HealthBand,
 } from "@/lib/executive-briefing/types";
 import type { HealthScoreInput } from "@/lib/executive-briefing/health-score";
@@ -36,30 +39,21 @@ function countWords(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
-function truncateWords(text: string, maxWords: number): string {
-  const words = text.trim().split(/\s+/).filter(Boolean);
-  if (words.length <= maxWords) return text.trim();
-  return words.slice(0, maxWords).join(" ") + "…";
-}
-
-function sanitizeAssessmentSummary(summary: string): string {
-  const cleaned = summary
-    .replace(/\s+/g, " ")
-    .replace(/readinessScore/gi, "readiness")
-    .replace(/governanceRiskScore/gi, "risk score")
-    .trim();
-  return truncateWords(cleaned, 45);
+function flattenHeadline(segments: HeadlineSegment[]): string {
+  return segments.map((s) => s.text).join("");
 }
 
 function relativeSyncLabel(iso: string | null | undefined): string | null {
   if (!iso) return null;
   const ms = Date.now() - new Date(iso).getTime();
   if (Number.isNaN(ms)) return null;
-  const hours = Math.floor(ms / (60 * 60 * 1000));
-  if (hours < 1) return "less than an hour ago";
-  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  const minutes = Math.floor(ms / (60 * 1000));
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
-  return `${days} day${days === 1 ? "" : "s"} ago`;
+  return `${days}d ago`;
 }
 
 function isStale(iso: string | null | undefined): boolean {
@@ -71,9 +65,9 @@ function isStale(iso: string | null | undefined): boolean {
 function bandPhrase(band: HealthBand | null): string {
   switch (band) {
     case "strong":
-      return "strong";
+      return "looking strong";
     case "steady":
-      return "steady";
+      return "holding steady";
     case "caution":
       return "needs attention";
     case "at_risk":
@@ -83,129 +77,319 @@ function bandPhrase(band: HealthBand | null): string {
   }
 }
 
-function buildOnboardingNarrative(input: ComposeBriefingInput): string {
-  const parts: string[] = [];
-  parts.push(
-    `${input.orgName} has delivery governance configured and is ready for operational intelligence.`,
-  );
+function releaseStatusPhrase(status: string): string {
+  switch (status) {
+    case "STAGED":
+      return "preparing for staging";
+    case "READY":
+      return "ready for review";
+    case "IN_QA":
+      return "in QA";
+    case "DEPLOYED":
+      return "live in production";
+    case "BLOCKED":
+      return "blocked";
+    default:
+      return "in progress";
+  }
+}
 
+function connectedSourceNames(input: ComposeBriefingInput): string[] {
+  const sources: string[] = [];
+  if (input.deliverySnapshot) sources.push("Jira");
+  if (input.codeSnapshot) sources.push("GitHub");
+  if (input.observabilitySnapshot && !input.observabilityIsDemo) {
+    sources.push("observability");
+  }
+  return sources;
+}
+
+function buildMetaLine(input: ComposeBriefingInput): string {
+  const timestamps = [
+    input.integrationFreshness.jiraSyncedAt,
+    input.integrationFreshness.githubSyncedAt,
+    input.integrationFreshness.observabilitySyncedAt,
+  ].filter((t): t is string => Boolean(t));
+
+  const freshest =
+    timestamps.length > 0
+      ? timestamps.sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0]!
+      : null;
+
+  const syncLabel = relativeSyncLabel(freshest);
+  const sources = connectedSourceNames(input);
+
+  if (syncLabel && sources.length > 0) {
+    const sourceList =
+      sources.length === 1
+        ? sources[0]!
+        : sources.length === 2
+          ? `${sources[0]} and ${sources[1]}`
+          : `${sources.slice(0, -1).join(", ")}, and ${sources[sources.length - 1]}`;
+    return `Updated ${syncLabel} · drawn from ${sourceList}`;
+  }
+
+  if (sources.length > 0) {
+    return `Drawn from ${sources.join(", ")}`;
+  }
+
+  return "Connect integrations to keep this briefing current";
+}
+
+function buildOnboardingHeadline(input: ComposeBriefingInput): HeadlineSegment[] {
   const missing: string[] = [];
-  if (!input.deliverySnapshot) missing.push("Jira for delivery tracking");
-  if (!input.codeSnapshot) missing.push("GitHub for engineering activity");
+  if (!input.deliverySnapshot) missing.push("Jira");
+  if (!input.codeSnapshot) missing.push("GitHub");
   if (!input.observabilitySnapshot || input.observabilityIsDemo) {
-    missing.push("Prometheus or Grafana for production stability");
+    missing.push("observability");
   }
 
   if (missing.length > 0) {
-    parts.push(
-      `Connect ${missing.slice(0, 2).join(" and ")}${missing.length > 2 ? ", and observability" : ""} to unlock a full delivery confidence briefing.`,
-    );
-  } else {
-    parts.push(
-      "Sync your connected integrations to generate release and stability insights on this dashboard.",
-    );
+    const tools =
+      missing.length === 1
+        ? missing[0]!
+        : missing.length === 2
+          ? `${missing[0]} and ${missing[1]}`
+          : `${missing[0]}, ${missing[1]}, and observability`;
+    return [
+      { kind: "text", text: `${input.orgName} is set up — connect ` },
+      { kind: "emphasis", text: tools },
+      { kind: "text", text: " to unlock your delivery briefing." },
+    ];
   }
 
-  if (input.stats.pendingApprovals > 0) {
-    parts.push(
-      `${input.stats.pendingApprovals} release approval${input.stats.pendingApprovals === 1 ? " is" : "s are"} waiting for your decision.`,
-    );
-  }
-
-  return parts.join(" ");
+  return [
+    { kind: "text", text: `${input.orgName} is ready — sync your integrations to see release and stability signals.` },
+  ];
 }
 
-function buildProductionNarrative(input: ComposeBriefingInput, health: ExecutiveBriefing["health"]): string {
-  const parts: string[] = [];
+function buildProductionHeadline(
+  input: ComposeBriefingInput,
+  health: ExecutiveBriefing["health"],
+): HeadlineSegment[] {
   const release = input.latestRelease;
 
+  if (input.stats.pendingApprovals > 0) {
+    const n = input.stats.pendingApprovals;
+    const releaseName = release?.name ?? "the next release";
+    return [
+      { kind: "emphasis", text: String(n) },
+      {
+        kind: "text",
+        text: ` approval${n === 1 ? "" : "s"} waiting before `,
+      },
+      { kind: "emphasis", text: releaseName },
+      { kind: "text", text: " can ship." },
+    ];
+  }
+
+  if (input.stats.rollbackPending > 0) {
+    const n = input.stats.rollbackPending;
+    return [
+      { kind: "emphasis", text: String(n) },
+      {
+        kind: "text",
+        text: ` deployment${n === 1 ? "" : "s"} flagged for rollback review.`,
+      },
+    ];
+  }
+
+  if (input.stats.openIncidents > 0) {
+    const n = input.stats.openIncidents;
+    return [
+      { kind: "emphasis", text: String(n) },
+      {
+        kind: "text",
+        text: ` open incident${n === 1 ? "" : "s"} — review before the next release.`,
+      },
+    ];
+  }
+
   if (release) {
-    const statusPhrase =
-      release.status === "STAGED"
-        ? "preparing for staging"
-        : release.status === "READY"
-          ? "ready for deployment review"
-          : release.status === "IN_QA"
-            ? "in QA"
-            : release.status === "DEPLOYED"
-              ? "deployed"
-              : "in progress";
-    parts.push(`${input.orgName} is ${statusPhrase} on ${release.name}.`);
-  } else if (input.hasAssessedRelease) {
-    parts.push(`${input.orgName} has assessed releases in the portfolio.`);
-  } else {
-    parts.push(`${input.orgName} is building its release portfolio.`);
+    const status = releaseStatusPhrase(release.status);
+    const segments: HeadlineSegment[] = [
+      { kind: "text", text: `${input.orgName} is ${status} on ` },
+      { kind: "emphasis", text: release.name },
+    ];
+
+    if (release.readinessScore != null) {
+      segments.push(
+        { kind: "text", text: " — " },
+        { kind: "emphasis", text: `${Math.round(release.readinessScore)}%` },
+        { kind: "text", text: " ready to ship" },
+      );
+    }
+
+    if (health.visible && health.band) {
+      segments.push({ kind: "text", text: `, delivery ${bandPhrase(health.band)}.` });
+    } else {
+      segments.push({ kind: "text", text: "." });
+    }
+
+    return segments;
   }
 
-  if (health.visible && health.bandLabel) {
-    parts.push(`Delivery confidence is ${bandPhrase(health.band)}.`);
+  if (health.visible && health.overall != null) {
+    return [
+      { kind: "text", text: `${input.orgName} delivery is ` },
+      { kind: "emphasis", text: bandPhrase(health.band) },
+      { kind: "text", text: ` at ` },
+      { kind: "emphasis", text: String(health.overall) },
+      { kind: "text", text: " confidence." },
+    ];
   }
 
-  const releaseDim = health.dimensions.find((d) => d.id === "release");
-  if (releaseDim) {
-    parts.push(releaseDim.summary);
-  } else if (release?.readinessScore != null) {
-    parts.push(`QA readiness is strong at ${Math.round(release.readinessScore)}%.`);
+  return [
+    { kind: "text", text: `${input.orgName} is building its release portfolio.` },
+  ];
+}
+
+function buildInsight(
+  input: ComposeBriefingInput,
+  health: ExecutiveBriefing["health"],
+): BriefingInsight | undefined {
+  if (input.stats.pendingApprovals > 0) {
+    return {
+      tone: "attention",
+      message: `${input.stats.pendingApprovals} release approval${input.stats.pendingApprovals === 1 ? "" : "s"} need your sign-off before deploy.`,
+    };
   }
 
-  const stabilityDim = health.dimensions.find((d) => d.id === "stability");
-  if (stabilityDim) {
-    parts.push(stabilityDim.summary);
-  } else if (input.stats.openIncidents === 0) {
-    parts.push("Production stability signals are not yet connected.");
+  if (input.stats.rollbackPending > 0) {
+    return {
+      tone: "critical",
+      message: "A deployment may need rollback — review the recommendation before the next release.",
+    };
   }
 
-  const momentumDim = health.dimensions.find((d) => d.id === "momentum");
-  if (momentumDim) {
-    parts.push(momentumDim.summary);
-  } else if (input.activeAuthors != null && input.activeAuthors > 0) {
-    const top = input.topAuthors?.[0];
-    const topLine = top ? ` (top contributor: ${top.login})` : "";
-    parts.push(`${input.activeAuthors} contributors active this week${topLine}.`);
-  }
-
-  if (input.assessmentSummary) {
-    parts.push(sanitizeAssessmentSummary(input.assessmentSummary));
+  if (input.stats.openIncidents > 0) {
+    return {
+      tone: "critical",
+      message: `${input.stats.openIncidents} production incident${input.stats.openIncidents === 1 ? " is" : "s are"} open — triage before shipping.`,
+    };
   }
 
   const staleSources: string[] = [];
   if (isStale(input.integrationFreshness.jiraSyncedAt)) staleSources.push("Jira");
   if (isStale(input.integrationFreshness.githubSyncedAt)) staleSources.push("GitHub");
   if (isStale(input.integrationFreshness.observabilitySyncedAt)) {
-    staleSources.push("Observability");
+    staleSources.push("observability");
   }
   if (staleSources.length > 0) {
-    parts.push(
-      `Integration data from ${staleSources.join(" and ")} is over 24 hours old.`,
-    );
+    return {
+      tone: "attention",
+      message: `${staleSources.join(" and ")} data is over a day old — re-sync for current signals.`,
+    };
   }
 
-  const jiraLabel = relativeSyncLabel(input.integrationFreshness.jiraSyncedAt);
-  const githubLabel = relativeSyncLabel(input.integrationFreshness.githubSyncedAt);
-  if (jiraLabel && !staleSources.includes("Jira")) {
-    parts.push(`Jira data was synced ${jiraLabel}.`);
-  }
-  if (githubLabel && input.activeAuthors != null && !staleSources.includes("GitHub")) {
-    parts.push(`GitHub activity reflects ${input.activeAuthors} contributor${input.activeAuthors === 1 ? "" : "s"} this week.`);
-  }
-
-  if (input.stats.rollbackPending > 0) {
-    parts.push(
-      `${input.stats.rollbackPending} deployment${input.stats.rollbackPending === 1 ? "" : "s"} may need rollback review.`,
-    );
+  const momentum = input.deliverySnapshot?.kpis;
+  if (momentum && momentum.blocked > 0) {
+    return {
+      tone: "attention",
+      message: `${momentum.blocked} blocked item${momentum.blocked === 1 ? "" : "s"} in Jira — clear blockers to keep the release on track.`,
+    };
   }
 
-  if (input.stats.pendingApprovals > 0) {
-    parts.push(
-      `${input.stats.pendingApprovals} release approval${input.stats.pendingApprovals === 1 ? " is" : "s are"} waiting for your decision before deploy can proceed.`,
-    );
-  } else if (input.stats.openIncidents > 0) {
-    parts.push(
-      `Review ${input.stats.openIncidents} open incident${input.stats.openIncidents === 1 ? "" : "s"} before the next release.`,
-    );
+  if (momentum && momentum.overdue > 0) {
+    return {
+      tone: "attention",
+      message: `${momentum.overdue} overdue item${momentum.overdue === 1 ? "" : "s"} — review schedule risk before deploy.`,
+    };
   }
 
-  return parts.join(" ");
+  if (health.visible && health.band === "strong" && momentum?.resolvedLast7d) {
+    return {
+      tone: "info",
+      message: `Steady week — ${momentum.resolvedLast7d} tickets closed with no open blockers.`,
+    };
+  }
+
+  return undefined;
+}
+
+function buildHighlights(
+  input: ComposeBriefingInput,
+  health: ExecutiveBriefing["health"],
+): BriefingHighlight[] {
+  const highlights: BriefingHighlight[] = [];
+  const release = input.latestRelease;
+
+  if (health.visible && health.overall != null && health.bandLabel) {
+    highlights.push({
+      id: "confidence",
+      label: "Delivery confidence",
+      value: String(health.overall),
+      subtext: health.bandLabel,
+      tone:
+        health.band === "strong"
+          ? "good"
+          : health.band === "at_risk"
+            ? "risk"
+            : health.band === "caution"
+              ? "attention"
+              : "neutral",
+    });
+  }
+
+  if (release?.readinessScore != null) {
+    highlights.push({
+      id: "readiness",
+      label: "Ready to ship",
+      value: `${Math.round(release.readinessScore)}%`,
+      subtext: release.name,
+      tone: release.readinessScore >= 75 ? "good" : release.readinessScore >= 50 ? "attention" : "risk",
+    });
+  }
+
+  const momentum = input.deliverySnapshot?.kpis;
+  if (momentum) {
+    if (momentum.resolvedLast7d != null && momentum.resolvedLast7d > 0) {
+      highlights.push({
+        id: "momentum",
+        label: "This week",
+        value: String(momentum.resolvedLast7d),
+        subtext: "tickets closed",
+        tone: "good",
+      });
+    } else if (momentum.openWork != null) {
+      highlights.push({
+        id: "momentum",
+        label: "Open work",
+        value: String(momentum.openWork),
+        subtext: momentum.blocked > 0 ? `${momentum.blocked} blocked` : "in Jira",
+        tone: momentum.blocked > 0 ? "attention" : "neutral",
+      });
+    }
+  } else if (input.activeAuthors != null && input.activeAuthors > 0) {
+    highlights.push({
+      id: "engineering",
+      label: "Contributors",
+      value: String(input.activeAuthors),
+      subtext: "active this week",
+      tone: "neutral",
+    });
+  }
+
+  if (input.observabilitySnapshot && !input.observabilityIsDemo) {
+    const incidents = input.stats.openIncidents;
+    highlights.push({
+      id: "stability",
+      label: "Production",
+      value: incidents === 0 ? "Clear" : String(incidents),
+      subtext: incidents === 0 ? "no open incidents" : `incident${incidents === 1 ? "" : "s"} open`,
+      tone: incidents === 0 ? "good" : "risk",
+    });
+  } else if (input.stats.pendingApprovals > 0) {
+    highlights.push({
+      id: "approvals",
+      label: "Approvals",
+      value: String(input.stats.pendingApprovals),
+      subtext: "waiting for you",
+      tone: "attention",
+    });
+  }
+
+  return highlights.slice(0, 4);
 }
 
 function buildClaims(input: ComposeBriefingInput, health: ExecutiveBriefing["health"]): BriefingClaim[] {
@@ -215,12 +399,12 @@ function buildClaims(input: ComposeBriefingInput, health: ExecutiveBriefing["hea
   if (release) {
     const facts: string[] = [];
     if (release.readinessScore != null) {
-      facts.push(`QA readiness ${Math.round(release.readinessScore)}%`);
+      facts.push(`${Math.round(release.readinessScore)}% ready to ship`);
     }
     if (release.governanceRiskScore != null) {
-      facts.push(`Governance risk ${Math.round(release.governanceRiskScore)}%`);
+      facts.push(`Risk score ${Math.round(release.governanceRiskScore)}%`);
     }
-    facts.push(`Status: ${release.status.replace(/_/g, " ").toLowerCase()}`);
+    facts.push(releaseStatusPhrase(release.status));
     claims.push({
       id: "release",
       headline: release.name,
@@ -235,11 +419,12 @@ function buildClaims(input: ComposeBriefingInput, health: ExecutiveBriefing["hea
     const { blocked, overdue, resolvedLast7d } = input.deliverySnapshot.kpis;
     claims.push({
       id: "momentum",
-      headline: momentumDim.summary.replace(/\.$/, ""),
+      headline: resolvedLast7d != null && resolvedLast7d > 0
+        ? `${resolvedLast7d} closed this week`
+        : "Delivery pace",
       facts: [
-        resolvedLast7d != null ? `${resolvedLast7d} resolved last 7d` : "Delivery data synced",
         blocked > 0 ? `${blocked} blocked` : "No blockers",
-        overdue > 0 ? `${overdue} overdue` : "Schedule on track",
+        overdue > 0 ? `${overdue} overdue` : "On schedule",
       ],
       href: "/delivery-analysis",
       severity: blocked > 0 || overdue > 0 ? "warning" : "info",
@@ -248,12 +433,12 @@ function buildClaims(input: ComposeBriefingInput, health: ExecutiveBriefing["hea
 
   if (input.activeAuthors != null && input.activeAuthors > 0) {
     const facts =
-      input.topAuthors?.slice(0, 2).map((a) => `${a.login} (${a.commits} commits)`) ?? [
-        `${input.activeAuthors} active contributors`,
+      input.topAuthors?.slice(0, 2).map((a) => `${a.login} · ${a.commits} commits`) ?? [
+        `${input.activeAuthors} active this week`,
       ];
     claims.push({
       id: "engineering",
-      headline: `${input.activeAuthors} contributors active`,
+      headline: `${input.activeAuthors} contributors`,
       facts,
       href: "/code-analysis",
     });
@@ -263,11 +448,11 @@ function buildClaims(input: ComposeBriefingInput, health: ExecutiveBriefing["hea
   if (stabilityDim) {
     claims.push({
       id: "stability",
-      headline: stabilityDim.summary.replace(/\.$/, ""),
-      facts: [
+      headline:
         input.stats.openIncidents === 0
-          ? "No open incidents"
-          : `${input.stats.openIncidents} open incidents`,
+          ? "Production is stable"
+          : `${input.stats.openIncidents} open incident${input.stats.openIncidents === 1 ? "" : "s"}`,
+      facts: [
         input.stats.degradedDeployments > 0
           ? `${input.stats.degradedDeployments} degraded deployments`
           : "Deployments healthy",
@@ -286,7 +471,7 @@ function buildClaims(input: ComposeBriefingInput, health: ExecutiveBriefing["hea
     claims.push({
       id: "approvals",
       headline: `${input.stats.pendingApprovals} approval${input.stats.pendingApprovals === 1 ? "" : "s"} waiting`,
-      facts: ["Release manager sign-off required before deploy"],
+      facts: ["Sign-off needed before deploy"],
       href: "/approvals",
       severity: "warning",
     });
@@ -295,7 +480,7 @@ function buildClaims(input: ComposeBriefingInput, health: ExecutiveBriefing["hea
   if (input.stats.rollbackPending > 0) {
     claims.push({
       id: "rollback",
-      headline: "Rollback review recommended",
+      headline: "Rollback review",
       facts: [`${input.stats.rollbackPending} deployment(s) flagged`],
       href: "/devops",
       severity: "critical",
@@ -363,14 +548,18 @@ function resolveFreshness(input: ComposeBriefingInput): ExecutiveBriefing["fresh
 export function composeExecutiveBriefing(input: ComposeBriefingInput): ExecutiveBriefing {
   const health = computeDeliveryHealthScore(input);
 
-  const narrativeRaw = health.visible
-    ? buildProductionNarrative(input, health)
-    : buildOnboardingNarrative(input);
+  const headline = health.visible
+    ? buildProductionHeadline(input, health)
+    : buildOnboardingHeadline(input);
 
-  const narrative = truncateWords(narrativeRaw, 180);
+  const narrative = flattenHeadline(headline);
   const wordCount = countWords(narrative);
 
   const briefing: ExecutiveBriefing = {
+    headline,
+    meta: buildMetaLine(input),
+    insight: buildInsight(input, health),
+    highlights: buildHighlights(input, health),
     narrative,
     wordCount,
     health,

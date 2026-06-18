@@ -26,10 +26,10 @@ export function BriefingBreakdownSection({ briefing, charts, id = "breakdown" }:
       <div className="space-y-4">
         <div>
           <h2 className="font-display text-[44px] leading-[1.1] tracking-[-0.66px] text-ink">
-            What this means
+            The details
           </h2>
           <p className="mt-3 max-w-xl text-[16px] leading-relaxed text-ash">
-            Evidence behind your briefing — tap through for the full picture.
+            Tap through for the full picture behind your briefing.
           </p>
         </div>
         {briefing.freshness.stale && (

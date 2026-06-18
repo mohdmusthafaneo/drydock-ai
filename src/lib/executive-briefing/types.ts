@@ -29,7 +29,34 @@ export type BriefingClaim = {
   severity?: "info" | "warning" | "critical";
 };
 
+/** Inline segment for the L1 natural-language headline (emphasis = key numbers/names). */
+export type HeadlineSegment =
+  | { kind: "text"; text: string }
+  | { kind: "emphasis"; text: string };
+
+export type BriefingHighlight = {
+  id: string;
+  label: string;
+  value: string;
+  subtext?: string;
+  tone?: "neutral" | "good" | "attention" | "risk";
+};
+
+export type BriefingInsight = {
+  message: string;
+  tone: "info" | "attention" | "critical";
+};
+
 export type ExecutiveBriefing = {
+  /** Short, scannable headline with inline emphasis on key figures. */
+  headline: HeadlineSegment[];
+  /** One-line metadata (freshness, sources) — kept out of the headline. */
+  meta: string;
+  /** Optional plain-English callout when something needs attention. */
+  insight?: BriefingInsight;
+  /** Top KPIs shown as large figures beside the headline. */
+  highlights: BriefingHighlight[];
+  /** Flattened headline text for search, tests, and legacy consumers. */
   narrative: string;
   wordCount: number;
   health: DeliveryHealthScore;

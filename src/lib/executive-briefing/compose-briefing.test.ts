@@ -170,7 +170,7 @@ describe("composeExecutiveBriefing", () => {
     assert.ok(stability!.severity === "critical" || stability!.severity === "warning");
   });
 
-  it("keeps word count within 180 and avoids banned jargon", () => {
+  it("keeps headline short and avoids banned jargon", () => {
     const briefing = composeExecutiveBriefing({
       orgName: "Acme Corp",
       stats: baseStats,
@@ -202,8 +202,11 @@ describe("composeExecutiveBriefing", () => {
       },
     });
 
-    assert.ok(briefing.wordCount <= 180);
-    assert.ok(briefing.wordCount >= 20);
+    assert.ok(briefing.wordCount <= 45);
+    assert.ok(briefing.wordCount >= 8);
+    assert.ok(briefing.headline.length > 0);
+    assert.ok(briefing.highlights.length > 0);
+    assert.ok(briefing.meta.length > 0);
     assertNoBannedL1Terms(briefing.narrative);
   });
 });
