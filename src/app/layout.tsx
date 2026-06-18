@@ -1,14 +1,25 @@
 import type { Metadata } from "next";
-import { Figtree, JetBrains_Mono } from "next/font/google";
-import { cookies } from "next/headers";
-import { ThemeProvider } from "@/components/theme/theme-provider";
-import { parseTheme, THEME_COOKIE_NAME, type Theme } from "@/lib/theme";
+import { Figtree, Inter, JetBrains_Mono, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 
 const figtree = Figtree({
   variable: "--font-figtree",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
+
+const inter = Inter({
+  variable: "--font-sohne",
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  display: "swap",
+});
+
+const sourceSerif = Source_Serif_4({
+  variable: "--font-signifier",
+  subsets: ["latin"],
+  weight: ["400"],
   display: "swap",
 });
 
@@ -24,24 +35,19 @@ export const metadata: Metadata = {
     "Human-governed AI delivery intelligence and orchestration platform",
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const cookieStore = await cookies();
-  const initialTheme: Theme =
-    parseTheme(cookieStore.get(THEME_COOKIE_NAME)?.value) ?? "dark";
-
   return (
     <html
       lang="en"
-      className={`${figtree.variable} ${jetbrainsMono.variable} h-full`}
-      data-theme={initialTheme}
+      className={`${figtree.variable} ${inter.variable} ${sourceSerif.variable} ${jetbrainsMono.variable} h-full`}
       suppressHydrationWarning
     >
       <body className="min-h-full bg-base font-sans text-primary antialiased">
-        <ThemeProvider initialTheme={initialTheme}>{children}</ThemeProvider>
+        {children}
       </body>
     </html>
   );

@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 
 export function ConnectJiraEmpty() {
   return (
-    <Card className="border-dashed border-brand/30">
+    <Card className="border-dashed border-chart-blue/30">
       <CardHeader className="text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand-muted">
-          <Kanban className="h-6 w-6 text-brand" />
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-sky-wash">
+          <Kanban className="h-6 w-6 text-chart-blue" />
         </div>
         <CardTitle className="mt-4">Connect Jira to analyze delivery</CardTitle>
         <CardDescription className="mx-auto max-w-md">
@@ -63,10 +63,10 @@ type SyncJiraEmptyProps = {
 
 export function SyncJiraEmpty({ projectKeys }: SyncJiraEmptyProps) {
   return (
-    <Card className="border-dashed border-brand/30">
+    <Card className="border-dashed border-chart-blue/30">
       <CardHeader className="text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand-muted">
-          <Kanban className="h-6 w-6 text-brand" />
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-sky-wash">
+          <Kanban className="h-6 w-6 text-chart-blue" />
         </div>
         <CardTitle className="mt-4">Sync Jira data</CardTitle>
         <CardDescription className="mx-auto max-w-md">

@@ -18,9 +18,8 @@ import { AidosLogo } from "@/components/brand/aidos-logo";
 import { EnterpriseSidebarNav } from "@/components/layout/enterprise-sidebar-nav";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { ModeSwitcher } from "@/components/layout/mode-switcher";
-import { ThemeToggle } from "@/components/theme/theme-toggle";
 
-function MvpSidebarNav({ isMvp }: { isMvp: boolean }) {
+function MvpSidebarNav() {
   const pathname = usePathname();
   const items = getEnabledNavForMode("MVP");
 
@@ -34,16 +33,14 @@ function MvpSidebarNav({ isMvp }: { isMvp: boolean }) {
             key={item.href}
             href={item.href}
             className={cn(
-              "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors",
+              "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[15px] transition-colors",
               active
-                ? isMvp
-                  ? "bg-mvp-muted text-mvp"
-                  : "bg-enterprise-muted text-enterprise"
-                : "text-secondary hover:bg-hover hover:text-primary",
-              item.primary && !active && "font-medium text-primary",
+                ? "bg-pure-white font-medium text-ink shadow-[0_0_0_1px_rgba(163,166,175,0.25)]"
+                : "text-ash hover:bg-hover hover:text-ink",
+              item.primary && !active && "font-medium text-ink",
             )}
           >
-            <Icon className="h-4 w-4 shrink-0" />
+            <Icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
             {item.label}
           </Link>
         );
@@ -74,27 +71,25 @@ export function AppShell({
 
   return (
     <div className="app-canvas flex min-h-screen bg-base text-primary">
-      <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-sidebar lg:flex xl:w-64">
-        <div className="border-b border-border p-5">
+      <aside className="hidden w-60 shrink-0 flex-col bg-fog lg:flex xl:w-[240px]">
+        <div className="p-5 pb-4">
           <Link href={homePath} className="flex items-center gap-2.5">
-            <AidosLogo size={36} />
+            <AidosLogo size={32} />
             <div>
-              <p className="font-semibold tracking-tight">AIDOS</p>
-              <p className="text-[11px] text-muted">{meta.label}</p>
+              <p className="text-[15px] font-medium tracking-tight text-ink">AIDOS</p>
             </div>
           </Link>
-          <p className="mt-3 text-xs leading-relaxed text-muted">{meta.description}</p>
         </div>
 
         <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
           {isMvp ? (
-            <MvpSidebarNav isMvp={isMvp} />
+            <MvpSidebarNav />
           ) : enterpriseLayout ? (
-            <EnterpriseSidebarNav layout={enterpriseLayout} isMvp={isMvp} />
+            <EnterpriseSidebarNav layout={enterpriseLayout} isMvp={isMvp} steep />
           ) : null}
         </nav>
 
-        <div className="space-y-3 border-t border-border p-4">
+        <div className="space-y-3 border-t border-dove/40 p-4">
           <ModeSwitcher current={workspaceMode} compact />
           <div>
             <p className="truncate text-sm font-medium">{session.name}</p>
@@ -104,9 +99,9 @@ export function AppShell({
           <form action="/api/auth/logout" method="POST">
             <button
               type="submit"
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-secondary hover:bg-hover hover:text-primary"
+              className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-secondary hover:bg-hover hover:text-primary"
             >
-              <LogOut className="h-4 w-4" />
+              <LogOut className="h-4 w-4" strokeWidth={1.5} />
               Sign out
             </button>
           </form>
@@ -114,24 +109,13 @@ export function AppShell({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-sidebar/80 px-4 py-3 backdrop-blur-md lg:px-8">
-          <p className="text-sm font-semibold lg:hidden">{meta.label}</p>
-          <div className="ml-auto flex items-center gap-2">
-            <span
-              className={cn(
-                "hidden rounded-full px-3 py-1 text-xs sm:inline",
-                isMvp ? "bg-mvp-muted text-mvp" : "bg-brand-muted text-brand",
-              )}
-            >
-              {meta.tagline}
-            </span>
-            <ThemeToggle />
-          </div>
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-between gap-3 border-b border-dove/50 bg-pure-white px-4 lg:px-8">
+          <p className="text-sm font-medium text-ink lg:hidden">{meta.label}</p>
         </header>
-        <main className="w-full flex-1 p-4 pb-24 lg:px-8 lg:py-8 lg:pb-8 xl:px-10 2xl:px-12">
-          {children}
+        <main className="w-full flex-1 bg-fog px-4 py-6 pb-24 lg:px-10 lg:py-10 lg:pb-8">
+          <div className="mx-auto max-w-[1200px]">{children}</div>
         </main>
-        <MobileNav workspaceMode={workspaceMode} integrationGates={integrationGates} />
+        <MobileNav workspaceMode={workspaceMode} integrationGates={integrationGates} steep />
       </div>
     </div>
   );

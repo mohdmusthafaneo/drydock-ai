@@ -14,9 +14,11 @@ import { cn } from "@/lib/utils";
 function NavLink({
   item,
   isMvp,
+  steep = false,
 }: {
   item: ResolvedNavItem;
   isMvp: boolean;
+  steep?: boolean;
 }) {
   const pathname = usePathname();
   const active = !item.locked && isNavItemActive(pathname, item.href);
@@ -26,18 +28,24 @@ function NavLink({
     <Link
       href={item.resolvedHref}
       className={cn(
-        "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors",
+        "flex items-center gap-2.5 px-3 py-2.5 text-[15px] transition-colors",
+        steep ? "rounded-xl" : "rounded-lg text-sm",
         item.locked && "cursor-default opacity-60 hover:bg-hover/50",
         active
-          ? isMvp
-            ? "bg-mvp-muted text-mvp"
-            : "bg-enterprise-muted text-enterprise"
-          : !item.locked && "text-secondary hover:bg-hover hover:text-primary",
-        item.primary && !active && !item.locked && "font-medium text-primary",
+          ? steep
+            ? "bg-pure-white font-medium text-ink shadow-[0_0_0_1px_rgba(163,166,175,0.25)]"
+            : isMvp
+              ? "bg-mvp-muted text-mvp"
+              : "bg-enterprise-muted text-enterprise"
+          : !item.locked &&
+              (steep
+                ? "text-ash hover:bg-hover hover:text-ink"
+                : "text-secondary hover:bg-hover hover:text-primary"),
+        item.primary && !active && !item.locked && (steep ? "font-medium text-ink" : "font-medium text-primary"),
       )}
       title={item.locked ? item.lockedHint : undefined}
     >
-      <Icon className="h-4 w-4 shrink-0" />
+      <Icon className="h-4 w-4 shrink-0" strokeWidth={steep ? 1.5 : 2} />
       <span className="min-w-0 flex-1 truncate">{item.label}</span>
       {item.locked && (
         <span className="flex shrink-0 items-center gap-1 text-[10px] text-muted">
@@ -52,9 +60,11 @@ function NavLink({
 function NavSectionBlock({
   section,
   isMvp,
+  steep = false,
 }: {
   section: ResolvedEnterpriseNavLayout["sections"][number];
   isMvp: boolean;
+  steep?: boolean;
 }) {
   const pathname = usePathname();
   const sectionActive = section.items.some((item) => isNavItemActive(pathname, item.href));
@@ -63,11 +73,16 @@ function NavSectionBlock({
   );
 
   return (
-    <div className="pt-2">
+    <div className="pt-3">
       <button
         type="button"
         onClick={() => setCollapsed((open) => !open)}
-        className="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted transition-colors hover:text-secondary"
+        className={cn(
+          "flex w-full items-center justify-between rounded-md px-3 py-1.5 text-left transition-colors",
+          steep
+            ? "text-[13px] font-medium uppercase tracking-[0.04em] text-graphite hover:text-ash"
+            : "text-[11px] font-semibold uppercase tracking-wider text-muted hover:text-secondary",
+        )}
         aria-expanded={!collapsed}
       >
         <span>{section.label}</span>
@@ -78,7 +93,7 @@ function NavSectionBlock({
       {!collapsed && (
         <div className="mt-0.5 space-y-0.5">
           {section.items.map((item) => (
-            <NavLink key={item.href} item={item} isMvp={isMvp} />
+            <NavLink key={item.href} item={item} isMvp={isMvp} steep={steep} />
           ))}
         </div>
       )}
@@ -89,26 +104,28 @@ function NavSectionBlock({
 export function EnterpriseSidebarNav({
   layout,
   isMvp,
+  steep = false,
 }: {
   layout: ResolvedEnterpriseNavLayout;
   isMvp: boolean;
+  steep?: boolean;
 }) {
   return (
     <>
       <div className="space-y-0.5">
         {layout.topItems.map((item) => (
-          <NavLink key={item.href} item={item} isMvp={isMvp} />
+          <NavLink key={item.href} item={item} isMvp={isMvp} steep={steep} />
         ))}
       </div>
 
       {layout.sections.map((section) => (
-        <NavSectionBlock key={section.id} section={section} isMvp={isMvp} />
+        <NavSectionBlock key={section.id} section={section} isMvp={isMvp} steep={steep} />
       ))}
 
       {layout.bottomItems.length > 0 && (
-        <div className="mt-3 space-y-0.5 border-t border-border pt-3">
+        <div className={cn("mt-3 space-y-0.5 pt-3", steep ? "border-t border-dove/40" : "border-t border-border")}>
           {layout.bottomItems.map((item) => (
-            <NavLink key={item.href} item={item} isMvp={isMvp} />
+            <NavLink key={item.href} item={item} isMvp={isMvp} steep={steep} />
           ))}
         </div>
       )}

@@ -122,7 +122,7 @@ export function ExternalConnectLinkPanel({
   return (
     <div className="space-y-3 rounded-lg border border-dashed border-border bg-base/40 p-3">
       <div className="flex items-center gap-2">
-        <Link2 className="h-4 w-4 text-brand" />
+        <Link2 className="h-4 w-4 text-chart-blue" />
         <p className="text-xs font-medium text-primary">Share setup link</p>
       </div>
       <p className="text-xs text-muted">

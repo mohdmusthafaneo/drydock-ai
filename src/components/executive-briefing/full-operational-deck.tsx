@@ -78,35 +78,37 @@ export function FullOperationalDeck({ ctx, orgName }: Props) {
   }));
 
   return (
-    <section id="full-deck" className="scroll-mt-20 space-y-8 border-t border-border py-12">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <section id="full-deck" className="scroll-mt-24 space-y-10 py-16">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight lg:text-xl">Full operational view</h2>
-          <p className="mt-1 text-sm text-secondary">
+          <h2 className="font-display text-[44px] leading-[1.1] tracking-[-0.66px] text-ink">
+            Full operational view
+          </h2>
+          <p className="mt-3 text-[16px] text-ash">
             For engineering leads who want the complete picture · {orgName}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button asChild size="sm" variant="secondary">
-            <Link href="/releases/new">+ Register release</Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button asChild size="sm" variant="link" className="h-auto px-0 text-[15px]">
+            <Link href="/releases/new">Register release</Link>
           </Button>
-          <Button asChild size="sm">
+          <Button asChild size="sm" variant="ink" className="rounded-full px-5">
             <Link href="/workflow">Workflow center</Link>
           </Button>
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
         {kpis.map((kpi) => {
           const Icon = kpi.icon;
           return (
-            <Card key={kpi.label} className="min-w-0">
+            <Card key={kpi.label} className="min-w-0 border-none shadow-[var(--shadow)]">
               <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-                <CardDescription>{kpi.label}</CardDescription>
-                <Icon className="h-4 w-4 shrink-0 text-muted" />
+                <CardDescription className="text-[13px] text-graphite">{kpi.label}</CardDescription>
+                <Icon className="h-4 w-4 shrink-0 text-dove" strokeWidth={1.5} />
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-semibold tracking-tight">{kpi.value}</p>
+                <p className="text-[32px] font-medium tracking-tight text-ink">{kpi.value}</p>
               </CardContent>
             </Card>
           );
@@ -114,15 +116,15 @@ export function FullOperationalDeck({ ctx, orgName }: Props) {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2 2xl:grid-cols-12">
-        <Card className="border-accent/20 lg:col-span-1 2xl:col-span-5">
+        <Card className="border-none lg:col-span-1 2xl:col-span-5">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-enterprise" />
+            <CardTitle className="flex items-center gap-2 text-[15px] font-medium">
+              <Shield className="h-5 w-5 text-rust" strokeWidth={1.5} />
               Core governance workflow
             </CardTitle>
             <CardDescription>Detect → assess → approve → deploy</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm text-secondary">
+          <CardContent className="space-y-3 text-[14px] text-ash">
             <ol className="grid gap-2 sm:grid-cols-2 2xl:grid-cols-1">
               <li>1. Register release event</li>
               <li>2. Collect telemetry & QA signals</li>
@@ -130,11 +132,11 @@ export function FullOperationalDeck({ ctx, orgName }: Props) {
               <li>4. Human approval in Approval Center</li>
               <li>5. Controlled deployment execution</li>
             </ol>
-            <div className="flex flex-wrap gap-2 pt-2">
-              <Button asChild size="sm">
+            <div className="flex flex-wrap gap-3 pt-2">
+              <Button asChild size="sm" variant="ink" className="rounded-full">
                 <Link href="/workflow">Open workflow center</Link>
               </Button>
-              <Button asChild size="sm" variant="secondary">
+              <Button asChild size="sm" variant="link" className="h-auto px-0">
                 <Link href="/releases">All releases ({ctx.stats.activeReleases} active)</Link>
               </Button>
             </div>
@@ -148,18 +150,18 @@ export function FullOperationalDeck({ ctx, orgName }: Props) {
           </CardHeader>
           <CardContent className="space-y-4">
             {ctx.stats.pendingApprovals > 0 ? (
-              <Button asChild className="w-full sm:w-auto">
+              <Button asChild className="w-full rounded-full sm:w-auto" variant="ink">
                 <Link href="/approvals">
                   {ctx.stats.pendingApprovals} pending — review now
                 </Link>
               </Button>
             ) : (
-              <p className="text-sm text-muted">No pending release approvals.</p>
+              <p className="text-[14px] text-graphite">No pending release approvals.</p>
             )}
             {ctx.stats.pendingRecommendations > 0 && (
-              <p className="text-sm text-secondary">
+              <p className="text-[14px] text-ash">
                 {ctx.stats.pendingRecommendations} AI recommendations awaiting review.{" "}
-                <Link href="/recommendations" className="text-brand hover:underline">
+                <Link href="/recommendations" className="font-medium text-ink hover:text-rust">
                   View recommendations
                 </Link>
               </p>
@@ -172,17 +174,17 @@ export function FullOperationalDeck({ ctx, orgName }: Props) {
             <CardTitle>Platform health</CardTitle>
             <CardDescription>At-a-glance signals</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div className="flex items-center justify-between rounded-lg border border-border bg-elevated/50 px-3 py-2">
-              <span className="text-secondary">Connected integrations</span>
-              <span className="font-medium">{ctx.stats.connectedTools}</span>
+          <CardContent className="space-y-3 text-[14px]">
+            <div className="flex items-center justify-between rounded-[16px] bg-fog px-3 py-2.5">
+              <span className="text-ash">Connected integrations</span>
+              <span className="font-medium text-ink">{ctx.stats.connectedTools}</span>
             </div>
-            <div className="flex items-center justify-between rounded-lg border border-border bg-elevated/50 px-3 py-2">
-              <span className="text-secondary">Active agents</span>
-              <span className="font-medium">{ctx.stats.activeAgents}</span>
+            <div className="flex items-center justify-between rounded-[16px] bg-fog px-3 py-2.5">
+              <span className="text-ash">Active agents</span>
+              <span className="font-medium text-ink">{ctx.stats.activeAgents}</span>
             </div>
-            <div className="flex items-center justify-between rounded-lg border border-border bg-elevated/50 px-3 py-2">
-              <span className="text-secondary">Agent tokens (30d)</span>
+            <div className="flex items-center justify-between rounded-[16px] bg-fog px-3 py-2.5">
+              <span className="text-ash">Agent tokens (30d)</span>
               <span className="font-medium">
                 {formatTokenRollup({
                   runCount: ctx.stats.agentHeartbeatRuns30d,
@@ -193,19 +195,19 @@ export function FullOperationalDeck({ ctx, orgName }: Props) {
                 })}
               </span>
             </div>
-            <div className="flex items-center justify-between rounded-lg border border-border bg-elevated/50 px-3 py-2">
-              <span className="text-secondary">P95 latency</span>
-              <span className="font-medium">
+            <div className="flex items-center justify-between rounded-[16px] bg-fog px-3 py-2.5">
+              <span className="text-ash">P95 latency</span>
+              <span className="font-medium text-ink">
                 {ctx.stats.p95Latency != null ? `${ctx.stats.p95Latency}ms` : "—"}
               </span>
             </div>
             {ctx.stats.rollbackPending > 0 && (
-              <div className="flex items-center justify-between rounded-lg border border-warning/30 bg-warning-muted px-3 py-2">
-                <span className="text-secondary">Rollback recommended</span>
-                <span className="font-medium text-warning">{ctx.stats.rollbackPending}</span>
+              <div className="flex items-center justify-between rounded-[16px] bg-apricot-wash/60 px-3 py-2.5">
+                <span className="text-ash">Rollback recommended</span>
+                <span className="font-medium text-rust">{ctx.stats.rollbackPending}</span>
               </div>
             )}
-            <Button asChild size="sm" variant="secondary" className="w-full">
+            <Button asChild size="sm" variant="link" className="h-auto w-full justify-start px-0">
               <Link href="/integrations">
                 Manage integrations
                 <ArrowRight className="ml-1 h-3.5 w-3.5" />
@@ -224,30 +226,32 @@ export function FullOperationalDeck({ ctx, orgName }: Props) {
         recentRuns={agentActivity}
       />
 
-      <section className="space-y-4">
+      <section className="space-y-5">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h3 className="text-lg font-semibold">Deep observability</h3>
-            <p className="text-sm text-secondary">Phase 1 shell · expanded in Phase 2</p>
+            <h3 className="font-display text-[26px] leading-[1.18] tracking-[-0.23px] text-ink">
+              Deep observability
+            </h3>
+            <p className="mt-1 text-[14px] text-graphite">Phase 1 shell · expanded in Phase 2</p>
           </div>
         </div>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-5 md:grid-cols-3">
           {phase2Links.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="group rounded-xl border border-border bg-surface p-5 transition-colors hover:border-accent/40 hover:bg-elevated"
+              className="group rounded-[24px] bg-pure-white p-5 shadow-[var(--shadow)] transition-shadow hover:shadow-[0_0_0_1px_rgba(163,166,175,0.3),rgba(0,0,0,0.08)_0px_24px_30px_-8px]"
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="font-semibold text-primary group-hover:text-accent">
+                  <p className="text-[15px] font-medium text-ink group-hover:text-rust">
                     {item.title}
                   </p>
-                  <p className="mt-1 text-sm text-secondary">{item.description}</p>
+                  <p className="mt-1 text-[14px] text-ash">{item.description}</p>
                 </div>
-                <Radio className="h-4 w-4 shrink-0 text-muted group-hover:text-accent" />
+                <Radio className="h-4 w-4 shrink-0 text-dove group-hover:text-rust" strokeWidth={1.5} />
               </div>
-              <p className="mt-4 text-xs font-medium uppercase tracking-wide text-muted">
+              <p className="mt-4 text-[12px] font-medium uppercase tracking-[0.04em] text-graphite">
                 {item.stat}
               </p>
             </Link>
@@ -257,10 +261,10 @@ export function FullOperationalDeck({ ctx, orgName }: Props) {
 
       <div className="grid gap-6 xl:grid-cols-2">
         {latestRelease && (
-          <Card>
+          <Card className="border-none">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <GitBranch className="h-5 w-5 text-muted" />
+              <CardTitle className="flex items-center gap-2 text-[15px] font-medium">
+                <GitBranch className="h-5 w-5 text-graphite" strokeWidth={1.5} />
                 Latest release
               </CardTitle>
               <CardDescription>{latestRelease.name}</CardDescription>
@@ -268,47 +272,47 @@ export function FullOperationalDeck({ ctx, orgName }: Props) {
             <CardContent className="flex flex-wrap items-center gap-3">
               <Badge variant="ai">{latestRelease.status.replace(/_/g, " ")}</Badge>
               {latestRelease.readinessScore != null && (
-                <span className="text-sm text-secondary">
+                <span className="text-[14px] text-ash">
                   QA readiness {Math.round(latestRelease.readinessScore)}%
                 </span>
               )}
               {latestRelease.governanceRiskScore != null && (
-                <span className="text-sm text-secondary">
+                <span className="text-[14px] text-ash">
                   Risk {Math.round(latestRelease.governanceRiskScore)}%
                 </span>
               )}
-              <Button asChild size="sm" variant="secondary" className="ml-auto">
+              <Button asChild size="sm" variant="link" className="ml-auto h-auto px-0">
                 <Link href={`/releases/${latestRelease.id}`}>Open release</Link>
               </Button>
             </CardContent>
           </Card>
         )}
 
-        <Card className={cn(!latestRelease && "xl:col-span-2")}>
+        <Card className={cn("border-none", !latestRelease && "xl:col-span-2")}>
           <CardHeader>
-            <CardTitle>Recent activity</CardTitle>
+            <CardTitle className="text-[15px] font-medium">Recent activity</CardTitle>
             <CardDescription>Operational events & audit trail</CardDescription>
           </CardHeader>
           <CardContent>
             {recentEvents.length === 0 && recentAudit.length === 0 ? (
-              <p className="text-sm text-muted">No recent activity yet.</p>
+              <p className="text-[14px] text-graphite">No recent activity yet.</p>
             ) : (
-              <ul className="divide-y divide-border">
+              <ul className="divide-y divide-border-subtle">
                 {recentEvents.map((ev) => (
                   <li key={ev.id} className="py-3 first:pt-0 last:pb-0">
-                    <p className="font-medium text-primary">{ev.title}</p>
+                    <p className="font-medium text-ink">{ev.title}</p>
                     {ev.description && (
-                      <p className="mt-0.5 text-sm text-secondary">{ev.description}</p>
+                      <p className="mt-0.5 text-[14px] text-ash">{ev.description}</p>
                     )}
                   </li>
                 ))}
                 {recentAudit.map((log) => (
                   <li key={log.id} className="py-3">
-                    <p className="text-sm">
-                      <span className="font-medium text-accent">{log.action}</span>
-                      <span className="text-secondary"> · {log.entityType}</span>
+                    <p className="text-[14px]">
+                      <span className="font-medium text-rust">{log.action}</span>
+                      <span className="text-ash"> · {log.entityType}</span>
                     </p>
-                    <p className="text-xs text-muted">
+                    <p className="text-[13px] text-graphite">
                       {log.user?.name ?? "System"} ·{" "}
                       {new Date(log.createdAt).toLocaleString()}
                     </p>
@@ -316,7 +320,7 @@ export function FullOperationalDeck({ ctx, orgName }: Props) {
                 ))}
               </ul>
             )}
-            <Button asChild size="sm" variant="secondary" className="mt-4">
+            <Button asChild size="sm" variant="link" className="mt-4 h-auto px-0">
               <Link href="/audit">View audit logs</Link>
             </Button>
           </CardContent>

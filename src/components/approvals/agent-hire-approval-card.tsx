@@ -38,31 +38,31 @@ export function AgentHireApprovalCard({
   }
 
   return (
-    <div className="space-y-3 rounded-lg border border-[#8B5CF6]/30 bg-[#131A2A]/40 p-4">
+    <div className="space-y-3 rounded-xl border border-border-subtle bg-sky-wash/40 p-4">
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant="ai">Agent hire</Badge>
-        <p className="text-sm font-medium">{title}</p>
+        <p className="text-sm font-medium text-primary">{title}</p>
       </div>
 
-      <dl className="grid gap-2 text-sm text-slate-400 sm:grid-cols-2">
+      <dl className="grid gap-2 text-sm sm:grid-cols-2">
         <div>
-          <dt className="text-xs uppercase tracking-wide text-slate-500">Role</dt>
-          <dd className="text-slate-200">{payload.role.replace(/_/g, " ")}</dd>
+          <dt className="text-xs font-medium uppercase tracking-wide text-muted">Role</dt>
+          <dd className="text-primary">{payload.role.replace(/_/g, " ")}</dd>
         </div>
         <div>
-          <dt className="text-xs uppercase tracking-wide text-slate-500">Display name</dt>
-          <dd className="text-slate-200">{payload.displayName}</dd>
+          <dt className="text-xs font-medium uppercase tracking-wide text-muted">Display name</dt>
+          <dd className="text-primary">{payload.displayName}</dd>
         </div>
         {payload.capabilities && (
           <div className="sm:col-span-2">
-            <dt className="text-xs uppercase tracking-wide text-slate-500">Capabilities</dt>
-            <dd className="text-slate-200">{payload.capabilities}</dd>
+            <dt className="text-xs font-medium uppercase tracking-wide text-muted">Capabilities</dt>
+            <dd className="text-secondary">{payload.capabilities}</dd>
           </div>
         )}
         {(payload.desiredSkills?.length ?? 0) > 0 && (
           <div className="sm:col-span-2">
-            <dt className="text-xs uppercase tracking-wide text-slate-500">Skills</dt>
-            <dd className="text-slate-200">{payload.desiredSkills!.join(", ")}</dd>
+            <dt className="text-xs font-medium uppercase tracking-wide text-muted">Skills</dt>
+            <dd className="text-secondary">{payload.desiredSkills!.join(", ")}</dd>
           </div>
         )}
       </dl>
@@ -71,13 +71,13 @@ export function AgentHireApprovalCard({
         <div className="space-y-2">
           <button
             type="button"
-            className="text-xs font-medium text-[#4F8CFF] hover:underline"
+            className="text-xs font-medium text-ink underline-offset-4 hover:underline"
             onClick={() => setShowAgentsMd((v) => !v)}
           >
             {showAgentsMd ? "Hide" : "Show"} AGENTS.md preview
           </button>
           {showAgentsMd && (
-            <pre className="max-h-64 overflow-auto rounded-md border border-white/8 bg-[#0B1020] p-3 text-xs leading-relaxed text-slate-300 whitespace-pre-wrap">
+            <pre className="max-h-64 overflow-auto rounded-xl border border-border-subtle bg-pure-white p-3 text-xs leading-relaxed whitespace-pre-wrap text-secondary">
               {agentsMd}
             </pre>
           )}
@@ -90,13 +90,14 @@ export function AgentHireApprovalCard({
         onChange={(e) => setComment(e.target.value)}
         rows={2}
       />
-      <div className="flex flex-wrap gap-2">
-        <Button size="sm" disabled={loading} onClick={() => decide("APPROVED")}>
+      <div className="flex flex-wrap items-center gap-4">
+        <Button size="sm" variant="ink" disabled={loading} onClick={() => decide("APPROVED")}>
           Approve hire
         </Button>
         <Button
           size="sm"
-          variant="destructive"
+          variant="link"
+          className="h-auto px-0 text-error"
           disabled={loading}
           onClick={() => decide("REJECTED")}
         >

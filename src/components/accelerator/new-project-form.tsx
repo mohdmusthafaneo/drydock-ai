@@ -77,8 +77,8 @@ export function NewProjectForm() {
               placeholder="What pain are you solving?"
             />
           </div>
-          {error && <p className="text-sm text-[#fca5a5]">{error}</p>}
-          <Button type="submit" variant="ai" disabled={loading} className="w-full">
+          {error && <p className="text-sm text-error">{error}</p>}
+          <Button type="submit" variant="ink" disabled={loading} className="w-full">
             {loading ? "Creating…" : "Create MVP project"}
           </Button>
         </form>

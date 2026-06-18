@@ -35,7 +35,7 @@ export default async function AgentRunDetailPage({ params }: PageProps) {
       <div>
         <Link
           href={`/agents/${id}/runs`}
-          className="text-sm text-slate-400 hover:text-slate-200"
+          className="text-sm font-medium text-ink underline-offset-4 hover:underline"
         >
           ← Back to run history
         </Link>

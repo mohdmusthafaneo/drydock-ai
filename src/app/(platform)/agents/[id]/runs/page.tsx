@@ -23,11 +23,16 @@ export default async function AgentRunsPage({ params }: PageProps) {
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/agents" className="text-sm text-slate-400 hover:text-slate-200">
+        <Link
+          href="/agents"
+          className="text-sm font-medium text-ink underline-offset-4 hover:underline"
+        >
           ← Back to agents
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold">{agent.displayName} — runs</h1>
-        <p className="mt-1 text-slate-400">
+        <h1 className="mt-2 font-display text-[26px] leading-[1.18] tracking-[-0.23px] text-ink sm:text-[32px]">
+          {agent.displayName} — runs
+        </h1>
+        <p className="mt-1 text-ash">
           Heartbeat history · status {displayAgentStatus(agent.status)}
         </p>
       </div>

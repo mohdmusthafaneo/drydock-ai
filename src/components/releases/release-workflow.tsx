@@ -30,12 +30,12 @@ export function ReleaseWorkflow({ status }: { status: ReleaseStatus }) {
           <li
             key={step.status}
             className={cn(
-              "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm",
+              "flex items-center gap-2 rounded-[16px] border px-3 py-2 text-sm",
               done
-                ? "border-[#10B981]/30 bg-[#10B981]/10 text-[#6ee7b7]"
+                ? "border-success/20 bg-success-muted text-success"
                 : active
-                  ? "border-[#4F8CFF]/40 bg-[#4F8CFF]/10 text-[#93b4ff]"
-                  : "border-white/8 text-slate-500",
+                  ? "border-chart-blue/30 bg-sky-wash text-ink"
+                  : "border-border-subtle bg-fog text-muted",
             )}
           >
             {done ? (

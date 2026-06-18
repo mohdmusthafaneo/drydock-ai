@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { getOrganizationContext } from "@/lib/org-data";
+import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
@@ -13,18 +14,16 @@ export default async function RecommendationsCenterPage() {
   if (!ctx.dna) redirect("/governance/setup");
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Recommendations center</h1>
-        <p className="mt-1 text-slate-400">
-          Explainable AI proposals — scored, correlated, and routed to human governance.
-        </p>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        title="Recommendations center"
+        description="Explainable AI proposals — scored, correlated, and routed to human governance."
+      />
 
       <div className="space-y-4">
         {ctx.recommendations.length === 0 ? (
-          <Card className="border-dashed border-white/10">
-            <CardContent className="py-10 text-center text-slate-500">
+          <Card className="border-dashed border-border">
+            <CardContent className="py-10 text-center text-muted">
               Assess a release to generate governance recommendations.
             </CardContent>
           </Card>
@@ -55,18 +54,18 @@ export default async function RecommendationsCenterPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
-                  <p>{rec.description}</p>
-                  <p className="text-slate-500">
-                    <span className="text-slate-400">Rationale: </span>
+                  <p className="text-secondary">{rec.description}</p>
+                  <p className="text-muted">
+                    <span className="text-secondary">Rationale: </span>
                     {rec.rationale}
                   </p>
                   {systems.length > 0 && (
-                    <p className="text-slate-500">Systems: {systems.join(", ")}</p>
+                    <p className="text-muted">Systems: {systems.join(", ")}</p>
                   )}
                   {rec.release && (
                     <Link
                       href={`/releases/${rec.release.id}`}
-                      className="text-[#93b4ff] hover:underline"
+                      className="text-ink underline-offset-4 hover:underline"
                     >
                       Linked release: {rec.release.name} →
                     </Link>

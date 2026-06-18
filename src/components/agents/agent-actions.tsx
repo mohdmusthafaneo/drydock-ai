@@ -156,9 +156,11 @@ export function AgentActions({ agentId, status }: AgentActionsProps) {
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Button
           size="sm"
+          variant="ink"
+          className="rounded-full"
           disabled={!canInvoke || loading !== null}
           onClick={() => callAction("wakeup")}
         >
@@ -167,7 +169,7 @@ export function AgentActions({ agentId, status }: AgentActionsProps) {
         {isPaused ? (
           <Button
             size="sm"
-            variant="secondary"
+            variant="link"
             disabled={loading !== null}
             onClick={() => callAction("resume")}
           >
@@ -176,21 +178,21 @@ export function AgentActions({ agentId, status }: AgentActionsProps) {
         ) : (
           <Button
             size="sm"
-            variant="secondary"
+            variant="link"
             disabled={isRunning || loading !== null}
             onClick={() => callAction("pause")}
           >
             {loading === "pause" ? "Pausing…" : "Pause"}
           </Button>
         )}
-        <Button size="sm" variant="ghost" asChild>
+        <Button size="sm" variant="link" asChild>
           <Link href={`/agents/${agentId}`}>Instructions</Link>
         </Button>
-        <Button size="sm" variant="ghost" asChild>
+        <Button size="sm" variant="link" asChild>
           <Link href={`/agents/${agentId}/runs`}>Run history</Link>
         </Button>
       </div>
-      {message && <p className="text-xs text-slate-400">{message}</p>}
+      {message && <p className="text-xs text-graphite">{message}</p>}
     </div>
   );
 }

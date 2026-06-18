@@ -7,9 +7,9 @@ type Props = {
   urgent?: boolean;
 };
 
-export function BriefingPrimaryCta({ label, href, urgent = false }: Props) {
+export function BriefingPrimaryCta({ label, href }: Props) {
   return (
-    <Button asChild variant={urgent ? "destructive" : "default"} size="lg">
+    <Button asChild variant="ink" size="lg">
       <Link href={href}>{label}</Link>
     </Button>
   );

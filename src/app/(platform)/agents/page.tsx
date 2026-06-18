@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { getOrganizationContext } from "@/lib/org-data";
+import { PageHeader } from "@/components/layout/page-header";
 import { AgentsListPanel } from "@/components/agents/agents-list-panel";
 
 export default async function AgentsManagementPage() {
@@ -12,19 +13,17 @@ export default async function AgentsManagementPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Agents</h1>
-        <p className="mt-1 text-slate-400">
-          Governed agent control plane — heartbeats, wakeups, and human approval gates.
-        </p>
-      </div>
+      <PageHeader
+        title="Agents"
+        description="Governed agent control plane — heartbeats, wakeups, and human approval gates."
+      />
 
       <AgentsListPanel />
 
-      <p className="text-xs text-slate-600">
+      <p className="text-xs text-graphite">
         Invoke queues a wakeup (async). Drain the queue with{" "}
-        <code className="text-slate-500">npm run worker:agents</code> in dev or{" "}
-        <code className="text-slate-500">POST /api/cron/agents/worker</code>{" "}
+        <code className="text-ash">npm run worker:agents</code> in dev or{" "}
+        <code className="text-ash">POST /api/cron/agents/worker</code>{" "}
         (Bearer PLATFORM_WORKER_SECRET) every 30–60s in production.
       </p>
     </div>

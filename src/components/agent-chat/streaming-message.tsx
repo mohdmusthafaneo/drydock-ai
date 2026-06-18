@@ -13,14 +13,14 @@ export function StreamingMessageBubble({
 }) {
   return (
     <div className="flex gap-3 px-1 py-2">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-mvp-muted text-xs font-medium text-mvp">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-apricot-wash text-xs font-medium text-rust">
         {agentName.slice(0, 1).toUpperCase()}
       </div>
-      <div className="max-w-[85%] space-y-1 rounded-xl border border-white/10 bg-[#1B2435] px-4 py-3 text-sm text-slate-200">
-        <p className="text-xs font-medium text-slate-400">
+      <div className="max-w-[85%] space-y-1 rounded-2xl border border-border-subtle bg-pure-white px-4 py-3 text-sm text-ink">
+        <p className="text-xs font-medium text-graphite">
           {agentName}
           {isStreaming && (
-            <span className="ml-2 text-brand">streaming…</span>
+            <span className="ml-2 text-chart-blue">streaming…</span>
           )}
         </p>
         <p className="whitespace-pre-wrap break-words">
@@ -28,7 +28,7 @@ export function StreamingMessageBubble({
           {isStreaming && (
             <span
               className={cn(
-                "ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-brand align-middle",
+                "ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-chart-blue align-middle",
               )}
               aria-hidden
             />

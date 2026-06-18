@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { getOrganizationContext } from "@/lib/org-data";
+import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -17,37 +18,35 @@ export default async function ReportsPage() {
   const deployed = ctx.releases.filter((r) => r.status === "DEPLOYED").length;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Reports & analytics</h1>
-        <p className="mt-1 text-slate-400">
-          Delivery confidence, governance health, and operational intelligence summaries.
-        </p>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        title="Reports & analytics"
+        description="Delivery confidence, governance health, and operational intelligence summaries."
+      />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="bg-sky-wash/40">
           <CardHeader className="pb-2">
             <CardDescription>Governance score</CardDescription>
-            <CardTitle className="text-2xl">{ctx.stats.governanceScore}%</CardTitle>
+            <CardTitle className="text-2xl text-ink">{ctx.stats.governanceScore}%</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Avg release readiness</CardDescription>
-            <CardTitle className="text-2xl">{ctx.stats.releaseReadiness}%</CardTitle>
+            <CardTitle className="text-2xl text-ink">{ctx.stats.releaseReadiness}%</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Approvals granted</CardDescription>
-            <CardTitle className="text-2xl">{approved}</CardTitle>
+            <CardTitle className="text-2xl text-ink">{approved}</CardTitle>
           </CardHeader>
         </Card>
-        <Card>
+        <Card className="bg-apricot-wash/40">
           <CardHeader className="pb-2">
             <CardDescription>Deployments executed</CardDescription>
-            <CardTitle className="text-2xl">{deployed}</CardTitle>
+            <CardTitle className="text-2xl text-rust">{deployed}</CardTitle>
           </CardHeader>
         </Card>
       </div>
@@ -56,30 +55,30 @@ export default async function ReportsPage() {
         <CardHeader>
           <CardTitle>Governance summary</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-2 text-sm sm:grid-cols-2">
-          <p>Active releases: {ctx.stats.activeReleases}</p>
-          <p>Open incidents: {ctx.stats.openIncidents}</p>
-          <p>Metrics ingested: {ctx.stats.metricCount}</p>
-          <p>Degraded deployments: {ctx.stats.degradedDeployments}</p>
-          <p>Rollback recommended: {ctx.stats.rollbackPending}</p>
-          <p>Pending recommendations: {ctx.stats.pendingRecommendations}</p>
-          <p>Rejected approvals: {rejected}</p>
-          <p>Connected integrations: {ctx.stats.connectedTools}</p>
-          <p>Active AI agents: {ctx.stats.activeAgents}</p>
+        <CardContent className="grid gap-2 text-sm text-secondary sm:grid-cols-2">
+          <p>Active releases: <span className="font-medium text-ink">{ctx.stats.activeReleases}</span></p>
+          <p>Open incidents: <span className="font-medium text-ink">{ctx.stats.openIncidents}</span></p>
+          <p>Metrics ingested: <span className="font-medium text-ink">{ctx.stats.metricCount}</span></p>
+          <p>Degraded deployments: <span className="font-medium text-ink">{ctx.stats.degradedDeployments}</span></p>
+          <p>Rollback recommended: <span className="font-medium text-ink">{ctx.stats.rollbackPending}</span></p>
+          <p>Pending recommendations: <span className="font-medium text-ink">{ctx.stats.pendingRecommendations}</span></p>
+          <p>Rejected approvals: <span className="font-medium text-ink">{rejected}</span></p>
+          <p>Connected integrations: <span className="font-medium text-ink">{ctx.stats.connectedTools}</span></p>
+          <p>Active AI agents: <span className="font-medium text-ink">{ctx.stats.activeAgents}</span></p>
         </CardContent>
       </Card>
 
-      <div className="flex flex-wrap gap-2">
-        <Button asChild variant="secondary" size="sm">
+      <div className="flex flex-wrap items-center gap-4">
+        <Button asChild variant="link" size="sm" className="h-auto px-0">
           <Link href="/qa">QA intelligence report</Link>
         </Button>
-        <Button asChild variant="secondary" size="sm">
+        <Button asChild variant="link" size="sm" className="h-auto px-0">
           <Link href="/observability">Observability</Link>
         </Button>
-        <Button asChild variant="secondary" size="sm">
+        <Button asChild variant="link" size="sm" className="h-auto px-0">
           <Link href="/devops">DevOps report</Link>
         </Button>
-        <Button asChild variant="secondary" size="sm">
+        <Button asChild variant="link" size="sm" className="h-auto px-0">
           <a href="/api/audit/export">Export audit CSV</a>
         </Button>
       </div>

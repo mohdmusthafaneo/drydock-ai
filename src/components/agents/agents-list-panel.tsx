@@ -43,8 +43,8 @@ export function AgentsListPanel() {
       </div>
 
       {agents.length === 0 ? (
-        <Card className="border-dashed border-white/10">
-          <CardContent className="py-10 text-center text-slate-500">
+        <Card className="border-dashed border-dove">
+          <CardContent className="py-10 text-center text-graphite">
             Complete governance setup to initialize the agent registry.
           </CardContent>
         </Card>
@@ -57,18 +57,18 @@ export function AgentsListPanel() {
             return (
               <Card
                 key={agent.id}
-                className={isLead ? "border-brand/30 bg-brand-muted/5" : undefined}
+                className={isLead ? "border-chart-blue/30 bg-sky-wash/30" : undefined}
               >
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <CardTitle className="text-base">
-                        <Link href={`/agents/${agent.id}`} className="hover:text-brand">
+                        <Link href={`/agents/${agent.id}`} className="hover:text-chart-blue">
                           {agent.displayName}
                         </Link>
                       </CardTitle>
                       {isLead && (
-                        <p className="mt-0.5 text-xs text-brand">Lead orchestrator</p>
+                        <p className="mt-0.5 text-xs text-rust">Lead orchestrator</p>
                       )}
                     </div>
                     <Badge variant={agentStatusVariant(agent.status)}>
@@ -81,20 +81,20 @@ export function AgentsListPanel() {
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
                   {agent.description && (
-                    <p className="text-slate-400">{agent.description}</p>
+                    <p className="text-ash">{agent.description}</p>
                   )}
-                  <p>
+                  <p className="text-ink">
                     Confidence: {(agent.confidenceScore * 100).toFixed(0)}% · Mode:{" "}
                     {agent.autonomyMode}
                   </p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-graphite">
                     Last heartbeat: {formatHeartbeatAge(agent.lastHeartbeatAt)}
                     {agent.pendingWakeups > 0 && (
                       <> · {agent.pendingWakeups} pending wakeup(s)</>
                     )}
                   </p>
                   {lastRun && (
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-graphite">
                       Last run: {lastRun.status}
                       {lastRun.summary ? ` — ${lastRun.summary.slice(0, 80)}` : ""}
                     </p>

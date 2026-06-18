@@ -8,8 +8,9 @@ import {
   invalidateThreadDetail,
   invalidateThreadList,
 } from "@/lib/queries/invalidate";
-import { Input, Label } from "@/components/ui/input";
+import { Input, Label, Textarea } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 export type MentionableAgent = {
   id: string;
@@ -25,7 +26,6 @@ export function ComposeBox({
   mentionableAgents?: MentionableAgent[];
   isDone?: boolean;
 }) {
-  const router = useRouter();
   const queryClient = useQueryClient();
   const [content, setContent] = useState("");
   const [targetAgentId, setTargetAgentId] = useState("");
@@ -77,10 +77,10 @@ export function ComposeBox({
   return (
     <form
       onSubmit={onSubmit}
-      className="border-t border-white/10 bg-[#131A2A]/50 p-4"
+      className="border-t border-border-subtle bg-pure-white p-4"
     >
       {isDone && (
-        <p className="mb-2 text-xs text-slate-500">
+        <p className="mb-2 text-xs text-graphite">
           This thread is closed. Send a message to reopen and wake the Super Agent.
         </p>
       )}
@@ -99,7 +99,10 @@ export function ComposeBox({
                 : "Message the agent team…"
             }
             rows={2}
-            className="w-full resize-none rounded-lg border border-white/10 bg-[#0B1020] px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-brand/50 focus:outline-none"
+            className={cn(
+              "w-full resize-none rounded-2xl border border-border bg-input px-3 py-2 text-sm text-primary",
+              "placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand",
+            )}
           />
         </div>
         {mentionableAgents.length > 0 && (
@@ -111,7 +114,10 @@ export function ComposeBox({
               id="mention"
               value={targetAgentId}
               onChange={(e) => onMentionSelect(e.target.value)}
-              className="w-full rounded-lg border border-white/10 bg-[#0B1020] px-3 py-2 text-sm text-slate-100 focus:border-brand/50 focus:outline-none"
+              className={cn(
+                "w-full rounded-2xl border border-border bg-input px-3 py-2 text-sm text-primary",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand",
+              )}
             >
               <option value="">@ Agent…</option>
               {mentionableAgents.map((agent) => (
@@ -122,17 +128,17 @@ export function ComposeBox({
             </select>
           </div>
         )}
-        <Button type="submit" disabled={loading || !content.trim()}>
+        <Button type="submit" variant="ink" size="sm" className="rounded-full" disabled={loading || !content.trim()}>
           {loading ? "Sending…" : isDone ? "Send & reopen" : "Send"}
         </Button>
       </div>
       {targetAgentId && (
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-graphite">
           Directing message to{" "}
           {mentionableAgents.find((a) => a.id === targetAgentId)?.displayName}
         </p>
       )}
-      {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
+      {error && <p className="mt-2 text-sm text-error">{error}</p>}
     </form>
   );
 }
@@ -194,17 +200,17 @@ export function CreateThreadForm() {
           </div>
           <div>
             <Label htmlFor="initialMessage">First message</Label>
-            <textarea
+            <Textarea
               id="initialMessage"
               name="initialMessage"
               required
               rows={4}
               placeholder="Ask the Super Agent to coordinate specialists…"
-              className="mt-1 w-full rounded-lg border border-white/10 bg-[#131A2A] px-3 py-2 text-sm"
+              className="mt-1"
             />
           </div>
-          {error && <p className="text-sm text-red-400">{error}</p>}
-          <Button type="submit" disabled={loading} className="w-full">
+          {error && <p className="text-sm text-error">{error}</p>}
+          <Button type="submit" variant="ink" className="w-full rounded-full" disabled={loading}>
             {loading ? "Creating…" : "Start thread"}
           </Button>
         </form>

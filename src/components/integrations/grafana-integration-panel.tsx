@@ -370,7 +370,7 @@ export function GrafanaIntegrationPanel({
               href={grafanaUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-medium text-brand hover:underline"
+              className="font-medium text-chart-blue hover:underline"
             >
               {grafanaUrl.replace(/^https?:\/\//, "")}
             </a>
@@ -433,7 +433,7 @@ export function GrafanaIntegrationPanel({
                       >
                         <input
                           type="checkbox"
-                          className="mt-0.5 accent-brand"
+                          className="mt-0.5 accent-chart-blue"
                           checked={checked}
                           disabled={atLimit}
                           onChange={() => toggleScope(item)}
@@ -512,7 +512,7 @@ export function GrafanaIntegrationPanel({
             {savedScopes.map((scope, i) => (
               <span key={scopeKey(scope)}>
                 {i > 0 ? ", " : null}
-                <span className="font-medium text-brand">{scope.title}</span>
+                <span className="font-medium text-chart-blue">{scope.title}</span>
               </span>
             ))}
           </p>
@@ -537,7 +537,7 @@ export function GrafanaIntegrationPanel({
           {savedScopes.map((scope, i) => (
             <span key={scopeKey(scope)}>
               {i > 0 ? ", " : null}
-              <span className="font-medium text-brand">{scope.title}</span>
+              <span className="font-medium text-chart-blue">{scope.title}</span>
             </span>
           ))}
         </p>

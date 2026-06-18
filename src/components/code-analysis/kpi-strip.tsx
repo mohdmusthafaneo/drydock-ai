@@ -16,7 +16,7 @@ function DeltaBadge({ delta, suffix = "pts" }: { delta: number; suffix?: string 
     <span
       className={cn(
         "inline-flex items-center gap-0.5 text-xs font-medium",
-        up ? "text-mvp" : "text-success",
+        up ? "text-rust" : "text-success",
       )}
     >
       {up ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
@@ -48,7 +48,7 @@ export function KpiStrip({ kpis }: { kpis: CodeAnalysisKpis }) {
           <Card key={item.key} className="min-w-0">
             <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
               <CardDescription>{item.label}</CardDescription>
-              {item.isReview && <ShieldCheck className="h-4 w-4 shrink-0 text-enterprise" />}
+              {item.isReview && <ShieldCheck className="h-4 w-4 shrink-0 text-chart-blue" />}
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-semibold tracking-tight">

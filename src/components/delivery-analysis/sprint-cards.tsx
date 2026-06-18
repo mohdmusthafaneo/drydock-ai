@@ -59,7 +59,7 @@ export function SprintCards({ sprints, siteUrl }: Props) {
                     <div
                       className={cn(
                         "h-full rounded-full transition-all",
-                        sprint.pct < 50 ? "bg-warning" : "bg-enterprise",
+                        sprint.pct < 50 ? "bg-rust/60" : "bg-chart-blue",
                       )}
                       style={{ width: `${Math.min(100, sprint.pct)}%` }}
                     />

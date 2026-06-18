@@ -231,7 +231,7 @@ export function GrafanaMetricsConfigSection({
         </>
       ) : prometheusDatasource ? (
         <p className="text-xs text-secondary">
-          Datasource: <span className="font-medium text-brand">{prometheusDatasource.name}</span>
+          Datasource: <span className="font-medium text-chart-blue">{prometheusDatasource.name}</span>
         </p>
       ) : (
         <p className="text-xs text-muted">An org admin must configure metrics datasource.</p>

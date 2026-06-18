@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { getOrganizationContext } from "@/lib/org-data";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/layout/page-header";
 import { ThreadListTabs } from "@/components/agent-chat/thread-list";
 import { ThreadListPanel } from "@/components/agent-chat/thread-list-panel";
 
@@ -22,17 +23,14 @@ export default async function AgentThreadsPage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Agent threads</h1>
-          <p className="mt-1 text-slate-400">
-            Governed group chat with the Super Agent and invited specialists.
-          </p>
-        </div>
-        <Button asChild>
+      <PageHeader
+        title="Agent threads"
+        description="Governed group chat with the Super Agent and invited specialists."
+      >
+        <Button asChild variant="ink" size="lg" className="rounded-full">
           <Link href="/agent-threads/new">New thread</Link>
         </Button>
-      </div>
+      </PageHeader>
 
       <ThreadListTabs active={statusParam} />
 

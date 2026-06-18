@@ -40,7 +40,7 @@ export function AnalysisTabs({ snapshot }: { snapshot: DeliveryAnalysisSnapshot 
               className={cn(
                 "shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
                 tab === t.id
-                  ? "bg-enterprise-muted text-enterprise"
+                  ? "bg-sky-wash text-chart-blue"
                   : "text-muted hover:bg-hover hover:text-primary",
               )}
             >
@@ -243,7 +243,7 @@ function SprintsTab({ snapshot }: { snapshot: DeliveryAnalysisSnapshot }) {
                 <div className="flex items-center gap-2">
                   <div className="h-1.5 w-16 overflow-hidden rounded-full bg-metric-track">
                     <div
-                      className="h-full rounded-full bg-enterprise"
+                      className="h-full rounded-full bg-chart-blue"
                       style={{ width: `${Math.min(100, s.pct)}%` }}
                     />
                   </div>

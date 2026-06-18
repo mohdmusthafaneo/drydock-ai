@@ -202,7 +202,7 @@ export function JiraIntegrationPanel({
                 href={siteUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-medium text-brand hover:underline"
+                className="font-medium text-chart-blue hover:underline"
               >
                 {siteName ?? siteUrl}
               </a>
@@ -281,7 +281,7 @@ export function JiraIntegrationPanel({
                       >
                         <input
                           type="checkbox"
-                          className="mt-0.5 accent-brand"
+                          className="mt-0.5 accent-chart-blue"
                           checked={checked}
                           disabled={atLimit}
                           onChange={() => toggleProject(p.key)}
@@ -326,7 +326,7 @@ export function JiraIntegrationPanel({
             {savedKeys.map((key, i) => (
               <span key={key}>
                 {i > 0 ? ", " : null}
-                <span className="font-medium text-brand">{key}</span>
+                <span className="font-medium text-chart-blue">{key}</span>
               </span>
             ))}
           </p>
@@ -341,7 +341,7 @@ export function JiraIntegrationPanel({
           {savedKeys.map((key, i) => (
             <span key={key}>
               {i > 0 ? ", " : null}
-              <span className="font-medium text-brand">{key}</span>
+              <span className="font-medium text-chart-blue">{key}</span>
             </span>
           ))}
         </p>

@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 
+const selectClass =
+  "mt-1 flex h-10 w-full rounded-lg border border-border bg-input px-3 text-sm text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand";
+
 export function NewReleaseForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -88,7 +91,7 @@ export function NewReleaseForm() {
               name="serviceScope"
               placeholder="Comma-separated scope ids, e.g. api, checkout"
             />
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-muted">
               Matches observability service scope ids configured on Integrations.
             </p>
           </div>
@@ -98,7 +101,7 @@ export function NewReleaseForm() {
               id="environment"
               name="environment"
               required
-              className="mt-1 w-full rounded-lg border border-white/10 bg-[#131A2A] px-3 py-2 text-sm"
+              className={selectClass}
               defaultValue="STAGING"
             >
               <option value="DEVELOPMENT">Development</option>
@@ -106,8 +109,8 @@ export function NewReleaseForm() {
               <option value="PRODUCTION">Production</option>
             </select>
           </div>
-          {error && <p className="text-sm text-red-400">{error}</p>}
-          <Button type="submit" disabled={loading} className="w-full">
+          {error && <p className="text-sm text-error">{error}</p>}
+          <Button type="submit" disabled={loading} variant="ink" size="lg" className="w-full">
             {loading ? "Registering…" : "Register release event"}
           </Button>
         </form>

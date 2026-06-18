@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { ROLE_LABELS } from "@/lib/roles";
+import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
@@ -27,13 +28,11 @@ export default async function AdminPanelPage() {
   if (!dna) redirect("/governance/setup");
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Admin panel</h1>
-        <p className="mt-1 text-slate-400">
-          Organization administration — users, governance, and delivery health (Org Admin journey).
-        </p>
-      </div>
+    <div className="mx-auto max-w-3xl space-y-8">
+      <PageHeader
+        title="Admin panel"
+        description="Organization administration — users, governance, and delivery health (Org Admin journey)."
+      />
 
       <Card>
         <CardHeader>
@@ -41,14 +40,17 @@ export default async function AdminPanelPage() {
           <CardDescription>Slug: {org?.slug}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
-          <p>
+          <p className="text-secondary">
             Governance level:{" "}
             <Badge variant="ai">{dna.governanceScore}/100</Badge>
           </p>
-          <p>
+          <p className="text-secondary">
             Workflow: {workflow?.workflowType ?? "—"} · {workflow?.executionStatus ?? "NOT_CONFIGURED"}
           </p>
-          <Link href="/governance/workflow" className="text-[#93b4ff] hover:underline">
+          <Link
+            href="/governance/workflow"
+            className="inline-block text-ink underline-offset-4 hover:underline"
+          >
             Configure workflow →
           </Link>
         </CardContent>
@@ -63,12 +65,12 @@ export default async function AdminPanelPage() {
           {members.map((m) => (
             <div
               key={m.id}
-              className="flex justify-between rounded-lg bg-[#131A2A]/50 px-4 py-2 text-sm"
+              className="flex justify-between rounded-xl bg-elevated px-4 py-2 text-sm"
             >
-              <span>
+              <span className="text-primary">
                 {m.name} · {m.email}
               </span>
-              <span className="text-slate-500">{ROLE_LABELS[m.role]}</span>
+              <span className="text-muted">{ROLE_LABELS[m.role]}</span>
             </div>
           ))}
         </CardContent>
@@ -78,14 +80,14 @@ export default async function AdminPanelPage() {
         <CardHeader>
           <CardTitle>Quick links</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-3 text-sm">
-          <Link href="/integrations" className="text-[#93b4ff] hover:underline">
+        <CardContent className="flex flex-wrap gap-4 text-sm">
+          <Link href="/integrations" className="text-ink underline-offset-4 hover:underline">
             Integrations
           </Link>
-          <Link href="/governance/setup" className="text-[#93b4ff] hover:underline">
+          <Link href="/governance/setup" className="text-ink underline-offset-4 hover:underline">
             Re-run discovery
           </Link>
-          <Link href="/audit" className="text-[#93b4ff] hover:underline">
+          <Link href="/audit" className="text-ink underline-offset-4 hover:underline">
             Audit logs
           </Link>
         </CardContent>

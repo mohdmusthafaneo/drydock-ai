@@ -69,16 +69,19 @@ export default async function ReleaseDetailPage({
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/releases" className="text-sm text-[#93b4ff] hover:underline">
+        <Link
+          href="/releases"
+          className="text-[15px] font-medium text-ink hover:text-rust"
+        >
           ← Releases
         </Link>
-        <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
+        <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold">
+            <h1 className="font-display text-[44px] leading-[1.1] tracking-[-0.66px] text-ink">
               {release.name}
               {release.version ? ` (${release.version})` : ""}
             </h1>
-            <p className="text-slate-400">
+            <p className="mt-2 text-[16px] text-ash">
               {release.environment}
               {release.branch ? ` · branch ${release.branch}` : ""}
               {release.jiraFixVersion ? ` · Jira ${release.jiraFixVersion}` : ""}
@@ -93,7 +96,7 @@ export default async function ReleaseDetailPage({
       {(release.status === "DETECTED" ||
         release.status === "PENDING_APPROVAL" ||
         release.status === "BLOCKED") && (
-        <Card className="border-[#4F8CFF]/30 bg-[#4F8CFF]/10">
+        <Card className="bg-sky-wash/50">
           <CardHeader>
             <CardTitle>
               {release.status === "DETECTED" ? "Run assessment" : "Re-assess release"}
@@ -140,12 +143,12 @@ export default async function ReleaseDetailPage({
           <CardHeader>
             <CardTitle>Regression intelligence</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-slate-300">{release.regressionNotes}</CardContent>
+          <CardContent className="text-sm text-ash">{release.regressionNotes}</CardContent>
         </Card>
       )}
 
       {release.status === "APPROVED" && (
-        <Card className="border-[#10B981]/30 bg-[#10B981]/10">
+        <Card className="bg-apricot-wash/40">
           <CardHeader>
             <CardTitle>Controlled deployment</CardTitle>
             <CardDescription>Execute deployment after governance approval</CardDescription>
@@ -157,7 +160,7 @@ export default async function ReleaseDetailPage({
       )}
 
       {release.status === "DEPLOYED" && !postDeployComparison && (
-        <div className="rounded-xl border border-[#10B981]/40 bg-[#10B981]/10 px-4 py-3 text-sm text-[#6ee7b7]">
+        <div className="rounded-[16px] border border-success/20 bg-success-muted px-4 py-3 text-sm text-success">
           Deployed {release.deployedAt?.toLocaleString()} — audit trail recorded.
         </div>
       )}

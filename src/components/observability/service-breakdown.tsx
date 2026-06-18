@@ -30,7 +30,7 @@ export function ServiceBreakdown({
               onClick={() => onSelectService?.(item.id)}
               className={cn(
                 "w-full rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-hover",
-                selectedService === item.id && "bg-enterprise-muted/40 ring-1 ring-enterprise/30",
+                selectedService === item.id && "bg-sky-wash/60 ring-1 ring-chart-blue/30",
               )}
             >
               <div className="mb-1 flex justify-between gap-2 text-xs">
@@ -44,11 +44,11 @@ export function ServiceBreakdown({
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-metric-track">
                 <div
-                  className="h-full rounded-full bg-brand transition-all"
+                  className="h-full rounded-full bg-chart-blue/50 transition-all"
                   style={{ width: `${(item.healthScore / maxHealth) * 100}%`, opacity: 0.5 }}
                 />
                 <div
-                  className="-mt-2 h-full rounded-full bg-enterprise transition-all"
+                  className="-mt-2 h-full rounded-full bg-chart-blue transition-all"
                   style={{ width: `${Math.min(100, item.errorRate * 20)}%` }}
                 />
               </div>

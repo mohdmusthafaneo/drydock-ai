@@ -29,12 +29,17 @@ export default async function IncidentDetailPage({
   const canRemediate = DEVOPS_ROLES.has(session.role);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-3xl space-y-8">
       <div>
-        <Link href="/incidents" className="text-sm text-[#93b4ff] hover:underline">
+        <Link
+          href="/incidents"
+          className="text-sm text-ink underline-offset-4 hover:underline"
+        >
           ← Incidents
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold">{incident.title}</h1>
+        <h1 className="mt-2 font-display text-[44px] leading-[1.1] tracking-[-0.66px] text-ink">
+          {incident.title}
+        </h1>
         <div className="mt-2 flex flex-wrap gap-2">
           <Badge variant="warning">{incident.status}</Badge>
           <Badge variant="muted">Severity {incident.severityScore}</Badge>
@@ -47,7 +52,7 @@ export default async function IncidentDetailPage({
           <CardHeader>
             <CardTitle>Description</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-slate-300">{incident.description}</CardContent>
+          <CardContent className="text-sm text-secondary">{incident.description}</CardContent>
         </Card>
       )}
 
@@ -58,16 +63,16 @@ export default async function IncidentDetailPage({
         <CardContent className="space-y-2 text-sm">
           {incident.correlationId && (
             <p>
-              <span className="text-slate-500">Correlation ID: </span>
-              {incident.correlationId}
+              <span className="text-muted">Correlation ID: </span>
+              <span className="text-primary">{incident.correlationId}</span>
             </p>
           )}
           {incident.release && (
             <p>
-              <span className="text-slate-500">Release: </span>
+              <span className="text-muted">Release: </span>
               <Link
                 href={`/releases/${incident.release.id}`}
-                className="text-[#93b4ff] hover:underline"
+                className="text-ink underline-offset-4 hover:underline"
               >
                 {incident.release.name}
               </Link>
@@ -75,11 +80,11 @@ export default async function IncidentDetailPage({
           )}
           {services.length > 0 && (
             <p>
-              <span className="text-slate-500">Affected: </span>
-              {services.join(", ")}
+              <span className="text-muted">Affected: </span>
+              <span className="text-primary">{services.join(", ")}</span>
             </p>
           )}
-          <p className="text-slate-500">Detected {incident.detectedAt.toLocaleString()}</p>
+          <p className="text-muted">Detected {incident.detectedAt.toLocaleString()}</p>
         </CardContent>
       </Card>
 
@@ -96,7 +101,7 @@ export default async function IncidentDetailPage({
           </CardContent>
         </Card>
       ) : (
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-muted">
           DevOps Lead or Admin role required to update remediation status.
         </p>
       )}
@@ -106,7 +111,7 @@ export default async function IncidentDetailPage({
           <CardHeader>
             <CardTitle>Remediation notes</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm">{incident.remediationNotes}</CardContent>
+          <CardContent className="text-sm text-secondary">{incident.remediationNotes}</CardContent>
         </Card>
       )}
     </div>

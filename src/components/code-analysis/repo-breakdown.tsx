@@ -31,7 +31,7 @@ export function RepoBreakdown({
               onClick={() => onSelectRepo?.(item.repo)}
               className={cn(
                 "w-full rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-hover",
-                selectedRepo === item.repo && "bg-enterprise-muted/40 ring-1 ring-enterprise/30",
+                selectedRepo === item.repo && "bg-sky-wash/60 ring-1 ring-chart-blue/30",
               )}
             >
               <div className="mb-1 flex justify-between gap-2 text-xs">
@@ -42,11 +42,11 @@ export function RepoBreakdown({
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-metric-track">
                 <div
-                  className="h-full rounded-full bg-enterprise transition-all"
+                  className="h-full rounded-full bg-chart-blue transition-all"
                   style={{ width: `${(item.aiLinesPct / 100) * (item.totalLines / maxLines) * 100}%` }}
                 />
                 <div
-                  className="-mt-2 h-full rounded-full bg-mvp/80 transition-all"
+                  className="-mt-2 h-full rounded-full bg-rust/80 transition-all"
                   style={{
                     width: `${Math.min(100, (item.totalLines / maxLines) * 100)}%`,
                     opacity: 0.35,
@@ -75,7 +75,7 @@ export function AuthorBreakdown({
   const visibleItems = compact ? items.slice(0, 5) : items.slice(0, 8);
 
   return (
-    <Card className="h-full">
+    <Card className={cn("h-full", compact && "border-none bg-sky-wash shadow-none")}>
       <CardHeader className={compact ? "pb-2" : undefined}>
         <CardTitle className={compact ? "text-sm" : "text-base"}>By author</CardTitle>
         <CardDescription className={compact ? "text-xs" : undefined}>
@@ -106,7 +106,7 @@ export function AuthorBreakdown({
                     className={cn(
                       "border-b border-border-subtle last:border-0",
                       onSelectAuthor && "cursor-pointer hover:bg-hover",
-                      selectedAuthor === item.login && "bg-enterprise-muted/30",
+                      selectedAuthor === item.login && "bg-sky-wash/50",
                     )}
                     onClick={() => onSelectAuthor?.(item.login)}
                   >
@@ -116,8 +116,8 @@ export function AuthorBreakdown({
                       <td className="py-2 text-right tabular-nums">
                         <span
                           className={cn(
-                            item.aiLinesPct >= 60 && "text-mvp",
-                            item.aiLinesPct >= 30 && item.aiLinesPct < 60 && "text-enterprise",
+                            item.aiLinesPct >= 60 && "text-rust",
+                            item.aiLinesPct >= 30 && item.aiLinesPct < 60 && "text-chart-blue",
                             item.aiLinesPct < 30 && "text-secondary",
                           )}
                         >

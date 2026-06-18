@@ -32,8 +32,8 @@ function statusIcon(status: string) {
 
 function statusColor(status: string) {
   if (status === "succeeded") return "text-success";
-  if (status === "timed_out" || status === "failed") return "text-destructive";
-  if (status === "running") return "text-brand";
+  if (status === "timed_out" || status === "failed") return "text-error";
+  if (status === "running") return "text-chart-blue";
   return "text-muted";
 }
 
@@ -48,7 +48,7 @@ export function AgentActivityStrip({ agents, recentRuns }: AgentActivityStripPro
       <CardHeader className="flex flex-row items-start justify-between space-y-0">
         <div>
           <CardTitle className="flex items-center gap-2">
-            <Bot className="h-5 w-5 text-brand" />
+            <Bot className="h-5 w-5 text-chart-blue" />
             Agent activity
           </CardTitle>
           <CardDescription>
@@ -56,7 +56,7 @@ export function AgentActivityStrip({ agents, recentRuns }: AgentActivityStripPro
             {runningCount > 0 ? ` · ${runningCount} running` : ""}
           </CardDescription>
         </div>
-        <Button asChild size="sm" variant="secondary">
+        <Button asChild size="sm" variant="link">
           <Link href="/agents">All agents</Link>
         </Button>
       </CardHeader>

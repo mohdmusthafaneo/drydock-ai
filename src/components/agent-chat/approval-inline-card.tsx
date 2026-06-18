@@ -111,17 +111,17 @@ export function ApprovalInlineCard({
 
   if (type === "AGENT_HIRE") {
     return (
-      <div className="mx-auto max-w-lg rounded-xl border border-[#8B5CF6]/30 bg-[#131A2A]/90 px-4 py-3">
-        <p className="text-xs font-medium uppercase tracking-wide text-[#8B5CF6]">
+      <div className="mx-auto max-w-lg rounded-[var(--radius-card)] border border-rust/20 bg-apricot-wash px-4 py-3 shadow-[var(--shadow-subtle)]">
+        <p className="text-xs font-medium uppercase tracking-wide text-rust">
           Agent hire approval
         </p>
-        <p className="mt-1 text-sm font-medium text-slate-200">{title}</p>
-        <p className="mt-2 text-xs text-slate-400">
+        <p className="mt-1 text-sm font-medium text-ink">{title}</p>
+        <p className="mt-2 text-xs text-ash">
           Agent hire decisions are managed in the Approval Center.
         </p>
         <Link
           href="/approvals"
-          className="mt-3 inline-block text-xs text-brand hover:underline"
+          className="mt-3 inline-block text-xs font-medium text-ink underline-offset-4 hover:underline"
         >
           Open Approval Center →
         </Link>
@@ -131,14 +131,14 @@ export function ApprovalInlineCard({
 
   if (!isPending) {
     return (
-      <div className="mx-auto max-w-lg rounded-xl border border-white/10 bg-[#131A2A]/80 px-4 py-3 text-center">
-        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+      <div className="mx-auto max-w-lg rounded-[var(--radius-card)] border border-border-subtle bg-fog px-4 py-3 text-center shadow-[var(--shadow-subtle)]">
+        <p className="text-xs font-medium uppercase tracking-wide text-graphite">
           Approval {decision?.toLowerCase()}
         </p>
-        <p className="mt-1 text-sm text-slate-300">{title}</p>
+        <p className="mt-1 text-sm text-ink">{title}</p>
         <Link
           href="/approvals"
-          className="mt-2 inline-block text-xs text-brand hover:underline"
+          className="mt-2 inline-block text-xs font-medium text-ink underline-offset-4 hover:underline"
         >
           View in Approval Center
         </Link>
@@ -147,18 +147,18 @@ export function ApprovalInlineCard({
   }
 
   return (
-    <div className="mx-auto max-w-lg space-y-3 rounded-xl border border-[#4F8CFF]/30 bg-[#131A2A]/90 px-4 py-4">
+    <div className="mx-auto max-w-lg space-y-3 rounded-[var(--radius-card)] border border-chart-blue/30 bg-sky-wash px-4 py-4 shadow-[var(--shadow-subtle)]">
       <div className="space-y-1">
-        <p className="text-xs font-medium uppercase tracking-wide text-brand">
+        <p className="text-xs font-medium uppercase tracking-wide text-chart-blue">
           Approval required
         </p>
-        <p className="text-sm font-medium text-slate-100">{title}</p>
+        <p className="text-sm font-medium text-ink">{title}</p>
         {roleHint && (
-          <p className="text-xs text-slate-500">Requires {roleHint} or admin</p>
+          <p className="text-xs text-graphite">Requires {roleHint} or admin</p>
         )}
       </div>
 
-      <div className="text-sm text-slate-300">
+      <div className="text-sm text-ash">
         <MarkdownContent content={contentMarkdown} className="text-sm" />
       </div>
 
@@ -169,15 +169,15 @@ export function ApprovalInlineCard({
         rows={2}
       />
 
-      {error && <p className="text-xs text-red-400">{error}</p>}
+      {error && <p className="text-xs text-error">{error}</p>}
 
       <div className="flex flex-wrap items-center gap-2">
-        <Button size="sm" disabled={loading} onClick={() => decide("APPROVED")}>
+        <Button size="sm" variant="ink" className="rounded-full" disabled={loading} onClick={() => decide("APPROVED")}>
           Approve
         </Button>
         <Button
           size="sm"
-          variant="secondary"
+          variant="link"
           disabled={loading}
           onClick={() => decide("MODIFIED")}
         >
@@ -185,7 +185,8 @@ export function ApprovalInlineCard({
         </Button>
         <Button
           size="sm"
-          variant="destructive"
+          variant="link"
+          className="text-error"
           disabled={loading}
           onClick={() => decide("REJECTED")}
         >
@@ -193,7 +194,7 @@ export function ApprovalInlineCard({
         </Button>
         <Link
           href="/approvals"
-          className="ml-auto text-xs text-slate-400 hover:text-brand hover:underline"
+          className="ml-auto text-xs font-medium text-graphite underline-offset-4 hover:text-ink hover:underline"
         >
           Approval Center
         </Link>

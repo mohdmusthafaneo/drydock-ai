@@ -49,10 +49,10 @@ export function AgentRunDetailPanel({ agentId, runId }: AgentRunDetailPanelProps
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">
+          <h1 className="font-display text-[26px] leading-[1.18] tracking-[-0.23px] text-ink sm:text-[32px]">
             {agent.displayName} — run detail
           </h1>
-          <p className="mt-1 text-slate-400">
+          <p className="mt-1 text-ash">
             {new Date(run.startedAt).toLocaleString()} ·{" "}
             {formatWakeupSource(run.source)} · {run.reason}
           </p>
@@ -60,14 +60,14 @@ export function AgentRunDetailPanel({ agentId, runId }: AgentRunDetailPanelProps
             <p className="mt-1">
               <Link
                 href={`/agent-threads/${threadId}`}
-                className="text-sm text-brand hover:underline"
+                className="text-sm font-medium text-ink underline-offset-4 hover:underline"
               >
                 View agent thread →
               </Link>
             </p>
           )}
           {isLive && (
-            <p className="mt-1 text-xs text-brand">Live — polling for updates</p>
+            <p className="mt-1 text-xs text-chart-blue">Live — polling for updates</p>
           )}
         </div>
         <DataRefreshButton
@@ -85,18 +85,18 @@ export function AgentRunDetailPanel({ agentId, runId }: AgentRunDetailPanelProps
           <CardContent className="space-y-2 text-sm">
             <div className="flex items-center gap-2">
               <Badge variant={runStatusVariant(run.status)}>{run.status}</Badge>
-              <span className="text-slate-400">
+              <span className="text-ash">
                 {formatDuration(run.startedAt, run.finishedAt)}
               </span>
             </div>
             {run.exitCode != null && (
-              <p className="text-slate-400">Exit code: {run.exitCode}</p>
+              <p className="text-ash">Exit code: {run.exitCode}</p>
             )}
-            <p className="text-slate-400">Tokens: {formatTokenUsage(tokenUsage)}</p>
+            <p className="text-ash">Tokens: {formatTokenUsage(tokenUsage)}</p>
             {(tokenUsage.mode === "anthropic" ||
               tokenUsage.mode === "openai" ||
               tokenUsage.mode === "mastra") && (
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-graphite">
                 In: {tokenUsage.inputTokens ?? 0} · Out: {tokenUsage.outputTokens ?? 0}
               </p>
             )}
@@ -107,7 +107,7 @@ export function AgentRunDetailPanel({ agentId, runId }: AgentRunDetailPanelProps
           <CardHeader>
             <CardTitle className="text-base">Summary</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-slate-300">
+          <CardContent className="text-sm text-ash">
             {run.summary ? (
               <MarkdownContent content={run.summary} normalizeInlineLists />
             ) : run.error ? (
@@ -120,11 +120,11 @@ export function AgentRunDetailPanel({ agentId, runId }: AgentRunDetailPanelProps
       </div>
 
       {run.error && (
-        <Card className="border-red-500/20">
+        <Card className="border-error/20 bg-error-muted">
           <CardHeader>
-            <CardTitle className="text-base text-red-300">Error</CardTitle>
+            <CardTitle className="text-base text-error">Error</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-red-200/80">{run.error}</CardContent>
+          <CardContent className="text-sm text-error">{run.error}</CardContent>
         </Card>
       )}
 
@@ -134,7 +134,7 @@ export function AgentRunDetailPanel({ agentId, runId }: AgentRunDetailPanelProps
             <CardTitle className="text-base">Context snapshot</CardTitle>
           </CardHeader>
           <CardContent>
-            <pre className="overflow-x-auto rounded-md bg-black/30 p-3 text-xs text-slate-400">
+            <pre className="overflow-x-auto rounded-2xl bg-fog p-3 text-xs text-ash">
               {JSON.stringify(run.contextSnapshot, null, 2)}
             </pre>
           </CardContent>
@@ -150,17 +150,17 @@ export function AgentRunDetailPanel({ agentId, runId }: AgentRunDetailPanelProps
             {run.logs.map((entry, i) => (
               <div
                 key={`${entry.at}-${i}`}
-                className="rounded-md border border-white/5 bg-black/20 px-3 py-2 text-xs"
+                className="rounded-2xl border border-border-subtle bg-fog px-3 py-2 text-xs"
               >
-                <span className="text-slate-500">{entry.at}</span>{" "}
+                <span className="text-graphite">{entry.at}</span>{" "}
                 <span
                   className={
-                    entry.level === "error" ? "text-red-300" : "text-slate-400"
+                    entry.level === "error" ? "text-error" : "text-ash"
                   }
                 >
                   [{entry.level}]
                 </span>{" "}
-                <span className="text-slate-300">{entry.message ?? "—"}</span>
+                <span className="text-ink">{entry.message ?? "—"}</span>
               </div>
             ))}
           </CardContent>
@@ -172,27 +172,27 @@ export function AgentRunDetailPanel({ agentId, runId }: AgentRunDetailPanelProps
           <CardHeader>
             <CardTitle className="text-base">Mastra trace</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm text-slate-300">
+          <CardContent className="space-y-2 text-sm text-ash">
             {run.mastraTraceId && (
               <p>
-                <span className="text-slate-500">Trace ID:</span>{" "}
-                <code className="rounded bg-black/30 px-1.5 py-0.5 text-xs">
+                <span className="text-graphite">Trace ID:</span>{" "}
+                <code className="rounded bg-fog px-1.5 py-0.5 text-xs text-ink">
                   {run.mastraTraceId}
                 </code>
               </p>
             )}
             {run.mastraRunId && (
               <p>
-                <span className="text-slate-500">Run ID:</span>{" "}
-                <code className="rounded bg-black/30 px-1.5 py-0.5 text-xs">
+                <span className="text-graphite">Run ID:</span>{" "}
+                <code className="rounded bg-fog px-1.5 py-0.5 text-xs text-ink">
                   {run.mastraRunId}
                 </code>
               </p>
             )}
             {process.env.NODE_ENV === "development" && run.mastraTraceId && (
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-graphite">
                 Open Mastra Studio locally to inspect this trace (
-                <code className="text-slate-400">npm run mastra:studio</code>).
+                <code className="text-ash">npm run mastra:studio</code>).
               </p>
             )}
           </CardContent>

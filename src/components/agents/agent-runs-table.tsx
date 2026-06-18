@@ -45,7 +45,7 @@ export function AgentRunsTable({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-ash">
           {agentDisplayName} · status {agentStatus}
         </p>
         <DataRefreshButton
@@ -56,8 +56,8 @@ export function AgentRunsTable({
       </div>
 
       {runs.length === 0 ? (
-        <Card className="border-dashed border-white/10">
-          <CardContent className="py-10 text-center text-slate-500">
+        <Card className="border-dashed border-dove">
+          <CardContent className="py-10 text-center text-graphite">
             No heartbeat runs yet. Use Invoke on the agents page or wait for the worker timer.
           </CardContent>
         </Card>
@@ -69,7 +69,7 @@ export function AgentRunsTable({
           <CardContent className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-white/8 text-left text-slate-400">
+                <tr className="border-b border-border-subtle text-left text-graphite">
                   <th className="pb-2 pr-4 font-medium">Started</th>
                   <th className="pb-2 pr-4 font-medium">Duration</th>
                   <th className="pb-2 pr-4 font-medium">Source</th>
@@ -81,32 +81,32 @@ export function AgentRunsTable({
               </thead>
               <tbody>
                 {runs.map((run) => (
-                  <tr key={run.id} className="border-b border-white/5">
-                    <td className="py-2 pr-4 whitespace-nowrap text-slate-300">
+                  <tr key={run.id} className="border-b border-border-subtle">
+                    <td className="py-2 pr-4 whitespace-nowrap text-ink">
                       <Link
                         href={`/agents/${agentId}/runs/${run.id}`}
-                        className="hover:text-brand"
+                        className="hover:text-chart-blue"
                       >
                         {new Date(run.startedAt).toLocaleString()}
                       </Link>
                     </td>
-                    <td className="py-2 pr-4 text-slate-400">
+                    <td className="py-2 pr-4 text-ash">
                       {formatDuration(run.startedAt, run.finishedAt)}
                     </td>
-                    <td className="py-2 pr-4 text-slate-400">
+                    <td className="py-2 pr-4 text-ash">
                       {formatWakeupSource(run.source)}
                     </td>
-                    <td className="py-2 pr-4 text-slate-400">{run.reason}</td>
+                    <td className="py-2 pr-4 text-ash">{run.reason}</td>
                     <td className="py-2 pr-4">
                       <Badge variant={runStatusVariant(run.status)}>{run.status}</Badge>
                     </td>
-                    <td className="py-2 pr-4 text-xs text-slate-500">
+                    <td className="py-2 pr-4 text-xs text-graphite">
                       {formatTokenUsage(run.tokenUsage)}
                     </td>
-                    <td className="py-2 max-w-xs truncate text-slate-400">
+                    <td className="py-2 max-w-xs truncate text-ash">
                       <Link
                         href={`/agents/${agentId}/runs/${run.id}`}
-                        className="hover:text-slate-200"
+                        className="hover:text-ink"
                       >
                         {run.summary ?? run.error ?? "—"}
                       </Link>

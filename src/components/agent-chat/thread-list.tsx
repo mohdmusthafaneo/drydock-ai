@@ -33,10 +33,10 @@ export function ThreadListTabs({
           key={tab.id}
           href={tab.href}
           className={cn(
-            "rounded-lg px-4 py-2 text-sm transition-colors",
+            "rounded-full px-4 py-2 text-sm transition-colors",
             active === tab.id
-              ? "bg-brand/15 text-brand"
-              : "text-slate-400 hover:bg-white/5 hover:text-slate-200",
+              ? "bg-sky-wash text-chart-blue"
+              : "text-graphite hover:bg-hover hover:text-ink",
           )}
         >
           {tab.label}
@@ -55,12 +55,12 @@ export function ThreadList({
 }) {
   if (threads.length === 0) {
     return (
-      <Card className="border-dashed border-white/10">
+      <Card className="border-dashed border-dove">
         <CardContent className="py-12 text-center">
-          <p className="text-sm text-slate-500">{emptyLabel}</p>
+          <p className="text-sm text-graphite">{emptyLabel}</p>
           <Link
             href="/agent-threads/new"
-            className="mt-4 inline-block text-sm text-brand hover:underline"
+            className="mt-4 inline-block text-sm font-medium text-ink underline-offset-4 hover:underline"
           >
             Start a new thread
           </Link>
@@ -75,14 +75,14 @@ export function ThreadList({
         const preview = thread.messages[0]?.contentMarkdown;
         return (
           <Link key={thread.id} href={`/agent-threads/${thread.id}`}>
-            <Card className="transition-colors hover:border-brand/30">
+            <Card className="transition-colors hover:border-chart-blue/30">
               <CardContent className="flex items-start justify-between gap-4 py-4">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-slate-100">{thread.title}</p>
+                  <p className="truncate font-medium text-ink">{thread.title}</p>
                   {preview && (
-                    <p className="mt-1 truncate text-sm text-slate-500">{preview}</p>
+                    <p className="mt-1 truncate text-sm text-ash">{preview}</p>
                   )}
-                  <p className="mt-2 text-xs text-slate-600">
+                  <p className="mt-2 text-xs text-graphite">
                     {thread._count.messages} message
                     {thread._count.messages === 1 ? "" : "s"} ·{" "}
                     {thread._count.participants} participant

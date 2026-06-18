@@ -73,7 +73,7 @@ export function MessageBubble({ message, threadId }: MessageBubbleProps) {
   if (isApprovalResolved || isSystem) {
     return (
       <div className="flex justify-center px-2 py-1">
-        <div className="max-w-lg rounded-lg border border-white/10 bg-[#131A2A]/80 px-4 py-2 text-center text-xs text-slate-400">
+        <div className="max-w-lg rounded-2xl border border-border-subtle bg-fog px-4 py-2 text-center text-xs text-graphite">
           <MarkdownContent content={message.contentMarkdown} className="text-xs" />
         </div>
       </div>
@@ -94,23 +94,23 @@ export function MessageBubble({ message, threadId }: MessageBubbleProps) {
       <div
         className={cn(
           "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-medium",
-          isHuman ? "bg-brand/20 text-brand" : "bg-mvp-muted text-mvp",
+          isHuman ? "bg-sky-wash text-chart-blue" : "bg-apricot-wash text-rust",
         )}
       >
         {authorLabel(message).slice(0, 1).toUpperCase()}
       </div>
       <div
         className={cn(
-          "max-w-[85%] space-y-1 rounded-xl border px-4 py-3 text-sm",
+          "max-w-[85%] space-y-1 rounded-2xl border px-4 py-3 text-sm",
           isHuman
-            ? "border-brand/20 bg-brand/10 text-slate-100"
-            : "border-white/10 bg-[#1B2435] text-slate-200",
+            ? "border-chart-blue/20 bg-sky-wash text-ink"
+            : "border-border-subtle bg-pure-white text-ink",
         )}
       >
-        <p className="text-xs font-medium text-slate-400">{authorLabel(message)}</p>
+        <p className="text-xs font-medium text-graphite">{authorLabel(message)}</p>
         <MarkdownContent content={message.contentMarkdown} />
         {reasoning && <ReasoningExpander reasoning={reasoning} />}
-        <p className="text-[10px] text-slate-500">
+        <p className="text-[10px] text-dove">
           {new Date(message.createdAt).toLocaleString()}
         </p>
       </div>
@@ -138,7 +138,7 @@ export function MessageTimeline({
 
   if (messages.length === 0 && activeStreaming.length === 0) {
     return (
-      <div className="flex flex-1 items-center justify-center py-16 text-sm text-slate-500">
+      <div className="flex flex-1 items-center justify-center py-16 text-sm text-graphite">
         No messages yet. Send a message to wake the Super Agent.
       </div>
     );

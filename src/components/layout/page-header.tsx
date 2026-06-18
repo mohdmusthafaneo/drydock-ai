@@ -14,17 +14,19 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        "flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between",
+        "flex flex-col gap-4 pb-8 sm:flex-row sm:items-end sm:justify-between",
         className,
       )}
     >
       <div className="min-w-0">
-        <h1 className="text-2xl font-semibold tracking-tight text-primary lg:text-3xl">
+        <h1 className="font-display text-[44px] leading-[1.1] tracking-[-0.66px] text-ink">
           {title}
         </h1>
-        {description && <p className="mt-1.5 max-w-2xl text-sm text-secondary">{description}</p>}
+        {description && (
+          <p className="mt-2 max-w-2xl text-[16px] leading-relaxed text-ash">{description}</p>
+        )}
       </div>
-      {children && <div className="flex shrink-0 flex-wrap gap-2">{children}</div>}
+      {children && <div className="flex shrink-0 flex-wrap gap-3">{children}</div>}
     </div>
   );
 }

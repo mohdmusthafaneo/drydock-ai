@@ -8,7 +8,6 @@ import type { BriefingCharts } from "@/lib/executive-briefing/types";
 import { RiskMixChart } from "@/components/delivery-analysis/risk-mix-chart";
 import { AuthorBreakdown } from "@/components/code-analysis/repo-breakdown";
 import { ReleaseGateBrief } from "@/components/releases/release-gate-brief";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 type Props = {
   charts: BriefingCharts;
@@ -22,30 +21,30 @@ function StabilityMiniChart({
   healthScore: number;
 }) {
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm">Production stability</CardTitle>
-        <CardDescription className="text-xs">Observability snapshot at last sync</CardDescription>
-      </CardHeader>
-      <CardContent className="pt-0">
+    <div className="h-full rounded-[24px] border-none bg-pure-white p-5 shadow-[var(--shadow)]">
+      <div className="pb-2">
+        <h3 className="text-[15px] font-medium text-ink">Production stability</h3>
+        <p className="mt-1 text-[13px] text-graphite">Observability snapshot at last sync</p>
+      </div>
+      <div className="pt-2">
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-lg bg-elevated/60 px-3 py-2">
-            <p className="text-xs text-muted">Health score</p>
-            <p className="text-xl font-semibold tabular-nums">{Math.round(healthScore)}</p>
+          <div className="rounded-[16px] bg-fog px-3 py-3">
+            <p className="text-[13px] text-graphite">Health score</p>
+            <p className="mt-1 text-[26px] font-medium tabular-nums text-ink">{Math.round(healthScore)}</p>
           </div>
-          <div className="rounded-lg bg-elevated/60 px-3 py-2">
-            <p className="text-xs text-muted">Open alerts</p>
-            <p className="text-xl font-semibold tabular-nums">{openAlerts}</p>
+          <div className="rounded-[16px] bg-fog px-3 py-3">
+            <p className="text-[13px] text-graphite">Open alerts</p>
+            <p className="mt-1 text-[26px] font-medium tabular-nums text-ink">{openAlerts}</p>
           </div>
         </div>
         <Link
           href="/observability"
-          className="mt-3 inline-block text-xs font-medium text-accent hover:underline"
+          className="mt-4 inline-block text-[15px] font-medium text-ink transition-colors hover:text-rust"
         >
           Open observability →
         </Link>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 

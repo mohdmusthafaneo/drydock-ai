@@ -294,7 +294,7 @@ export default async function IntegrationsPage({
           <CardDescription>Required for GitHub webhook URL</CardDescription>
         </CardHeader>
         <CardContent>
-          <code className="block break-all rounded-lg bg-elevated px-3 py-2 text-sm text-brand">
+          <code className="block break-all rounded-2xl bg-fog px-3 py-2 text-sm text-chart-blue">
             {session.organizationId}
           </code>
         </CardContent>

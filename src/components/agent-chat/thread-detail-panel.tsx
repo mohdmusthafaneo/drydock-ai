@@ -73,18 +73,20 @@ export function ThreadDetailPanel({ threadId }: ThreadDetailPanelProps) {
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-xl font-semibold sm:text-2xl">{thread.title}</h1>
+          <h1 className="font-display text-[26px] leading-[1.18] tracking-[-0.23px] text-ink sm:text-[32px]">
+            {thread.title}
+          </h1>
           <ThreadStatusBadge status={thread.status} />
           {connected && (
-            <span className="text-xs text-brand">Live stream connected</span>
+            <span className="text-xs text-chart-blue">Live stream connected</span>
           )}
           {disconnected && isLive && (
-            <span className="text-xs text-amber-400/90">
+            <span className="text-xs text-warning">
               Agent still working… (reconnecting)
             </span>
           )}
           {!connected && !disconnected && isLive && (
-            <span className="text-xs text-slate-500">Polling for updates</span>
+            <span className="text-xs text-graphite">Polling for updates</span>
           )}
         </div>
         <DataRefreshButton
@@ -95,15 +97,15 @@ export function ThreadDetailPanel({ threadId }: ThreadDetailPanelProps) {
       </div>
 
       {isDone && thread.contextSummary?.trim() && (
-        <div className="mt-3 rounded-lg border border-white/10 bg-[#131A2A]/80 px-4 py-3">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+        <div className="mt-3 rounded-[var(--radius-card)] border border-border-subtle bg-fog px-4 py-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-graphite">
             Closure summary
           </p>
-          <div className="mt-1 text-sm text-slate-300">
+          <div className="mt-1 text-sm text-ash">
             <MarkdownContent content={thread.contextSummary} />
           </div>
           {thread.closedAt && (
-            <p className="mt-2 text-xs text-slate-500">
+            <p className="mt-2 text-xs text-graphite">
               Closed {new Date(thread.closedAt).toLocaleString()}
             </p>
           )}
@@ -112,7 +114,7 @@ export function ThreadDetailPanel({ threadId }: ThreadDetailPanelProps) {
 
       <ParticipantStrip participants={thread.participants} className="mt-2" />
 
-      <div className="flex min-h-[50vh] flex-col overflow-hidden rounded-xl border border-white/10 bg-[#131A2A]/30">
+      <div className="flex min-h-[50vh] flex-col overflow-hidden rounded-[var(--radius-card)] border border-border-subtle bg-sky-wash/40 shadow-[var(--shadow-subtle)]">
         <div className="flex-1 overflow-y-auto p-4">
           <MessageTimeline
             threadId={thread.id}

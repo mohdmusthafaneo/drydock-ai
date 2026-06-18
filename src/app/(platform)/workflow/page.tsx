@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/layout/page-header";
 
 export default async function WorkflowCenterPage() {
   const session = await getSession();
@@ -20,19 +21,16 @@ export default async function WorkflowCenterPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">Workflow center</h1>
-          <p className="mt-1 text-slate-400">
-            Enterprise delivery workflow — governance, QA, observability, and human approval.
-          </p>
-        </div>
-        <Button asChild>
+      <PageHeader
+        title="Workflow center"
+        description="Enterprise delivery workflow — governance, QA, observability, and human approval."
+      >
+        <Button asChild variant="ink" size="lg">
           <Link href="/releases/new">+ Register release</Link>
         </Button>
-      </div>
+      </PageHeader>
 
-      <Card className="border-[#4F8CFF]/20">
+      <Card>
         <CardHeader>
           <CardTitle>Enterprise workflow architecture</CardTitle>
           <CardDescription>
@@ -49,22 +47,22 @@ export default async function WorkflowCenterPage() {
                   <Link
                     href={step.href}
                     className={cn(
-                      "flex items-start gap-3 rounded-lg px-3 py-2.5 transition-colors",
+                      "flex items-start gap-3 rounded-[16px] px-3 py-2.5 transition-colors",
                       done
-                        ? "bg-[#10B981]/10 text-[#6ee7b7]"
-                        : "bg-[#131A2A]/60 hover:bg-[#1B2435]",
+                        ? "bg-success-muted text-success"
+                        : "bg-fog text-ink hover:bg-hover",
                     )}
                   >
                     {done ? (
                       <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
                     ) : (
-                      <Circle className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
+                      <Circle className="mt-0.5 h-4 w-4 shrink-0 text-graphite" />
                     )}
                     <div>
                       <p className="text-sm font-medium">
                         {step.order}. {step.label}
                       </p>
-                      <p className="text-xs text-slate-500">{step.description}</p>
+                      <p className="text-xs text-muted">{step.description}</p>
                     </div>
                   </Link>
                 </li>
@@ -75,18 +73,22 @@ export default async function WorkflowCenterPage() {
       </Card>
 
       <div>
-        <h2 className="mb-3 text-lg font-medium">Active releases</h2>
+        <h2 className="mb-3 font-display text-[26px] leading-[1.18] tracking-[-0.23px] text-ink">
+          Active releases
+        </h2>
         {ctx.releases.length === 0 ? (
-          <p className="text-sm text-slate-500">No releases — register one to run the governance pipeline.</p>
+          <p className="text-sm text-muted">
+            No releases — register one to run the governance pipeline.
+          </p>
         ) : (
           <div className="space-y-3">
             {ctx.releases.map((r) => (
               <Link
                 key={r.id}
                 href={`/releases/${r.id}`}
-                className="flex items-center justify-between rounded-xl border border-white/8 bg-[#1B2435] px-4 py-3 hover:border-[#4F8CFF]/40"
+                className="flex items-center justify-between rounded-[var(--radius-card)] border border-border-subtle bg-surface px-4 py-3 shadow-[var(--shadow-subtle)] transition-colors hover:bg-hover"
               >
-                <span className="font-medium">{r.name}</span>
+                <span className="font-medium text-ink">{r.name}</span>
                 <Badge variant="ai">{r.status.replace(/_/g, " ")}</Badge>
               </Link>
             ))}

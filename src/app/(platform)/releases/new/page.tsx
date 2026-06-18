@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { NewReleaseForm } from "@/components/releases/new-release-form";
+import { PageHeader } from "@/components/layout/page-header";
 
 export default async function NewReleasePage() {
   const session = await getSession();
@@ -15,15 +16,17 @@ export default async function NewReleasePage() {
 
   return (
     <div className="mx-auto max-w-xl space-y-6">
-      <div>
-        <Link href="/releases" className="text-sm text-[#93b4ff] hover:underline">
-          ← Releases
-        </Link>
-        <h1 className="mt-2 text-2xl font-semibold">Register release event</h1>
-        <p className="mt-1 text-slate-400">
-          AI will correlate telemetry and QA signals after you run assessment.
-        </p>
-      </div>
+      <Link
+        href="/releases"
+        className="inline-block text-[15px] font-medium text-ink hover:text-rust"
+      >
+        ← Releases
+      </Link>
+      <PageHeader
+        title="Register release event"
+        description="AI will correlate telemetry and QA signals after you run assessment."
+        className="pb-4"
+      />
       <NewReleaseForm />
     </div>
   );

@@ -9,18 +9,18 @@ export function ArtifactPanel({
 }) {
   if (!content) {
     return (
-      <div className="rounded-xl border border-white/8 bg-[#1B2435] p-6 text-sm text-slate-500">
+      <div className="rounded-3xl border border-dove/50 bg-fog p-6 text-sm text-graphite">
         {emptyMessage ?? `No ${title} yet. Generate the MVP package to populate this section.`}
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-white/8 bg-[#1B2435]">
-      <div className="border-b border-white/8 px-6 py-3">
-        <h2 className="font-semibold">{title}</h2>
+    <div className="rounded-3xl border border-dove/50 bg-pure-white shadow-[var(--shadow-subtle)]">
+      <div className="border-b border-dove/40 px-6 py-3">
+        <h2 className="font-medium text-ink">{title}</h2>
       </div>
-      <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap p-6 font-mono text-xs leading-relaxed text-slate-300">
+      <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap p-6 font-mono text-xs leading-relaxed text-ash">
         {content}
       </pre>
     </div>

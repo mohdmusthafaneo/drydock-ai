@@ -22,11 +22,13 @@ export function BriefingBreakdownSection({ briefing, charts, id = "breakdown" }:
   }
 
   return (
-    <section id={id} className="scroll-mt-20 space-y-6 border-t border-border py-12">
-      <div className="space-y-3">
+    <section id={id} className="scroll-mt-24 space-y-8 py-16">
+      <div className="space-y-4">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight lg:text-xl">What this means</h2>
-          <p className="mt-1 text-sm text-secondary">
+          <h2 className="font-display text-[44px] leading-[1.1] tracking-[-0.66px] text-ink">
+            What this means
+          </h2>
+          <p className="mt-3 max-w-xl text-[16px] leading-relaxed text-ash">
             Evidence behind your briefing — tap through for the full picture.
           </p>
         </div>
@@ -36,7 +38,7 @@ export function BriefingBreakdownSection({ briefing, charts, id = "breakdown" }:
       </div>
 
       {hasClaims && (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {briefing.claims.map((claim) => (
             <BriefingClaimCard key={claim.id} claim={claim} />
           ))}

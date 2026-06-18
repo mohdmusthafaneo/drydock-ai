@@ -52,13 +52,18 @@ export default async function AgentDetailPage({ params }: PageProps) {
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/agents" className="text-sm text-slate-400 hover:text-slate-200">
+        <Link
+          href="/agents"
+          className="text-sm font-medium text-ink underline-offset-4 hover:underline"
+        >
           ← Back to agents
         </Link>
         <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold">{agent.displayName}</h1>
-            <p className="mt-1 text-slate-400">
+            <h1 className="font-display text-[26px] leading-[1.18] tracking-[-0.23px] text-ink sm:text-[32px]">
+              {agent.displayName}
+            </h1>
+            <p className="mt-1 text-ash">
               {agent.agentType.replace(/_/g, " ")}
               {isLead && " · Lead orchestrator"}
             </p>

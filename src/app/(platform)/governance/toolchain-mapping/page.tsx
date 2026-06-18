@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { ToolchainMappingForm } from "@/components/governance/toolchain-mapping-form";
+import { PageHeader } from "@/components/layout/page-header";
 import {
   hasIntegrationSyncForToolchainDiscovery,
   inferToolchainMapping,
@@ -29,17 +30,17 @@ export default async function ToolchainMappingPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <div>
-        <Link href="/workflow" className="text-sm text-[#93b4ff] hover:underline">
-          ← Workflow center
-        </Link>
-        <h1 className="mt-2 text-2xl font-semibold">Delivery toolchain mapping</h1>
-        <p className="mt-1 text-slate-400">
-          Every team runs Jira and GitHub differently. Confirm how your organization tracks work,
-          releases, and code so AIDOS governance intelligence uses the right semantics — not
-          generic assumptions.
-        </p>
-      </div>
+      <Link
+        href="/workflow"
+        className="inline-block text-[15px] font-medium text-ink hover:text-rust"
+      >
+        ← Workflow center
+      </Link>
+      <PageHeader
+        title="Delivery toolchain mapping"
+        description="Every team runs Jira and GitHub differently. Confirm how your organization tracks work, releases, and code so AIDOS governance intelligence uses the right semantics — not generic assumptions."
+        className="pb-4"
+      />
 
       <ToolchainMappingForm
         initialMapping={mapping}

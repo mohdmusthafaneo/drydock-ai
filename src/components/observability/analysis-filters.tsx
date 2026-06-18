@@ -135,7 +135,7 @@ function FilterSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-8 rounded-md border border-border bg-input px-2 text-xs text-primary focus:outline-none focus:ring-1 focus:ring-brand"
+        className="h-8 rounded-2xl border border-dove bg-pure-white px-2 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-rust/30"
         aria-label={label}
       >
         {options.map((o) => (

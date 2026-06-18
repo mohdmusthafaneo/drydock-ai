@@ -6,9 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 
 const SERIES = [
-  { key: "human_only" as const, label: "Human", color: "var(--text-secondary)" },
-  { key: "ai_assisted" as const, label: "Assisted", color: "var(--accent-enterprise)" },
-  { key: "ai_generated" as const, label: "Generated", color: "var(--accent-mvp)" },
+  { key: "human_only" as const, label: "Human", color: "var(--color-graphite)" },
+  { key: "ai_assisted" as const, label: "Assisted", color: "var(--color-chart-blue)" },
+  { key: "ai_generated" as const, label: "Generated", color: "var(--color-rust)" },
 ];
 
 function bucketTotal(bucket: TrendBucket, metric: TrendMetric): number {

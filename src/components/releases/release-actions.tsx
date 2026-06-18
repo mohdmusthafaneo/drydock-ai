@@ -39,14 +39,14 @@ export function AssessReleaseButton({ releaseId, reAssess = false }: AssessRelea
 
   return (
     <div>
-      <Button onClick={assess} disabled={loading} variant="ai">
+      <Button onClick={assess} disabled={loading} variant="ink" size="lg">
         {loading
           ? "Assessing…"
           : reAssess
             ? "Re-run governance & QA assessment"
             : "Run governance & QA assessment"}
       </Button>
-      {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
+      {error && <p className="mt-2 text-sm text-error">{error}</p>}
     </div>
   );
 }
@@ -74,10 +74,10 @@ export function DeployReleaseButton({ releaseId }: { releaseId: string }) {
 
   return (
     <div>
-      <Button onClick={deploy} disabled={loading}>
+      <Button onClick={deploy} disabled={loading} variant="ink" size="lg">
         {loading ? "Executing…" : "Execute controlled deployment"}
       </Button>
-      {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
+      {error && <p className="mt-2 text-sm text-error">{error}</p>}
     </div>
   );
 }

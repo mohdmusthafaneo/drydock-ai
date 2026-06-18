@@ -8,7 +8,6 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ModeSwitcher } from "@/components/layout/mode-switcher";
-import { ThemeToggleLabeled } from "@/components/theme/theme-toggle";
 import { TeamInviteForm } from "@/components/team/team-invite-form";
 
 export default async function SettingsPage() {
@@ -31,16 +30,6 @@ export default async function SettingsPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-8">
       <PageHeader title="Settings" description={`${meta.label} · ${meta.tagline}`} />
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Appearance</CardTitle>
-          <CardDescription>Dark theme aligned with enterprise marketing surfaces.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ThemeToggleLabeled />
-        </CardContent>
-      </Card>
 
       <Card>
         <CardHeader>

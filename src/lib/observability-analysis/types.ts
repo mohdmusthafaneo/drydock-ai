@@ -105,9 +105,9 @@ export type ObservabilityAnalysisFilters = {
 };
 
 export const HEALTH_MIX_COLORS = {
-  healthy: "#4F8CFF",
-  degraded: "#fcd34d",
-  critical: "#f87171",
+  healthy: "var(--color-chart-blue)",
+  degraded: "color-mix(in srgb, var(--color-rust) 75%, white)",
+  critical: "var(--color-rust)",
 } as const;
 
 export const HEALTH_MIX_LABELS = {

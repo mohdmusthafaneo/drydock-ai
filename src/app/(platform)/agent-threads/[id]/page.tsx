@@ -25,7 +25,10 @@ export default async function AgentThreadDetailPage({ params }: PageProps) {
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4 lg:max-w-4xl">
       <div>
-        <Link href="/agent-threads" className="text-sm text-[#93b4ff] hover:underline">
+        <Link
+          href="/agent-threads"
+          className="text-sm font-medium text-ink underline-offset-4 hover:underline"
+        >
           ← Agent threads
         </Link>
       </div>

@@ -28,7 +28,7 @@ export function RiskMixChart({
 
   if (total === 0) {
     return (
-      <Card className="h-full">
+      <Card className={cn("h-full", compact && "border-none bg-apricot-wash shadow-none")}>
         <CardHeader className={compact ? "pb-2" : undefined}>
           <CardTitle className={compact ? "text-sm" : "text-base"}>Risk mix</CardTitle>
           {!compact && (
@@ -56,7 +56,7 @@ export function RiskMixChart({
   }
 
   return (
-    <Card className="h-full">
+    <Card className={cn("h-full", compact && "border-none bg-apricot-wash shadow-none")}>
       <CardHeader className={compact ? "pb-2" : undefined}>
         <CardTitle className={compact ? "text-sm" : "text-base"}>Risk mix</CardTitle>
         <CardDescription className={compact ? "text-xs" : undefined}>

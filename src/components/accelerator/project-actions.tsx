@@ -27,10 +27,10 @@ export function GeneratePackageButton({ projectId }: { projectId: string }) {
 
   return (
     <div className="space-y-2">
-      <Button variant="ai" onClick={generate} disabled={loading}>
+      <Button variant="ink" onClick={generate} disabled={loading}>
         {loading ? "Generating MVP package…" : "Generate full MVP package"}
       </Button>
-      {error && <p className="text-sm text-[#fca5a5]">{error}</p>}
+      {error && <p className="text-sm text-error">{error}</p>}
     </div>
   );
 }

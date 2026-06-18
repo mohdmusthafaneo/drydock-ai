@@ -44,7 +44,7 @@ export function GovernanceSignalsPanel({ signals }: { signals: GovernanceSignal[
                 "mt-0.5 h-4 w-4 shrink-0",
                 signal.severity === "error" && "text-error",
                 signal.severity === "warning" && "text-warning",
-                signal.severity === "info" && "text-enterprise",
+                signal.severity === "info" && "text-chart-blue",
               )}
             />
             <div className="min-w-0 flex-1">

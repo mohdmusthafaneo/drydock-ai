@@ -3,6 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+
+const fieldClassName =
+  "mt-1 w-full rounded-2xl border border-border bg-input px-3 py-2 text-sm text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand";
 
 export function IncidentRemediationForm({
   incidentId,
@@ -24,6 +29,7 @@ export function IncidentRemediationForm({
     const res = await fetch(`/api/incidents/${incidentId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
       body: JSON.stringify({ status, remediationNotes: notes || undefined }),
     });
     const data = await res.json();
@@ -36,13 +42,13 @@ export function IncidentRemediationForm({
   }
 
   return (
-    <form onSubmit={submit} className="space-y-3">
+    <form onSubmit={submit} className="space-y-4">
       <div>
-        <label className="text-xs text-slate-500">Status</label>
+        <Label className="text-muted">Status</Label>
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-white/10 bg-[#131A2A] px-3 py-2 text-sm"
+          className={fieldClassName}
         >
           <option value="OPEN">Open</option>
           <option value="INVESTIGATING">Investigating</option>
@@ -51,17 +57,17 @@ export function IncidentRemediationForm({
         </select>
       </div>
       <div>
-        <label className="text-xs text-slate-500">Remediation notes</label>
+        <Label className="text-muted">Remediation notes</Label>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
-          className="mt-1 w-full rounded-lg border border-white/10 bg-[#131A2A] px-3 py-2 text-sm"
+          className={cn(fieldClassName, "min-h-[80px]")}
           placeholder="Rollback executed, root cause documented…"
         />
       </div>
-      {error && <p className="text-sm text-red-400">{error}</p>}
-      <Button type="submit" disabled={loading} size="sm">
+      {error && <p className="text-sm text-error">{error}</p>}
+      <Button type="submit" disabled={loading} variant="ink" size="lg">
         {loading ? "Saving…" : "Update incident"}
       </Button>
     </form>

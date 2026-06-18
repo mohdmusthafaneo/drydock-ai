@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 
 export function ConnectGrafanaEmpty() {
   return (
-    <Card className="border-dashed border-brand/30">
+    <Card className="border-dashed border-chart-blue/30">
       <CardHeader className="text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand-muted">
-          <Bell className="h-6 w-6 text-brand" />
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-sky-wash">
+          <Bell className="h-6 w-6 text-chart-blue" />
         </div>
         <CardTitle className="mt-4">Connect Grafana for alerts and dashboard coverage</CardTitle>
         <CardDescription className="mx-auto max-w-md">
@@ -64,10 +64,10 @@ type SyncGrafanaEmptyProps = {
 export function SyncGrafanaEmpty({ dashboardScopes }: SyncGrafanaEmptyProps) {
   const labels = dashboardScopes.map((s) => s.title).join(", ");
   return (
-    <Card className="border-dashed border-brand/30">
+    <Card className="border-dashed border-chart-blue/30">
       <CardHeader className="text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand-muted">
-          <Bell className="h-6 w-6 text-brand" />
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-sky-wash">
+          <Bell className="h-6 w-6 text-chart-blue" />
         </div>
         <CardTitle className="mt-4">Sync Grafana data</CardTitle>
         <CardDescription className="mx-auto max-w-md">
@@ -94,10 +94,10 @@ export function SyncGrafanaEmpty({ dashboardScopes }: SyncGrafanaEmptyProps) {
 
 export function ConnectObservabilityEmpty() {
   return (
-    <Card className="border-dashed border-brand/30">
+    <Card className="border-dashed border-chart-blue/30">
       <CardHeader className="text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand-muted">
-          <Bell className="h-6 w-6 text-brand" />
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-sky-wash">
+          <Bell className="h-6 w-6 text-chart-blue" />
         </div>
         <CardTitle className="mt-4">Connect Prometheus and/or Grafana</CardTitle>
         <CardDescription className="mx-auto max-w-md">

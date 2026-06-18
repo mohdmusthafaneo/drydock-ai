@@ -27,7 +27,10 @@ const WORKFLOWS = [
 
 const STEPS = ["Organization", "Maturity", "Tools & workflows", "Governance"];
 
-export function DiscoveryWizard() {
+const selectClass =
+  "flex h-10 w-full rounded-lg border border-border bg-input px-3 text-sm text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand";
+
+export function DiscoveryWizard({ embedded = false }: { embedded?: boolean }) {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -75,23 +78,27 @@ export function DiscoveryWizard() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Organization discovery</h1>
-        <p className="mt-1 text-secondary">
-          Capture your delivery context to generate Delivery DNA and AI recommendations.
-        </p>
-      </div>
+    <div className={cn("space-y-6", !embedded && "mx-auto max-w-3xl")}>
+      {!embedded && (
+        <div>
+          <h1 className="font-display text-[44px] leading-[1.1] tracking-[-0.66px] text-ink">
+            Organization discovery
+          </h1>
+          <p className="mt-2 text-[16px] text-ash">
+            Capture your delivery context to generate Delivery DNA and AI recommendations.
+          </p>
+        </div>
+      )}
 
       <div className="flex gap-2">
         {STEPS.map((label, i) => (
           <div
             key={label}
             className={cn(
-              "flex-1 rounded-lg border px-3 py-2 text-center text-xs",
+              "flex-1 rounded-[16px] border px-3 py-2 text-center text-xs font-medium",
               i <= step
-                ? "border-accent/40 bg-accent/10 text-accent"
-                : "border-border text-muted",
+                ? "border-rust/30 bg-apricot-wash text-ink"
+                : "border-border-subtle bg-fog text-muted",
             )}
           >
             {label}
@@ -101,8 +108,12 @@ export function DiscoveryWizard() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{STEPS[step]}</CardTitle>
-          <CardDescription>Step {step + 1} of {STEPS.length}</CardDescription>
+          <CardTitle className="font-display text-[26px] leading-[1.18] tracking-[-0.23px] text-ink">
+            {STEPS[step]}
+          </CardTitle>
+          <CardDescription>
+            Step {step + 1} of {STEPS.length}
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {step === 0 && (
@@ -110,7 +121,7 @@ export function DiscoveryWizard() {
               <div className="space-y-2">
                 <Label>Industry</Label>
                 <select
-                  className="flex h-10 w-full rounded-lg border border-border bg-input px-3 text-sm text-primary"
+                  className={selectClass}
                   value={form.industryType}
                   onChange={(e) => setForm({ ...form, industryType: e.target.value })}
                 >
@@ -124,7 +135,7 @@ export function DiscoveryWizard() {
               <div className="space-y-2">
                 <Label>Team size</Label>
                 <select
-                  className="flex h-10 w-full rounded-lg border border-border bg-input px-3 text-sm text-primary"
+                  className={selectClass}
                   value={form.teamSize}
                   onChange={(e) => setForm({ ...form, teamSize: e.target.value })}
                 >
@@ -158,7 +169,7 @@ export function DiscoveryWizard() {
                     onChange={(e) =>
                       setForm({ ...form, [key]: Number(e.target.value) })
                     }
-                    className="w-full accent-enterprise"
+                    className="w-full accent-rust"
                   />
                 </div>
               ))}
@@ -178,8 +189,8 @@ export function DiscoveryWizard() {
                       className={cn(
                         "rounded-full border px-3 py-1 text-sm transition-colors",
                         form.tools.includes(tool.id)
-                          ? "border-enterprise bg-enterprise-muted text-accent"
-                          : "border-border text-secondary hover:border-border",
+                          ? "border-chart-blue/40 bg-sky-wash text-ink"
+                          : "border-border-subtle text-muted hover:bg-hover hover:text-ink",
                       )}
                     >
                       {tool.label}
@@ -198,8 +209,8 @@ export function DiscoveryWizard() {
                       className={cn(
                         "rounded-full border px-3 py-1 text-sm transition-colors",
                         form.workflows.includes(wf.id)
-                          ? "border-[#8B5CF6] bg-[#8B5CF6]/15 text-[#c4b5fd]"
-                          : "border-border text-secondary hover:border-border",
+                          ? "border-rust/30 bg-apricot-wash text-ink"
+                          : "border-border-subtle text-muted hover:bg-hover hover:text-ink",
                       )}
                     >
                       {wf.label}
@@ -215,7 +226,7 @@ export function DiscoveryWizard() {
               <div className="space-y-2">
                 <Label>Compliance</Label>
                 <select
-                  className="flex h-10 w-full rounded-lg border border-border bg-input px-3 text-sm text-primary"
+                  className={selectClass}
                   value={form.complianceType}
                   onChange={(e) => setForm({ ...form, complianceType: e.target.value })}
                 >
@@ -229,7 +240,7 @@ export function DiscoveryWizard() {
               <div className="space-y-2">
                 <Label>Deployment strategy</Label>
                 <select
-                  className="flex h-10 w-full rounded-lg border border-border bg-input px-3 text-sm text-primary"
+                  className={selectClass}
                   value={form.deploymentStrategy}
                   onChange={(e) =>
                     setForm({ ...form, deploymentStrategy: e.target.value })
@@ -243,25 +254,27 @@ export function DiscoveryWizard() {
             </>
           )}
 
-          {error && (
-            <p className="text-sm text-[#fca5a5]">{error}</p>
-          )}
+          {error && <p className="text-sm text-error">{error}</p>}
 
-          <div className="flex justify-between pt-2">
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={step === 0}
-              onClick={() => setStep((s) => s - 1)}
-            >
-              Back
-            </Button>
+          <div className="flex items-center justify-between pt-2">
+            {step > 0 ? (
+              <button
+                type="button"
+                disabled={step === 0}
+                onClick={() => setStep((s) => s - 1)}
+                className="text-[15px] font-medium text-ink hover:text-rust disabled:pointer-events-none disabled:opacity-40"
+              >
+                Back
+              </button>
+            ) : (
+              <span />
+            )}
             {step < STEPS.length - 1 ? (
-              <Button type="button" onClick={() => setStep((s) => s + 1)}>
+              <Button type="button" variant="ink" size="lg" onClick={() => setStep((s) => s + 1)}>
                 Continue
               </Button>
             ) : (
-              <Button type="button" variant="ai" disabled={loading} onClick={submit}>
+              <Button type="button" variant="ink" size="lg" disabled={loading} onClick={submit}>
                 {loading ? "Generating DNA…" : "Generate Delivery DNA"}
               </Button>
             )}

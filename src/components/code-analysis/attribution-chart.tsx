@@ -95,8 +95,8 @@ export function AttributionChart({
 export function attributionBadgeClass(attribution: AiAttribution): string {
   return cn(
     attribution === "human_only" && "bg-hover text-secondary",
-    attribution === "ai_assisted" && "bg-enterprise-muted text-enterprise",
-    attribution === "ai_generated" && "bg-mvp-muted text-mvp",
+    attribution === "ai_assisted" && "bg-sky-wash text-chart-blue",
+    attribution === "ai_generated" && "bg-apricot-wash text-rust",
     attribution === "unknown" && "border border-dashed border-border text-muted",
   );
 }

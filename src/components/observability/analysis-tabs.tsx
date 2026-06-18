@@ -41,7 +41,7 @@ export function AnalysisTabs({ snapshot }: { snapshot: ObservabilityAnalysisSnap
               className={cn(
                 "shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
                 tab === t.id
-                  ? "bg-enterprise-muted text-enterprise"
+                  ? "bg-sky-wash text-chart-blue"
                   : "text-muted hover:bg-hover hover:text-primary",
               )}
             >

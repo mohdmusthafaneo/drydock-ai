@@ -204,7 +204,7 @@ export function GitHubIntegrationPanel({
         {installationId && (
           <p className="text-xs text-secondary">
             Installation{" "}
-            <code className="rounded bg-base px-1.5 py-0.5 font-mono text-[11px] text-brand">
+            <code className="rounded bg-base px-1.5 py-0.5 font-mono text-[11px] text-chart-blue">
               #{installationId}
             </code>
             {installedAt && (

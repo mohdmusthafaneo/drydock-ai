@@ -246,7 +246,7 @@ export function PrometheusIntegrationPanel({
   return (
     <div className="space-y-4">
       {grafanaProxyActive && (
-        <div className="rounded-lg border border-brand/30 bg-brand/5 p-3">
+        <div className="rounded-lg border border-chart-blue/30 bg-sky-wash/50 p-3">
           <p className="text-xs text-secondary">
             Metrics are provided via Grafana → {grafanaProxyDatasourceName ?? "Prometheus"}.
             Direct connection is optional.
@@ -268,7 +268,7 @@ export function PrometheusIntegrationPanel({
               href={prometheusUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-medium text-brand hover:underline"
+              className="font-medium text-chart-blue hover:underline"
             >
               {prometheusUrl.replace(/^https?:\/\//, "")}
             </a>
@@ -314,7 +314,7 @@ export function PrometheusIntegrationPanel({
             {scopeLabels.map((label, i) => (
               <span key={label}>
                 {i > 0 ? ", " : null}
-                <span className="font-medium text-brand">{label}</span>
+                <span className="font-medium text-chart-blue">{label}</span>
               </span>
             ))}
           </p>

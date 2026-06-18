@@ -31,33 +31,35 @@ export function ApprovalActions({
   }
 
   return (
-    <div className="space-y-3 rounded-lg border border-white/8 bg-[#131A2A]/40 p-4">
-      <p className="text-sm font-medium">{title}</p>
+    <div className="space-y-3 rounded-xl border border-border-subtle bg-elevated p-4">
+      <p className="text-sm font-medium text-primary">{title}</p>
       <Textarea
         placeholder="Optional comment for audit log…"
         value={comment}
         onChange={(e) => setComment(e.target.value)}
         rows={2}
       />
-      <div className="flex flex-wrap gap-2">
-        <Button size="sm" disabled={loading} onClick={() => decide("APPROVED")}>
+      <div className="flex flex-wrap items-center gap-4">
+        <Button size="sm" variant="ink" disabled={loading} onClick={() => decide("APPROVED")}>
           Approve
         </Button>
         <Button
           size="sm"
-          variant="secondary"
-          disabled={loading}
-          onClick={() => decide("MODIFIED")}
-        >
-          Modify
-        </Button>
-        <Button
-          size="sm"
-          variant="destructive"
+          variant="link"
+          className="h-auto px-0 text-error"
           disabled={loading}
           onClick={() => decide("REJECTED")}
         >
           Reject
+        </Button>
+        <Button
+          size="sm"
+          variant="link"
+          className="h-auto px-0"
+          disabled={loading}
+          onClick={() => decide("MODIFIED")}
+        >
+          Request modification
         </Button>
       </div>
     </div>

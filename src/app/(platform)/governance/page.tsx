@@ -4,7 +4,7 @@ import { getSession } from "@/lib/session";
 import { getOrganizationContext } from "@/lib/org-data";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/layout/page-header";
 
 export default async function GovernancePage() {
   const session = await getSession();
@@ -20,28 +20,33 @@ export default async function GovernancePage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">Delivery governance</h1>
-          <p className="mt-1 text-slate-400">
-            Policies, approval depth, risk thresholds, and human-governed execution controls.
-          </p>
+      <PageHeader
+        title="Delivery governance"
+        description="Policies, approval depth, risk thresholds, and human-governed execution controls."
+      >
+        <div className="flex flex-wrap items-center gap-4">
+          <Link
+            href="/governance/workflow"
+            className="text-[15px] font-medium text-ink hover:text-rust"
+          >
+            Workflow config
+          </Link>
+          <Link
+            href="/governance/setup"
+            className="text-[15px] font-medium text-ink hover:text-rust"
+          >
+            Re-run setup
+          </Link>
         </div>
-        <div className="flex gap-2">
-          <Button asChild variant="secondary" size="sm">
-            <Link href="/governance/workflow">Workflow config</Link>
-          </Button>
-          <Button asChild variant="secondary" size="sm">
-            <Link href="/governance/setup">Re-run setup</Link>
-          </Button>
-        </div>
-      </div>
+      </PageHeader>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
           <CardHeader>
             <CardDescription>Governance score</CardDescription>
-            <CardTitle className="text-3xl">{ctx.dna.governanceScore}/100</CardTitle>
+            <CardTitle className="font-display text-[44px] leading-[1.1] tracking-[-0.66px] text-ink">
+              {ctx.dna.governanceScore}/100
+            </CardTitle>
           </CardHeader>
         </Card>
         <Card>
@@ -60,19 +65,19 @@ export default async function GovernancePage() {
         </CardHeader>
         <CardContent className="grid gap-3 text-sm sm:grid-cols-2">
           <p>
-            <span className="text-slate-500">Workflow: </span>
+            <span className="text-muted">Workflow: </span>
             {ctx.dna.workflowMode}
           </p>
           <p>
-            <span className="text-slate-500">Approval level: </span>
+            <span className="text-muted">Approval level: </span>
             {ctx.dna.approvalLevel}
           </p>
           <p>
-            <span className="text-slate-500">Risk threshold: </span>
+            <span className="text-muted">Risk threshold: </span>
             {(ctx.dna.riskThreshold * 100).toFixed(0)}%
           </p>
           <p>
-            <span className="text-slate-500">Compliance: </span>
+            <span className="text-muted">Compliance: </span>
             {ctx.profile?.complianceType || "—"}
           </p>
         </CardContent>
@@ -87,10 +92,10 @@ export default async function GovernancePage() {
           {Object.entries(escalation).map(([level, action]) => (
             <div
               key={level}
-              className="flex justify-between rounded-lg bg-[#131A2A]/60 px-4 py-2 text-sm"
+              className="flex justify-between rounded-[16px] bg-fog px-4 py-2 text-sm"
             >
-              <span className="capitalize text-slate-400">{level}</span>
-              <span>{action}</span>
+              <span className="capitalize text-muted">{level}</span>
+              <span className="text-ink">{action}</span>
             </div>
           ))}
         </CardContent>
@@ -101,15 +106,15 @@ export default async function GovernancePage() {
           <CardHeader>
             <CardTitle>Delivery DNA summary</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-slate-300">{ctx.dna.summary}</CardContent>
+          <CardContent className="text-sm text-ash">{ctx.dna.summary}</CardContent>
         </Card>
       )}
 
-      <Card className="border-[#4F8CFF]/20">
+      <Card>
         <CardHeader>
           <CardTitle>Human-governed workflow</CardTitle>
         </CardHeader>
-        <CardContent className="text-sm text-slate-400">
+        <CardContent className="text-sm text-ash">
           AI observes, correlates, and recommends. Humans approve and supervise deployment.
           All release decisions are audit-logged.
         </CardContent>

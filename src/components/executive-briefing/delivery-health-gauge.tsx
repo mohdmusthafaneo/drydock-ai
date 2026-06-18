@@ -9,18 +9,18 @@ type Props = {
   className?: string;
 };
 
-const BAND_COLORS: Record<HealthBand, string> = {
-  strong: "bg-success",
-  steady: "bg-accent",
-  caution: "bg-warning",
-  at_risk: "bg-error",
+const BAND_FILL: Record<HealthBand, string> = {
+  strong: "bg-rust",
+  steady: "bg-[#8b5a3c]",
+  caution: "bg-[#c49a7a]",
+  at_risk: "bg-[#3d1f14]",
 };
 
 const BAND_TEXT: Record<HealthBand, string> = {
-  strong: "text-success",
-  steady: "text-accent",
-  caution: "text-warning",
-  at_risk: "text-error",
+  strong: "text-rust",
+  steady: "text-ash",
+  caution: "text-ash",
+  at_risk: "text-rust",
 };
 
 export function DeliveryHealthGauge({ score, band, bandLabel, visible, className }: Props) {
@@ -28,12 +28,12 @@ export function DeliveryHealthGauge({ score, band, bandLabel, visible, className
     return (
       <div
         className={cn(
-          "flex h-full min-h-[220px] flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-elevated/40 px-6 py-8 text-center",
+          "flex h-full min-h-[240px] flex-col items-center justify-center rounded-[24px] border border-dashed border-dove bg-pure-white px-6 py-8 text-center shadow-[var(--shadow)]",
           className,
         )}
       >
-        <p className="text-sm font-medium text-secondary">Delivery confidence</p>
-        <p className="mt-2 max-w-[12rem] text-xs text-muted">
+        <p className="text-[15px] font-medium text-ink">Delivery confidence</p>
+        <p className="mt-2 max-w-[14rem] text-[14px] leading-relaxed text-graphite">
           Connect integrations and assess a release to see your health score.
         </p>
       </div>
@@ -44,26 +44,31 @@ export function DeliveryHealthGauge({ score, band, bandLabel, visible, className
 
   return (
     <div
-      className={cn("flex flex-col items-center gap-4", className)}
+      className={cn(
+        "flex flex-col items-center gap-5 rounded-[24px] bg-apricot-wash px-6 py-8",
+        className,
+      )}
       role="meter"
       aria-valuenow={score}
       aria-valuemin={0}
       aria-valuemax={100}
       aria-label={`Delivery confidence ${score} out of 100, ${bandLabel ?? band}`}
     >
-      <p className="text-xs font-medium uppercase tracking-wide text-muted">Delivery confidence</p>
-      <div className="relative flex h-52 w-16 items-end justify-center rounded-full border border-border bg-surface p-1.5 shadow-inner">
+      <p className="text-[13px] font-medium uppercase tracking-[0.04em] text-graphite">
+        Delivery confidence
+      </p>
+      <div className="relative flex h-52 w-[72px] items-end justify-center rounded-full border border-dove/60 bg-pure-white p-2">
         <div
           className={cn(
             "w-full rounded-full transition-all duration-700 ease-out",
-            BAND_COLORS[band],
+            BAND_FILL[band],
           )}
           style={{ height: `${fillPct}%` }}
         />
       </div>
       <div className="text-center">
-        <p className="text-3xl font-semibold tracking-tight">{score}</p>
-        <p className={cn("mt-0.5 text-sm font-medium", BAND_TEXT[band])}>{bandLabel}</p>
+        <p className="text-[44px] leading-none tracking-[-0.66px] text-ink">{score}</p>
+        <p className={cn("mt-1 text-[15px] font-medium", BAND_TEXT[band])}>{bandLabel}</p>
       </div>
     </div>
   );

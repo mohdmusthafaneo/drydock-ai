@@ -184,7 +184,7 @@ export function DeliveryAnalysisDashboard({
       )}
 
       {syncMessage && (
-        <p className="rounded-lg border border-brand/30 bg-brand-muted px-3 py-2 text-sm text-brand">
+        <p className="rounded-lg border border-chart-blue/30 bg-sky-wash px-3 py-2 text-sm text-chart-blue">
           {syncMessage}
         </p>
       )}

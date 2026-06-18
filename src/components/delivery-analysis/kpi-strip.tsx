@@ -32,7 +32,7 @@ function DeltaBadge({
     <span
       className={cn(
         "inline-flex items-center gap-0.5 text-xs font-medium",
-        good ? "text-mvp" : "text-warning",
+        good ? "text-rust" : "text-warning",
       )}
     >
       {up ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}

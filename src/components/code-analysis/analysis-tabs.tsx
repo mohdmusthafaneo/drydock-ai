@@ -127,7 +127,7 @@ export function AnalysisTabs({ snapshot }: { snapshot: CodeAnalysisSnapshot }) {
               className={cn(
                 "shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
                 tab === t.id
-                  ? "bg-enterprise-muted text-enterprise"
+                  ? "bg-sky-wash text-chart-blue"
                   : "text-secondary hover:bg-hover hover:text-primary",
               )}
             >
@@ -324,7 +324,7 @@ export function AnalysisTabs({ snapshot }: { snapshot: CodeAnalysisSnapshot }) {
                     <td className="py-2 text-xs text-secondary">{f.repo.split("/")[1]}</td>
                     <td className="py-2 tabular-nums">{f.changeCount}</td>
                     <td className="py-2 text-right tabular-nums">
-                      <span className={f.aiLinesPct >= 50 ? "text-mvp" : "text-secondary"}>
+                      <span className={f.aiLinesPct >= 50 ? "text-rust" : "text-secondary"}>
                         {f.aiLinesPct}%
                       </span>
                     </td>

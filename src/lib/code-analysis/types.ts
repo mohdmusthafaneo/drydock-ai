@@ -117,8 +117,8 @@ export const ATTRIBUTION_LABELS: Record<AiAttribution, string> = {
 };
 
 export const ATTRIBUTION_COLORS: Record<AiAttribution, string> = {
-  human_only: "var(--text-secondary)",
-  ai_assisted: "var(--accent-enterprise)",
-  ai_generated: "var(--accent-mvp)",
-  unknown: "var(--text-muted)",
+  human_only: "var(--color-graphite)",
+  ai_assisted: "var(--color-chart-blue)",
+  ai_generated: "var(--color-rust)",
+  unknown: "var(--color-dove)",
 };

@@ -6,6 +6,7 @@ import { hasObservabilitySynced } from "@/lib/observability-connectivity";
 import { resolveAssessSourceFreshness } from "@/lib/release-assess-snapshot";
 import { aggregateGapsByArea, verdictFromPrimary } from "@/lib/release-gate-brief";
 import { ReleaseGateBrief } from "@/components/releases/release-gate-brief";
+import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -48,22 +49,19 @@ export function QACockpit({
   });
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">QA intelligence dashboard</h1>
-        <p className="mt-1 text-slate-400">
-          Release confidence for governed delivery — correlate schedule, CI, metrics, and alerts
-          into one human-approved go/no-go.
-        </p>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        title="QA intelligence dashboard"
+        description="Release confidence for governed delivery — correlate schedule, CI, metrics, and alerts into one human-approved go/no-go."
+      />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="bg-sky-wash/50">
           <CardHeader className="pb-2">
             <CardDescription>Org readiness index</CardDescription>
-            <CardTitle className="text-2xl">{orgReadinessIndex}%</CardTitle>
+            <CardTitle className="text-2xl text-ink">{orgReadinessIndex}%</CardTitle>
           </CardHeader>
-          <CardContent className="text-xs text-slate-500">
+          <CardContent className="text-xs text-muted">
             Average across {assessed.length} assessed release
             {assessed.length === 1 ? "" : "s"}
           </CardContent>
@@ -71,36 +69,36 @@ export function QACockpit({
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Pending decisions</CardDescription>
-            <CardTitle className="text-2xl">{pendingDecisions.length}</CardTitle>
+            <CardTitle className="text-2xl text-ink">{pendingDecisions.length}</CardTitle>
           </CardHeader>
-          <CardContent className="text-xs text-slate-500">
+          <CardContent className="text-xs text-muted">
             Releases awaiting human approval
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-apricot-wash/50">
           <CardHeader className="pb-2">
             <CardDescription>Open test gaps</CardDescription>
-            <CardTitle className="text-2xl">{allGaps.length}</CardTitle>
+            <CardTitle className="text-2xl text-rust">{allGaps.length}</CardTitle>
           </CardHeader>
-          <CardContent className="text-xs text-slate-500">
+          <CardContent className="text-xs text-muted">
             Across assessed releases
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Observability</CardDescription>
-            <CardTitle className="text-lg">
+            <CardTitle className="text-lg text-ink">
               {observabilitySynced ? "Synced" : "Needs sync"}
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-xs text-slate-500">
+          <CardContent className="text-xs text-muted">
             Metrics via direct Prometheus or Grafana proxy
           </CardContent>
         </Card>
       </div>
 
       {pendingDecisions.length > 0 && (
-        <Card className="border-[#F59E0B]/30">
+        <Card className="border-apricot-wash bg-apricot-wash/30">
           <CardHeader>
             <CardTitle>Pending decisions</CardTitle>
             <CardDescription>Releases in approval queue with gate verdict preview</CardDescription>
@@ -111,17 +109,17 @@ export function QACockpit({
               return (
                 <div
                   key={release.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-[#131A2A]/60 px-3 py-2"
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-pure-white px-3 py-2 shadow-[var(--shadow-subtle)]"
                 >
                   <div>
                     <Link
                       href={`/releases/${release.id}`}
-                      className="font-medium text-[#93b4ff] hover:underline"
+                      className="font-medium text-ink underline-offset-4 hover:underline"
                     >
                       {release.name}
                       {release.version ? ` (${release.version})` : ""}
                     </Link>
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-muted">
                       Readiness {Math.round(release.readinessScore ?? 0)}% · Risk{" "}
                       {release.riskLevel ?? "—"}
                     </p>
@@ -138,9 +136,9 @@ export function QACockpit({
                 </div>
               );
             })}
-            <Link href="/approvals" className="text-sm text-[#93b4ff] hover:underline">
-              Go to Approval Center →
-            </Link>
+            <Button asChild size="sm" variant="link" className="h-auto px-0">
+              <Link href="/approvals">Go to Approval Center →</Link>
+            </Button>
           </CardContent>
         </Card>
       )}
@@ -172,9 +170,9 @@ export function QACockpit({
           {integrationHealth.map((row) => (
             <div
               key={row.provider}
-              className="flex items-center justify-between rounded-lg bg-[#131A2A]/60 px-3 py-2 text-sm"
+              className="flex items-center justify-between rounded-xl bg-elevated px-3 py-2 text-sm"
             >
-              <span>{row.label}</span>
+              <span className="text-primary">{row.label}</span>
               <Badge
                 variant={
                   row.synced ? "success" : row.connected ? "warning" : "muted"
@@ -188,17 +186,19 @@ export function QACockpit({
       </Card>
 
       {assessed.length === 0 ? (
-        <Card className="border-dashed border-[#4F8CFF]/30">
-          <CardContent className="py-10 text-center text-slate-400">
+        <Card className="border-dashed border-border">
+          <CardContent className="py-10 text-center text-muted">
             Run a release assessment to populate QA intelligence.
-            <Button asChild className="mt-4" size="sm">
-              <Link href="/releases">View releases</Link>
-            </Button>
+            <div className="mt-4">
+              <Button asChild variant="ink" size="lg">
+                <Link href="/releases">View releases</Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-4">
-          <h2 className="text-lg font-medium">Assessed releases</h2>
+          <h2 className="text-[22px] font-medium tracking-[-0.2px] text-ink">Assessed releases</h2>
           {assessed.map((release) => {
             const qaSignals = JSON.parse(release.qaSignalsJson || "[]") as QASignal[];
             const testGaps = JSON.parse(release.testGapsJson || "[]") as TestGap[];

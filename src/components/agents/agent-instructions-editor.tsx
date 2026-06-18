@@ -90,7 +90,7 @@ export function AgentInstructionsEditor({
         <CardTitle className="text-base">Managed instructions</CardTitle>
         <CardDescription>
           Runtime charter loaded on every heartbeat ·{" "}
-          <code className="text-xs text-slate-400">{initialBundle.rootPath}</code>
+          <code className="text-xs text-ash">{initialBundle.rootPath}</code>
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -100,7 +100,8 @@ export function AgentInstructionsEditor({
               key={fileName}
               type="button"
               size="sm"
-              variant={fileName === selectedFile ? "default" : "secondary"}
+              variant={fileName === selectedFile ? "ink" : "secondary"}
+              className="rounded-full"
               onClick={() => setSelectedFile(fileName)}
             >
               {fileName}
@@ -115,7 +116,7 @@ export function AgentInstructionsEditor({
           <div className="flex items-center justify-between gap-2">
             <Label htmlFor="instruction-editor">{selectedFile}</Label>
             {!selectedExists && (
-              <span className="text-xs text-amber-400/90">Not materialized yet — save to create</span>
+              <span className="text-xs text-warning">Not materialized yet — save to create</span>
             )}
           </div>
           <Textarea
@@ -133,11 +134,11 @@ export function AgentInstructionsEditor({
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <Button size="sm" disabled={loading} onClick={saveFile}>
+          <Button size="sm" variant="ink" className="rounded-full" disabled={loading} onClick={saveFile}>
             {loading ? "Saving…" : `Save ${selectedFile}`}
           </Button>
-          {message && <p className="text-xs text-emerald-400">{message}</p>}
-          {error && <p className="text-xs text-red-400">{error}</p>}
+          {message && <p className="text-xs text-success">{message}</p>}
+          {error && <p className="text-xs text-error">{error}</p>}
         </div>
       </CardContent>
     </Card>

@@ -91,8 +91,8 @@ export function IntegrationAlerts() {
     <div
       className={
         isSuccess
-          ? "rounded-xl border border-[#10B981]/40 bg-[#10B981]/10 px-4 py-3 text-sm text-[#6ee7b7]"
-          : "rounded-xl border border-[#EF4444]/40 bg-[#EF4444]/10 px-4 py-3 text-sm text-[#fca5a5]"
+          ? "rounded-xl border border-dove/50 bg-sky-wash px-4 py-3 text-sm text-ink"
+          : "rounded-xl border border-dove/50 bg-apricot-wash px-4 py-3 text-sm text-rust"
       }
       role="alert"
     >

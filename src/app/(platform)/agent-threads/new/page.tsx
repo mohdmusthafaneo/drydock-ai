@@ -16,11 +16,16 @@ export default async function NewAgentThreadPage() {
   return (
     <div className="mx-auto max-w-xl space-y-6">
       <div>
-        <Link href="/agent-threads" className="text-sm text-[#93b4ff] hover:underline">
+        <Link
+          href="/agent-threads"
+          className="text-sm font-medium text-ink underline-offset-4 hover:underline"
+        >
           ← Agent threads
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold">New agent thread</h1>
-        <p className="mt-1 text-slate-400">
+        <h1 className="mt-2 font-display text-[26px] leading-[1.18] tracking-[-0.23px] text-ink sm:text-[32px]">
+          New agent thread
+        </h1>
+        <p className="mt-1 text-ash">
           Opens a discrete operational thread. The Super Agent coordinates specialists
           and replies appear in a shared timeline.
         </p>

@@ -45,11 +45,11 @@ export function MetricBars({ metrics }: { metrics: Metric[] }) {
                 {m.unit}
               </span>
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-[#131A2A]">
+            <div className="h-2 overflow-hidden rounded-full bg-fog">
               <div
                 className={cn(
                   "h-full rounded-full transition-all",
-                  warn ? "bg-warning" : "bg-enterprise",
+                  warn ? "bg-rust/70" : "bg-chart-blue",
                 )}
                 style={{ width: `${pct}%` }}
               />

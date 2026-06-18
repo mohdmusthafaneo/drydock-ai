@@ -40,12 +40,12 @@ export function MarkdownContent({
           ),
           li: ({ children }) => <li className="leading-relaxed text-inherit">{children}</li>,
           code: ({ children }) => (
-            <code className="rounded bg-black/30 px-1 py-0.5 font-mono text-[0.9em] text-inherit">
+            <code className="rounded bg-fog px-1 py-0.5 font-mono text-[0.9em] text-inherit">
               {children}
             </code>
           ),
           pre: ({ children }) => (
-            <pre className="overflow-x-auto rounded-md bg-black/30 p-3 font-mono text-xs text-inherit">
+            <pre className="overflow-x-auto rounded-xl bg-fog p-3 font-mono text-xs text-inherit">
               {children}
             </pre>
           ),

@@ -12,12 +12,12 @@ export function ScrollCue({ href = "#breakdown", className }: Props) {
     <Link
       href={href}
       className={cn(
-        "inline-flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-accent",
+        "inline-flex items-center gap-1.5 text-[15px] font-medium text-ink transition-colors hover:text-ash",
         className,
       )}
     >
       More detail
-      <ChevronDown className="h-4 w-4" aria-hidden />
+      <ChevronDown className="h-4 w-4" strokeWidth={1.5} aria-hidden />
     </Link>
   );
 }

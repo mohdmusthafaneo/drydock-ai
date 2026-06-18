@@ -7,6 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { JiraSchemaSnapshot } from "@/lib/jira-meta";
 import type { ToolchainMapping } from "@/lib/toolchain-mapping";
+import { cn } from "@/lib/utils";
+
+const selectClass =
+  "flex h-10 w-full rounded-lg border border-border bg-input px-3 text-sm text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand";
 
 type GitHubSchemaSnapshot = {
   syncedAt: string;
@@ -174,13 +178,16 @@ export function ToolchainMappingForm({
 
   if (!syncReady) {
     return (
-      <Card className="border-dashed border-[#4F8CFF]/30">
-        <CardContent className="py-10 text-center text-slate-400">
+      <Card className="border-dashed border-dove">
+        <CardContent className="py-10 text-center text-ash">
           <p>
             Connect Jira or GitHub, select projects/repos, and run an initial sync before mapping
             your delivery toolchain.
           </p>
-          <Link href="/integrations" className="mt-3 inline-block text-sm text-[#93b4ff] hover:underline">
+          <Link
+            href="/integrations"
+            className="mt-3 inline-block text-[15px] font-medium text-ink hover:text-rust"
+          >
             Go to Integrations →
           </Link>
         </CardContent>
@@ -191,22 +198,27 @@ export function ToolchainMappingForm({
   return (
     <div className="space-y-6">
       {schema.jiraStale && (
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+        <div className="rounded-[16px] border border-warning/30 bg-warning-muted px-4 py-3 text-sm text-warning">
           Project selection changed or schema is older than 7 days — refresh schema before
           confirming.
         </div>
       )}
 
       {confidence === "low" && (
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+        <div className="rounded-[16px] border border-warning/30 bg-warning-muted px-4 py-3 text-sm text-warning">
           We could not confidently detect all Jira field semantics — review each mapping manually.
         </div>
       )}
 
       <div className="flex flex-wrap gap-3">
-        <Button variant="secondary" onClick={() => refreshSchema()} disabled={refreshing}>
+        <button
+          type="button"
+          onClick={() => refreshSchema()}
+          disabled={refreshing}
+          className="text-[15px] font-medium text-ink hover:text-rust disabled:opacity-50"
+        >
           {refreshing ? "Refreshing schema…" : "Refresh schema"}
-        </Button>
+        </button>
       </div>
 
       <Card>
@@ -235,7 +247,7 @@ export function ToolchainMappingForm({
                       },
                     }))
                   }
-                  className="w-full rounded-lg border border-white/10 bg-[#131A2A] px-3 py-2 text-sm"
+                  className={selectClass}
                 >
                   <option value="scrum">Scrum (sprints)</option>
                   <option value="kanban">Kanban (flow)</option>
@@ -258,7 +270,7 @@ export function ToolchainMappingForm({
                       },
                     }))
                   }
-                  className="w-full rounded-lg border border-white/10 bg-[#131A2A] px-3 py-2 text-sm"
+                  className={selectClass}
                 >
                   <option value="fixVersion">Fix versions</option>
                   <option value="sprint">Sprint milestones</option>
@@ -277,7 +289,7 @@ export function ToolchainMappingForm({
                       }))
                     }
                     placeholder="release-"
-                    className="w-full rounded-lg border border-white/10 bg-[#131A2A] px-3 py-2 text-sm"
+                    className={selectClass}
                   />
                 </Field>
               )}
@@ -300,7 +312,7 @@ export function ToolchainMappingForm({
                         },
                       }));
                     }}
-                    className="w-full rounded-lg border border-white/10 bg-[#131A2A] px-3 py-2 text-sm"
+                    className={selectClass}
                   >
                     {jiraSchema.statuses.map((s) => (
                       <option key={`${s.id}-${s.scope?.projectKey ?? ""}`} value={s.name}>
@@ -318,7 +330,7 @@ export function ToolchainMappingForm({
                         jira: { ...m.jira!, blockedStatusName: e.target.value },
                       }))
                     }
-                    className="w-full rounded-lg border border-white/10 bg-[#131A2A] px-3 py-2 text-sm"
+                    className={selectClass}
                   />
                 )}
               </Field>
@@ -341,7 +353,7 @@ export function ToolchainMappingForm({
                         },
                       }));
                     }}
-                    className="w-full rounded-lg border border-white/10 bg-[#131A2A] px-3 py-2 text-sm"
+                    className={selectClass}
                   >
                     {jiraSchema.issueTypes
                       .filter((t) => !t.subtask)
@@ -360,7 +372,7 @@ export function ToolchainMappingForm({
                         jira: { ...m.jira!, bugIssueType: e.target.value },
                       }))
                     }
-                    className="w-full rounded-lg border border-white/10 bg-[#131A2A] px-3 py-2 text-sm"
+                    className={selectClass}
                   />
                 )}
               </Field>
@@ -383,7 +395,7 @@ export function ToolchainMappingForm({
                         },
                       }));
                     }}
-                    className="w-full rounded-lg border border-white/10 bg-[#131A2A] px-3 py-2 text-sm"
+                    className={selectClass}
                   >
                     <option value="">Not used</option>
                     {jiraSchema.fields.map((f) => (
@@ -395,16 +407,16 @@ export function ToolchainMappingForm({
                 </Field>
               )}
               {doneStatuses && doneStatuses.length > 0 && (
-                <div className="rounded-lg border border-white/5 bg-white/5 px-3 py-2 text-xs text-slate-400">
-                  <span className="font-medium text-slate-300">Done statuses detected: </span>
+                <div className="rounded-[16px] border border-border-subtle bg-fog px-3 py-2 text-xs text-muted">
+                  <span className="font-medium text-ink">Done statuses detected: </span>
                   {[...new Set(doneStatuses.map((s) => s.name))].join(", ")}
                 </div>
               )}
             </>
           ) : (
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-muted">
               Connect and sync Jira to infer workflow defaults.{" "}
-              <Link href="/integrations" className="text-[#93b4ff] hover:underline">
+              <Link href="/integrations" className="font-medium text-ink hover:text-rust">
                 Integrations
               </Link>
             </p>
@@ -435,7 +447,7 @@ export function ToolchainMappingForm({
                         github: { ...m.github!, primaryDefaultBranch: e.target.value },
                       }))
                     }
-                    className="w-full rounded-lg border border-white/10 bg-[#131A2A] px-3 py-2 text-sm"
+                    className={selectClass}
                   >
                     {[
                       ...new Set(
@@ -459,7 +471,7 @@ export function ToolchainMappingForm({
                         github: { ...m.github!, primaryDefaultBranch: e.target.value },
                       }))
                     }
-                    className="w-full rounded-lg border border-white/10 bg-[#131A2A] px-3 py-2 text-sm"
+                    className={selectClass}
                   />
                 )}
               </Field>
@@ -482,7 +494,7 @@ export function ToolchainMappingForm({
                       },
                     }))
                   }
-                  className="w-full rounded-lg border border-white/10 bg-[#131A2A] px-3 py-2 text-sm"
+                  className={selectClass}
                 >
                   <option value="trunk">Trunk-based (main)</option>
                   <option value="gitflow">GitFlow (main + develop)</option>
@@ -501,13 +513,13 @@ export function ToolchainMappingForm({
                       }))
                     }
                     placeholder="main or develop"
-                    className="w-full rounded-lg border border-white/10 bg-[#131A2A] px-3 py-2 text-sm"
+                    className={selectClass}
                   />
                 </Field>
               )}
             </>
           ) : (
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-muted">
               Connect and sync GitHub to infer branch and PR patterns.
             </p>
           )}
@@ -515,7 +527,7 @@ export function ToolchainMappingForm({
       </Card>
 
       {mapping.inferredFrom && (
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-muted">
           Suggestions based on discovery answers
           {mapping.inferredFrom.discoveryWorkflows?.length
             ? ` (${mapping.inferredFrom.discoveryWorkflows.join(", ")})`
@@ -532,12 +544,12 @@ export function ToolchainMappingForm({
       )}
 
       {error && (
-        <p className="text-sm text-red-400">
+        <p className="text-sm text-error">
           {error}
           {(error.includes("scope") || error.includes("OAuth")) && (
             <>
               {" "}
-              <Link href="/integrations" className="text-[#93b4ff] hover:underline">
+              <Link href="/integrations" className="font-medium text-ink hover:text-rust">
                 Reconnect Jira
               </Link>
             </>
@@ -545,11 +557,16 @@ export function ToolchainMappingForm({
         </p>
       )}
 
-      <div className="flex flex-wrap gap-3">
-        <Button variant="secondary" onClick={() => save(false)} disabled={loading}>
+      <div className="flex flex-wrap items-center gap-4">
+        <button
+          type="button"
+          onClick={() => save(false)}
+          disabled={loading}
+          className="text-[15px] font-medium text-ink hover:text-rust disabled:opacity-50"
+        >
           Save draft
-        </Button>
-        <Button onClick={() => save(true)} disabled={loading || confirmed}>
+        </button>
+        <Button onClick={() => save(true)} disabled={loading || confirmed} variant="ink" size="lg">
           {confirmed ? "Mapping confirmed" : loading ? "Confirming…" : "Confirm mapping"}
         </Button>
       </div>
@@ -570,24 +587,25 @@ function Field({
 }) {
   return (
     <label className="block space-y-1.5">
-      <span className="flex items-center gap-2 text-sm font-medium text-slate-300">
+      <span className="flex items-center gap-2 text-sm font-medium text-ink">
         {label}
         {confidence != null && (
           <span
-            className={`rounded px-1.5 py-0.5 text-[10px] font-normal ${
+            className={cn(
+              "rounded px-1.5 py-0.5 text-[10px] font-normal",
               confidence >= 0.8
-                ? "bg-emerald-500/20 text-emerald-300"
+                ? "bg-success-muted text-success"
                 : confidence >= 0.5
-                  ? "bg-amber-500/20 text-amber-300"
-                  : "bg-red-500/20 text-red-300"
-            }`}
+                  ? "bg-warning-muted text-warning"
+                  : "bg-error-muted text-error",
+            )}
           >
             {confidence >= 0.8 ? "high" : confidence >= 0.5 ? "medium" : "low"}
           </span>
         )}
       </span>
       {children}
-      {hint && <p className="text-xs text-slate-500">{hint}</p>}
+      {hint && <p className="text-xs text-muted">{hint}</p>}
     </label>
   );
 }

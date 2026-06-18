@@ -24,7 +24,7 @@ export function DataRefreshButton({
   return (
     <div className={cn("flex items-center gap-2", className)}>
       {updatedLabel && (
-        <span className="text-xs text-slate-500">{updatedLabel}</span>
+        <span className="text-xs text-graphite">{updatedLabel}</span>
       )}
       <Button
         type="button"

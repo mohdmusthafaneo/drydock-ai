@@ -100,10 +100,10 @@ export type DeliveryAnalysisSnapshot = {
 };
 
 export const RISK_MIX_COLORS = {
-  blocked: "var(--accent-error, #ef4444)",
-  overdue: "var(--accent-warning, #f59e0b)",
-  bugs: "var(--accent-mvp)",
-  otherOpen: "var(--accent-enterprise, #4F8CFF)",
+  blocked: "var(--color-rust)",
+  overdue: "color-mix(in srgb, var(--color-rust) 70%, white)",
+  bugs: "var(--color-chart-blue)",
+  otherOpen: "color-mix(in srgb, var(--color-chart-blue) 70%, white)",
 } as const;
 
 export const RISK_MIX_LABELS = {

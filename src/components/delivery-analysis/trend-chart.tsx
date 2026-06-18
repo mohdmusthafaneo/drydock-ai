@@ -50,12 +50,12 @@ export function TrendChart({ trend, hasHistory }: Props) {
               <div key={point.syncedAt} className="flex min-w-0 flex-1 flex-col items-center gap-1">
                 <div className="flex w-full max-w-[48px] items-end gap-0.5" style={{ height: 140 }}>
                   <div
-                    className="flex-1 rounded-t bg-enterprise/80"
+                    className="flex-1 rounded-t bg-chart-blue/80"
                     style={{ height: `${scoreHeight}%` }}
                     title={`Health: ${point.healthScore}`}
                   />
                   <div
-                    className="flex-1 rounded-t bg-brand/60"
+                    className="flex-1 rounded-t bg-rust/60"
                     style={{ height: `${openHeight}%` }}
                     title={`Open work: ${point.openWork}`}
                   />
@@ -67,11 +67,11 @@ export function TrendChart({ trend, hasHistory }: Props) {
         </div>
         <div className="mt-4 flex flex-wrap gap-4 text-xs text-secondary">
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-sm bg-enterprise/80" />
+            <span className="h-2 w-2 rounded-sm bg-chart-blue/80" />
             Health score
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-sm bg-brand/60" />
+            <span className="h-2 w-2 rounded-sm bg-rust/60" />
             Open work
           </span>
         </div>

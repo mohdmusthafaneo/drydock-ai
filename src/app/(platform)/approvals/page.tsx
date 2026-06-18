@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { getOrganizationContext } from "@/lib/org-data";
 import { parseHirePayload } from "@/lib/agent-control-plane/hire";
+import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ApprovalActions } from "@/components/approvals/approval-actions";
@@ -29,30 +30,27 @@ export default async function ApprovalsPage() {
   const decided = ctx.approvals.filter((a) => a.decision);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Approval center</h1>
-        <p className="mt-1 text-slate-400">
-          Human-governed gate for recommendations and agent hires. No deployment or
-          agent activation without approval.
-        </p>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        title="Approval center"
+        description="Human-governed gate for recommendations and agent hires. No deployment or agent activation without approval."
+      />
 
-      <Card className="border-[#4F8CFF]/20">
+      <Card>
         <CardHeader>
           <CardTitle>Pending approvals</CardTitle>
           <CardDescription>{pending.length} awaiting decision</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {pending.length === 0 ? (
-            <p className="text-sm text-slate-500">All caught up.</p>
+            <p className="text-sm text-muted">All caught up.</p>
           ) : (
             pending.map((approval) => {
               if (approval.type === "AGENT_HIRE") {
                 const payload = parseHirePayload(approval.payloadJson);
                 if (!payload) {
                   return (
-                    <p key={approval.id} className="text-sm text-red-400">
+                    <p key={approval.id} className="text-sm text-error">
                       Invalid agent hire payload
                     </p>
                   );
@@ -72,7 +70,7 @@ export default async function ApprovalsPage() {
               return (
                 <div key={approval.id} className="space-y-1">
                   {approval.recommendation.releaseId && (
-                    <p className="text-xs text-slate-500">Release-linked recommendation</p>
+                    <p className="text-xs text-muted">Release-linked recommendation</p>
                   )}
                   <ApprovalActions
                     approvalId={approval.id}
@@ -91,18 +89,18 @@ export default async function ApprovalsPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           {decided.length === 0 ? (
-            <p className="text-sm text-slate-500">No decisions yet.</p>
+            <p className="text-sm text-muted">No decisions yet.</p>
           ) : (
             decided.map((approval) => (
               <div
                 key={approval.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[#131A2A]/50 px-4 py-3 text-sm"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-elevated px-4 py-3 text-sm"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   {approval.type === "AGENT_HIRE" && (
                     <Badge variant="ai">Agent hire</Badge>
                   )}
-                  <span>{approvalTitle(approval)}</span>
+                  <span className="text-primary">{approvalTitle(approval)}</span>
                 </div>
                 <Badge variant={approval.decision === "APPROVED" ? "success" : "muted"}>
                   {approval.decision}

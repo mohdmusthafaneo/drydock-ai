@@ -49,7 +49,7 @@ export function AgentRuntimePanel({
   const lastRun = recentRuns[0];
 
   return (
-    <Card className={isLead ? "border-brand/30 bg-brand-muted/5" : undefined}>
+    <Card className={isLead ? "border-chart-blue/30 bg-sky-wash/30" : undefined}>
       <CardHeader>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -69,38 +69,38 @@ export function AgentRuntimePanel({
         </div>
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
-        {agent.description && <p className="text-slate-400">{agent.description}</p>}
-        <p>
+        {agent.description && <p className="text-ash">{agent.description}</p>}
+        <p className="text-ink">
           Confidence: {(agent.confidenceScore * 100).toFixed(0)}% · Mode: {agent.autonomyMode}
         </p>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-graphite">
           Last heartbeat: {formatHeartbeatAge(agent.lastHeartbeatAt)}
           {agent.pendingWakeups > 0 && (
             <> · {agent.pendingWakeups} pending wakeup(s)</>
           )}
         </p>
         {lastRun && (
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-graphite">
             Last run: {lastRun.status}
             {lastRun.summary ? ` — ${lastRun.summary.slice(0, 120)}` : ""}
           </p>
         )}
-        <dl className="grid gap-2 rounded-lg border border-white/8 bg-[#0B1020]/40 p-3 text-xs text-slate-400 sm:grid-cols-2">
+        <dl className="grid gap-2 rounded-2xl border border-border-subtle bg-fog p-3 text-xs text-ash sm:grid-cols-2">
           <div>
-            <dt className="text-slate-500">Adapter</dt>
-            <dd className="text-slate-200">{adapterType}</dd>
+            <dt className="text-graphite">Adapter</dt>
+            <dd className="text-ink">{adapterType}</dd>
           </div>
           <div>
-            <dt className="text-slate-500">Skills</dt>
-            <dd className="text-slate-200">{skillsLabel}</dd>
+            <dt className="text-graphite">Skills</dt>
+            <dd className="text-ink">{skillsLabel}</dd>
           </div>
           <div>
-            <dt className="text-slate-500">Timer heartbeat</dt>
-            <dd className="text-slate-200">{heartbeatLabel}</dd>
+            <dt className="text-graphite">Timer heartbeat</dt>
+            <dd className="text-ink">{heartbeatLabel}</dd>
           </div>
           <div>
-            <dt className="text-slate-500">Wake triggers</dt>
-            <dd className="text-slate-200">{wakeTriggersLabel}</dd>
+            <dt className="text-graphite">Wake triggers</dt>
+            <dd className="text-ink">{wakeTriggersLabel}</dd>
           </div>
         </dl>
         <AgentActions agentId={agentId} status={agent.status} />

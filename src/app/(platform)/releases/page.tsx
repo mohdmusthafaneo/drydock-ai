@@ -4,6 +4,7 @@ import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/layout/page-header";
 
 export default async function ReleasesPage() {
   const session = await getSession();
@@ -21,22 +22,19 @@ export default async function ReleasesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">Release governance</h1>
-          <p className="mt-1 text-slate-400">
-            Track release events through assessment, approval, and controlled deployment.
-          </p>
-        </div>
-        <Button asChild>
+      <PageHeader
+        title="Release governance"
+        description="Track release events through assessment, approval, and controlled deployment."
+      >
+        <Button asChild variant="ink" size="lg">
           <Link href="/releases/new">+ Register release</Link>
         </Button>
-      </div>
+      </PageHeader>
 
       {releases.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[#4F8CFF]/30 bg-[#4F8CFF]/5 px-6 py-12 text-center">
-          <p className="text-slate-400">No releases yet. Register a release event to start the workflow.</p>
-          <Button asChild className="mt-4">
+        <div className="rounded-[var(--radius-card)] border border-dashed border-dove bg-sky-wash/40 px-6 py-12 text-center">
+          <p className="text-ash">No releases yet. Register a release event to start the workflow.</p>
+          <Button asChild variant="ink" size="lg" className="mt-4">
             <Link href="/releases/new">Register release</Link>
           </Button>
         </div>
@@ -46,15 +44,15 @@ export default async function ReleasesPage() {
             <Link
               key={r.id}
               href={`/releases/${r.id}`}
-              className="block rounded-xl border border-white/8 bg-[#1B2435] p-5 transition-colors hover:border-[#4F8CFF]/40"
+              className="block rounded-[var(--radius-card)] border border-border-subtle bg-surface p-5 shadow-[var(--shadow-subtle)] transition-colors hover:bg-hover"
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <p className="text-lg font-medium">
+                  <p className="text-lg font-medium text-ink">
                     {r.name}
                     {r.version ? ` · ${r.version}` : ""}
                   </p>
-                  <p className="text-sm text-slate-500">{r.environment}</p>
+                  <p className="text-sm text-muted">{r.environment}</p>
                 </div>
                 <Badge
                   variant={
@@ -71,7 +69,7 @@ export default async function ReleasesPage() {
                 </Badge>
               </div>
               {r.readinessScore != null && (
-                <p className="mt-2 text-sm text-slate-400">
+                <p className="mt-2 text-sm text-ash">
                   QA readiness {Math.round(r.readinessScore)}% · governance risk{" "}
                   {r.governanceRiskScore != null ? Math.round(r.governanceRiskScore) : "—"}%
                 </p>

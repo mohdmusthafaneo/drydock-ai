@@ -25,12 +25,14 @@ export default async function EnterpriseDashboardPage() {
 
   if (!ctx.dna) {
     return (
-      <div className="mx-auto max-w-lg space-y-6 py-16 text-center">
-        <h1 className="text-2xl font-semibold">Governance cockpit</h1>
-        <p className="text-secondary">
+      <div className="mx-auto max-w-lg space-y-8 py-20 text-center">
+        <h1 className="font-display text-[44px] leading-[1.1] tracking-[-0.66px] text-ink">
+          Governance cockpit
+        </h1>
+        <p className="text-[16px] leading-relaxed text-ash">
           Configure delivery governance and QA policies before running release intelligence.
         </p>
-        <Button asChild>
+        <Button asChild variant="ink" size="lg">
           <Link href="/governance/setup">Configure governance</Link>
         </Button>
       </div>
@@ -38,7 +40,7 @@ export default async function EnterpriseDashboardPage() {
   }
 
   return (
-    <div className="w-full pb-24 lg:pb-8">
+    <div className="w-full">
       <ExecutiveBriefingHero briefing={briefing} orgName={orgName} />
       <BriefingBreakdownSection briefing={briefing} charts={charts} />
       <FullOperationalDeck ctx={ctx} orgName={orgName} />

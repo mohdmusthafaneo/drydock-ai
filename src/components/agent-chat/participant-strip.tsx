@@ -15,9 +15,9 @@ function roleLabel(role: AgentChatParticipantRole): string {
 }
 
 function avatarColor(role: AgentChatParticipantRole): string {
-  if (role === "coordinator") return "bg-mvp-muted text-mvp";
-  if (role === "specialist") return "bg-brand/20 text-brand";
-  return "bg-white/10 text-slate-300";
+  if (role === "coordinator") return "bg-apricot-wash text-rust";
+  if (role === "specialist") return "bg-sky-wash text-chart-blue";
+  return "bg-fog text-ash";
 }
 
 function displayName(p: ThreadParticipant): string {
@@ -36,11 +36,11 @@ export function ParticipantStrip({
 
   return (
     <div className={cn("flex flex-wrap items-center gap-2", className)}>
-      <span className="text-xs text-slate-500">Participants</span>
+      <span className="text-xs text-graphite">Participants</span>
       {participants.map((p) => (
         <div
           key={p.id}
-          className="flex items-center gap-1.5 rounded-full border border-white/10 bg-[#131A2A]/60 px-2.5 py-1"
+          className="flex items-center gap-1.5 rounded-full border border-border-subtle bg-pure-white px-2.5 py-1 shadow-[var(--shadow-subtle)]"
           title={roleLabel(p.role)}
         >
           <span
@@ -51,9 +51,9 @@ export function ParticipantStrip({
           >
             {displayName(p).slice(0, 1).toUpperCase()}
           </span>
-          <span className="text-xs text-slate-300">{displayName(p)}</span>
+          <span className="text-xs text-ink">{displayName(p)}</span>
           {p.role !== "human" && (
-            <span className="text-[10px] text-slate-500">{roleLabel(p.role)}</span>
+            <span className="text-[10px] text-graphite">{roleLabel(p.role)}</span>
           )}
         </div>
       ))}
