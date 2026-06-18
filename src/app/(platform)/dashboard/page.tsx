@@ -21,7 +21,7 @@ export default async function EnterpriseDashboardPage() {
     redirect("/accelerator");
   }
 
-  const { briefing, ctx, orgName } = await loadExecutiveBriefing(session.organizationId);
+  const { briefing, charts, ctx, orgName } = await loadExecutiveBriefing(session.organizationId);
 
   if (!ctx.dna) {
     return (
@@ -40,7 +40,7 @@ export default async function EnterpriseDashboardPage() {
   return (
     <div className="w-full pb-24 lg:pb-8">
       <ExecutiveBriefingHero briefing={briefing} orgName={orgName} />
-      <BriefingBreakdownSection briefing={briefing} />
+      <BriefingBreakdownSection briefing={briefing} charts={charts} />
       <FullOperationalDeck ctx={ctx} orgName={orgName} />
     </div>
   );

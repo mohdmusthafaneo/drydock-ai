@@ -3,10 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { deliveryAnalysisForFilters, resolveStoredJiraDelivery } from "@/lib/delivery-analysis/resolve";
 import { resolveStoredCodeAnalysis, snapshotForFilters } from "@/lib/code-analysis/sync";
 import { composeExecutiveBriefing } from "@/lib/executive-briefing/compose-briefing";
-import type { ExecutiveBriefing } from "@/lib/executive-briefing/types";
+import type { BriefingCharts, ExecutiveBriefing } from "@/lib/executive-briefing/types";
 import { isPrometheusTrulyConnected, parsePrometheusMeta } from "@/lib/prometheus-meta";
 import { isGrafanaTrulyConnected, parseGrafanaMeta } from "@/lib/grafana-meta";
 import type { ObservabilityAnalysisSnapshot } from "@/lib/observability-analysis/types";
+import {
+  isAssessDataStale,
+  resolveAssessSourceFreshness,
+} from "@/lib/release-assess-snapshot";
 
 const DEFAULT_DELIVERY_FILTERS = {
   projectKey: null,
@@ -86,8 +90,96 @@ function resolveObservabilitySnapshot(
   return { snapshot: null, isDemo: false, syncedAt: null };
 }
 
+function buildBriefingCharts(input: {
+  deliverySnapshot: ReturnType<typeof deliveryAnalysisForFilters> | null;
+  codeSnapshot: ReturnType<typeof snapshotForFilters> | null;
+  observabilitySnapshot: ObservabilityAnalysisSnapshot | null;
+  observabilityIsDemo: boolean;
+  releases: Awaited<ReturnType<typeof getOrganizationContext>>["releases"];
+  recommendations: Awaited<ReturnType<typeof getOrganizationContext>>["recommendations"];
+  approvals: Awaited<ReturnType<typeof getOrganizationContext>>["approvals"];
+  integrations: Awaited<ReturnType<typeof getOrganizationContext>>["integrations"];
+}): BriefingCharts {
+  const latestAssessed = [...input.releases]
+    .filter((r) => r.assessedAt)
+    .sort(
+      (a, b) =>
+        new Date(b.assessedAt!).getTime() - new Date(a.assessedAt!).getTime(),
+    )[0];
+
+  let release: BriefingCharts["release"] = null;
+  if (latestAssessed?.assessedAt) {
+    const releaseRecIds = new Set(
+      input.recommendations
+        .filter((rec) => rec.releaseId === latestAssessed.id)
+        .map((rec) => rec.id),
+    );
+    const pendingApprovals = input.approvals.filter(
+      (a) =>
+        a.recommendationId != null &&
+        releaseRecIds.has(a.recommendationId) &&
+        !a.decision,
+    );
+    const pendingRecs = input.recommendations.filter((rec) =>
+      pendingApprovals.some((a) => a.recommendationId === rec.id),
+    );
+    const pendingRoles = [
+      ...new Set(
+        pendingRecs
+          .map((r) => r.requiredRole)
+          .filter((role): role is NonNullable<typeof role> => role != null)
+          .map((role) => role.replace(/_/g, " ")),
+      ),
+    ];
+    const sourceFreshness = resolveAssessSourceFreshness(input.integrations);
+    const staleData = isAssessDataStale({
+      assessedAt: latestAssessed.assessedAt,
+      sourceFreshness,
+    });
+
+    release = {
+      releaseId: latestAssessed.id,
+      releaseName: latestAssessed.name,
+      version: latestAssessed.version,
+      environment: latestAssessed.environment,
+      readinessScore: latestAssessed.readinessScore,
+      governanceRiskScore: latestAssessed.governanceRiskScore,
+      riskLevel: latestAssessed.riskLevel,
+      primaryRecommendation: latestAssessed.primaryRecommendation,
+      assessmentSummary: latestAssessed.assessmentSummary,
+      qaSignalsJson: latestAssessed.qaSignalsJson,
+      testGapsJson: latestAssessed.testGapsJson,
+      telemetryJson: latestAssessed.telemetryJson,
+      postDeployComparisonJson: latestAssessed.postDeployComparisonJson,
+      assessedAt: latestAssessed.assessedAt.toISOString(),
+      pendingApprovalCount: pendingApprovals.length,
+      pendingApprovalRoles: pendingRoles,
+      staleData,
+    };
+  }
+
+  return {
+    delivery: input.deliverySnapshot
+      ? { riskMix: input.deliverySnapshot.riskMix }
+      : null,
+    engineering:
+      input.codeSnapshot && input.codeSnapshot.byAuthor.length > 0
+        ? { byAuthor: input.codeSnapshot.byAuthor }
+        : null,
+    stability:
+      input.observabilitySnapshot && !input.observabilityIsDemo
+        ? {
+            openAlerts: input.observabilitySnapshot.kpis.openAlerts,
+            healthScore: input.observabilitySnapshot.kpis.healthScore,
+          }
+        : null,
+    release,
+  };
+}
+
 export async function loadExecutiveBriefing(organizationId: string): Promise<{
   briefing: ExecutiveBriefing;
+  charts: BriefingCharts;
   ctx: Awaited<ReturnType<typeof getOrganizationContext>>;
   orgName: string;
 }> {
@@ -153,8 +245,20 @@ export async function loadExecutiveBriefing(organizationId: string): Promise<{
     },
   });
 
+  const charts = buildBriefingCharts({
+    deliverySnapshot,
+    codeSnapshot,
+    observabilitySnapshot,
+    observabilityIsDemo,
+    releases: ctx.releases,
+    recommendations: ctx.recommendations,
+    approvals: ctx.approvals,
+    integrations: ctx.integrations,
+  });
+
   return {
     briefing,
+    charts,
     ctx,
     orgName: org?.name ?? "Your organization",
   };

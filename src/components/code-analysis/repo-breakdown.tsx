@@ -1,3 +1,5 @@
+"use client";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -63,36 +65,42 @@ export function AuthorBreakdown({
   items,
   onSelectAuthor,
   selectedAuthor,
+  compact = false,
 }: {
   items: { login: string; aiLinesPct: number; commits: number }[];
   onSelectAuthor?: (login: string) => void;
   selectedAuthor?: string | null;
+  compact?: boolean;
 }) {
+  const visibleItems = compact ? items.slice(0, 5) : items.slice(0, 8);
+
   return (
     <Card className="h-full">
-      <CardHeader>
-        <CardTitle className="text-base">By author</CardTitle>
-        <CardDescription>Top contributors in selected period</CardDescription>
+      <CardHeader className={compact ? "pb-2" : undefined}>
+        <CardTitle className={compact ? "text-sm" : "text-base"}>By author</CardTitle>
+        <CardDescription className={compact ? "text-xs" : undefined}>
+          {compact ? "Top contributors · last 7 days" : "Top contributors in selected period"}
+        </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className={compact ? "pt-0" : undefined}>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className={cn("w-full text-sm", compact && "text-xs")}>
             <thead>
               <tr className="border-b border-border text-left text-xs text-muted">
                 <th className="pb-2 font-medium">Author</th>
                 <th className="pb-2 font-medium">Commits</th>
-                <th className="pb-2 text-right font-medium">AI lines</th>
+                {!compact && <th className="pb-2 text-right font-medium">AI lines</th>}
               </tr>
             </thead>
             <tbody>
-              {items.length === 0 ? (
+              {visibleItems.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="py-4 text-muted">
+                  <td colSpan={compact ? 2 : 3} className="py-4 text-muted">
                     No data for selected filters.
                   </td>
                 </tr>
               ) : (
-                items.slice(0, 8).map((item) => (
+                visibleItems.map((item) => (
                   <tr
                     key={item.login}
                     className={cn(
@@ -104,17 +112,19 @@ export function AuthorBreakdown({
                   >
                     <td className="py-2 font-medium text-primary">{item.login}</td>
                     <td className="py-2 tabular-nums text-secondary">{item.commits}</td>
-                    <td className="py-2 text-right tabular-nums">
-                      <span
-                        className={cn(
-                          item.aiLinesPct >= 60 && "text-mvp",
-                          item.aiLinesPct >= 30 && item.aiLinesPct < 60 && "text-enterprise",
-                          item.aiLinesPct < 30 && "text-secondary",
-                        )}
-                      >
-                        {item.aiLinesPct}%
-                      </span>
-                    </td>
+                    {!compact && (
+                      <td className="py-2 text-right tabular-nums">
+                        <span
+                          className={cn(
+                            item.aiLinesPct >= 60 && "text-mvp",
+                            item.aiLinesPct >= 30 && item.aiLinesPct < 60 && "text-enterprise",
+                            item.aiLinesPct < 30 && "text-secondary",
+                          )}
+                        >
+                          {item.aiLinesPct}%
+                        </span>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}

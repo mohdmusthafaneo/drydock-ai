@@ -42,3 +42,40 @@ export type ExecutiveBriefing = {
   };
   source: "deterministic" | "llm_enriched";
 };
+
+export type BriefingCharts = {
+  delivery: {
+    riskMix: {
+      blocked: number;
+      overdue: number;
+      bugs: number;
+      otherOpen: number;
+    };
+  } | null;
+  engineering: {
+    byAuthor: { login: string; aiLinesPct: number; commits: number }[];
+  } | null;
+  stability: {
+    openAlerts: number;
+    healthScore: number;
+  } | null;
+  release: {
+    releaseId: string;
+    releaseName: string;
+    version?: string | null;
+    environment: string;
+    readinessScore: number | null;
+    governanceRiskScore: number | null;
+    riskLevel: string | null;
+    primaryRecommendation: string | null;
+    assessmentSummary?: string | null;
+    qaSignalsJson: string;
+    testGapsJson: string;
+    telemetryJson: string;
+    postDeployComparisonJson: string | null;
+    assessedAt: string | null;
+    pendingApprovalCount: number;
+    pendingApprovalRoles: string[];
+    staleData: boolean;
+  } | null;
+};

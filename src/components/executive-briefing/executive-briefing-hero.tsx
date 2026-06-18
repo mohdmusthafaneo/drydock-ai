@@ -1,9 +1,9 @@
 import type { ExecutiveBriefing } from "@/lib/executive-briefing/types";
-import { formatDistanceToNow } from "@/lib/format-date";
 import { DeliveryHealthGauge } from "@/components/executive-briefing/delivery-health-gauge";
 import { BriefingNarrative } from "@/components/executive-briefing/briefing-narrative";
 import { BriefingPrimaryCta } from "@/components/executive-briefing/briefing-primary-cta";
 import { ScrollCue } from "@/components/executive-briefing/scroll-cue";
+import { BriefingFreshnessStrip } from "@/components/executive-briefing/briefing-freshness-strip";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -12,7 +12,6 @@ type Props = {
 };
 
 export function ExecutiveBriefingHero({ briefing, orgName }: Props) {
-  const asOfDate = new Date(briefing.freshness.asOf);
   const healthLabel =
     briefing.health.visible && briefing.health.bandLabel
       ? `Delivery confidence: ${briefing.health.bandLabel}`
@@ -26,14 +25,7 @@ export function ExecutiveBriefingHero({ briefing, orgName }: Props) {
     >
       <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-lg font-medium text-secondary">{orgName}</h1>
-        <p className="text-sm text-muted">
-          Data as of {formatDistanceToNow(asOfDate)}
-          {briefing.freshness.stale && (
-            <span className="ml-2 text-warning">
-              · {briefing.freshness.staleSources.join(", ")} data may be stale
-            </span>
-          )}
-        </p>
+        <BriefingFreshnessStrip freshness={briefing.freshness} />
       </div>
 
       <div className="grid items-center gap-10 lg:grid-cols-[minmax(140px,200px)_1fr] lg:gap-14">

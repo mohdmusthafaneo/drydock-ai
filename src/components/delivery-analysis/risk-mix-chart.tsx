@@ -4,13 +4,16 @@ import {
   type DeliveryAnalysisSnapshot,
 } from "@/lib/delivery-analysis/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 const ORDER = ["blocked", "overdue", "bugs", "otherOpen"] as const;
 
 export function RiskMixChart({
   riskMix,
+  compact = false,
 }: {
   riskMix: DeliveryAnalysisSnapshot["riskMix"];
+  compact?: boolean;
 }) {
   const total = ORDER.reduce((n, k) => n + riskMix[k], 0);
   const segments = ORDER.map((key) => {
@@ -19,21 +22,29 @@ export function RiskMixChart({
     return { key, count, pct };
   }).filter((s) => s.count > 0);
 
-  let offset = 0;
-  const radius = 40;
+  const radius = compact ? 32 : 40;
   const circumference = 2 * Math.PI * radius;
+  const svgSize = compact ? 96 : 120;
 
   if (total === 0) {
     return (
       <Card className="h-full">
-        <CardHeader>
-          <CardTitle className="text-base">Risk mix</CardTitle>
-          <CardDescription>
-            Open work by risk category · counts at last sync, not live Jira
-          </CardDescription>
+        <CardHeader className={compact ? "pb-2" : undefined}>
+          <CardTitle className={compact ? "text-sm" : "text-base"}>Risk mix</CardTitle>
+          {!compact && (
+            <CardDescription>
+              Open work by risk category · counts at last sync, not live Jira
+            </CardDescription>
+          )}
         </CardHeader>
-        <CardContent>
-          <div className="flex min-h-[160px] flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-elevated/30 p-6 text-center">
+        <CardContent className={compact ? "pt-0" : undefined}>
+          <div
+            className={cn(
+              "flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-elevated/30 p-6 text-center",
+              compact && "min-h-[120px] p-4",
+              !compact && "min-h-[160px]",
+            )}
+          >
             <p className="text-sm text-secondary">No open issues in scope</p>
             <p className="text-xs text-muted">
               All projects may be clear, or the selected filter has no open work at last sync.
@@ -46,16 +57,28 @@ export function RiskMixChart({
 
   return (
     <Card className="h-full">
-      <CardHeader>
-        <CardTitle className="text-base">Risk mix</CardTitle>
-        <CardDescription>
-          Open work by risk category · counts at last sync, not live Jira
+      <CardHeader className={compact ? "pb-2" : undefined}>
+        <CardTitle className={compact ? "text-sm" : "text-base"}>Risk mix</CardTitle>
+        <CardDescription className={compact ? "text-xs" : undefined}>
+          {compact
+            ? "Open work by risk · last Jira sync"
+            : "Open work by risk category · counts at last sync, not live Jira"}
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start">
+      <CardContent className={compact ? "pt-0" : undefined}>
+        <div
+          className={cn(
+            "flex flex-col items-center gap-6 sm:flex-row sm:items-start",
+            compact && "gap-4",
+          )}
+        >
           <div className="relative shrink-0">
-            <svg width="120" height="120" viewBox="0 0 100 100" className="-rotate-90">
+            <svg
+              width={svgSize}
+              height={svgSize}
+              viewBox="0 0 100 100"
+              className="-rotate-90"
+            >
               <circle
                 cx="50"
                 cy="50"
@@ -64,7 +87,9 @@ export function RiskMixChart({
                 stroke="var(--metric-track)"
                 strokeWidth="12"
               />
-              {segments.map((seg) => {
+              {(() => {
+                let offset = 0;
+                return segments.map((seg) => {
                 const dash = (seg.pct / 100) * circumference;
                 const el = (
                   <circle
@@ -82,17 +107,26 @@ export function RiskMixChart({
                 );
                 offset += seg.pct;
                 return el;
-              })}
+              });
+              })()}
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-2xl font-semibold">{total.toLocaleString()}</span>
+              <span className={cn("font-semibold", compact ? "text-xl" : "text-2xl")}>
+                {total.toLocaleString()}
+              </span>
               <span className="text-[10px] text-muted">open issues</span>
             </div>
           </div>
 
-          <ul className="w-full space-y-2.5">
+          <ul className={cn("w-full space-y-2.5", compact && "space-y-1.5")}>
             {segments.map((seg) => (
-              <li key={seg.key} className="flex items-center justify-between gap-2 text-sm">
+              <li
+                key={seg.key}
+                className={cn(
+                  "flex items-center justify-between gap-2 text-sm",
+                  compact && "text-xs",
+                )}
+              >
                 <span className="flex items-center gap-2 text-secondary">
                   <span
                     className="h-2.5 w-2.5 shrink-0 rounded-full"
