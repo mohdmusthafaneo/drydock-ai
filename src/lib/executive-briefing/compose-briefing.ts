@@ -1,6 +1,7 @@
 import { computeDeliveryHealthScore } from "@/lib/executive-briefing/health-score";
 import type {
   BriefingClaim,
+  BriefingClaimVerdict,
   BriefingHighlight,
   BriefingInsight,
   ExecutiveBriefing,
@@ -406,102 +407,176 @@ function buildHighlights(
   return highlights.slice(0, 4);
 }
 
+function releaseVerdict(
+  status: string,
+  readiness: number | null | undefined,
+  risk: number | null | undefined,
+): { verdict: BriefingClaimVerdict; verdictLabel: string } {
+  if (status === "BLOCKED") {
+    return { verdict: "risk", verdictLabel: "Blocked" };
+  }
+  if (status === "DEPLOYED") {
+    return { verdict: "good", verdictLabel: "Live" };
+  }
+  if (readiness != null && readiness >= 80 && (risk == null || risk < 35)) {
+    return { verdict: "good", verdictLabel: "On track" };
+  }
+  if (readiness != null && readiness >= 60) {
+    return { verdict: "attention", verdictLabel: "Needs review" };
+  }
+  if (risk != null && risk >= 50) {
+    return { verdict: "risk", verdictLabel: "High risk" };
+  }
+  if (readiness != null && readiness < 60) {
+    return { verdict: "risk", verdictLabel: "Not ready" };
+  }
+  return { verdict: "neutral", verdictLabel: releaseStatusPhrase(status) };
+}
+
+function deliveryVerdict(blocked: number, overdue: number): {
+  verdict: BriefingClaimVerdict;
+  verdictLabel: string;
+} {
+  if (blocked > 0) {
+    return { verdict: "risk", verdictLabel: `${blocked} blocked` };
+  }
+  if (overdue > 0) {
+    return { verdict: "attention", verdictLabel: `${overdue} overdue` };
+  }
+  return { verdict: "good", verdictLabel: "On schedule" };
+}
+
+function capitalizeFirst(text: string): string {
+  if (!text) return text;
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 function buildClaims(input: ComposeBriefingInput, health: ExecutiveBriefing["health"]): BriefingClaim[] {
   const claims: BriefingClaim[] = [];
   const release = input.latestRelease;
 
   if (release) {
-    const facts: string[] = [];
-    if (release.readinessScore != null) {
-      facts.push(`${Math.round(release.readinessScore)}% ready to ship`);
-    }
-    if (release.governanceRiskScore != null) {
-      facts.push(`Risk score ${Math.round(release.governanceRiskScore)}%`);
-    }
-    facts.push(releaseStatusPhrase(release.status));
+    const readiness = release.readinessScore;
+    const risk = release.governanceRiskScore;
+    const { verdict, verdictLabel } = releaseVerdict(release.status, readiness, risk);
+    const statusLine = releaseStatusPhrase(release.status);
+    const riskLine = risk != null ? `Governance risk ${Math.round(risk)}%` : null;
+    const context =
+      riskLine && statusLine !== verdictLabel
+        ? `${statusLine} · ${riskLine}`
+        : riskLine ?? statusLine;
+
     claims.push({
       id: "release",
       headline: release.name,
-      facts,
+      metric: readiness != null ? `${Math.round(readiness)}%` : undefined,
+      metricLabel: readiness != null ? "Ready to ship" : undefined,
+      verdict,
+      verdictLabel,
+      context: capitalizeFirst(context),
       href: `/releases/${release.id}`,
-      severity: release.status === "BLOCKED" ? "critical" : "info",
     });
   }
 
-  const momentumDim = health.dimensions.find((d) => d.id === "momentum");
-  if (momentumDim && input.deliverySnapshot) {
-    const { blocked, overdue, resolvedLast7d } = input.deliverySnapshot.kpis;
+  if (input.deliverySnapshot) {
+    const { blocked, overdue, resolvedLast7d, openWork } = input.deliverySnapshot.kpis;
+    const { verdict, verdictLabel } = deliveryVerdict(blocked, overdue);
+    const closed = resolvedLast7d ?? 0;
+    const open = openWork ?? 0;
+
+    let context: string;
+    if (blocked > 0 && overdue > 0) {
+      context = `${blocked} waiting on dependencies · ${overdue} past due`;
+    } else if (blocked > 0) {
+      context = `${blocked} item${blocked === 1 ? "" : "s"} waiting on dependencies`;
+    } else if (overdue > 0) {
+      context = `${overdue} item${overdue === 1 ? "" : "s"} past due`;
+    } else if (closed > 0) {
+      context = `${open.toLocaleString()} still open · pace is healthy`;
+    } else {
+      context = `${open.toLocaleString()} open item${open === 1 ? "" : "s"} in flight`;
+    }
+
     claims.push({
-      id: "momentum",
-      headline: resolvedLast7d != null && resolvedLast7d > 0
-        ? `${resolvedLast7d} closed this week`
-        : "Delivery pace",
-      facts: [
-        blocked > 0 ? `${blocked} blocked` : "No blockers",
-        overdue > 0 ? `${overdue} overdue` : "On schedule",
-      ],
+      id: "delivery",
+      headline: "Delivery pace",
+      metric: closed > 0 ? String(closed) : open > 0 ? open.toLocaleString() : "0",
+      metricLabel: closed > 0 ? "Closed this week" : "Open items",
+      verdict,
+      verdictLabel,
+      context: capitalizeFirst(context),
       href: "/delivery-analysis",
-      severity: blocked > 0 || overdue > 0 ? "warning" : "info",
-    });
-  }
-
-  if (input.activeAuthors != null && input.activeAuthors > 0) {
-    const facts =
-      input.topAuthors?.slice(0, 2).map((a) => `${a.login} · ${a.commits} commits`) ?? [
-        `${input.activeAuthors} active this week`,
-      ];
-    claims.push({
-      id: "engineering",
-      headline: `${input.activeAuthors} contributors`,
-      facts,
-      href: "/code-analysis",
     });
   }
 
   const stabilityDim = health.dimensions.find((d) => d.id === "stability");
   if (stabilityDim) {
+    const incidents = input.stats.openIncidents;
+    const degraded = input.stats.degradedDeployments;
+    const healthScore = Math.round(stabilityDim.score);
+
+    let verdict: BriefingClaimVerdict;
+    let verdictLabel: string;
+    let context: string;
+
+    if (incidents > 0) {
+      verdict = "risk";
+      verdictLabel = `${incidents} incident${incidents === 1 ? "" : "s"}`;
+      context =
+        degraded > 0
+          ? `${degraded} degraded deployment${degraded === 1 ? "" : "s"} need review`
+          : "Production needs immediate attention";
+    } else if (degraded > 0) {
+      verdict = "attention";
+      verdictLabel = "Degraded";
+      context = `${degraded} deployment${degraded === 1 ? "" : "s"} below target health`;
+    } else {
+      verdict = "good";
+      verdictLabel = "Stable";
+      context = "No open incidents · deployments healthy";
+    }
+
     claims.push({
       id: "stability",
-      headline:
-        input.stats.openIncidents === 0
-          ? "Production is stable"
-          : `${input.stats.openIncidents} open incident${input.stats.openIncidents === 1 ? "" : "s"}`,
-      facts: [
-        input.stats.degradedDeployments > 0
-          ? `${input.stats.degradedDeployments} degraded deployments`
-          : "Deployments healthy",
-      ],
-      href: input.stats.openIncidents > 0 ? "/incidents" : "/observability",
-      severity:
-        input.stats.openIncidents > 0
-          ? "critical"
-          : input.stats.degradedDeployments > 0
-            ? "warning"
-            : "info",
+      headline: incidents > 0 ? "Production alert" : "Production",
+      metric: incidents > 0 ? String(incidents) : String(healthScore),
+      metricLabel: incidents > 0 ? "Open incidents" : "Health score",
+      verdict,
+      verdictLabel,
+      context: capitalizeFirst(context),
+      href: incidents > 0 ? "/incidents" : "/observability",
     });
   }
 
   if (input.stats.pendingApprovals > 0) {
+    const n = input.stats.pendingApprovals;
     claims.push({
       id: "approvals",
-      headline: `${input.stats.pendingApprovals} approval${input.stats.pendingApprovals === 1 ? "" : "s"} waiting`,
-      facts: ["Sign-off needed before deploy"],
+      headline: "Release approvals",
+      metric: String(n),
+      metricLabel: "Waiting on you",
+      verdict: "attention",
+      verdictLabel: "Action needed",
+      context: "Sign-off required before the next deploy",
       href: "/approvals",
-      severity: "warning",
     });
   }
 
   if (input.stats.rollbackPending > 0) {
+    const n = input.stats.rollbackPending;
     claims.push({
       id: "rollback",
       headline: "Rollback review",
-      facts: [`${input.stats.rollbackPending} deployment(s) flagged`],
+      metric: String(n),
+      metricLabel: "Deployments flagged",
+      verdict: "risk",
+      verdictLabel: "Review now",
+      context: "Rollback may be required — check deployment health",
       href: "/devops",
-      severity: "critical",
     });
   }
 
-  return claims.slice(0, 5);
+  return claims.slice(0, 4);
 }
 
 function resolveFreshness(input: ComposeBriefingInput): ExecutiveBriefing["freshness"] {

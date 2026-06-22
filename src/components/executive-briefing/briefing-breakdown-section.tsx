@@ -29,7 +29,7 @@ export function BriefingBreakdownSection({ briefing, charts, id = "breakdown" }:
             The details
           </h2>
           <p className="mt-3 max-w-xl text-[16px] leading-relaxed text-ash">
-            Tap through for the full picture behind your briefing.
+            Status at a glance — each card shows whether things are on track, need attention, or at risk.
           </p>
         </div>
         {briefing.freshness.stale && (

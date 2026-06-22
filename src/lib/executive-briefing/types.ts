@@ -21,12 +21,21 @@ export type DeliveryHealthScore = {
   visible: boolean;
 };
 
+export type BriefingClaimVerdict = "good" | "attention" | "risk" | "neutral";
+
 export type BriefingClaim = {
   id: string;
   headline: string;
-  facts: string[];
+  /** Large figure — readiness %, incident count, etc. */
+  metric?: string;
+  /** What the figure measures, e.g. "Ready to ship" */
+  metricLabel?: string;
+  /** Plain-English status the user can act on */
+  verdict: BriefingClaimVerdict;
+  verdictLabel: string;
+  /** One supporting sentence — no bullet lists */
+  context: string;
   href?: string;
-  severity?: "info" | "warning" | "critical";
 };
 
 /** Inline segment for the L1 natural-language headline (emphasis = key numbers/names). */

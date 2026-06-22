@@ -167,7 +167,7 @@ describe("composeExecutiveBriefing", () => {
 
     const stability = briefing.claims.find((c) => c.id === "stability");
     assert.ok(stability);
-    assert.ok(stability!.severity === "critical" || stability!.severity === "warning");
+    assert.equal(stability!.verdict, "risk");
   });
 
   it("keeps headline short and avoids banned jargon", () => {
