@@ -1,5 +1,8 @@
+"use client";
+
 import { cn } from "@/lib/utils";
 import type { HealthBand } from "@/lib/executive-briefing/types";
+import { AnimatedGaugeDisplay } from "@/components/motion/animated-gauge";
 
 type Props = {
   score: number | null;
@@ -57,19 +60,13 @@ export function DeliveryHealthGauge({ score, band, bandLabel, visible, className
       <p className="text-[13px] font-medium uppercase tracking-[0.04em] text-graphite">
         Delivery confidence
       </p>
-      <div className="relative flex h-52 w-[72px] items-end justify-center rounded-full border border-dove/60 bg-pure-white p-2">
-        <div
-          className={cn(
-            "w-full rounded-full transition-all duration-700 ease-out",
-            BAND_FILL[band],
-          )}
-          style={{ height: `${fillPct}%` }}
-        />
-      </div>
-      <div className="text-center">
-        <p className="text-[44px] leading-none tracking-[-0.66px] text-ink">{score}</p>
-        <p className={cn("mt-1 text-[15px] font-medium", BAND_TEXT[band])}>{bandLabel}</p>
-      </div>
+      <AnimatedGaugeDisplay
+        fillPct={fillPct}
+        fillClassName={BAND_FILL[band]}
+        score={score}
+        bandLabel={bandLabel}
+        bandTextClassName={BAND_TEXT[band]}
+      />
     </div>
   );
 }
