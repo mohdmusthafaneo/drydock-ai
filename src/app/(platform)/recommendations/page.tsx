@@ -1,10 +1,16 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getSession } from "@/lib/session";
 import { getOrganizationContext } from "@/lib/org-data";
+import {
+  buildRecommendationsSummaryHighlights,
+  sortRecommendationsByUrgency,
+} from "@/lib/governance/presentation";
 import { PageHeader } from "@/components/layout/page-header";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
+import { BriefingHighlights } from "@/components/executive-briefing/briefing-highlights";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { RecommendationCard } from "@/components/recommendations/recommendation-card";
 
 export default async function RecommendationsCenterPage() {
   const session = await getSession();
@@ -13,6 +19,15 @@ export default async function RecommendationsCenterPage() {
   const ctx = await getOrganizationContext(session.organizationId);
   if (!ctx.dna) redirect("/governance/setup");
 
+  const highlights = buildRecommendationsSummaryHighlights(ctx);
+  const sorted = sortRecommendationsByUrgency(ctx.recommendations);
+
+  const pendingApprovalByRecId = new Map(
+    ctx.approvals
+      .filter((a) => !a.decision && a.recommendationId)
+      .map((a) => [a.recommendationId!, a.id]),
+  );
+
   return (
     <div className="space-y-8">
       <PageHeader
@@ -20,58 +35,51 @@ export default async function RecommendationsCenterPage() {
         description="Explainable AI proposals — scored, correlated, and routed to human governance."
       />
 
+      {highlights.length > 0 && (
+        <section className="space-y-3">
+          <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-graphite">
+            At a glance
+          </p>
+          <BriefingHighlights highlights={highlights} />
+        </section>
+      )}
+
       <div className="space-y-4">
-        {ctx.recommendations.length === 0 ? (
+        {sorted.length === 0 ? (
           <Card className="border-dashed border-border">
-            <CardContent className="py-10 text-center text-muted">
-              Assess a release to generate governance recommendations.
+            <CardContent className="space-y-4 py-12 text-center">
+              <p className="font-display text-[22px] leading-snug text-ink">
+                No recommendations yet
+              </p>
+              <p className="mx-auto max-w-md text-[14px] leading-relaxed text-ash">
+                Assess a release to generate governance recommendations. AIDOS will surface risks,
+                gaps, and sign-off requirements before deploy.
+              </p>
+              <Button asChild variant="ink">
+                <Link href="/releases">View releases</Link>
+              </Button>
             </CardContent>
           </Card>
         ) : (
-          ctx.recommendations.map((rec) => {
+          sorted.map((rec) => {
             const systems = JSON.parse(rec.affectedSystems || "[]") as string[];
             return (
-              <Card key={rec.id}>
-                <CardHeader>
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <CardTitle className="text-lg">{rec.title}</CardTitle>
-                    <div className="flex gap-2">
-                      <Badge
-                        variant={
-                          rec.impact === "CRITICAL" || rec.impact === "HIGH"
-                            ? "warning"
-                            : "default"
-                        }
-                      >
-                        {rec.impact}
-                      </Badge>
-                      <Badge variant="muted">{rec.status}</Badge>
-                    </div>
-                  </div>
-                  <CardDescription>
-                    Confidence {(rec.confidence * 100).toFixed(0)}%
-                    {rec.requiredRole && ` · Requires ${rec.requiredRole.replace(/_/g, " ")}`}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3 text-sm">
-                  <p className="text-secondary">{rec.description}</p>
-                  <p className="text-muted">
-                    <span className="text-secondary">Rationale: </span>
-                    {rec.rationale}
-                  </p>
-                  {systems.length > 0 && (
-                    <p className="text-muted">Systems: {systems.join(", ")}</p>
-                  )}
-                  {rec.release && (
-                    <Link
-                      href={`/releases/${rec.release.id}`}
-                      className="text-ink underline-offset-4 hover:underline"
-                    >
-                      Linked release: {rec.release.name} →
-                    </Link>
-                  )}
-                </CardContent>
-              </Card>
+              <RecommendationCard
+                key={rec.id}
+                rec={{
+                  id: rec.id,
+                  title: rec.title,
+                  description: rec.description,
+                  rationale: rec.rationale,
+                  impact: rec.impact,
+                  confidence: rec.confidence,
+                  status: rec.status,
+                  requiredRole: rec.requiredRole,
+                  affectedSystems: systems,
+                  release: rec.release ? { id: rec.release.id, name: rec.release.name } : null,
+                  pendingApprovalId: pendingApprovalByRecId.get(rec.id) ?? null,
+                }}
+              />
             );
           })
         )}

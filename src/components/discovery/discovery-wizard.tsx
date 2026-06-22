@@ -1,10 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/input";
+import { generateDeliveryDNA } from "@/lib/delivery-dna";
+import {
+  approvalLevelLabel,
+  autonomyModeLabel,
+  governanceScoreBand,
+  workflowModeLabel,
+} from "@/lib/governance/presentation";
 import { cn } from "@/lib/utils";
 
 const TOOLS = [
@@ -25,28 +32,61 @@ const WORKFLOWS = [
   { id: "gitflow", label: "GitFlow" },
 ];
 
-const STEPS = ["Organization", "Maturity", "Tools & workflows", "Governance"];
+const STEPS = ["Organization", "Maturity", "Tools & workflows", "Governance", "Review"];
+
+const DEFAULT_FORM = {
+  industryType: "technology",
+  teamSize: "11-50",
+  sdlcMaturity: 3,
+  devopsMaturity: 3,
+  governanceLevel: 3,
+  complianceType: "none",
+  deploymentStrategy: "continuous",
+  tools: ["github", "jira"] as string[],
+  workflows: ["scrum", "devops"] as string[],
+};
+
+export type DiscoveryFormState = typeof DEFAULT_FORM;
 
 const selectClass =
   "flex h-10 w-full rounded-lg border border-border bg-input px-3 text-sm text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand";
 
-export function DiscoveryWizard({ embedded = false }: { embedded?: boolean }) {
+export function DiscoveryWizard({
+  embedded = false,
+  organizationName = "Your organization",
+  initialForm,
+}: {
+  embedded?: boolean;
+  organizationName?: string;
+  initialForm?: DiscoveryFormState;
+}) {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const [form, setForm] = useState({
-    industryType: "technology",
-    teamSize: "11-50",
-    sdlcMaturity: 3,
-    devopsMaturity: 3,
-    governanceLevel: 3,
-    complianceType: "none",
-    deploymentStrategy: "continuous",
-    tools: ["github", "jira"] as string[],
-    workflows: ["scrum", "devops"] as string[],
+  const [form, setForm] = useState<DiscoveryFormState>({
+    ...DEFAULT_FORM,
+    ...initialForm,
   });
+
+  const previewDna = useMemo(
+    () =>
+      generateDeliveryDNA({
+        organizationName,
+        industryType: form.industryType,
+        teamSize: form.teamSize,
+        sdlcMaturity: form.sdlcMaturity,
+        devopsMaturity: form.devopsMaturity,
+        governanceLevel: form.governanceLevel,
+        complianceType: form.complianceType,
+        deploymentStrategy: form.deploymentStrategy,
+        tools: form.tools,
+        workflows: form.workflows,
+      }),
+    [form, organizationName],
+  );
+
+  const previewBand = governanceScoreBand(previewDna.governanceScore);
 
   function toggleItem(key: "tools" | "workflows", id: string) {
     setForm((prev) => {
@@ -90,12 +130,12 @@ export function DiscoveryWizard({ embedded = false }: { embedded?: boolean }) {
         </div>
       )}
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 overflow-x-auto">
         {STEPS.map((label, i) => (
           <div
             key={label}
             className={cn(
-              "flex-1 rounded-[16px] border px-3 py-2 text-center text-xs font-medium",
+              "min-w-[4.5rem] flex-1 rounded-[16px] border px-2 py-2 text-center text-xs font-medium",
               i <= step
                 ? "border-rust/30 bg-apricot-wash text-ink"
                 : "border-border-subtle bg-fog text-muted",
@@ -113,6 +153,7 @@ export function DiscoveryWizard({ embedded = false }: { embedded?: boolean }) {
           </CardTitle>
           <CardDescription>
             Step {step + 1} of {STEPS.length}
+            {initialForm && step === 0 ? " · pre-filled from your profile" : ""}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -254,15 +295,68 @@ export function DiscoveryWizard({ embedded = false }: { embedded?: boolean }) {
             </>
           )}
 
+          {step === 4 && (
+            <div className="space-y-5">
+              <p className="text-[14px] leading-relaxed text-ash">
+                Review your Delivery DNA before generating. This sets approval depth, autonomy
+                mode, and governance recommendations.
+              </p>
+
+              <div className="rounded-[24px] border border-border-subtle bg-apricot-wash/40 p-5">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-graphite">
+                      Governance score
+                    </p>
+                    <p className="mt-1 font-display text-[44px] leading-none tracking-[-0.66px] text-ink">
+                      {previewDna.governanceScore}
+                      <span className="text-[20px] text-graphite">/100</span>
+                    </p>
+                    <p className="mt-1 text-[13px] text-ash">{previewBand.bandLabel}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-graphite">
+                      Autonomy
+                    </p>
+                    <p className="mt-1 font-medium text-ink">
+                      {autonomyModeLabel(previewDna.autonomyMode)}
+                    </p>
+                    <p className="mt-1 text-[13px] text-graphite">
+                      {approvalLevelLabel(previewDna.approvalLevel)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <dl className="grid gap-3 text-sm sm:grid-cols-2">
+                <div>
+                  <dt className="text-muted">Workflow mode</dt>
+                  <dd className="mt-0.5 font-medium text-ink">
+                    {workflowModeLabel(previewDna.workflowMode)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted">Risk threshold</dt>
+                  <dd className="mt-0.5 font-medium text-ink">
+                    {(previewDna.riskThreshold * 100).toFixed(0)}%
+                  </dd>
+                </div>
+              </dl>
+
+              <div className="rounded-[16px] bg-fog px-4 py-3 text-[14px] leading-relaxed text-ash">
+                {previewDna.summary}
+              </div>
+            </div>
+          )}
+
           {error && <p className="text-sm text-error">{error}</p>}
 
           <div className="flex items-center justify-between pt-2">
             {step > 0 ? (
               <button
                 type="button"
-                disabled={step === 0}
                 onClick={() => setStep((s) => s - 1)}
-                className="text-[15px] font-medium text-ink hover:text-rust disabled:pointer-events-none disabled:opacity-40"
+                className="text-[15px] font-medium text-ink hover:text-rust"
               >
                 Back
               </button>

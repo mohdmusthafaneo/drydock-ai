@@ -2,27 +2,70 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { getOrganizationContext } from "@/lib/org-data";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { prisma } from "@/lib/prisma";
+import {
+  approvalLevelLabel,
+  autonomyModeLabel,
+  buildAutonomyVerdictStrip,
+  buildGovernanceHeadlineSegments,
+  buildGovernancePolicyHighlights,
+  governanceScoreBand,
+  workflowModeLabel,
+} from "@/lib/governance/presentation";
 import { PageHeader } from "@/components/layout/page-header";
+import { BriefingHeadline } from "@/components/executive-briefing/briefing-headline";
+import { BriefingHighlights } from "@/components/executive-briefing/briefing-highlights";
+import { DeliveryHealthGauge } from "@/components/executive-briefing/delivery-health-gauge";
+import { GovernanceEscalationPanel } from "@/components/governance/governance-escalation-panel";
+import { RevealSection } from "@/components/motion/reveal-section";
+import { cn } from "@/lib/utils";
+
+const VERDICT_BADGE = {
+  good: "border-dove/50 bg-fog text-ash",
+  attention: "border-apricot/40 bg-apricot-wash/60 text-rust",
+  risk: "border-rust/25 bg-rust/8 text-rust",
+  neutral: "border-dove/50 bg-fog text-graphite",
+} as const;
+
+function formatMaturity(value: number): string {
+  if (value >= 4) return "Mature";
+  if (value >= 3) return "Developing";
+  return "Early";
+}
 
 export default async function GovernancePage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const ctx = await getOrganizationContext(session.organizationId);
+  const [ctx, org] = await Promise.all([
+    getOrganizationContext(session.organizationId),
+    prisma.organization.findUnique({
+      where: { id: session.organizationId },
+      select: { name: true },
+    }),
+  ]);
 
   if (!ctx.dna) {
     redirect("/governance/setup");
   }
 
-  const escalation = JSON.parse(ctx.dna.escalationMatrix || "{}") as Record<string, string>;
+  const dna = ctx.dna;
+  const profile = ctx.profile;
+  const escalation = JSON.parse(dna.escalationMatrix || "{}") as Record<string, string>;
+  const tools = profile ? (JSON.parse(profile.toolsJson || "[]") as string[]) : [];
+  const workflows = profile ? (JSON.parse(profile.workflowsJson || "[]") as string[]) : [];
+  const orgName = org?.name ?? "Your organization";
+
+  const headlineSegments = buildGovernanceHeadlineSegments(dna, orgName);
+  const highlights = buildGovernancePolicyHighlights(ctx);
+  const { band, bandLabel } = governanceScoreBand(dna.governanceScore);
+  const autonomyStrip = buildAutonomyVerdictStrip(dna);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="space-y-8">
       <PageHeader
         title="Delivery governance"
-        description="Policies, approval depth, risk thresholds, and human-governed execution controls."
+        description="Your Delivery DNA, approval posture, and live governance signals."
       >
         <div className="flex flex-wrap items-center gap-4">
           <Link
@@ -40,85 +83,133 @@ export default async function GovernancePage() {
         </div>
       </PageHeader>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardDescription>Governance score</CardDescription>
-            <CardTitle className="font-display text-[44px] leading-[1.1] tracking-[-0.66px] text-ink">
-              {ctx.dna.governanceScore}/100
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Autonomy mode</CardDescription>
-            <CardTitle>
-              <Badge variant="ai">{ctx.dna.autonomyMode}</Badge>
-            </CardTitle>
-          </CardHeader>
-        </Card>
+      <section className="rounded-[24px] border border-border-subtle bg-pure-white px-6 py-8 shadow-[var(--shadow)]">
+        <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-graphite">
+          Delivery DNA
+        </p>
+        <div className="mt-4">
+          <BriefingHeadline segments={headlineSegments} />
+        </div>
+        {dna.summary && (
+          <p className="mt-4 max-w-3xl text-[14px] leading-relaxed text-ash">{dna.summary}</p>
+        )}
+        <div className="mt-5 flex flex-wrap items-center gap-2">
+          <span
+            className={cn(
+              "inline-flex items-center rounded-full border px-3 py-1.5 text-[12px] font-medium",
+              VERDICT_BADGE[autonomyStrip.tone],
+            )}
+          >
+            {autonomyStrip.label}
+          </span>
+          <span className="text-[13px] text-graphite">{autonomyStrip.detail}</span>
+        </div>
+      </section>
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
+        <BriefingHighlights highlights={highlights} />
+        <DeliveryHealthGauge
+          score={dna.governanceScore}
+          band={band}
+          bandLabel={bandLabel}
+          visible
+          className="min-h-[220px]"
+        />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Policy profile</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-3 text-sm sm:grid-cols-2">
-          <p>
-            <span className="text-muted">Workflow: </span>
-            {ctx.dna.workflowMode}
+      <RevealSection className="grid gap-4 sm:grid-cols-2">
+        <div className="rounded-[24px] border border-border-subtle bg-pure-white p-5 shadow-[var(--shadow)]">
+          <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-graphite">
+            Policy profile
           </p>
-          <p>
-            <span className="text-muted">Approval level: </span>
-            {ctx.dna.approvalLevel}
-          </p>
-          <p>
-            <span className="text-muted">Risk threshold: </span>
-            {(ctx.dna.riskThreshold * 100).toFixed(0)}%
-          </p>
-          <p>
-            <span className="text-muted">Compliance: </span>
-            {ctx.profile?.complianceType || "—"}
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Escalation matrix</CardTitle>
-          <CardDescription>Human approval paths by severity</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {Object.entries(escalation).map(([level, action]) => (
-            <div
-              key={level}
-              className="flex justify-between rounded-[16px] bg-fog px-4 py-2 text-sm"
-            >
-              <span className="capitalize text-muted">{level}</span>
-              <span className="text-ink">{action}</span>
+          <dl className="mt-4 grid gap-3 text-sm">
+            <div>
+              <dt className="text-muted">Workflow mode</dt>
+              <dd className="mt-0.5 font-medium text-ink">{workflowModeLabel(dna.workflowMode)}</dd>
             </div>
-          ))}
-        </CardContent>
-      </Card>
+            <div>
+              <dt className="text-muted">Approval depth</dt>
+              <dd className="mt-0.5 font-medium text-ink">{approvalLevelLabel(dna.approvalLevel)}</dd>
+            </div>
+            <div>
+              <dt className="text-muted">Autonomy</dt>
+              <dd className="mt-0.5 font-medium text-ink">{autonomyModeLabel(dna.autonomyMode)}</dd>
+            </div>
+            <div>
+              <dt className="text-muted">Risk threshold</dt>
+              <dd className="mt-0.5 font-medium text-ink">
+                {(dna.riskThreshold * 100).toFixed(0)}%
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted">Compliance</dt>
+              <dd className="mt-0.5 font-medium text-ink">
+                {profile?.complianceType?.toUpperCase() ?? "None"}
+              </dd>
+            </div>
+          </dl>
+        </div>
 
-      {ctx.dna.summary && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Delivery DNA summary</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-ash">{ctx.dna.summary}</CardContent>
-        </Card>
+        {profile && (
+          <div className="rounded-[24px] border border-border-subtle bg-pure-white p-5 shadow-[var(--shadow)]">
+            <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-graphite">
+              Discovery context
+            </p>
+            <dl className="mt-4 grid gap-3 text-sm">
+              <div>
+                <dt className="text-muted">Industry</dt>
+                <dd className="mt-0.5 capitalize font-medium text-ink">
+                  {profile.industryType ?? "—"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted">Team size</dt>
+                <dd className="mt-0.5 font-medium text-ink">{profile.teamSize ?? "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-muted">SDLC maturity</dt>
+                <dd className="mt-0.5 font-medium text-ink">
+                  {formatMaturity(profile.sdlcMaturity)} ({profile.sdlcMaturity}/5)
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted">DevOps maturity</dt>
+                <dd className="mt-0.5 font-medium text-ink">
+                  {formatMaturity(profile.devopsMaturity)} ({profile.devopsMaturity}/5)
+                </dd>
+              </div>
+              {tools.length > 0 && (
+                <div>
+                  <dt className="text-muted">Tools</dt>
+                  <dd className="mt-0.5 font-medium text-ink">{tools.join(", ")}</dd>
+                </div>
+              )}
+              {workflows.length > 0 && (
+                <div>
+                  <dt className="text-muted">Workflows</dt>
+                  <dd className="mt-0.5 font-medium text-ink">{workflows.join(", ")}</dd>
+                </div>
+              )}
+            </dl>
+          </div>
+        )}
+      </RevealSection>
+
+      {dna.observabilityStrategy && (
+        <div className="rounded-[24px] border border-border-subtle bg-sky-wash/30 px-5 py-4">
+          <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-graphite">
+            Observability strategy
+          </p>
+          <p className="mt-2 text-[14px] leading-relaxed text-ash">{dna.observabilityStrategy}</p>
+        </div>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Human-governed workflow</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-ash">
-          AI observes, correlates, and recommends. Humans approve and supervise deployment.
-          All release decisions are audit-logged.
-        </CardContent>
-      </Card>
+      <GovernanceEscalationPanel escalation={escalation} />
+
+      <div className="rounded-[24px] border border-border-subtle bg-fog/40 px-5 py-4 text-sm text-ash">
+        AI observes, correlates, and recommends. Humans approve and supervise deployment. All
+        release decisions are audit-logged.
+      </div>
     </div>
   );
 }

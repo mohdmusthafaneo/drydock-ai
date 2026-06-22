@@ -39,7 +39,10 @@ export async function getOrganizationContext(organizationId: string) {
     }),
     prisma.approval.findMany({
       where: { organizationId },
-      include: { recommendation: true, approver: true },
+      include: {
+        recommendation: { include: { release: true } },
+        approver: true,
+      },
       orderBy: { createdAt: "desc" },
     }),
     prisma.activityEvent.findMany({

@@ -15,19 +15,28 @@ export function ApprovalActions({
   const router = useRouter();
   const [comment, setComment] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function decide(decision: "APPROVED" | "REJECTED" | "MODIFIED") {
     setLoading(true);
+    setError(null);
+
     const res = await fetch("/api/approvals", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "same-origin",
       body: JSON.stringify({ approvalId, decision, comment }),
     });
+
     setLoading(false);
-    if (res.ok) {
-      router.refresh();
+
+    if (!res.ok) {
+      const body = (await res.json().catch(() => null)) as { error?: string } | null;
+      setError(body?.error ?? "Failed to submit decision");
+      return;
     }
+
+    router.refresh();
   }
 
   return (
@@ -39,6 +48,8 @@ export function ApprovalActions({
         onChange={(e) => setComment(e.target.value)}
         rows={2}
       />
+      {error && <p className="text-xs text-error">{error}</p>}
+
       <div className="flex flex-wrap items-center gap-4">
         <Button size="sm" variant="ink" disabled={loading} onClick={() => decide("APPROVED")}>
           Approve
