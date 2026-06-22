@@ -1,51 +1,54 @@
-import type { BriefingCharts, ExecutiveBriefing } from "@/lib/executive-briefing/types";
+import type { ExecutiveBriefing } from "@/lib/executive-briefing/types";
 import { BriefingClaimCard } from "@/components/executive-briefing/briefing-claim-card";
-import { BriefingMiniCharts } from "@/components/executive-briefing/briefing-mini-charts";
 import { BriefingFreshnessStrip } from "@/components/executive-briefing/briefing-freshness-strip";
+import { cn } from "@/lib/utils";
 
 type Props = {
   briefing: ExecutiveBriefing;
-  charts: BriefingCharts;
   id?: string;
 };
 
-export function BriefingBreakdownSection({ briefing, charts, id = "breakdown" }: Props) {
-  const hasClaims = briefing.claims.length > 0;
-  const hasCharts =
-    charts.delivery != null ||
-    charts.engineering != null ||
-    charts.stability != null ||
-    charts.release != null;
+function claimGridClass(count: number): string {
+  if (count <= 1) return "grid-cols-1";
+  if (count === 2) return "grid-cols-1 sm:grid-cols-2";
+  if (count === 3) return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3";
+  return "grid-cols-1 sm:grid-cols-2";
+}
 
-  if (!hasClaims && !hasCharts) {
+export function BriefingBreakdownSection({ briefing, id = "breakdown" }: Props) {
+  const { claims } = briefing;
+  const hasClaims = claims.length > 0;
+
+  if (!hasClaims) {
     return null;
   }
+
+  const staleHandledByClaim = claims.some(
+    (claim) => claim.id === "governance" && claim.verdictLabel === "Data stale",
+  );
 
   return (
     <section id={id} className="scroll-mt-24 space-y-8 py-16">
       <div className="space-y-4">
         <div>
           <h2 className="font-display text-[44px] leading-[1.1] tracking-[-0.66px] text-ink">
-            The details
+            What needs attention
           </h2>
           <p className="mt-3 max-w-xl text-[16px] leading-relaxed text-ash">
-            Status at a glance — each card shows whether things are on track, need attention, or at risk.
+            The things that matter most right now — each with a clear verdict you can act on or
+            delegate.
           </p>
         </div>
-        {briefing.freshness.stale && (
+        {briefing.freshness.stale && !staleHandledByClaim && (
           <BriefingFreshnessStrip freshness={briefing.freshness} variant="banner" />
         )}
       </div>
 
-      {hasClaims && (
-        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {briefing.claims.map((claim) => (
-            <BriefingClaimCard key={claim.id} claim={claim} />
-          ))}
-        </div>
-      )}
-
-      {hasCharts && <BriefingMiniCharts charts={charts} />}
+      <div className={cn("grid gap-5", claimGridClass(claims.length))}>
+        {claims.map((claim) => (
+          <BriefingClaimCard key={claim.id} claim={claim} />
+        ))}
+      </div>
     </section>
   );
 }

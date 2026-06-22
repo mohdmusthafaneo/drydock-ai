@@ -11,6 +11,11 @@ import {
   type JiraSiteSummary,
 } from "@/lib/jira-meta";
 import type { Integration } from "@/generated/prisma/client";
+import { prisma } from "@/lib/prisma";
+import {
+  isJiraReconnectError,
+  JIRA_RECONNECT_MESSAGE,
+} from "@/lib/jira-errors";
 
 export class JiraApiError extends Error {
   constructor(
@@ -21,15 +26,24 @@ export class JiraApiError extends Error {
   }
 }
 
+export { JIRA_RECONNECT_MESSAGE, isJiraReconnectError, isJiraReconnectMessage } from "@/lib/jira-errors";
+
+function jiraErrorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 export function isJiraScopeError(err: unknown): boolean {
   if (!(err instanceof JiraApiError) || err.status !== 401) return false;
-  const lower = err.message.toLowerCase();
+  const lower = jiraErrorMessage(err).toLowerCase();
   return lower.includes("scope") || lower.includes("unauthorized");
 }
 
 export function formatJiraSyncError(err: unknown): string {
   if (err instanceof JiraApiError && err.status === 410) {
     return "Jira search API was updated by Atlassian. Restart the dev server and sync again.";
+  }
+  if (isJiraReconnectError(err)) {
+    return JIRA_RECONNECT_MESSAGE;
   }
   if (isJiraScopeError(err)) {
     return (
@@ -42,6 +56,42 @@ export function formatJiraSyncError(err: unknown): string {
     return `Jira API error (${err.status}): ${parseJiraErrorBody(err.message)}`;
   }
   return err instanceof Error ? err.message : "Sync failed";
+}
+
+/** Persist sync/auth failure and mark connection unhealthy when OAuth must be renewed. */
+export async function recordJiraIntegrationFailure(
+  organizationId: string,
+  err: unknown,
+): Promise<string> {
+  const message = formatJiraSyncError(err);
+  const markConnectionError = isJiraReconnectError(err);
+
+  const integration = await prisma.integration.findUnique({
+    where: {
+      organizationId_provider: { organizationId, provider: "JIRA" },
+    },
+  });
+  if (!integration) return message;
+
+  await prisma.integration
+    .update({
+      where: { id: integration.id },
+      data: {
+        lastError: message,
+        ...(markConnectionError
+          ? {
+              metadataJson: applyJiraMetaPatch(integration, {
+                connectionStatus: "error",
+                lastError: message,
+                lastConnectionCheckAt: new Date().toISOString(),
+              }),
+            }
+          : {}),
+      },
+    })
+    .catch(() => undefined);
+
+  return message;
 }
 
 function parseJiraErrorBody(raw: string): string {
@@ -163,8 +213,7 @@ export async function probeJiraConnection(integration: Integration): Promise<{
             },
           };
         } catch (refreshErr) {
-          const message =
-            refreshErr instanceof Error ? refreshErr.message : "Token refresh failed";
+          const message = formatJiraSyncError(refreshErr);
           return {
             ok: false,
             error: message,

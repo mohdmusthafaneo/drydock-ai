@@ -10,6 +10,7 @@ import {
   JiraOAuthConnect,
 } from "@/components/integrations/integration-actions";
 import { ExternalConnectLinkPanel } from "@/components/integrations/external-connect-link-panel";
+import { isJiraReconnectMessage, JIRA_RECONNECT_MESSAGE } from "@/lib/jira-errors";
 import type { JiraDeliverySnapshot } from "@/lib/jira-meta";
 
 type JiraProjectOption = { key: string; name: string };
@@ -57,6 +58,8 @@ export function JiraIntegrationPanel({
 
   const savedKeys = selectedProjectKeys ?? [];
   const hasSelection = savedKeys.length > 0;
+  const showConnectionIssue =
+    connectionStatus === "error" || Boolean(lastError && isJiraReconnectMessage(lastError));
 
   const loadProjects = useCallback(async () => {
     if (!connected || !canManage) return;
@@ -190,8 +193,13 @@ export function JiraIntegrationPanel({
       <div className="space-y-2 rounded-lg border border-border bg-elevated/40 p-3">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="brand">Jira Cloud · read-only</Badge>
-          {connectionStatus === "ok" && <Badge variant="success">Connection OK</Badge>}
-          {connectionStatus === "error" && <Badge variant="warning">Connection issue</Badge>}
+          {connectionStatus === "ok" && !showConnectionIssue && (
+            <Badge variant="success">Connection OK</Badge>
+          )}
+          {showConnectionIssue && <Badge variant="warning">Connection issue</Badge>}
+          {connectionStatus === "error" && !showConnectionIssue && (
+            <Badge variant="warning">Connection issue</Badge>
+          )}
         </div>
 
         {(siteName || siteUrl) && (
@@ -228,8 +236,20 @@ export function JiraIntegrationPanel({
           </p>
         )}
 
-        {lastError && connectionStatus === "error" && (
-          <p className="text-xs text-warning-soft">{lastError}</p>
+        {lastError && showConnectionIssue && (
+          <div className="space-y-1">
+            <p className="text-xs text-warning-soft">
+              {isJiraReconnectMessage(lastError)
+                ? "Jira authorization expired or was revoked. Disconnect and reconnect Jira on this page to restore sync."
+                : lastError}
+            </p>
+            {canManage && isJiraReconnectMessage(lastError) && (
+              <p className="text-xs text-muted">
+                Use <span className="font-medium text-primary">Disconnect</span> below, then
+                connect Jira again to issue new OAuth tokens.
+              </p>
+            )}
+          </div>
         )}
 
         {lastError && connectionStatus !== "error" && lastError.toLowerCase().includes("scope") && (

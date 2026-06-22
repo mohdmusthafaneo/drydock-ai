@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { syncJiraIntegration } from "@/lib/jira-sync";
 import { parseJiraMeta } from "@/lib/jira-meta";
-import { JiraApiError, formatJiraSyncError } from "@/lib/jira-api";
+import { JiraApiError, recordJiraIntegrationFailure } from "@/lib/jira-api";
 
 export type ScheduledJiraSyncOrgResult = {
   organizationId: string;
@@ -83,16 +83,7 @@ export async function runScheduledJiraSync(input?: {
         projectCount: result.projectCount,
       });
     } catch (e) {
-      const message = formatJiraSyncError(e);
-
-      await prisma.integration
-        .update({
-          where: {
-            organizationId_provider: { organizationId, provider: "JIRA" },
-          },
-          data: { lastError: message },
-        })
-        .catch(() => undefined);
+      const message = await recordJiraIntegrationFailure(organizationId, e);
 
       results.push({
         organizationId,

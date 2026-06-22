@@ -3,9 +3,10 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { Button } from "@/components/ui/button";
 import { loadExecutiveBriefing } from "@/lib/executive-briefing/load-briefing-context";
+import { composeExecutiveDeck } from "@/lib/executive-briefing/compose-executive-deck";
 import { ExecutiveBriefingHero } from "@/components/executive-briefing/executive-briefing-hero";
 import { BriefingBreakdownSection } from "@/components/executive-briefing/briefing-breakdown-section";
-import { FullOperationalDeck } from "@/components/executive-briefing/full-operational-deck";
+import { BriefingExecutiveDeck } from "@/components/executive-briefing/briefing-executive-deck";
 
 export default async function EnterpriseDashboardPage() {
   const session = await getSession();
@@ -29,11 +30,19 @@ export default async function EnterpriseDashboardPage() {
     );
   }
 
+  const deck = composeExecutiveDeck({
+    briefing,
+    ctx,
+    hasDelivery: charts.delivery != null,
+    hasEngineering: charts.engineering != null,
+    hasObservability: charts.stability != null,
+  });
+
   return (
     <div className="w-full">
       <ExecutiveBriefingHero briefing={briefing} orgName={orgName} />
-      <BriefingBreakdownSection briefing={briefing} charts={charts} />
-      <FullOperationalDeck ctx={ctx} orgName={orgName} />
+      <BriefingBreakdownSection briefing={briefing} />
+      <BriefingExecutiveDeck briefing={briefing} deck={deck} orgName={orgName} />
     </div>
   );
 }

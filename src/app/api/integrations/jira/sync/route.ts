@@ -3,8 +3,7 @@ import { z } from "zod";
 import { getSession } from "@/lib/session";
 import { requirePermission } from "@/lib/rbac";
 import { syncJiraIntegration } from "@/lib/jira-sync";
-import { JiraApiError, formatJiraSyncError } from "@/lib/jira-api";
-import { prisma } from "@/lib/prisma";
+import { JiraApiError, recordJiraIntegrationFailure } from "@/lib/jira-api";
 
 const bodySchema = z
   .object({
@@ -46,19 +45,7 @@ export async function POST(request: Request) {
       projectCount: result.projectCount,
     });
   } catch (e) {
-    const message = formatJiraSyncError(e);
-
-    await prisma.integration
-      .update({
-        where: {
-          organizationId_provider: {
-            organizationId: session.organizationId,
-            provider: "JIRA",
-          },
-        },
-        data: { lastError: message },
-      })
-      .catch(() => undefined);
+    const message = await recordJiraIntegrationFailure(session.organizationId, e);
 
     if (e instanceof JiraApiError) {
       return NextResponse.json({ error: message }, { status: e.status === 401 ? 401 : 502 });

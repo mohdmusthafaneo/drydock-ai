@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getSession } from "@/lib/session";
 import { requirePermission } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
-import { JiraApiError, formatJiraSyncError } from "@/lib/jira-api";
+import { JiraApiError, recordJiraIntegrationFailure } from "@/lib/jira-api";
 import {
   clientSafeJiraSchema,
   introspectJiraSchema,
@@ -119,7 +119,7 @@ export async function POST(request: Request) {
     if (message.includes("recently")) {
       return NextResponse.json({ error: message }, { status: 429 });
     }
-    const formatted = formatJiraSyncError(e);
+    const formatted = await recordJiraIntegrationFailure(session.organizationId, e);
     if (e instanceof JiraApiError) {
       return NextResponse.json(
         { error: formatted },

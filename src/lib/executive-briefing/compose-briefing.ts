@@ -576,6 +576,58 @@ function buildClaims(input: ComposeBriefingInput, health: ExecutiveBriefing["hea
     });
   }
 
+  const governanceDim = health.dimensions.find((d) => d.id === "governance");
+  if (governanceDim && !claims.some((c) => c.id === "governance")) {
+    const staleSources: string[] = [];
+    if (isStale(input.integrationFreshness.jiraSyncedAt)) staleSources.push("Jira");
+    if (isStale(input.integrationFreshness.githubSyncedAt)) staleSources.push("GitHub");
+    if (isStale(input.integrationFreshness.observabilitySyncedAt)) {
+      staleSources.push("Observability");
+    }
+
+    const score = Math.round(governanceDim.score);
+    const unhealthy = input.stats.connectedTools - input.stats.integrationsHealthy;
+
+    let verdict: BriefingClaimVerdict;
+    let verdictLabel: string;
+    let context: string;
+
+    if (staleSources.length > 0) {
+      verdict = "attention";
+      verdictLabel = "Data stale";
+      const list =
+        staleSources.length === 1
+          ? staleSources[0]!
+          : staleSources.length === 2
+            ? `${staleSources[0]} and ${staleSources[1]}`
+            : `${staleSources.slice(0, -1).join(", ")}, and ${staleSources[staleSources.length - 1]}`;
+      context = `${list} last synced over 24 hours ago — re-sync before deciding`;
+    } else if (input.stats.connectedTools === 0) {
+      verdict = "attention";
+      verdictLabel = "Not connected";
+      context = "Connect Jira, GitHub, and observability to trust this briefing";
+    } else if (unhealthy > 0) {
+      verdict = "attention";
+      verdictLabel = `${unhealthy} unhealthy`;
+      context = `${input.stats.integrationsHealthy} of ${input.stats.connectedTools} integrations reporting clean data`;
+    } else {
+      verdict = score >= 75 ? "good" : score >= 50 ? "attention" : "risk";
+      verdictLabel = score >= 75 ? "Trusted" : score >= 50 ? "Fair" : "Low trust";
+      context = `${input.stats.integrationsHealthy} of ${input.stats.connectedTools} integrations healthy · briefing data is current`;
+    }
+
+    claims.push({
+      id: "governance",
+      headline: "Data confidence",
+      metric: String(score),
+      metricLabel: "Trust score",
+      verdict,
+      verdictLabel,
+      context: capitalizeFirst(context),
+      href: "/integrations",
+    });
+  }
+
   return claims.slice(0, 4);
 }
 

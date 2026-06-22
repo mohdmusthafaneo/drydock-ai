@@ -1,6 +1,8 @@
 import type { Integration, IntegrationProvider } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isGrafanaTrulyConnected, parseGrafanaMeta } from "@/lib/grafana-meta";
+import { isJiraOAuthConnected, parseJiraMeta } from "@/lib/jira-meta";
+import { isJiraReconnectMessage, JIRA_RECONNECT_MESSAGE } from "@/lib/jira-errors";
 
 export type IntegrationHealthSummary = {
   provider: IntegrationProvider;
@@ -47,6 +49,25 @@ export async function checkIntegrationHealth(
         healthy = false;
         message = meta.lastError ?? "Connection error";
       }
+    }
+  } else if (integration.provider === "JIRA" && isJiraOAuthConnected(integration)) {
+    const meta = parseJiraMeta(integration.metadataJson);
+    if (meta.connectionStatus === "error" || (integration.lastError && isJiraReconnectMessage(integration.lastError))) {
+      healthy = false;
+      const rawError = meta.lastError ?? integration.lastError;
+      message =
+        rawError && isJiraReconnectMessage(rawError)
+          ? JIRA_RECONNECT_MESSAGE
+          : (rawError ?? "Reconnect Jira to restore sync");
+    } else if (integration.lastSyncAt) {
+      const hoursSince =
+        (now.getTime() - integration.lastSyncAt.getTime()) / (1000 * 60 * 60);
+      if (hoursSince > 24) {
+        healthy = false;
+        message = `Last sync ${Math.floor(hoursSince)}h ago — check credentials`;
+      }
+    } else {
+      message = "Connected — initial sync pending";
     }
   } else if (integration.lastSyncAt) {
     const hoursSince =

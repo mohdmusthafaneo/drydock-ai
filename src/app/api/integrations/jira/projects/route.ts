@@ -7,7 +7,10 @@ import {
   MAX_JIRA_SYNC_PROJECTS,
   saveOrgJiraProjectKeys,
 } from "@/lib/jira-project-selection";
-import { JiraApiError, formatJiraSyncError } from "@/lib/jira-api";
+import {
+  JiraApiError,
+  recordJiraIntegrationFailure,
+} from "@/lib/jira-api";
 
 const putSchema = z.object({
   projectKeys: z.array(z.string().min(1)).min(1).max(MAX_JIRA_SYNC_PROJECTS),
@@ -34,7 +37,7 @@ export async function GET() {
       maxProjects: MAX_JIRA_SYNC_PROJECTS,
     });
   } catch (e) {
-    const message = formatJiraSyncError(e);
+    const message = await recordJiraIntegrationFailure(session.organizationId, e);
     if (e instanceof JiraApiError) {
       return NextResponse.json({ error: message }, { status: e.status === 401 ? 401 : 502 });
     }
@@ -66,7 +69,7 @@ export async function PUT(request: Request) {
     if (e instanceof z.ZodError) {
       return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
     }
-    const message = formatJiraSyncError(e);
+    const message = await recordJiraIntegrationFailure(session.organizationId, e);
     if (e instanceof JiraApiError) {
       return NextResponse.json({ error: message }, { status: e.status === 401 ? 401 : 502 });
     }
