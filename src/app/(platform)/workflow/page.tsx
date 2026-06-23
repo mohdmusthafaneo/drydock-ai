@@ -4,11 +4,16 @@ import { CheckCircle2, Circle } from "lucide-react";
 import { getSession } from "@/lib/session";
 import { getOrganizationContext } from "@/lib/org-data";
 import { ENTERPRISE_WORKFLOW_STEPS } from "@/lib/enterprise-workflow";
+import {
+  buildWorkflowAttentionSummary,
+  getWorkflowStepBadges,
+} from "@/lib/governance/presentation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/layout/page-header";
+import { ExecutiveVerdictBanner } from "@/components/executive-briefing/executive-verdict-banner";
 
 export default async function WorkflowCenterPage() {
   const session = await getSession();
@@ -18,6 +23,8 @@ export default async function WorkflowCenterPage() {
   if (!ctx.dna) redirect("/governance/setup");
 
   const completed = new Set(ctx.completedStepIds);
+  const stepBadges = getWorkflowStepBadges(ctx);
+  const attention = buildWorkflowAttentionSummary(ctx, ctx.completedStepIds);
 
   return (
     <div className="space-y-8">
@@ -25,10 +32,22 @@ export default async function WorkflowCenterPage() {
         title="Workflow center"
         description="Enterprise delivery workflow — governance, QA, observability, and human approval."
       >
-        <Button asChild variant="ink" size="lg">
-          <Link href="/releases/new">+ Register release</Link>
-        </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button asChild variant="secondary" size="lg">
+            <Link href="/dashboard">Executive view</Link>
+          </Button>
+          <Button asChild variant="ink" size="lg">
+            <Link href="/releases/new">+ Register release</Link>
+          </Button>
+        </div>
       </PageHeader>
+
+      <ExecutiveVerdictBanner
+        verdict={attention.attentionCount > 0 ? "attention" : "good"}
+        verdictLabel={attention.attentionCount > 0 ? "Needs attention" : "On track"}
+        headline={attention.headline}
+        subcopy={attention.subcopy}
+      />
 
       <Card>
         <CardHeader>
@@ -42,6 +61,7 @@ export default async function WorkflowCenterPage() {
           <ol className="space-y-2">
             {ENTERPRISE_WORKFLOW_STEPS.map((step) => {
               const done = completed.has(step.id);
+              const badgeCount = stepBadges[step.id] ?? 0;
               return (
                 <li key={step.id}>
                   <Link
@@ -58,10 +78,17 @@ export default async function WorkflowCenterPage() {
                     ) : (
                       <Circle className="mt-0.5 h-4 w-4 shrink-0 text-graphite" />
                     )}
-                    <div>
-                      <p className="text-sm font-medium">
-                        {step.order}. {step.label}
-                      </p>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-medium">
+                          {step.order}. {step.label}
+                        </p>
+                        {badgeCount > 0 && (
+                          <Badge variant="warning" className="text-[10px]">
+                            {badgeCount}
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-xs text-muted">{step.description}</p>
                     </div>
                   </Link>

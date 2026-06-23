@@ -12,6 +12,8 @@ import {
   getMockCodeAnalysisSnapshot,
 } from "@/lib/code-analysis/mock-data";
 import { AnalysisFiltersBar } from "@/components/code-analysis/analysis-filters";
+import { buildCodeAnalysisGovernanceHighlights } from "@/lib/governance/presentation";
+import { BriefingHighlights } from "@/components/executive-briefing/briefing-highlights";
 import { KpiStrip } from "@/components/code-analysis/kpi-strip";
 import { AttributionChart } from "@/components/code-analysis/attribution-chart";
 import { TrendChart } from "@/components/code-analysis/trend-chart";
@@ -56,6 +58,11 @@ export function CodeAnalysisDashboard({ lastSyncedAt, connectedRepos }: Props) {
   }, [source, liveSnapshot]);
 
   const snapshot = source === "github" && liveSnapshot ? liveSnapshot : mockSnapshot;
+
+  const governanceHighlights = useMemo(
+    () => buildCodeAnalysisGovernanceHighlights(snapshot.governanceSignals),
+    [snapshot.governanceSignals],
+  );
 
   const fetchSnapshot = useCallback(async () => {
     const params = new URLSearchParams({
@@ -187,6 +194,8 @@ export function CodeAnalysisDashboard({ lastSyncedAt, connectedRepos }: Props) {
         {selectedRepo ? ` · ${selectedRepo}` : ` · ${filters.repos.length} repos`}
         · Estimates from commit/PR markers — not all AI tools leave traces.
       </p>
+
+      <BriefingHighlights highlights={governanceHighlights} />
 
       <KpiStrip kpis={snapshot.kpis} />
 

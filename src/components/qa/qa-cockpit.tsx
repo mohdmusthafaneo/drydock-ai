@@ -5,7 +5,9 @@ import type { TelemetrySnapshot } from "@/lib/release-governance";
 import { hasObservabilitySynced } from "@/lib/observability-connectivity";
 import { resolveAssessSourceFreshness } from "@/lib/release-assess-snapshot";
 import { aggregateGapsByArea, verdictFromPrimary } from "@/lib/release-gate-brief";
+import { buildQaOrgVerdict } from "@/lib/governance/presentation";
 import { ReleaseGateBrief } from "@/components/releases/release-gate-brief";
+import { ExecutiveVerdictBanner } from "@/components/executive-briefing/executive-verdict-banner";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,6 +38,21 @@ export function QACockpit({
   const gapRollup = aggregateGapsByArea(allGaps);
   const observabilitySynced = hasObservabilitySynced(integrations);
 
+  const noGoCount = assessed.filter(
+    (r) => verdictFromPrimary(r.primaryRecommendation) === "NO-GO",
+  ).length;
+  const holdCount = assessed.filter(
+    (r) => verdictFromPrimary(r.primaryRecommendation) === "HOLD",
+  ).length;
+  const orgVerdict = buildQaOrgVerdict({
+    orgReadinessIndex,
+    pendingDecisions: pendingDecisions.length,
+    openGaps: allGaps.length,
+    noGoCount,
+    holdCount,
+    assessedCount: assessed.length,
+  });
+
   const keyProviders = ["JIRA", "GITHUB", "GRAFANA", "PROMETHEUS"] as const;
   const integrationHealth = keyProviders.map((provider) => {
     const row = integrations.find((i) => i.provider === provider);
@@ -53,6 +70,13 @@ export function QACockpit({
       <PageHeader
         title="QA intelligence dashboard"
         description="Release confidence for governed delivery — correlate schedule, CI, metrics, and alerts into one human-approved go/no-go."
+      />
+
+      <ExecutiveVerdictBanner
+        verdict={orgVerdict.verdict}
+        verdictLabel={orgVerdict.verdictLabel}
+        headline={orgVerdict.headline}
+        subcopy={orgVerdict.subcopy}
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

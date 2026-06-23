@@ -1,11 +1,20 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { ROLE_LABELS } from "@/lib/roles";
+import { governanceScoreBand } from "@/lib/governance/presentation";
 import { PageHeader } from "@/components/layout/page-header";
+import { GovernanceEmptyState } from "@/components/executive-briefing/governance-empty-state";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
+import { cn } from "@/lib/utils";
+
+const VERDICT_BADGE = {
+  strong: "border-dove/50 bg-fog text-ash",
+  steady: "border-dove/50 bg-fog text-ash",
+  caution: "border-apricot/40 bg-apricot-wash/60 text-rust",
+  at_risk: "border-rust/25 bg-rust/8 text-rust",
+} as const;
 
 export default async function AdminPanelPage() {
   const session = await getSession();
@@ -15,37 +24,56 @@ export default async function AdminPanelPage() {
     redirect("/dashboard");
   }
 
-  const [org, members, dna, workflow] = await Promise.all([
+  const [org, dna, workflow] = await Promise.all([
     prisma.organization.findUnique({ where: { id: session.organizationId } }),
-    prisma.user.findMany({
-      where: { organizationId: session.organizationId },
-      orderBy: { createdAt: "asc" },
-    }),
     prisma.deliveryDNA.findUnique({ where: { organizationId: session.organizationId } }),
     prisma.deliveryWorkflow.findUnique({ where: { organizationId: session.organizationId } }),
   ]);
 
-  if (!dna) redirect("/governance/setup");
+  if (!dna) {
+    return (
+      <div className="mx-auto max-w-3xl">
+        <GovernanceEmptyState />
+      </div>
+    );
+  }
+
+  const { band, bandLabel } = governanceScoreBand(dna.governanceScore);
 
   return (
     <div className="mx-auto max-w-3xl space-y-8">
       <PageHeader
-        title="Admin panel"
-        description="Organization administration — users, governance, and delivery health (Org Admin journey)."
+        title="Admin console"
+        description="Governance operations — workflow configuration, integrations, and audit access."
       />
+
+      <section className="rounded-[24px] border border-border-subtle bg-pure-white px-6 py-6 shadow-[var(--shadow)]">
+        <span
+          className={cn(
+            "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium leading-none",
+            VERDICT_BADGE[band],
+          )}
+        >
+          {bandLabel}
+        </span>
+        <h2 className="mt-3 font-display text-[26px] leading-[1.18] tracking-[-0.23px] text-ink">
+          Governance score {dna.governanceScore}/100
+        </h2>
+        <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-ash">
+          {org?.name} is configured for recommend-only autonomy. Workflow:{" "}
+          {workflow?.workflowType ?? "not configured"} ·{" "}
+          {workflow?.executionStatus ?? "NOT_CONFIGURED"}.
+        </p>
+      </section>
 
       <Card>
         <CardHeader>
-          <CardTitle>{org?.name}</CardTitle>
+          <CardTitle>Organization</CardTitle>
           <CardDescription>Slug: {org?.slug}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-2 text-sm">
+        <CardContent className="space-y-3 text-sm">
           <p className="text-secondary">
-            Governance level:{" "}
-            <Badge variant="ai">{dna.governanceScore}/100</Badge>
-          </p>
-          <p className="text-secondary">
-            Workflow: {workflow?.workflowType ?? "—"} · {workflow?.executionStatus ?? "NOT_CONFIGURED"}
+            Autonomy: <Badge variant="ai">{dna.autonomyMode}</Badge>
           </p>
           <Link
             href="/governance/workflow"
@@ -53,42 +81,33 @@ export default async function AdminPanelPage() {
           >
             Configure workflow →
           </Link>
+          <p className="text-muted">
+            Team invites and member management are in{" "}
+            <Link href="/settings" className="text-ink underline-offset-4 hover:underline">
+              Settings
+            </Link>
+            .
+          </p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Team members</CardTitle>
-          <CardDescription>Invite users — full invite flow Phase 2</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {members.map((m) => (
-            <div
-              key={m.id}
-              className="flex justify-between rounded-xl bg-elevated px-4 py-2 text-sm"
-            >
-              <span className="text-primary">
-                {m.name} · {m.email}
-              </span>
-              <span className="text-muted">{ROLE_LABELS[m.role]}</span>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick links</CardTitle>
+          <CardTitle>Operations</CardTitle>
+          <CardDescription>Governance and integration shortcuts.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-4 text-sm">
           <Link href="/integrations" className="text-ink underline-offset-4 hover:underline">
             Integrations
           </Link>
           <Link href="/governance/setup" className="text-ink underline-offset-4 hover:underline">
-            Re-run discovery
+            Re-run Discovery & Delivery DNA
           </Link>
           <Link href="/audit" className="text-ink underline-offset-4 hover:underline">
             Audit logs
+          </Link>
+          <Link href="/governance" className="text-ink underline-offset-4 hover:underline">
+            Delivery DNA briefing
           </Link>
         </CardContent>
       </Card>

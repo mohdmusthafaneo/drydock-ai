@@ -156,6 +156,14 @@ export function GitHubIntegrationPanel({
 
   if (!connected) {
     if (!installUrl) {
+      if (!canManage) {
+        return (
+          <p className="text-xs text-muted">
+            GitHub App installation is not yet configured for this workspace.
+          </p>
+        );
+      }
+
       return (
         <p className="text-xs text-muted">
           Set <code>GITHUB_APP_SLUG</code> in <code>.env</code> to enable the GitHub App install.

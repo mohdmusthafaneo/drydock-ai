@@ -9,11 +9,16 @@ import {
   parsePostDeployComparison,
   resolveAssessSourceFreshness,
 } from "@/lib/release-assess-snapshot";
+import { buildReleaseDetailVerdict } from "@/lib/governance/presentation";
+import { verdictBadgeVariant } from "@/lib/release-gate-brief";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ReleaseWorkflow } from "@/components/releases/release-workflow";
 import { AssessReleaseButton, DeployReleaseButton } from "@/components/releases/release-actions";
 import { ReleaseGateBrief } from "@/components/releases/release-gate-brief";
+import { ExecutiveVerdictBanner } from "@/components/executive-briefing/executive-verdict-banner";
+import { RevealSection } from "@/components/motion/reveal-section";
+import { HoverLift } from "@/components/motion/hover-lift";
 
 export default async function ReleaseDetailPage({
   params,
@@ -65,6 +70,7 @@ export default async function ReleaseDetailPage({
   ];
 
   const showGateBrief = release.assessedAt != null;
+  const releaseVerdict = buildReleaseDetailVerdict(release);
 
   return (
     <div className="space-y-6">
@@ -87,9 +93,33 @@ export default async function ReleaseDetailPage({
               {release.jiraFixVersion ? ` · Jira ${release.jiraFixVersion}` : ""}
             </p>
           </div>
-          <Badge variant="ai">{release.status.replace(/_/g, " ")}</Badge>
+          <div className="flex flex-wrap items-center gap-2">
+            {releaseVerdict.gateVerdict && (
+              <Badge variant={verdictBadgeVariant(releaseVerdict.gateVerdict)} className="px-2.5 py-1">
+                {releaseVerdict.gateVerdict}
+              </Badge>
+            )}
+            <Badge variant="ai">{release.status.replace(/_/g, " ")}</Badge>
+          </div>
         </div>
       </div>
+
+      <RevealSection>
+        <ExecutiveVerdictBanner
+          verdict={
+            releaseVerdict.gateVerdict === "NO-GO"
+              ? "risk"
+              : releaseVerdict.gateVerdict === "HOLD"
+                ? "attention"
+                : releaseVerdict.gateVerdict === "GO"
+                  ? "good"
+                  : "neutral"
+          }
+          verdictLabel={releaseVerdict.verdictLabel}
+          headline={releaseVerdict.headline}
+          subcopy={releaseVerdict.subcopy}
+        />
+      </RevealSection>
 
       <ReleaseWorkflow status={release.status} />
 
@@ -113,29 +143,45 @@ export default async function ReleaseDetailPage({
         </Card>
       )}
 
+      {!showGateBrief && release.status === "DETECTED" && (
+        <Card className="border-dashed border-border-subtle">
+          <CardHeader>
+            <CardTitle>Not yet assessed</CardTitle>
+            <CardDescription>
+              Expected signals after assessment: Jira schedule health, GitHub CI status, Grafana
+              alerts, Prometheus metrics, and governance risk scoring.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      )}
+
       {showGateBrief && (
-        <ReleaseGateBrief
-          releaseName={release.name}
-          version={release.version}
-          environment={release.environment}
-          readinessScore={release.readinessScore}
-          governanceRiskScore={release.governanceRiskScore}
-          riskLevel={release.riskLevel}
-          primaryRecommendation={release.primaryRecommendation}
-          assessmentSummary={release.assessmentSummary}
-          qaSignals={qaSignals}
-          testGaps={testGaps}
-          telemetry={telemetry}
-          assessedAt={release.assessedAt}
-          pendingApprovals={
-            pendingApprovals.length > 0
-              ? { count: pendingApprovals.length, roles: pendingRoles }
-              : undefined
-          }
-          sourceFreshness={sourceFreshness}
-          staleData={staleData}
-          postDeployComparison={postDeployComparison}
-        />
+        <RevealSection>
+          <HoverLift>
+            <ReleaseGateBrief
+              releaseName={release.name}
+              version={release.version}
+              environment={release.environment}
+              readinessScore={release.readinessScore}
+              governanceRiskScore={release.governanceRiskScore}
+              riskLevel={release.riskLevel}
+              primaryRecommendation={release.primaryRecommendation}
+              assessmentSummary={release.assessmentSummary}
+              qaSignals={qaSignals}
+              testGaps={testGaps}
+              telemetry={telemetry}
+              assessedAt={release.assessedAt}
+              pendingApprovals={
+                pendingApprovals.length > 0
+                  ? { count: pendingApprovals.length, roles: pendingRoles }
+                  : undefined
+              }
+              sourceFreshness={sourceFreshness}
+              staleData={staleData}
+              postDeployComparison={postDeployComparison}
+            />
+          </HoverLift>
+        </RevealSection>
       )}
 
       {release.regressionNotes && (

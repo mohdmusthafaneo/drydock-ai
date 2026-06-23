@@ -122,7 +122,7 @@ export function DiscoveryWizard({
       {!embedded && (
         <div>
           <h1 className="font-display text-[44px] leading-[1.1] tracking-[-0.66px] text-ink">
-            Organization discovery
+            Discovery & Delivery DNA
           </h1>
           <p className="mt-2 text-[16px] text-ash">
             Capture your delivery context to generate Delivery DNA and AI recommendations.

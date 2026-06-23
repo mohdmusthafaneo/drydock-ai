@@ -9,6 +9,7 @@ import { invalidateAgentDetail } from "@/lib/queries/invalidate";
 type AgentActionsProps = {
   agentId: string;
   status: string;
+  showDevHints?: boolean;
 };
 
 type WakeupStatusResponse = {
@@ -30,7 +31,7 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function AgentActions({ agentId, status }: AgentActionsProps) {
+export function AgentActions({ agentId, status, showDevHints = false }: AgentActionsProps) {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -91,7 +92,9 @@ export function AgentActions({ agentId, status }: AgentActionsProps) {
 
         if (data.workerEnabled === false) {
           setMessage(
-            "Wakeup queued — enable AGENT_WORKER_ENABLED and run npm run worker:agents",
+            showDevHints
+              ? "Wakeup queued — enable AGENT_WORKER_ENABLED and run npm run worker:agents"
+              : "Wakeup queued — waiting for worker",
           );
           setLoading(null);
           await refreshAgentData();
@@ -116,7 +119,9 @@ export function AgentActions({ agentId, status }: AgentActionsProps) {
 
         if (!result) {
           setMessage(
-            "Still queued or running — check run history (start npm run worker:agents in dev)",
+            showDevHints
+              ? "Still queued or running — check run history (start npm run worker:agents in dev)"
+              : "Still queued or running — check run history",
           );
           await refreshAgentData();
           return;

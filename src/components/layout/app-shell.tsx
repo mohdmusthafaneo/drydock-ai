@@ -61,7 +61,7 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const meta = WORKSPACE_META.ENTERPRISE;
-  const enterpriseLayout = getResolvedEnterpriseNavLayout(integrationGates);
+  const enterpriseLayout = getResolvedEnterpriseNavLayout(integrationGates, session.role);
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarHovered, setSidebarHovered] = useState(false);
@@ -170,7 +170,7 @@ export function AppShell({
         >
           <div className="mx-auto max-w-[1200px]">{children}</div>
         </main>
-        <MobileNav integrationGates={integrationGates} steep />
+        <MobileNav integrationGates={integrationGates} userRole={session.role} steep />
       </div>
     </div>
   );

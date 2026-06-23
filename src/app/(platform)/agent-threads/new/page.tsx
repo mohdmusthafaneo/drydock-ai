@@ -2,11 +2,16 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+import { hasPermission } from "@/lib/rbac";
 import { CreateThreadForm } from "@/components/agent-chat/compose-box";
 
 export default async function NewAgentThreadPage() {
   const session = await getSession();
   if (!session) redirect("/login");
+
+  if (!hasPermission(session, "agents", "view")) {
+    redirect("/dashboard");
+  }
 
   const dna = await prisma.deliveryDNA.findUnique({
     where: { organizationId: session.organizationId },

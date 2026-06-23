@@ -3,6 +3,10 @@ import { getSession } from "@/lib/session";
 import { getOrganizationContext } from "@/lib/org-data";
 import { hasPermission } from "@/lib/rbac";
 import {
+  buildObservabilityFreshness,
+  buildObservabilityStabilitySummary,
+} from "@/lib/governance/presentation";
+import {
   isPrometheusTrulyConnected,
   parsePrometheusMeta,
 } from "@/lib/prometheus-meta";
@@ -59,8 +63,14 @@ export default async function ObservabilityPage() {
         ? getAvailableMockServiceScopes()
         : [];
 
+  const stability = buildObservabilityStabilitySummary(ctx);
+  const freshness = buildObservabilityFreshness(ctx.integrations);
+
   return (
     <ObservabilityPageClient
+      stability={stability}
+      freshness={freshness}
+      openIncidents={ctx.stats.openIncidents}
       prometheusConnected={prometheusConnected}
       prometheusTrulyConnected={prometheusTrulyConnected}
       isPrometheusStub={isPrometheusStub}

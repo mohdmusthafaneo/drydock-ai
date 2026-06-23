@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { ROLE_LABELS } from "@/lib/roles";
 import { hasPermission } from "@/lib/rbac";
-import { WORKSPACE_META } from "@/lib/workspace-mode";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,12 +22,14 @@ export default async function SettingsPage() {
     prisma.deliveryDNA.findUnique({ where: { organizationId: session.organizationId } }),
   ]);
 
-  const meta = WORKSPACE_META.ENTERPRISE;
   const canInvite = hasPermission(session, "admin", "manage_team");
 
   return (
     <div className="mx-auto max-w-3xl space-y-8">
-      <PageHeader title="Settings" description={`${meta.label} · ${meta.tagline}`} />
+      <PageHeader
+        title="Settings"
+        description="Your profile, team, and workspace shortcuts — governance operations live in Admin."
+      />
 
       <Card>
         <CardHeader>
@@ -41,10 +43,35 @@ export default async function SettingsPage() {
           </p>
           {dna && (
             <p>
-              <span className="text-muted">Autonomy: </span>
+              <span className="text-muted">Autonomy mode: </span>
               <Badge variant="ai">{dna.autonomyMode}</Badge>
               <span className="ml-2 text-muted">(recommend-only in Phase 1)</span>
             </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Quick links</CardTitle>
+          <CardDescription>Operational shortcuts for your workspace.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-4 text-sm">
+          <Link href="/integrations" className="text-ink underline-offset-4 hover:underline">
+            Integrations
+          </Link>
+          <Link href="/audit" className="text-ink underline-offset-4 hover:underline">
+            Audit logs
+          </Link>
+          {dna && (
+            <Link href="/governance" className="text-ink underline-offset-4 hover:underline">
+              Delivery DNA
+            </Link>
+          )}
+          {(session.role === "ORG_ADMIN" || session.role === "DELIVERY_MANAGER") && (
+            <Link href="/admin" className="text-ink underline-offset-4 hover:underline">
+              Admin console
+            </Link>
           )}
         </CardContent>
       </Card>

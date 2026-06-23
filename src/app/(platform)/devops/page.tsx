@@ -8,6 +8,7 @@ import {
 } from "@/lib/governance/presentation";
 import { PageHeader } from "@/components/layout/page-header";
 import { BriefingHighlights } from "@/components/executive-briefing/briefing-highlights";
+import { RevealSection } from "@/components/motion/reveal-section";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,7 +40,7 @@ export default async function DevOpsIntelligencePage() {
         description="Deployment health verdict first — then event detail for your engineering lead."
       />
 
-      <section className="rounded-[24px] border border-border-subtle bg-pure-white px-6 py-6 shadow-[var(--shadow)]">
+      <RevealSection className="rounded-[24px] border border-border-subtle bg-pure-white px-6 py-6 shadow-[var(--shadow)]">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <span
@@ -56,9 +57,11 @@ export default async function DevOpsIntelligencePage() {
             <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-ash">{health.subcopy}</p>
           </div>
         </div>
-      </section>
+      </RevealSection>
 
-      <BriefingHighlights highlights={highlights} />
+      <RevealSection>
+        <BriefingHighlights highlights={highlights} />
+      </RevealSection>
 
       {devopsAgent && (
         <Card className="bg-sky-wash/40">

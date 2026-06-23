@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import type { UserRole } from "@/generated/prisma/client";
 import { isNavHrefEnabled } from "@/lib/feature-flags";
 import type { IntegrationGateKey, IntegrationNavGates } from "@/lib/nav-availability";
 import { DEFAULT_INTEGRATION_NAV_GATES } from "@/lib/nav-availability";
@@ -66,6 +67,8 @@ export type NavItem = {
   primary?: boolean;
   integrationGate?: IntegrationGateKey;
   lockedHint?: string;
+  /** When set, only these roles see the nav item */
+  roleGate?: UserRole[];
 };
 
 export type ResolvedNavItem = NavItem & {
@@ -169,7 +172,7 @@ export function getEnterpriseNavLayout(): EnterpriseNavLayout {
         items: [
           { href: "/recommendations", label: "Recommendations", icon: Lightbulb },
           { href: "/approvals", label: "Approval center", icon: CheckSquare },
-          { href: "/governance", label: "Governance", icon: Shield },
+          { href: "/governance", label: "Delivery DNA", icon: Shield },
         ],
       },
       {
@@ -180,9 +183,24 @@ export function getEnterpriseNavLayout(): EnterpriseNavLayout {
         items: [
           { href: "/reports", label: "Reports", icon: BarChart3 },
           { href: "/audit", label: "Audit logs", icon: ScrollText },
-          { href: "/agents", label: "Agents", icon: Bot },
-          { href: "/agent-threads", label: "Agent threads", icon: MessagesSquare },
-          { href: "/admin", label: "Admin", icon: Users },
+          {
+            href: "/agents",
+            label: "Agents",
+            icon: Bot,
+            roleGate: ["ORG_ADMIN", "DELIVERY_MANAGER", "ENGINEERING_MANAGER", "DEVOPS_LEAD"],
+          },
+          {
+            href: "/agent-threads",
+            label: "Agent threads",
+            icon: MessagesSquare,
+            roleGate: ["ORG_ADMIN", "DELIVERY_MANAGER", "ENGINEERING_MANAGER", "DEVOPS_LEAD"],
+          },
+          {
+            href: "/admin",
+            label: "Admin",
+            icon: Users,
+            roleGate: ["ORG_ADMIN", "DELIVERY_MANAGER"],
+          },
         ],
       },
     ],
@@ -205,6 +223,16 @@ function filterFlagEnabledItems(items: NavItem[]): NavItem[] {
   return items.filter((item) => isNavHrefEnabled(item.href));
 }
 
+function isNavItemAllowedForRole(item: NavItem, userRole?: UserRole): boolean {
+  if (!item.roleGate || item.roleGate.length === 0) return true;
+  if (!userRole) return true;
+  return item.roleGate.includes(userRole);
+}
+
+function filterRoleAllowedItems(items: NavItem[], userRole?: UserRole): NavItem[] {
+  return items.filter((item) => isNavItemAllowedForRole(item, userRole));
+}
+
 export function resolveNavItem(
   item: NavItem,
   gates: IntegrationNavGates = DEFAULT_INTEGRATION_NAV_GATES,
@@ -221,19 +249,24 @@ export function resolveNavItem(
 
 export function getResolvedEnterpriseNavLayout(
   gates: IntegrationNavGates = DEFAULT_INTEGRATION_NAV_GATES,
+  userRole?: UserRole,
 ): ResolvedEnterpriseNavLayout {
   const layout = getEnterpriseNavLayout();
 
   return {
-    topItems: filterFlagEnabledItems(layout.topItems).map((item) => resolveNavItem(item, gates)),
+    topItems: filterRoleAllowedItems(filterFlagEnabledItems(layout.topItems), userRole).map(
+      (item) => resolveNavItem(item, gates),
+    ),
     sections: layout.sections
       .map((section) => ({
         ...section,
-        items: filterFlagEnabledItems(section.items).map((item) => resolveNavItem(item, gates)),
+        items: filterRoleAllowedItems(filterFlagEnabledItems(section.items), userRole).map(
+          (item) => resolveNavItem(item, gates),
+        ),
       }))
       .filter((section) => section.items.length > 0),
-    bottomItems: filterFlagEnabledItems(layout.bottomItems).map((item) =>
-      resolveNavItem(item, gates),
+    bottomItems: filterRoleAllowedItems(filterFlagEnabledItems(layout.bottomItems), userRole).map(
+      (item) => resolveNavItem(item, gates),
     ),
   };
 }

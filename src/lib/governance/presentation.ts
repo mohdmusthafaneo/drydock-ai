@@ -12,6 +12,7 @@ import {
   type GateVerdict,
 } from "@/lib/release-gate-brief";
 import type { getOrganizationContext } from "@/lib/org-data";
+import { ENTERPRISE_WORKFLOW_STEPS } from "@/lib/enterprise-workflow";
 
 type Ctx = Awaited<ReturnType<typeof getOrganizationContext>>;
 type ApprovalRow = Ctx["approvals"][number];
@@ -523,6 +524,449 @@ export function sortReleasesByRisk<T extends ReleaseRow>(releases: T[]): T[] {
 
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
+}
+
+const STALE_MS = 24 * 60 * 60 * 1000;
+
+function isIntegrationStale(iso: string | null | undefined): boolean {
+  if (!iso) return true;
+  return Date.now() - new Date(iso).getTime() > STALE_MS;
+}
+
+export function buildQaOrgVerdict(input: {
+  orgReadinessIndex: number;
+  pendingDecisions: number;
+  openGaps: number;
+  noGoCount: number;
+  holdCount: number;
+  assessedCount: number;
+}): {
+  headline: string;
+  subcopy: string;
+  verdict: BriefingClaimVerdict;
+  verdictLabel: string;
+} {
+  const { orgReadinessIndex, pendingDecisions, openGaps, noGoCount, holdCount, assessedCount } =
+    input;
+
+  if (assessedCount === 0) {
+    return {
+      headline: "No releases assessed yet",
+      subcopy: "Run an assessment to establish org-wide release confidence.",
+      verdict: "neutral",
+      verdictLabel: "Awaiting data",
+    };
+  }
+
+  if (noGoCount > 0) {
+    return {
+      headline: `${noGoCount} release${noGoCount === 1 ? "" : "s"} blocked from shipping`,
+      subcopy: `${pendingDecisions} awaiting human sign-off · ${openGaps} open test gap${openGaps === 1 ? "" : "s"} across the portfolio.`,
+      verdict: "risk",
+      verdictLabel: "No-go",
+    };
+  }
+
+  if (pendingDecisions > 0 || holdCount > 0) {
+    return {
+      headline: `${pendingDecisions + holdCount} release${pendingDecisions + holdCount === 1 ? "" : "s"} need leadership attention`,
+      subcopy: `Org readiness ${orgReadinessIndex}% · review gate verdicts before the next deploy.`,
+      verdict: "attention",
+      verdictLabel: "Hold",
+    };
+  }
+
+  if (openGaps > 0 || orgReadinessIndex < 70) {
+    return {
+      headline: "Release confidence needs review",
+      subcopy: `${openGaps} open test gap${openGaps === 1 ? "" : "s"} · org readiness ${orgReadinessIndex}%.`,
+      verdict: "attention",
+      verdictLabel: "Caution",
+    };
+  }
+
+  return {
+    headline: "Release confidence is strong",
+    subcopy: `Org readiness ${orgReadinessIndex}% across ${assessedCount} assessed release${assessedCount === 1 ? "" : "s"}.`,
+    verdict: "good",
+    verdictLabel: "Healthy",
+  };
+}
+
+export function buildObservabilityStabilitySummary(ctx: Ctx): {
+  headline: string;
+  subcopy: string;
+  verdict: BriefingClaimVerdict;
+  verdictLabel: string;
+} {
+  const openIncidents = ctx.stats.openIncidents;
+  const degraded = ctx.stats.degradedDeployments;
+  const errorRate = ctx.stats.errorRate;
+
+  if (openIncidents > 0) {
+    const highSeverity = ctx.incidents.some(
+      (i) =>
+        (i.status === "OPEN" || i.status === "INVESTIGATING") && i.severityScore >= 70,
+    );
+    return {
+      headline:
+        openIncidents === 1
+          ? "1 open production incident"
+          : `${openIncidents} open production incidents`,
+      subcopy: "Review incident impact before approving the next release.",
+      verdict: highSeverity ? "risk" : "attention",
+      verdictLabel: highSeverity ? "High severity" : "Needs review",
+    };
+  }
+
+  if (degraded > 0) {
+    return {
+      headline: `${degraded} degraded deployment${degraded === 1 ? "" : "s"} in production`,
+      subcopy: "Operational signals suggest elevated risk — confirm stability before release.",
+      verdict: "attention",
+      verdictLabel: "Degraded",
+    };
+  }
+
+  if (errorRate != null && errorRate > 2) {
+    return {
+      headline: "Elevated error rate in production",
+      subcopy: `HTTP error rate at ${errorRate.toFixed(1)}% — monitor before the next deploy.`,
+      verdict: "attention",
+      verdictLabel: "Elevated errors",
+    };
+  }
+
+  if (ctx.stats.metricCount === 0) {
+    return {
+      headline: "Awaiting observability data",
+      subcopy: "Connect Prometheus or Grafana and sync metrics to establish a stability baseline.",
+      verdict: "neutral",
+      verdictLabel: "Awaiting data",
+    };
+  }
+
+  return {
+    headline: "Production is stable",
+    subcopy: "No open incidents or degradation signals in tracked environments.",
+    verdict: "good",
+    verdictLabel: "Stable",
+  };
+}
+
+export function buildObservabilityFreshness(
+  integrations: Ctx["integrations"],
+): { asOf: string; stale: boolean; staleSources: string[] } {
+  const prom = integrations.find((i) => i.provider === "PROMETHEUS" && i.status === "CONNECTED");
+  const grafana = integrations.find((i) => i.provider === "GRAFANA" && i.status === "CONNECTED");
+
+  const timestamps = [prom?.lastSyncAt, grafana?.lastSyncAt]
+    .filter((t): t is Date => Boolean(t))
+    .map((t) => t.toISOString());
+
+  const asOf =
+    timestamps.length > 0
+      ? timestamps.sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0]!
+      : new Date().toISOString();
+
+  const staleSources: string[] = [];
+  if (prom && isIntegrationStale(prom.lastSyncAt?.toISOString())) staleSources.push("Prometheus");
+  if (grafana && isIntegrationStale(grafana.lastSyncAt?.toISOString())) {
+    staleSources.push("Grafana");
+  }
+
+  return { asOf, stale: staleSources.length > 0, staleSources };
+}
+
+export function buildDeliveryConfidenceOneLiner(input: {
+  healthScore: number;
+  blocked: number;
+  overdue: number;
+  sprintCompletionPct?: number | null;
+}): {
+  headline: string;
+  subcopy: string;
+  verdict: BriefingClaimVerdict;
+  verdictLabel: string;
+} {
+  const { healthScore, blocked, overdue, sprintCompletionPct } = input;
+
+  if (blocked > 0) {
+    return {
+      headline: `${blocked} blocked item${blocked === 1 ? "" : "s"} across active work`,
+      subcopy: `Delivery health ${healthScore}% · resolve blockers before committing to the next release.`,
+      verdict: "risk",
+      verdictLabel: "Blocked",
+    };
+  }
+
+  if (overdue > 3 || healthScore < 60) {
+    return {
+      headline: "Delivery confidence is at risk",
+      subcopy: `${overdue} overdue item${overdue === 1 ? "" : "s"} · health score ${healthScore}%.`,
+      verdict: "attention",
+      verdictLabel: "Caution",
+    };
+  }
+
+  if (sprintCompletionPct != null && sprintCompletionPct < 50) {
+    return {
+      headline: "Active sprint is behind pace",
+      subcopy: `${sprintCompletionPct}% complete · health score ${healthScore}%.`,
+      verdict: "attention",
+      verdictLabel: "Behind pace",
+    };
+  }
+
+  return {
+    headline: "Delivery is on track",
+    subcopy: `Health score ${healthScore}%${sprintCompletionPct != null ? ` · sprint ${sprintCompletionPct}% complete` : ""}.`,
+    verdict: "good",
+    verdictLabel: "On track",
+  };
+}
+
+type GovernanceSignalLike = {
+  id: string;
+  severity: "info" | "warning" | "error";
+  title: string;
+};
+
+export function buildCodeAnalysisGovernanceHighlights(
+  signals: GovernanceSignalLike[],
+): BriefingHighlight[] {
+  const errors = signals.filter((s) => s.severity === "error").length;
+  const warnings = signals.filter((s) => s.severity === "warning").length;
+  const info = signals.filter((s) => s.severity === "info").length;
+
+  if (signals.length === 0) {
+    return [
+      {
+        id: "signals-clear",
+        label: "Governance signals",
+        value: "0",
+        tone: "good",
+        subtext: "No policy-relevant patterns detected",
+      },
+    ];
+  }
+
+  return [
+    {
+      id: "signals-total",
+      label: "Active signals",
+      value: String(signals.length),
+      tone: errors > 0 ? "risk" : warnings > 0 ? "attention" : "neutral",
+      subtext: errors > 0 ? "Policy review recommended" : "AI-assisted delivery patterns",
+      href: "/approvals",
+    },
+    {
+      id: "signals-critical",
+      label: "Critical",
+      value: String(errors),
+      tone: errors > 0 ? "risk" : "good",
+    },
+    {
+      id: "signals-warning",
+      label: "Warnings",
+      value: String(warnings),
+      tone: warnings > 0 ? "attention" : "good",
+    },
+    {
+      id: "signals-info",
+      label: "Informational",
+      value: String(info),
+      tone: "neutral",
+    },
+  ];
+}
+
+export function buildReleaseDetailVerdict(release: {
+  name: string;
+  status: string;
+  primaryRecommendation: string | null;
+  readinessScore: number | null;
+  governanceRiskScore: number | null;
+  assessedAt: Date | null;
+}): {
+  headline: string;
+  subcopy: string;
+  gateVerdict: GateVerdict | null;
+  verdictLabel: string;
+} {
+  if (!release.assessedAt) {
+    return {
+      headline: "Not yet assessed",
+      subcopy: "Run assessment to collect QA, telemetry, and governance signals for a go/no-go verdict.",
+      gateVerdict: null,
+      verdictLabel: "Awaiting assessment",
+    };
+  }
+
+  const gateVerdict = releaseListVerdict(release);
+  const readiness = Math.round(release.readinessScore ?? 0);
+
+  if (gateVerdict === "NO-GO") {
+    return {
+      headline: `${release.name} is not ready to ship`,
+      subcopy: `Readiness ${readiness}% · governance risk elevated — resolve blockers before approval.`,
+      gateVerdict,
+      verdictLabel: "No-go",
+    };
+  }
+
+  if (gateVerdict === "HOLD" || release.status === "PENDING_APPROVAL") {
+    return {
+      headline: `${release.name} awaits human sign-off`,
+      subcopy: `Readiness ${readiness}% · leadership approval required before deployment.`,
+      gateVerdict: gateVerdict ?? "HOLD",
+      verdictLabel: "Hold",
+    };
+  }
+
+  if (gateVerdict === "GO" || release.status === "DEPLOYED" || release.status === "APPROVED") {
+    return {
+      headline: `${release.name} is cleared for controlled deployment`,
+      subcopy: `Readiness ${readiness}% · governance gates passed.`,
+      gateVerdict: gateVerdict ?? "GO",
+      verdictLabel: "Go",
+    };
+  }
+
+  return {
+    headline: `${release.name} assessment complete`,
+    subcopy: `Readiness ${readiness}% · review gate brief below for signal detail.`,
+    gateVerdict,
+    verdictLabel: gateVerdict ?? "Review",
+  };
+}
+
+export function getWorkflowStepBadges(ctx: Ctx): Record<string, number> {
+  return {
+    recommendations: ctx.stats.pendingRecommendations,
+    approval: ctx.stats.pendingApprovals,
+  };
+}
+
+export function buildWorkflowAttentionSummary(
+  ctx: Ctx,
+  completedStepIds: string[],
+): {
+  headline: string;
+  subcopy: string;
+  attentionCount: number;
+} {
+  const incomplete = ENTERPRISE_WORKFLOW_STEPS.filter((s) => !completedStepIds.includes(s.id));
+  const urgent =
+    ctx.stats.pendingApprovals +
+    ctx.stats.pendingRecommendations +
+    (ctx.stats.openIncidents > 0 ? 1 : 0);
+
+  if (urgent > 0) {
+    const parts: string[] = [];
+    if (ctx.stats.pendingApprovals > 0) {
+      parts.push(`${ctx.stats.pendingApprovals} approval${ctx.stats.pendingApprovals === 1 ? "" : "s"}`);
+    }
+    if (ctx.stats.pendingRecommendations > 0) {
+      parts.push(
+        `${ctx.stats.pendingRecommendations} recommendation${ctx.stats.pendingRecommendations === 1 ? "" : "s"}`,
+      );
+    }
+    if (ctx.stats.openIncidents > 0) {
+      parts.push(`${ctx.stats.openIncidents} incident${ctx.stats.openIncidents === 1 ? "" : "s"}`);
+    }
+    return {
+      headline: `${urgent} item${urgent === 1 ? "" : "s"} need attention`,
+      subcopy: parts.join(" · "),
+      attentionCount: urgent,
+    };
+  }
+
+  if (incomplete.length > 0) {
+    return {
+      headline: `${incomplete.length} workflow stage${incomplete.length === 1 ? "" : "s"} remaining`,
+      subcopy: `${completedStepIds.length} of ${ENTERPRISE_WORKFLOW_STEPS.length} stages complete.`,
+      attentionCount: incomplete.length,
+    };
+  }
+
+  return {
+    headline: "Workflow is fully configured",
+    subcopy: "All enterprise delivery stages are complete.",
+    attentionCount: 0,
+  };
+}
+
+export type AuditFilterCategory = "all" | "approvals" | "releases" | "integrations" | "agents";
+
+export function categorizeAuditAction(action: string): AuditFilterCategory {
+  if (
+    action.startsWith("recommendation.") ||
+    action.startsWith("agent_action.") ||
+    action.startsWith("agent.hire.")
+  ) {
+    return "approvals";
+  }
+  if (action.startsWith("release.")) return "releases";
+  if (
+    action.startsWith("integration.") ||
+    action.startsWith("sync.") ||
+    action.startsWith("prometheus.") ||
+    action.startsWith("github.") ||
+    action.startsWith("jira.") ||
+    action.startsWith("delivery_dna.")
+  ) {
+    return "integrations";
+  }
+  if (action.startsWith("agent.")) return "agents";
+  return "all";
+}
+
+export function filterAuditLogs<T extends { action: string }>(
+  logs: T[],
+  category: AuditFilterCategory,
+): T[] {
+  if (category === "all") return logs;
+  return logs.filter((log) => categorizeAuditAction(log.action) === category);
+}
+
+export function countAuditByCategory(logs: { action: string }[]): Record<AuditFilterCategory, number> {
+  const counts: Record<AuditFilterCategory, number> = {
+    all: logs.length,
+    approvals: 0,
+    releases: 0,
+    integrations: 0,
+    agents: 0,
+  };
+  for (const log of logs) {
+    const cat = categorizeAuditAction(log.action);
+    if (cat !== "all") counts[cat]++;
+  }
+  return counts;
+}
+
+type AuditLogRow = {
+  action: string;
+  entityType: string;
+  createdAt: Date | string;
+  userName?: string | null;
+};
+
+export function findLastGovernanceDecision(logs: AuditLogRow[]): AuditLogRow | null {
+  const governanceActions = [
+    "recommendation.approved",
+    "recommendation.rejected",
+    "agent_action.approved",
+    "agent_action.rejected",
+    "release.deployed",
+    "agent.hire.approved",
+    "agent.hire.rejected",
+  ];
+  return logs.find((log) => governanceActions.includes(log.action)) ?? null;
+}
+
+export function auditActionLabel(action: string): string {
+  return action.replace(/\./g, " · ").replace(/_/g, " ");
 }
 
 export function buildReleasePortfolioHighlights(releases: ReleaseRow[]): BriefingHighlight[] {

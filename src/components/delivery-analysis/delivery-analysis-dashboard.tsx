@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { DeliveryAnalysisFilters, DeliveryAnalysisSnapshot } from "@/lib/delivery-analysis/types";
+import { buildDeliveryConfidenceOneLiner } from "@/lib/governance/presentation";
 import { AnalysisFiltersBar } from "@/components/delivery-analysis/analysis-filters";
+import { ExecutiveVerdictBanner } from "@/components/executive-briefing/executive-verdict-banner";
 import { KpiStrip } from "@/components/delivery-analysis/kpi-strip";
 import { RiskMixChart } from "@/components/delivery-analysis/risk-mix-chart";
 import { TrendChart } from "@/components/delivery-analysis/trend-chart";
@@ -163,6 +165,17 @@ export function DeliveryAnalysisDashboard({
   const selectedProject = filters.projectKey;
   const showMetrics = loadState === "ready" && snapshot;
 
+  const deliveryVerdict = useMemo(() => {
+    if (!snapshot) return null;
+    const activeSprint = snapshot.sprints.find((s) => s.state === "active");
+    return buildDeliveryConfidenceOneLiner({
+      healthScore: snapshot.kpis.healthScore,
+      blocked: snapshot.kpis.blocked,
+      overdue: snapshot.kpis.overdue,
+      sprintCompletionPct: activeSprint?.pct ?? snapshot.kpis.sprintCompletionPct,
+    });
+  }, [snapshot]);
+
   return (
     <div className="space-y-6">
       <AnalysisFiltersBar
@@ -216,6 +229,15 @@ export function DeliveryAnalysisDashboard({
 
       {showMetrics && (
         <>
+          {deliveryVerdict && (
+            <ExecutiveVerdictBanner
+              verdict={deliveryVerdict.verdict}
+              verdictLabel={deliveryVerdict.verdictLabel}
+              headline={deliveryVerdict.headline}
+              subcopy={deliveryVerdict.subcopy}
+            />
+          )}
+
           <p className="text-xs text-muted">
             {snapshot.rangeLabel}
             {selectedProject ? ` · ${selectedProject}` : ` · ${snapshot.projectKeys.length} projects`}

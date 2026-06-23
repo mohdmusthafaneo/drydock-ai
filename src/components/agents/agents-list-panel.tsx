@@ -13,7 +13,7 @@ import {
   formatHeartbeatAge,
 } from "@/lib/agent-control-plane/display";
 
-export function AgentsListPanel() {
+export function AgentsListPanel({ showDevHints = false }: { showDevHints?: boolean }) {
   const { data, isLoading, isError, error, isFetching, refetch, dataUpdatedAt } =
     useAgentsQuery();
 
@@ -99,7 +99,7 @@ export function AgentsListPanel() {
                       {lastRun.summary ? ` — ${lastRun.summary.slice(0, 80)}` : ""}
                     </p>
                   )}
-                  <AgentActions agentId={agent.id} status={agent.status} />
+                  <AgentActions agentId={agent.id} status={agent.status} showDevHints={showDevHints} />
                 </CardContent>
               </Card>
             );

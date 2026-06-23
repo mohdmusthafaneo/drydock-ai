@@ -12,6 +12,7 @@ export const MODULES = [
   "audit",
   "admin",
   "settings",
+  "agents",
 ] as const;
 
 export type Module = (typeof MODULES)[number];
@@ -56,6 +57,7 @@ const ROLE_PERMISSIONS: Record<
     observability: new Set(["view"]),
     audit: new Set(["view"]),
     settings: new Set(["view"]),
+    agents: new Set(["view", "manage"]),
   },
   ENGINEERING_MANAGER: {
     dashboard: new Set(["view"]),
@@ -67,6 +69,7 @@ const ROLE_PERMISSIONS: Record<
     observability: new Set(["view"]),
     audit: new Set(["view"]),
     settings: new Set(["view"]),
+    agents: new Set(["view"]),
   },
   QA_LEAD: {
     dashboard: new Set(["view"]),
@@ -87,6 +90,7 @@ const ROLE_PERMISSIONS: Record<
     approvals: new Set(["view", "approve"]),
     audit: new Set(["view"]),
     settings: new Set(["view"]),
+    agents: new Set(["view"]),
   },
   COMPLIANCE_OFFICER: {
     dashboard: new Set(["view"]),

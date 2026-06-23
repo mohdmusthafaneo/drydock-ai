@@ -2,9 +2,15 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   buildApprovalsHeroSummary,
+  buildDeliveryConfidenceOneLiner,
   buildDeploymentHealthSummary,
+  buildObservabilityStabilitySummary,
   buildOpenIncidentsClaim,
+  buildQaOrgVerdict,
   buildReleasePortfolioHighlights,
+  categorizeAuditAction,
+  filterAuditLogs,
+  findLastGovernanceDecision,
   impactVerdictLabel,
   releaseListVerdict,
   sortIncidentsByUrgency,
@@ -105,5 +111,56 @@ describe("governance presentation", () => {
 
     assert.equal(highlights.find((h) => h.id === "blocked")?.value, "1");
     assert.equal(highlights.find((h) => h.id === "deployed")?.value, "1");
+  });
+
+  it("builds QA org verdict for blocked releases", () => {
+    const verdict = buildQaOrgVerdict({
+      orgReadinessIndex: 55,
+      pendingDecisions: 1,
+      openGaps: 3,
+      noGoCount: 1,
+      holdCount: 0,
+      assessedCount: 2,
+    });
+    assert.equal(verdict.verdict, "risk");
+    assert.match(verdict.headline, /blocked/i);
+  });
+
+  it("reports stable observability when no incidents", () => {
+    const summary = buildObservabilityStabilitySummary({
+      stats: { openIncidents: 0, degradedDeployments: 0, errorRate: 0.5, metricCount: 12 },
+      incidents: [],
+    } as Parameters<typeof buildObservabilityStabilitySummary>[0]);
+    assert.equal(summary.verdict, "good");
+    assert.match(summary.headline, /stable/i);
+  });
+
+  it("flags delivery confidence when blockers exist", () => {
+    const line = buildDeliveryConfidenceOneLiner({
+      healthScore: 72,
+      blocked: 2,
+      overdue: 1,
+      sprintCompletionPct: 80,
+    });
+    assert.equal(line.verdict, "risk");
+    assert.match(line.headline, /blocked/i);
+  });
+
+  it("categorizes and filters audit approval actions", () => {
+    assert.equal(categorizeAuditAction("recommendation.approved"), "approvals");
+    const logs = [
+      { action: "recommendation.approved" },
+      { action: "release.deployed" },
+    ];
+    assert.equal(filterAuditLogs(logs, "approvals").length, 1);
+    assert.equal(
+      findLastGovernanceDecision(logs.map((l, i) => ({
+        ...l,
+        entityType: "Approval",
+        createdAt: new Date(),
+        userName: i === 0 ? "Alex" : null,
+      })))?.action,
+      "recommendation.approved",
+    );
   });
 });

@@ -8,6 +8,7 @@ import {
 } from "@/lib/governance/presentation";
 import { PageHeader } from "@/components/layout/page-header";
 import { BriefingHighlights } from "@/components/executive-briefing/briefing-highlights";
+import { RevealSection } from "@/components/motion/reveal-section";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RecommendationCard } from "@/components/recommendations/recommendation-card";
@@ -36,12 +37,12 @@ export default async function RecommendationsCenterPage() {
       />
 
       {highlights.length > 0 && (
-        <section className="space-y-3">
+        <RevealSection className="space-y-3">
           <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-graphite">
             At a glance
           </p>
           <BriefingHighlights highlights={highlights} />
-        </section>
+        </RevealSection>
       )}
 
       <div className="space-y-4">

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { UserRole } from "@/generated/prisma/client";
 import type { IntegrationNavGates } from "@/lib/nav-availability";
 import { DEFAULT_INTEGRATION_NAV_GATES } from "@/lib/nav-availability";
 import {
@@ -14,8 +15,9 @@ import { cn } from "@/lib/utils";
 
 function pickEnterpriseMobileItems(
   gates: IntegrationNavGates,
+  userRole?: UserRole,
 ): ResolvedNavItem[] {
-  const layout = getResolvedEnterpriseNavLayout(gates);
+  const layout = getResolvedEnterpriseNavLayout(gates, userRole);
   const pinnedHrefs = ["/workflow", "/dashboard", "/integrations", "/settings"];
   const pinned = pinnedHrefs
     .map((href) => {
@@ -62,12 +64,14 @@ function MobileNavLink({
 
 export function MobileNav({
   integrationGates = DEFAULT_INTEGRATION_NAV_GATES,
+  userRole,
   steep = false,
 }: {
   integrationGates?: IntegrationNavGates;
+  userRole?: UserRole;
   steep?: boolean;
 }) {
-  const items = pickEnterpriseMobileItems(integrationGates);
+  const items = pickEnterpriseMobileItems(integrationGates, userRole);
 
   return (
     <nav

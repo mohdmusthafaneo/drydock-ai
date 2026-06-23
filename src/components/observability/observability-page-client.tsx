@@ -1,7 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import type { BriefingClaimVerdict } from "@/lib/executive-briefing/types";
 import { PageHeader } from "@/components/layout/page-header";
+import { ExecutiveVerdictBanner } from "@/components/executive-briefing/executive-verdict-banner";
+import { BriefingFreshnessStrip } from "@/components/executive-briefing/briefing-freshness-strip";
 import { ObservabilityDashboard } from "@/components/observability/observability-dashboard";
 import { GrafanaObservabilityDashboard } from "@/components/observability/grafana-observability-dashboard";
 import {
@@ -23,7 +27,23 @@ import { cn } from "@/lib/utils";
 
 type SourceTab = "prometheus" | "grafana";
 
+type StabilitySummary = {
+  headline: string;
+  subcopy: string;
+  verdict: BriefingClaimVerdict;
+  verdictLabel: string;
+};
+
+type FreshnessSummary = {
+  asOf: string;
+  stale: boolean;
+  staleSources: string[];
+};
+
 type Props = {
+  stability: StabilitySummary;
+  freshness: FreshnessSummary;
+  openIncidents: number;
   prometheusConnected: boolean;
   prometheusTrulyConnected: boolean;
   isPrometheusStub: boolean;
@@ -44,6 +64,9 @@ type Props = {
 };
 
 export function ObservabilityPageClient({
+  stability,
+  freshness,
+  openIncidents,
   prometheusConnected,
   prometheusTrulyConnected,
   isPrometheusStub,
@@ -143,6 +166,24 @@ export function ObservabilityPageClient({
   return (
     <div className="w-full space-y-8 pb-24 lg:pb-8">
       <PageHeader title="Observability center" description={description} />
+
+      <ExecutiveVerdictBanner
+        verdict={stability.verdict}
+        verdictLabel={stability.verdictLabel}
+        headline={stability.headline}
+        subcopy={stability.subcopy}
+      />
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <BriefingFreshnessStrip freshness={freshness} />
+        {openIncidents > 0 && (
+          <Link href="/incidents" className="text-[14px] font-medium text-rust hover:underline">
+            {openIncidents} open incident{openIncidents === 1 ? "" : "s"} →
+          </Link>
+        )}
+      </div>
+
+      {freshness.stale && <BriefingFreshnessStrip freshness={freshness} variant="banner" />}
 
       {neitherConnected ? (
         <ConnectObservabilityEmpty />

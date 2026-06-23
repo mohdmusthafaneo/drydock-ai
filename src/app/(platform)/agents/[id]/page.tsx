@@ -2,6 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+import { hasPermission } from "@/lib/rbac";
 import { Badge } from "@/components/ui/badge";
 import { AgentRuntimePanel } from "@/components/agents/agent-runtime-panel";
 import { AgentInstructionsEditor } from "@/components/agents/agent-instructions-editor";
@@ -18,6 +19,12 @@ type PageProps = { params: Promise<{ id: string }> };
 export default async function AgentDetailPage({ params }: PageProps) {
   const session = await getSession();
   if (!session) redirect("/login");
+
+  if (!hasPermission(session, "agents", "view")) {
+    redirect("/dashboard");
+  }
+
+  const canManageAgents = hasPermission(session, "agents", "manage");
 
   const { id } = await params;
 
@@ -93,9 +100,12 @@ export default async function AgentDetailPage({ params }: PageProps) {
             .filter(Boolean)
             .join(" · ") || "none"
         }
+        showDevHints={canManageAgents}
       />
 
-      <AgentInstructionsEditor agentId={agent.id} initialBundle={bundle} />
+      {canManageAgents && (
+        <AgentInstructionsEditor agentId={agent.id} initialBundle={bundle} />
+      )}
     </div>
   );
 }

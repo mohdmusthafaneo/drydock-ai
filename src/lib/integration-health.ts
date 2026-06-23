@@ -97,6 +97,63 @@ export async function checkIntegrationHealth(
   };
 }
 
+export type IntegrationHealthAggregate = {
+  total: number;
+  healthy: number;
+  degraded: number;
+  disconnected: number;
+  headline: string;
+  verdict: "good" | "attention" | "risk";
+  firstUnhealthyProvider: IntegrationProvider | null;
+};
+
+export function summarizeIntegrationHealth(
+  summaries: IntegrationHealthSummary[],
+): IntegrationHealthAggregate {
+  if (summaries.length === 0) {
+    return {
+      total: 0,
+      healthy: 0,
+      degraded: 0,
+      disconnected: 0,
+      headline: "No integrations configured yet",
+      verdict: "attention",
+      firstUnhealthyProvider: null,
+    };
+  }
+
+  const healthy = summaries.filter((s) => s.healthy).length;
+  const disconnected = summaries.filter((s) => s.status === "DISCONNECTED").length;
+  const degraded = summaries.length - healthy - disconnected;
+
+  const firstUnhealthy = summaries.find((s) => !s.healthy) ?? null;
+
+  let verdict: IntegrationHealthAggregate["verdict"] = "good";
+  let headline: string;
+
+  if (healthy === summaries.length) {
+    headline = `All ${summaries.length} integrations healthy`;
+  } else if (disconnected > 0 && healthy === 0) {
+    verdict = "risk";
+    headline = `${disconnected} of ${summaries.length} integrations disconnected`;
+  } else if (degraded > 0 || disconnected > 0) {
+    verdict = "attention";
+    headline = `${healthy} of ${summaries.length} integrations healthy`;
+  } else {
+    headline = `${healthy} of ${summaries.length} integrations healthy`;
+  }
+
+  return {
+    total: summaries.length,
+    healthy,
+    degraded,
+    disconnected,
+    headline,
+    verdict,
+    firstUnhealthyProvider: firstUnhealthy?.provider ?? null,
+  };
+}
+
 export async function markIntegrationSync(
   organizationId: string,
   provider: Integration["provider"],

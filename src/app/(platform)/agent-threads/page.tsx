@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { getOrganizationContext } from "@/lib/org-data";
+import { hasPermission } from "@/lib/rbac";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/page-header";
 import { ThreadListTabs } from "@/components/agent-chat/thread-list";
@@ -14,6 +15,10 @@ type PageProps = {
 export default async function AgentThreadsPage({ searchParams }: PageProps) {
   const session = await getSession();
   if (!session) redirect("/login");
+
+  if (!hasPermission(session, "agents", "view")) {
+    redirect("/dashboard");
+  }
 
   const ctx = await getOrganizationContext(session.organizationId);
   if (!ctx.dna) redirect("/governance/setup");

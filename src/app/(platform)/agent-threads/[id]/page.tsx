@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+import { hasPermission } from "@/lib/rbac";
 import { getAgentChatThread } from "@/lib/agent-chat";
 import { ThreadDetailPanel } from "@/components/agent-chat/thread-detail-panel";
 
@@ -12,6 +13,10 @@ type PageProps = {
 export default async function AgentThreadDetailPage({ params }: PageProps) {
   const session = await getSession();
   if (!session) redirect("/login");
+
+  if (!hasPermission(session, "agents", "view")) {
+    redirect("/dashboard");
+  }
 
   const dna = await prisma.deliveryDNA.findUnique({
     where: { organizationId: session.organizationId },

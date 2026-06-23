@@ -64,7 +64,7 @@ export default async function GovernancePage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Delivery governance"
+        title="Delivery DNA"
         description="Your Delivery DNA, approval posture, and live governance signals."
       >
         <div className="flex flex-wrap items-center gap-4">
@@ -83,7 +83,10 @@ export default async function GovernancePage() {
         </div>
       </PageHeader>
 
-      <section className="rounded-[24px] border border-border-subtle bg-pure-white px-6 py-8 shadow-[var(--shadow)]">
+      <section
+        id="dna"
+        className="scroll-mt-24 rounded-[24px] border border-border-subtle bg-pure-white px-6 py-8 shadow-[var(--shadow)]"
+      >
         <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-graphite">
           Delivery DNA
         </p>

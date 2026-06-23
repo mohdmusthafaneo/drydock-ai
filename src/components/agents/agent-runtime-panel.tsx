@@ -19,6 +19,7 @@ type AgentRuntimePanelProps = {
   skillsLabel: string;
   heartbeatLabel: string;
   wakeTriggersLabel: string;
+  showDevHints?: boolean;
 };
 
 export function AgentRuntimePanel({
@@ -28,6 +29,7 @@ export function AgentRuntimePanel({
   skillsLabel,
   heartbeatLabel,
   wakeTriggersLabel,
+  showDevHints = false,
 }: AgentRuntimePanelProps) {
   const { data, isLoading, isError, error, isFetching, refetch, dataUpdatedAt } =
     useAgentDetailQuery(agentId);
@@ -103,7 +105,7 @@ export function AgentRuntimePanel({
             <dd className="text-ink">{wakeTriggersLabel}</dd>
           </div>
         </dl>
-        <AgentActions agentId={agentId} status={agent.status} />
+        <AgentActions agentId={agentId} status={agent.status} showDevHints={showDevHints} />
       </CardContent>
     </Card>
   );

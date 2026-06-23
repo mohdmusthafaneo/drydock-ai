@@ -52,13 +52,14 @@ export function AuthForm({ mode }: { mode: Mode }) {
       <div className="relative z-10 hidden w-full flex-col justify-center px-12 lg:flex lg:max-w-md xl:max-w-lg xl:px-16">
         <AidosLogo size={48} className="mb-8" />
         <h1 className="font-display text-[44px] leading-[1.1] tracking-[-0.66px] text-ink xl:text-[64px] xl:tracking-[-1.6px]">
-          AI delivery intelligence,
+          Governance-aware operational intelligence,
           <span className="block text-rust">human governed.</span>
         </h1>
         <p className="mt-4 max-w-sm text-[16px] leading-relaxed text-ash">
-          Orchestrate releases, governance, and observability from one workspace — built for
+          Govern, observe, and orchestrate AI-native delivery from one workspace — built for
           enterprise teams.
         </p>
+        <p className="mt-3 max-w-sm text-[14px] text-graphite">AI recommends. Humans approve.</p>
       </div>
 
       <div className="relative z-10 flex flex-1 items-center justify-center p-4 lg:p-8">
@@ -74,7 +75,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
               <CardDescription className="mt-1.5 text-ash">
                 {mode === "login"
                   ? "Sign in to your AIDOS workspace"
-                  : "Set up your organization for governed AI-native delivery"}
+                  : "Create your organization workspace for governed AI operations"}
               </CardDescription>
             </div>
           </CardHeader>

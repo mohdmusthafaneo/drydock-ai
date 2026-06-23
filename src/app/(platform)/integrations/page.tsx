@@ -5,7 +5,7 @@ import { getOrganizationContext } from "@/lib/org-data";
 import { parseIntegrationMeta } from "@/lib/integration-meta";
 import { getJiraOAuthConfig } from "@/lib/jira-oauth";
 import { parseJiraMeta } from "@/lib/jira-meta";
-import { checkIntegrationHealth } from "@/lib/integration-health";
+import { checkIntegrationHealth, summarizeIntegrationHealth } from "@/lib/integration-health";
 import { persistGitHubAppInstallation } from "@/lib/github-app-install";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/rbac";
@@ -23,6 +23,8 @@ import { GrafanaIntegrationPanel } from "@/components/integrations/grafana-integ
 import { ObservabilityPairingBanner } from "@/components/integrations/observability-pairing-banner";
 import { isPrometheusTrulyConnected, parsePrometheusMeta } from "@/lib/prometheus-meta";
 import { isGrafanaTrulyConnected, parseGrafanaMeta } from "@/lib/grafana-meta";
+import { IntegrationHealthSummaryStrip } from "@/components/integrations/integration-health-summary";
+import { RevealSection } from "@/components/motion/reveal-section";
 import { DisconnectButton, StubConnectButton } from "@/components/integrations/integration-actions";
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -106,6 +108,7 @@ export default async function IntegrationsPage({
   const integrations = ctx.integrations;
 
   const health = await Promise.all(integrations.map((i) => checkIntegrationHealth(i)));
+  const healthSummary = summarizeIntegrationHealth(health);
 
   return (
     <div className="space-y-8">
@@ -115,6 +118,12 @@ export default async function IntegrationsPage({
       >
         {canManage && <SyncIntegrationsButton />}
       </PageHeader>
+
+      {integrations.length > 0 && (
+        <RevealSection>
+          <IntegrationHealthSummaryStrip summary={healthSummary} />
+        </RevealSection>
+      )}
 
       <Suspense fallback={null}>
         <IntegrationAlerts />
@@ -130,7 +139,7 @@ export default async function IntegrationsPage({
         />
       )}
 
-      {!githubAppSlug && (
+      {!githubAppSlug && canManage && (
         <Card className="border-warning/30 bg-warning-muted/50">
           <CardHeader>
             <CardTitle className="text-base">GitHub App setup required</CardTitle>
@@ -142,7 +151,7 @@ export default async function IntegrationsPage({
         </Card>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div id="integration-grid" className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {integrations.map((integration, idx) => {
           const meta = parseIntegrationMeta(integration.metadataJson);
           const jiraMeta = parseJiraMeta(integration.metadataJson);

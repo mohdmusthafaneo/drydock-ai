@@ -22,7 +22,7 @@ export function GovernanceEmptyState() {
         Configure delivery governance and QA policies before running release intelligence.
       </p>
       <Button asChild variant="ink" size="lg">
-        <Link href="/governance/setup">Configure governance</Link>
+        <Link href="/discovery">Configure governance</Link>
       </Button>
     </motion.div>
   );

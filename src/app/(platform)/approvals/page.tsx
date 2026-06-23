@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { AgentHireApprovalCard } from "@/components/approvals/agent-hire-approval-card";
 import { RecommendationApprovalCard } from "@/components/approvals/recommendation-approval-card";
+import { RevealSection } from "@/components/motion/reveal-section";
 
 function approvalTitle(approval: {
   type: string;
@@ -55,7 +56,7 @@ export default async function ApprovalsPage() {
         description="Human-governed gate for recommendations and agent hires. No deployment or agent activation without approval."
       />
 
-      <section className="rounded-[24px] border border-border-subtle bg-pure-white px-6 py-6 shadow-[var(--shadow)]">
+      <RevealSection className="rounded-[24px] border border-border-subtle bg-pure-white px-6 py-6 shadow-[var(--shadow)]">
         <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-graphite">
           Waiting on leadership
         </p>
@@ -63,7 +64,7 @@ export default async function ApprovalsPage() {
           {hero.headline}
         </h2>
         <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-ash">{hero.subcopy}</p>
-      </section>
+      </RevealSection>
 
       <Card>
         <CardHeader>

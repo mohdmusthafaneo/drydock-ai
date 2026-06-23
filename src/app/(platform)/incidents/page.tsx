@@ -10,6 +10,7 @@ import {
 } from "@/lib/governance/presentation";
 import { PageHeader } from "@/components/layout/page-header";
 import { BriefingClaimCard } from "@/components/executive-briefing/briefing-claim-card";
+import { RevealSection } from "@/components/motion/reveal-section";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -38,7 +39,9 @@ export default async function IncidentsPage() {
         description="Production incidents correlated with releases — sorted by severity and status."
       />
 
-      <BriefingClaimCard claim={claim} />
+      <RevealSection>
+        <BriefingClaimCard claim={claim} />
+      </RevealSection>
 
       <Card>
         <CardHeader>

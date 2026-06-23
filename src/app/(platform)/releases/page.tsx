@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/layout/page-header";
 import { BriefingHighlights } from "@/components/executive-briefing/briefing-highlights";
+import { RevealSection } from "@/components/motion/reveal-section";
 
 export default async function ReleasesPage() {
   const session = await getSession();
@@ -35,7 +36,11 @@ export default async function ReleasesPage() {
         </Button>
       </PageHeader>
 
-      {releases.length > 0 && <BriefingHighlights highlights={highlights} />}
+      {releases.length > 0 && (
+        <RevealSection>
+          <BriefingHighlights highlights={highlights} />
+        </RevealSection>
+      )}
 
       {releases.length === 0 ? (
         <div className="rounded-[var(--radius-card)] border border-dashed border-dove bg-sky-wash/40 px-6 py-12 text-center">
