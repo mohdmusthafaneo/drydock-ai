@@ -10,7 +10,12 @@ import {
   jqlForHygieneFinding,
   type JiraLinkContext,
 } from "@/lib/jira-issue-links";
-import { buildBlockedJql } from "@/lib/jira-jql";
+import {
+  buildBlockedJql,
+  buildPortfolioSpilloverJql,
+  buildReopenedJql,
+  buildSpilloverJql,
+} from "@/lib/jira-jql";
 import type { ToolchainMapping } from "@/lib/toolchain-mapping";
 
 const mapping: ToolchainMapping = {
@@ -21,6 +26,7 @@ const mapping: ToolchainMapping = {
     blockedStatusName: "On hold",
     bugIssueType: "Bug",
     doneStatusCategory: "Done",
+    doneStatusNames: ["Done", "Closed"],
     storyPointField: { id: "customfield_10016", name: "Story Points" },
   },
 };
@@ -82,6 +88,22 @@ describe("JQL parity with sync", () => {
     const expected = buildUnassignedJql(base, slice);
     assert.equal(jqlForHygieneFinding("high-unassigned", "CX", { ...ctx, projectKeys: ["CX"] }), expected);
   });
+
+  it("reopened JQL requires done status names", () => {
+    assert.equal(buildReopenedJql(base, slice), null);
+    const withDone = buildReopenedJql(base, {
+      ...slice,
+      doneStatusNames: ["Done"],
+    });
+    assert.equal(
+      withDone,
+      `${base} AND status CHANGED FROM ("Done") AND statusCategory != "Done"`,
+    );
+  });
+
+  it("spillover JQL matches sprint carry-over pattern", () => {
+    assert.equal(buildSpilloverJql(42), "sprint = 42 AND sprint in closedSprints()");
+  });
 });
 
 describe("jqlForSignal", () => {
@@ -97,6 +119,24 @@ describe("jqlForSignal", () => {
     const jql = jqlForSignal("version-slip", ctx, { versionName: "v1.2", projectKey: "CX" });
     assert.ok(jql?.includes('fixVersion = "v1.2"'));
     assert.ok(jql?.includes('project = "CX"'));
+  });
+
+  it("returns reopened JQL when done status names configured", () => {
+    const jql = jqlForSignal("reopened-cluster", { ...ctx, projectKeys: ["CX"] });
+    assert.ok(jql?.includes('status CHANGED FROM ("Done", "Closed")'));
+    assert.ok(jql?.includes('statusCategory != "Done"'));
+  });
+
+  it("returns spillover JQL for sprint id", () => {
+    assert.equal(
+      jqlForSignal("spillover", ctx, { sprintId: 99 }),
+      buildSpilloverJql(99),
+    );
+  });
+
+  it("returns portfolio spillover JQL without sprint id", () => {
+    const jql = jqlForSignal("spillover", ctx);
+    assert.equal(jql, buildPortfolioSpilloverJql('project in ("CX", "AI")'));
   });
 });
 

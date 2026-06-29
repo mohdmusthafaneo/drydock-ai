@@ -92,6 +92,16 @@ function OverviewTab({ snapshot }: { snapshot: DeliveryAnalysisSnapshot }) {
         <SummaryStat label="Blocked" value={snapshot.kpis.blocked.toLocaleString()} />
         <SummaryStat label="Overdue" value={snapshot.kpis.overdue.toLocaleString()} />
       </div>
+      {(snapshot.kpis.reopened != null || snapshot.kpis.spillover != null) && (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {snapshot.kpis.reopened != null && (
+            <SummaryStat label="Reopened" value={snapshot.kpis.reopened.toLocaleString()} />
+          )}
+          {snapshot.kpis.spillover != null && (
+            <SummaryStat label="Spillover" value={snapshot.kpis.spillover.toLocaleString()} />
+          )}
+        </div>
+      )}
       {(snapshot.kpis.resolvedLast7d != null || flowProjects.length > 0) && (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {snapshot.kpis.resolvedLast7d != null && (
@@ -299,6 +309,8 @@ function ProjectsTab({
             <th className="pb-2 font-medium">Open</th>
             <th className="pb-2 font-medium">Blocked</th>
             <th className="pb-2 font-medium">Overdue</th>
+            <th className="pb-2 font-medium">Reopened</th>
+            <th className="pb-2 font-medium">Spillover</th>
             <th className="pb-2 font-medium">Bugs</th>
           </tr>
         </thead>
@@ -328,11 +340,13 @@ function ProjectsTab({
                   <td className="py-2 tabular-nums">{p.openIssues}</td>
                   <td className="py-2 tabular-nums">{p.blockedCount}</td>
                   <td className="py-2 tabular-nums">{p.overdueCount}</td>
+                  <td className="py-2 tabular-nums">{p.reopenedCount ?? "—"}</td>
+                  <td className="py-2 tabular-nums">{p.spilloverCount ?? "—"}</td>
                   <td className="py-2 tabular-nums">{p.bugsOpen}</td>
                 </tr>
                 {expanded && (
                   <tr className="border-b border-border-subtle bg-elevated/20">
-                    <td colSpan={7} className="px-4 py-3">
+                    <td colSpan={9} className="px-4 py-3">
                       <div className="grid gap-4 sm:grid-cols-2">
                         {projectSprint && (
                           <div>

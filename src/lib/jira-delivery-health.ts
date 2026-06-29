@@ -192,10 +192,20 @@ function aggregateMetrics(projects: ProjectScope[]) {
       openIssues: acc.openIssues + p.openIssues,
       blockedCount: acc.blockedCount + p.blockedCount,
       overdueCount: acc.overdueCount + p.overdueCount,
+      reopenedCount: acc.reopenedCount + (p.reopenedCount ?? 0),
+      spilloverCount: acc.spilloverCount + (p.spilloverCount ?? 0),
       bugsOpen: acc.bugsOpen + p.bugsOpen,
       unassignedCount: acc.unassignedCount + p.unassignedCount,
     }),
-    { openIssues: 0, blockedCount: 0, overdueCount: 0, bugsOpen: 0, unassignedCount: 0 },
+    {
+      openIssues: 0,
+      blockedCount: 0,
+      overdueCount: 0,
+      reopenedCount: 0,
+      spilloverCount: 0,
+      bugsOpen: 0,
+      unassignedCount: 0,
+    },
   );
 }
 
@@ -318,6 +328,38 @@ export function analyzePortfolioDeliveryHealth(input: {
           : "info",
   });
 
+  signals.push({
+    id: "reopened-cluster",
+    category: "quality",
+    label: isOrgScope ? "Reopened issues" : "Reopened work",
+    value:
+      metrics.reopenedCount > 0
+        ? `${metrics.reopenedCount} issue${metrics.reopenedCount === 1 ? "" : "s"} reopened from done`
+        : "No reopened issues in scope",
+    severity:
+      metrics.reopenedCount >= 10
+        ? "critical"
+        : metrics.reopenedCount > 0
+          ? "warning"
+          : "info",
+  });
+
+  signals.push({
+    id: "spillover",
+    category: "sprint",
+    label: isOrgScope ? "Sprint spillover" : "Spillover work",
+    value:
+      metrics.spilloverCount > 0
+        ? `${metrics.spilloverCount} issue${metrics.spilloverCount === 1 ? "" : "s"} carried from prior sprint${metrics.spilloverCount === 1 ? "" : "s"}`
+        : "No sprint spillover in scope",
+    severity:
+      metrics.spilloverCount >= 10
+        ? "critical"
+        : metrics.spilloverCount > 0
+          ? "warning"
+          : "info",
+  });
+
   const slippedVersions: Array<{ projectKey: string; name: string }> = [];
   for (const p of projects) {
     for (const v of p.versions) {
@@ -425,6 +467,22 @@ export function analyzePortfolioDeliveryHealth(input: {
     });
   }
 
+  if (metrics.reopenedCount > 0) {
+    gaps.push({
+      area: "Quality",
+      gap: `${metrics.reopenedCount} issue${metrics.reopenedCount === 1 ? "" : "s"} reopened from done status`,
+      priority: metrics.reopenedCount >= 5 ? "high" : "medium",
+    });
+  }
+
+  if (metrics.spilloverCount > 0) {
+    gaps.push({
+      area: "Sprint",
+      gap: `${metrics.spilloverCount} issue${metrics.spilloverCount === 1 ? "" : "s"} spilled over from prior sprint${metrics.spilloverCount === 1 ? "" : "s"}`,
+      priority: metrics.spilloverCount >= 5 ? "high" : "medium",
+    });
+  }
+
   const score = computeHealthScore(signals, gaps);
   const scoped = projects.length === 1 ? projects[0] : undefined;
 
@@ -458,6 +516,8 @@ export function analyzeJiraDeliveryHealth(input: {
         openIssues: scopedProject.openIssues,
         blockedCount: scopedProject.blockedCount,
         overdueCount: scopedProject.overdueCount,
+        reopenedCount: scopedProject.reopenedCount ?? 0,
+        spilloverCount: scopedProject.spilloverCount ?? 0,
         bugsOpen: scopedProject.bugsOpen,
         unassignedCount: scopedProject.unassignedCount,
       }

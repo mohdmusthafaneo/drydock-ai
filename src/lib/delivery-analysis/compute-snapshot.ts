@@ -112,6 +112,8 @@ function jiraProjectsToSnapshotRows(
       openIssues: p.openIssues,
       blockedCount: p.blockedCount,
       overdueCount: p.overdueCount,
+      reopenedCount: p.reopenedCount,
+      spilloverCount: p.spilloverCount,
       bugsOpen: p.bugsOpen,
       resolvedLast7d: p.resolvedLast7d,
       statusBreakdown: p.statusBreakdown,
@@ -229,6 +231,8 @@ export function computeDeliveryAnalysisSnapshot(input: {
   const openWork = projects.reduce((n, p) => n + p.openIssues, 0);
   const blocked = projects.reduce((n, p) => n + p.blockedCount, 0);
   const overdue = projects.reduce((n, p) => n + p.overdueCount, 0);
+  const reopened = projects.reduce((n, p) => n + (p.reopenedCount ?? 0), 0);
+  const spillover = projects.reduce((n, p) => n + (p.spilloverCount ?? 0), 0);
   const bugsOpen = projects.reduce((n, p) => n + p.bugsOpen, 0);
   const resolvedLast7d = projects.reduce((n, p) => n + (p.resolvedLast7d ?? 0), 0);
   const hasThroughput = projects.some((p) => p.resolvedLast7d != null);
@@ -293,6 +297,10 @@ export function computeDeliveryAnalysisSnapshot(input: {
       blockedDelta: kpisDeltas?.blockedDelta,
       overdue,
       overdueDelta: kpisDeltas?.overdueDelta,
+      reopened,
+      reopenedDelta: kpisDeltas?.reopenedDelta,
+      spillover,
+      spilloverDelta: kpisDeltas?.spilloverDelta,
       bugsOpen,
       sprintCompletionPct,
       resolvedLast7d: hasThroughput ? resolvedLast7d : undefined,
@@ -360,6 +368,16 @@ function signalLinkExtras(
       project.sprint?.sprintId ??
       jiraSnapshot?.projects.find((p) => p.key === project.key)?.activeSprint?.id;
     return { projectKey: project.key, sprintId };
+  }
+
+  if (signal.id === "spillover") {
+    if (projects.length === 1) {
+      const project = projects[0];
+      const sprintId =
+        project.sprint?.sprintId ??
+        jiraSnapshot?.projects.find((p) => p.key === project.key)?.activeSprint?.id;
+      return { projectKey: project.key, sprintId };
+    }
   }
 
   return undefined;

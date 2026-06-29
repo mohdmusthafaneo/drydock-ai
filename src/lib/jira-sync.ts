@@ -25,6 +25,8 @@ import {
   buildDoneJql,
   buildNotDoneJql,
   buildOpenJql,
+  buildReopenedJql,
+  buildSpilloverJql,
   jqlQuoteLiteral,
   LEGACY_JIRA_MAPPING,
   type JiraMappingSlice,
@@ -189,6 +191,7 @@ async function syncProject(
 
   let board: JiraDeliverySnapshot["projects"][number]["board"];
   let activeSprint: JiraDeliverySnapshot["projects"][number]["activeSprint"];
+  let spilloverCount: number | undefined;
 
   try {
     const boards = await listBoardsForProject(accessToken, cloudId, projectKey);
@@ -218,6 +221,18 @@ async function syncProject(
             committed,
             done,
           };
+
+          try {
+            spilloverCount = await countIssuesByJql(
+              accessToken,
+              cloudId,
+              buildSpilloverJql(sprint.id),
+            );
+          } catch (e) {
+            if (!(e instanceof JiraApiError) || ![400, 401, 403, 404, 429].includes(e.status)) {
+              throw e;
+            }
+          }
         }
       }
     }
@@ -263,12 +278,26 @@ async function syncProject(
     }
   }
 
+  let reopenedCount: number | undefined;
+  const reopenedJql = buildReopenedJql(baseJql, mapping);
+  if (reopenedJql) {
+    try {
+      reopenedCount = await countIssuesByJql(accessToken, cloudId, reopenedJql);
+    } catch (e) {
+      if (!(e instanceof JiraApiError) || ![400, 401, 403, 404, 429].includes(e.status)) {
+        throw e;
+      }
+    }
+  }
+
   return {
     key: project.key,
     name: project.name,
     openIssues,
     blockedCount,
     overdueCount,
+    reopenedCount,
+    spilloverCount,
     bugsOpen,
     unassignedCount,
     missingEstimateCount,

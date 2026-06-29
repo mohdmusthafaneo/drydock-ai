@@ -24,6 +24,10 @@ export type DeliveryAnalysisKpis = {
   blockedDelta?: number;
   overdue: number;
   overdueDelta?: number;
+  reopened?: number;
+  reopenedDelta?: number;
+  spillover?: number;
+  spilloverDelta?: number;
   bugsOpen?: number;
   sprintCompletionPct?: number | null;
   /** Sum of resolved issues in the last 7 days across scope (P2b). */
@@ -38,6 +42,8 @@ export type DeliveryAnalysisProjectRow = {
   openIssues: number;
   blockedCount: number;
   overdueCount: number;
+  reopenedCount?: number;
+  spilloverCount?: number;
   bugsOpen: number;
   resolvedLast7d?: number;
   statusBreakdown?: JiraStatusBreakdown;

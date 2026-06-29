@@ -36,3 +36,21 @@ export function buildOpenJql(baseJql: string, mapping: JiraMappingSlice): string
 export function buildDoneJql(baseJql: string, mapping: JiraMappingSlice): string {
   return `${baseJql} AND statusCategory = ${jqlQuoteLiteral(mapping.doneStatusCategory)}`;
 }
+
+/** Issues currently not-done that were previously in an explicit done status. */
+export function buildReopenedJql(baseJql: string, mapping: JiraMappingSlice): string | null {
+  const doneNames = mapping.doneStatusNames?.filter((name) => name.trim().length > 0);
+  if (!doneNames || doneNames.length === 0) return null;
+  const fromClause = doneNames.map((name) => jqlQuoteLiteral(name)).join(", ");
+  return `${baseJql} AND status CHANGED FROM (${fromClause}) AND ${buildNotDoneJql(mapping)}`;
+}
+
+/** Issues in the active sprint that also belonged to a closed sprint (carried over). */
+export function buildSpilloverJql(sprintId: number): string {
+  return `sprint = ${sprintId} AND sprint in closedSprints()`;
+}
+
+/** Portfolio spillover when no single active sprint id is in scope. */
+export function buildPortfolioSpilloverJql(baseJql: string): string {
+  return `${baseJql} AND sprint in openSprints() AND sprint in closedSprints()`;
+}

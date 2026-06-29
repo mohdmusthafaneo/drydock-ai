@@ -3,6 +3,9 @@ import {
   buildBugJql,
   buildNotDoneJql,
   buildOpenJql,
+  buildPortfolioSpilloverJql,
+  buildReopenedJql,
+  buildSpilloverJql,
   jqlQuoteLiteral,
   type JiraMappingSlice,
 } from "@/lib/jira-jql";
@@ -151,6 +154,15 @@ export function jqlForSignal(
   if (signalId === "jira-sprint" || signalId.startsWith("sprint-")) {
     if (extras?.sprintId == null) return null;
     return buildSprintJql(extras.sprintId);
+  }
+  if (signalId === "reopened-cluster") {
+    return buildReopenedJql(base, mapping);
+  }
+  if (signalId === "spillover") {
+    if (extras?.sprintId != null) {
+      return buildSpilloverJql(extras.sprintId);
+    }
+    return buildPortfolioSpilloverJql(base);
   }
   return null;
 }

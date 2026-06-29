@@ -22,6 +22,10 @@ export type JiraDeliverySnapshot = {
     openIssues: number;
     blockedCount: number;
     overdueCount: number;
+    /** Open issues previously in a done status (reopened). */
+    reopenedCount?: number;
+    /** Issues in active sprint also in a closed sprint (spillover). */
+    spilloverCount?: number;
     bugsOpen: number;
     unassignedCount: number;
     /** Open issues with empty story-point field (hygiene). */
