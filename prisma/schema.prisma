@@ -144,6 +144,7 @@ model Organization {
   agentChatParticipants    AgentChatParticipant[]
   agentChatMessages        AgentChatMessage[]
   agentChatStreamChunks    AgentChatStreamChunk[]
+  executiveBriefingSnapshots ExecutiveBriefingSnapshot[]
 }
 
 enum MetricSource {
@@ -863,6 +864,21 @@ model DeliveryAnalysisSnapshot {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, syncedAt])
+}
+
+model ExecutiveBriefingSnapshot {
+  id             String   @id @default(cuid())
+  organizationId String   @unique
+  headlineJson   String
+  narrative      String
+  source         String   @default("llm_enriched")
+  factsHash      String?
+  generatedAt    DateTime @default(now())
+  expiresAt      DateTime
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, generatedAt])
 }
 
 model AgentChatThread {

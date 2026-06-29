@@ -27,6 +27,11 @@ export function ExecutiveBriefingHero({ briefing, orgName }: Props) {
           <MountItem>
             <p className="text-[13px] font-medium uppercase tracking-[0.04em] text-graphite">
               Executive briefing
+              {briefing.source === "llm_enriched" && (
+                <span className="ml-2 normal-case tracking-normal text-ash">
+                  · AI summary
+                </span>
+              )}
             </p>
           </MountItem>
           <MountItem transition={{ delay: 0.08 }}>

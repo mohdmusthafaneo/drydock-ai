@@ -4,6 +4,7 @@ import { deliveryAnalysisForFilters, resolveStoredJiraDelivery } from "@/lib/del
 import { resolveStoredCodeAnalysis, snapshotForFilters } from "@/lib/code-analysis/sync";
 import { composeExecutiveBriefing } from "@/lib/executive-briefing/compose-briefing";
 import type { BriefingCharts, ExecutiveBriefing } from "@/lib/executive-briefing/types";
+import { mergeExecutiveBriefingSnapshot } from "@/lib/executive-briefing/snapshot-utils";
 import { isPrometheusTrulyConnected, parsePrometheusMeta } from "@/lib/prometheus-meta";
 import { isGrafanaTrulyConnected, parseGrafanaMeta } from "@/lib/grafana-meta";
 import type { ObservabilityAnalysisSnapshot } from "@/lib/observability-analysis/types";
@@ -177,12 +178,16 @@ function buildBriefingCharts(input: {
   };
 }
 
-export async function loadExecutiveBriefing(organizationId: string): Promise<{
+export async function loadExecutiveBriefing(
+  organizationId: string,
+  options?: { applyLlmSnapshot?: boolean },
+): Promise<{
   briefing: ExecutiveBriefing;
   charts: BriefingCharts;
   ctx: Awaited<ReturnType<typeof getOrganizationContext>>;
   orgName: string;
 }> {
+  const applyLlmSnapshot = options?.applyLlmSnapshot ?? true;
   const [ctx, org, jiraStored, githubIntegration] = await Promise.all([
     getOrganizationContext(organizationId),
     prisma.organization.findUnique({
@@ -215,7 +220,7 @@ export async function loadExecutiveBriefing(organizationId: string): Promise<{
   const assessedReleases = ctx.releases.filter((r) => r.assessedAt);
   const { count: activeAuthors, topAuthors } = countActiveAuthors(codeSnapshot);
 
-  const briefing = composeExecutiveBriefing({
+  const deterministic = composeExecutiveBriefing({
     orgName: org?.name ?? "Your organization",
     stats: ctx.stats,
     latestRelease: latestRelease
@@ -244,6 +249,16 @@ export async function loadExecutiveBriefing(organizationId: string): Promise<{
       observabilitySyncedAt: obsSyncedAt,
     },
   });
+
+  let briefing = deterministic;
+
+  if (applyLlmSnapshot) {
+    const snapshot = await prisma.executiveBriefingSnapshot.findUnique({
+      where: { organizationId },
+    });
+
+    briefing = mergeExecutiveBriefingSnapshot(deterministic, snapshot);
+  }
 
   const charts = buildBriefingCharts({
     deliverySnapshot,

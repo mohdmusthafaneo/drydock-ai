@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { computeDeliveryAnalysisFromJira } from "@/lib/delivery-analysis/compute-snapshot";
 import { persistDeliveryAnalysisSnapshot } from "@/lib/delivery-analysis/persist";
+import { invalidateExecutiveBriefingSnapshot } from "@/lib/executive-briefing/invalidate-snapshot";
 import { markIntegrationSync } from "@/lib/integration-health";
 import {
   countIssuesByJql,
@@ -359,6 +360,8 @@ export async function syncJiraIntegration(input: {
     siteUrl: meta.siteUrl,
     syncedAt: new Date(syncedAt),
   });
+
+  invalidateExecutiveBriefingSnapshot(input.organizationId);
 
   await prisma.activityEvent.create({
     data: {

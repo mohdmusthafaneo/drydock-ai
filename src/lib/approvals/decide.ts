@@ -7,6 +7,7 @@ import {
 } from "@/lib/agent-chat/approvals";
 import { parseApprovalChatContext } from "@/lib/approvals/chat-context";
 import { enqueueApprovalFollowUpWakeups } from "@/lib/agent-control-plane/wakeup";
+import { invalidateExecutiveBriefingSnapshot } from "@/lib/executive-briefing/invalidate-snapshot";
 import {
   activateHiredAgent,
   enqueueHireFollowUpWakeups,
@@ -120,6 +121,8 @@ export async function decideApproval(
       chatContext,
     });
 
+    invalidateExecutiveBriefingSnapshot(organizationId);
+
     return { ok: true };
   }
 
@@ -189,6 +192,8 @@ export async function decideApproval(
       decision,
       chatContext,
     });
+
+    invalidateExecutiveBriefingSnapshot(organizationId);
 
     return { ok: true };
   }
@@ -295,6 +300,8 @@ export async function decideApproval(
     decision,
     chatContext,
   });
+
+  invalidateExecutiveBriefingSnapshot(organizationId);
 
   return { ok: true };
 }
