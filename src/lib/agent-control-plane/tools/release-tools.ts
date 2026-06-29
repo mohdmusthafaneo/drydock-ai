@@ -13,6 +13,10 @@ import {
 import { assessReleaseGovernance } from "@/lib/release-governance";
 import { buildAssessmentSnapshot } from "@/lib/release-assess-snapshot";
 import { parseToolchainMapping } from "@/lib/toolchain-mapping";
+import {
+  parseGovernancePolicy,
+  resolveGovernancePolicyForProject,
+} from "@/lib/governance/policy";
 import { logAgentActivity, logAgentAudit } from "../audit";
 import { isToolAllowed } from "./registry";
 
@@ -38,10 +42,11 @@ export async function buildReleaseAssessContext(
 
   if (!release) return null;
 
-  const [dna, profile, integrations] = await Promise.all([
+  const [dna, profile, integrations, governancePolicyRow] = await Promise.all([
     prisma.deliveryDNA.findUnique({ where: { organizationId } }),
     prisma.organizationProfile.findUnique({ where: { organizationId } }),
     prisma.integration.findMany({ where: { organizationId } }),
+    prisma.governancePolicy.findUnique({ where: { organizationId } }),
   ]);
 
   if (!dna) return { release, error: "Delivery DNA not configured" as const };
@@ -69,6 +74,10 @@ export async function buildReleaseAssessContext(
     jiraFixVersion: release.jiraFixVersion,
     mapping: jiraMapping,
   });
+
+  const governanceDocument = parseGovernancePolicy(governancePolicyRow);
+  const projectKey = jira.health?.matchedVersion?.projectKey ?? null;
+  const governancePolicy = resolveGovernancePolicyForProject(governanceDocument, projectKey);
 
   const grafana = resolveGrafanaAssessContext({ integrations });
   const prometheus = resolvePrometheusAssessContext({ integrations });
@@ -104,6 +113,7 @@ export async function buildReleaseAssessContext(
     metrics,
     github,
     codeAnalysis,
+    governancePolicy,
   };
 }
 
@@ -191,6 +201,7 @@ export async function assessReleaseForAgent(input: {
     metrics: ctx.metrics,
     github: ctx.github,
     codeAnalysis: ctx.codeAnalysis,
+    governancePolicy: ctx.governancePolicy,
   });
 
   const assessmentSnapshot = buildAssessmentSnapshot({

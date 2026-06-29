@@ -256,18 +256,56 @@ export function governanceScoreBand(score: number): {
 }
 
 export function buildGovernanceHeadlineSegments(
-  dna: { summary: string | null },
+  dna: {
+    workflowMode: string;
+    autonomyMode: string;
+    approvalLevel: number;
+    riskThreshold: number;
+    observabilityStrategy: string | null;
+    summary: string | null;
+  },
   orgName: string,
 ): HeadlineSegment[] {
-  if (dna.summary) {
-    const sentence = dna.summary.split(/(?<=[.!])\s+/)[0]?.trim() ?? dna.summary;
-    return [{ kind: "text", text: sentence }];
-  }
-  return [
-    { kind: "text", text: `${orgName} delivery governance is ` },
-    { kind: "emphasis", text: "active" },
-    { kind: "text", text: " with human approval gates on all AI recommendations." },
+  return buildGovernanceDnaOverview(dna, orgName).headlineSegments;
+}
+
+export function buildGovernanceDnaOverview(
+  dna: {
+    workflowMode: string;
+    autonomyMode: string;
+    approvalLevel: number;
+    riskThreshold: number;
+    observabilityStrategy: string | null;
+  },
+  orgName: string,
+): { headlineSegments: HeadlineSegment[]; bullets: string[] } {
+  const workflow = workflowModeLabel(dna.workflowMode);
+  const autonomy = autonomyModeLabel(dna.autonomyMode);
+  const approval = approvalLevelLabel(dna.approvalLevel);
+  const riskPct = Math.round(dna.riskThreshold * 100);
+
+  const headlineSegments: HeadlineSegment[] = [
+    { kind: "text", text: `${orgName} runs ` },
+    { kind: "emphasis", text: workflow.toLowerCase() },
+    { kind: "text", text: " delivery with " },
+    { kind: "emphasis", text: "human-governed" },
+    { kind: "text", text: " AI recommendations." },
   ];
+
+  const bullets = [
+    `${autonomy}: AI suggests next steps; your team approves before anything ships.`,
+    `${approval} · releases above ${riskPct}% risk need leadership review.`,
+  ];
+
+  if (dna.observabilityStrategy) {
+    bullets.push(
+      dna.observabilityStrategy.toLowerCase().includes("establish baseline")
+        ? "Connect metrics and alerting before expanding automated recommendations."
+        : "Production metrics and alerts feed into every release assessment.",
+    );
+  }
+
+  return { headlineSegments, bullets };
 }
 
 export function buildGovernancePolicyHighlights(ctx: Ctx): BriefingHighlight[] {

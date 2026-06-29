@@ -11,7 +11,7 @@
 | 3   | Customizable compliance & governance per project | M    | Not started | Project-scoped rulesets                               |
 | 4   | Background compliance-check agent                | M    | Not started | Depends on 2, 3                                       |
 | 5   | Jira misgovernance warning                       | M    | Done        | Hygiene score + leadership warning                    |
-| 6   | Spillover / delayed / reopened indicators        | M    | Not started | Delayed partial; spillover & reopened missing         |
+| 6   | Spillover / delayed / reopened indicators        | M    | Done        | Overdue shipped; spillover + reopened via JQL sync, signals, delivery-analysis UI |
 | 7   | Accountability & cost of maintaining code        | L    | Not started | Ownership ledger, incident traceability               |
 | 8   | Problem predictor                                | L    | Not started | Forward-looking risk alerts                           |
 | 9   | Onboarding Jira calibration (90 days)            | L    | Not started | LLM workflow model from history                       |

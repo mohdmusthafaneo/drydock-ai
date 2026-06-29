@@ -3,6 +3,7 @@ import type { CodeAnalysisAssessContext } from "@/lib/code-analysis-assess-conte
 import type { GitHubAssessContext } from "@/lib/github-assess-context";
 import type { GrafanaAssessContext } from "@/lib/grafana-assess-context";
 import type { JiraAssessContext } from "@/lib/jira-delivery-health";
+import type { GovernancePolicyConfig } from "@/lib/governance/policy";
 import {
   formatErrorRateDelta,
   formatObservabilityCoverage,
@@ -85,13 +86,20 @@ function buildPrimaryDecision(input: {
   grafana?: GrafanaAssessContext;
   metrics: MetricsAssessContext;
   codeAnalysis?: CodeAnalysisAssessContext;
+  governancePolicy?: GovernancePolicyConfig;
 }): { primary: PrimaryRecommendation; recommendation: GovernanceRecommendation } {
   const supportingPoints: string[] = [];
-  const threshold = Math.round(input.dna.riskThreshold * 100);
+  const policyThreshold =
+    input.governancePolicy?.deploymentThresholds?.minReadinessScore ??
+    Math.round(input.dna.riskThreshold * 100);
+  const blockOnCritical = input.governancePolicy?.deploymentThresholds?.blockOnCritical ?? true;
+  const requireProductionApproval =
+    input.governancePolicy?.releaseRules?.requireApprovalForProduction ?? true;
+  const qaLeadForHighRisk = input.governancePolicy?.approvalRequirements?.qaLeadForHighRisk ?? true;
 
-  if (input.qa.readinessScore < threshold) {
+  if (input.qa.readinessScore < policyThreshold) {
     supportingPoints.push(
-      `QA readiness ${input.qa.readinessScore}/100 is below governance threshold (${threshold})`,
+      `QA readiness ${input.qa.readinessScore}/100 is below governance threshold (${policyThreshold})`,
     );
   }
 
@@ -135,15 +143,16 @@ function buildPrimaryDecision(input: {
   }
 
   const shouldHold =
-    input.qa.readinessScore < threshold ||
-    firingCritical > 0 ||
+    input.qa.readinessScore < policyThreshold ||
+    (blockOnCritical && firingCritical > 0) ||
     (input.environment === "PRODUCTION" && metricsDegraded);
 
   const shouldSignoff =
     !shouldHold &&
     (input.riskLevel === "HIGH" ||
       input.riskLevel === "CRITICAL" ||
-      jiraHighGaps.length > 0);
+      jiraHighGaps.length > 0 ||
+      (input.environment === "PRODUCTION" && requireProductionApproval));
 
   if (shouldHold) {
     return {
@@ -159,7 +168,13 @@ function buildPrimaryDecision(input: {
         impact: "CRITICAL",
         confidence: 0.91,
         affectedSystems: ["release-pipeline", "qa", "observability"],
-        requiredRole: firingCritical > 0 || metricsDegraded ? "DEVOPS_LEAD" : "QA_LEAD",
+        requiredRole:
+          firingCritical > 0 || metricsDegraded
+            ? "DEVOPS_LEAD"
+            : qaLeadForHighRisk &&
+                (input.riskLevel === "HIGH" || input.riskLevel === "CRITICAL")
+              ? "QA_LEAD"
+              : "ENGINEERING_MANAGER",
       },
     };
   }
@@ -218,6 +233,7 @@ export function assessReleaseGovernance(input: {
   metrics?: MetricsAssessContext;
   github?: GitHubAssessContext;
   codeAnalysis?: CodeAnalysisAssessContext;
+  governancePolicy?: GovernancePolicyConfig;
 }): GovernanceAssessment {
   const metrics =
     input.metrics ?? resolveMetricsAssessContext({ integrations: input.integrations });
@@ -280,6 +296,7 @@ export function assessReleaseGovernance(input: {
     grafana: input.grafana,
     metrics,
     codeAnalysis: input.codeAnalysis,
+    governancePolicy: input.governancePolicy,
   });
 
   const recommendations: GovernanceRecommendation[] = [primaryRec];

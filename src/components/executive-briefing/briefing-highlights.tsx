@@ -11,6 +11,8 @@ import { EDITORIAL_EASE, fadeUp } from "@/components/motion/motion-tokens";
 type Props = {
   highlights: BriefingHighlight[];
   className?: string;
+  /** Strip outer card chrome when nesting inside a composite panel. */
+  bare?: boolean;
 };
 
 const TONE_VALUE: Record<NonNullable<BriefingHighlight["tone"]>, string> = {
@@ -24,15 +26,17 @@ function HighlightRow({
   item,
   index,
   total,
+  bare,
 }: {
   item: BriefingHighlight;
   index: number;
   total: number;
+  bare?: boolean;
 }) {
   const rowClass = cn(
-    "flex items-center justify-between gap-4 px-5 py-4 transition-colors",
-    index === 0 && "rounded-t-[24px]",
-    index === total - 1 && "rounded-b-[24px]",
+    "flex items-center justify-between gap-4 px-5 py-3 transition-colors",
+    !bare && index === 0 && "rounded-t-[24px]",
+    !bare && index === total - 1 && "rounded-b-[24px]",
     item.href && "hover:bg-fog/80",
   );
 
@@ -73,13 +77,15 @@ function HighlightRow({
   return content;
 }
 
-export function BriefingHighlights({ highlights, className }: Props) {
+export function BriefingHighlights({ highlights, className, bare }: Props) {
   const reduce = useReducedMotion();
 
   if (highlights.length === 0) return null;
 
   const panelClass = cn(
-    "divide-y divide-border-subtle rounded-[24px] border border-border-subtle bg-pure-white shadow-[var(--shadow)]",
+    bare
+      ? "divide-y divide-border-subtle"
+      : "divide-y divide-border-subtle rounded-[24px] border border-border-subtle bg-pure-white shadow-[var(--shadow)]",
     className,
   );
 
@@ -87,7 +93,13 @@ export function BriefingHighlights({ highlights, className }: Props) {
     return (
       <div className={panelClass}>
         {highlights.map((item, index) => (
-          <HighlightRow key={item.id} item={item} index={index} total={highlights.length} />
+          <HighlightRow
+            key={item.id}
+            item={item}
+            index={index}
+            total={highlights.length}
+            bare={bare}
+          />
         ))}
       </div>
     );
@@ -109,7 +121,12 @@ export function BriefingHighlights({ highlights, className }: Props) {
           variants={fadeUp}
           transition={{ duration: 0.45, ease: EDITORIAL_EASE }}
         >
-          <HighlightRow item={item} index={index} total={highlights.length} />
+          <HighlightRow
+            item={item}
+            index={index}
+            total={highlights.length}
+            bare={bare}
+          />
         </motion.div>
       ))}
     </motion.div>

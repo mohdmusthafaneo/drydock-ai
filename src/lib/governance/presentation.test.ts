@@ -8,6 +8,8 @@ import {
   buildOpenIncidentsClaim,
   buildQaOrgVerdict,
   buildReleasePortfolioHighlights,
+  buildGovernanceDnaOverview,
+  buildGovernanceHeadlineSegments,
   categorizeAuditAction,
   filterAuditLogs,
   findLastGovernanceDecision,
@@ -162,5 +164,23 @@ describe("governance presentation", () => {
       })))?.action,
       "recommendation.approved",
     );
+  });
+
+  it("builds plain-language DNA overview from structured fields", () => {
+    const overview = buildGovernanceDnaOverview(
+      {
+        workflowMode: "scaled-agile",
+        autonomyMode: "RECOMMEND",
+        approvalLevel: 3,
+        riskThreshold: 0.64,
+        observabilityStrategy: "Establish baseline metrics ingestion before expanding AI autonomy",
+      },
+      "Connexus",
+    );
+    assert.match(overview.headlineSegments.map((s) => s.text).join(""), /Connexus runs scaled agile/i);
+    assert.equal(overview.bullets.length, 3);
+    assert.match(overview.bullets[0]!, /Recommend-only/i);
+    assert.match(overview.bullets[1]!, /64%/);
+    assert.match(overview.bullets[2]!, /Connect metrics/i);
   });
 });

@@ -16,6 +16,10 @@ import { invalidateExecutiveBriefingSnapshot } from "@/lib/executive-briefing/in
 import { assessReleaseGovernance } from "@/lib/release-governance";
 import { buildAssessmentSnapshot } from "@/lib/release-assess-snapshot";
 import { parseToolchainMapping } from "@/lib/toolchain-mapping";
+import {
+  parseGovernancePolicy,
+  resolveGovernancePolicyForProject,
+} from "@/lib/governance/policy";
 
 const REASSESSABLE_STATUSES = new Set(["DETECTED", "ASSESSED", "PENDING_APPROVAL", "BLOCKED"]);
 
@@ -55,7 +59,7 @@ export async function POST(
     );
   }
 
-  const [dna, profile, integrations] = await Promise.all([
+  const [dna, profile, integrations, governancePolicyRow] = await Promise.all([
     prisma.deliveryDNA.findUnique({
       where: { organizationId: session.organizationId },
     }),
@@ -63,6 +67,9 @@ export async function POST(
       where: { organizationId: session.organizationId },
     }),
     prisma.integration.findMany({
+      where: { organizationId: session.organizationId },
+    }),
+    prisma.governancePolicy.findUnique({
       where: { organizationId: session.organizationId },
     }),
   ]);
@@ -97,6 +104,10 @@ export async function POST(
     jiraFixVersion: release.jiraFixVersion,
     mapping: jiraMapping,
   });
+
+  const governanceDocument = parseGovernancePolicy(governancePolicyRow);
+  const projectKey = jira.health?.matchedVersion?.projectKey ?? null;
+  const governancePolicy = resolveGovernancePolicyForProject(governanceDocument, projectKey);
 
   const grafana = resolveGrafanaAssessContext({ integrations });
   const prometheus = resolvePrometheusAssessContext({ integrations });
@@ -138,6 +149,7 @@ export async function POST(
     metrics,
     github,
     codeAnalysis,
+    governancePolicy,
   });
 
   const assessmentSnapshot = buildAssessmentSnapshot({

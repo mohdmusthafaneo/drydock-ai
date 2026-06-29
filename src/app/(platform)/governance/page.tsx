@@ -7,15 +7,14 @@ import {
   approvalLevelLabel,
   autonomyModeLabel,
   buildAutonomyVerdictStrip,
-  buildGovernanceHeadlineSegments,
+  buildGovernanceDnaOverview,
   buildGovernancePolicyHighlights,
   governanceScoreBand,
   workflowModeLabel,
 } from "@/lib/governance/presentation";
 import { PageHeader } from "@/components/layout/page-header";
 import { BriefingHeadline } from "@/components/executive-briefing/briefing-headline";
-import { BriefingHighlights } from "@/components/executive-briefing/briefing-highlights";
-import { DeliveryHealthGauge } from "@/components/executive-briefing/delivery-health-gauge";
+import { GovernanceLiveSignals } from "@/components/governance/governance-live-signals";
 import { GovernanceEscalationPanel } from "@/components/governance/governance-escalation-panel";
 import { RevealSection } from "@/components/motion/reveal-section";
 import { cn } from "@/lib/utils";
@@ -56,7 +55,7 @@ export default async function GovernancePage() {
   const workflows = profile ? (JSON.parse(profile.workflowsJson || "[]") as string[]) : [];
   const orgName = org?.name ?? "Your organization";
 
-  const headlineSegments = buildGovernanceHeadlineSegments(dna, orgName);
+  const dnaOverview = buildGovernanceDnaOverview(dna, orgName);
   const highlights = buildGovernancePolicyHighlights(ctx);
   const { band, bandLabel } = governanceScoreBand(dna.governanceScore);
   const autonomyStrip = buildAutonomyVerdictStrip(dna);
@@ -68,6 +67,12 @@ export default async function GovernancePage() {
         description="Your Delivery DNA, approval posture, and live governance signals."
       >
         <div className="flex flex-wrap items-center gap-4">
+          <Link
+            href="/governance/policy"
+            className="text-[15px] font-medium text-ink hover:text-rust"
+          >
+            Governance policy
+          </Link>
           <Link
             href="/governance/workflow"
             className="text-[15px] font-medium text-ink hover:text-rust"
@@ -91,11 +96,19 @@ export default async function GovernancePage() {
           Delivery DNA
         </p>
         <div className="mt-4">
-          <BriefingHeadline segments={headlineSegments} />
+          <BriefingHeadline segments={dnaOverview.headlineSegments} />
         </div>
-        {dna.summary && (
-          <p className="mt-4 max-w-3xl text-[14px] leading-relaxed text-ash">{dna.summary}</p>
-        )}
+        <ul className="mt-4 max-w-3xl space-y-2">
+          {dnaOverview.bullets.map((bullet, index) => (
+            <li
+              key={index}
+              className="flex gap-2.5 text-[14px] leading-relaxed text-ink"
+            >
+              <span className="mt-[0.45rem] h-1 w-1 shrink-0 rounded-full bg-graphite" />
+              <span>{bullet}</span>
+            </li>
+          ))}
+        </ul>
         <div className="mt-5 flex flex-wrap items-center gap-2">
           <span
             className={cn(
@@ -109,16 +122,12 @@ export default async function GovernancePage() {
         </div>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
-        <BriefingHighlights highlights={highlights} />
-        <DeliveryHealthGauge
-          score={dna.governanceScore}
-          band={band}
-          bandLabel={bandLabel}
-          visible
-          className="min-h-[220px]"
-        />
-      </div>
+      <GovernanceLiveSignals
+        highlights={highlights}
+        score={dna.governanceScore}
+        band={band}
+        bandLabel={bandLabel}
+      />
 
       <RevealSection className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-[24px] border border-border-subtle bg-pure-white p-5 shadow-[var(--shadow)]">
