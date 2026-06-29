@@ -5,6 +5,7 @@ import { resolveStoredCodeAnalysis, snapshotForFilters } from "@/lib/code-analys
 import { composeExecutiveBriefing } from "@/lib/executive-briefing/compose-briefing";
 import type { BriefingCharts, ExecutiveBriefing } from "@/lib/executive-briefing/types";
 import { mergeExecutiveBriefingSnapshot } from "@/lib/executive-briefing/snapshot-utils";
+import { summarizePortfolioHygiene } from "@/lib/jira-hygiene";
 import { isPrometheusTrulyConnected, parsePrometheusMeta } from "@/lib/prometheus-meta";
 import { isGrafanaTrulyConnected, parseGrafanaMeta } from "@/lib/grafana-meta";
 import type { ObservabilityAnalysisSnapshot } from "@/lib/observability-analysis/types";
@@ -207,6 +208,8 @@ export async function loadExecutiveBriefing(
     ? deliveryAnalysisForFilters(jiraStored, DEFAULT_DELIVERY_FILTERS)
     : null;
 
+  const jiraHygieneSummary = summarizePortfolioHygiene(jiraStored?.jiraHygiene);
+
   const codeStored =
     githubIntegration?.status === "CONNECTED"
       ? await resolveStoredCodeAnalysis(organizationId, githubIntegration.metadataJson)
@@ -240,6 +243,7 @@ export async function loadExecutiveBriefing(
     codeSnapshot,
     observabilitySnapshot,
     observabilityIsDemo,
+    jiraHygiene: jiraHygieneSummary,
     connectedTools: ctx.stats.connectedTools,
     activeAuthors: codeSnapshot ? activeAuthors : undefined,
     topAuthors: codeSnapshot ? topAuthors : undefined,

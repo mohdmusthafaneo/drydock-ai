@@ -29,8 +29,13 @@ import {
   LEGACY_JIRA_MAPPING,
   type JiraMappingSlice,
 } from "@/lib/jira-jql";
+import { assessPortfolioJiraHygiene } from "@/lib/jira-hygiene";
 import { resolveSyncProjectKeys } from "@/lib/jira-project-selection";
-import { resolveConfirmedToolchainMapping } from "@/lib/toolchain-mapping";
+import {
+  resolveConfirmedToolchainMapping,
+  resolveJiraMappingForProject,
+  type ToolchainMapping,
+} from "@/lib/toolchain-mapping";
 import { ingestNormalizedEvents } from "@/lib/telemetry-ingest";
 
 function isOverdueVersion(version: { released: boolean; releaseDate?: string }): boolean {
@@ -109,11 +114,52 @@ async function enrichProjectP2b(
   return { resolvedLast7d, statusBreakdown, versions: enrichedVersions };
 }
 
+async function enrichHygieneCounts(
+  accessToken: string,
+  cloudId: string,
+  projectKey: string,
+  baseJql: string,
+  mapping: JiraMappingSlice,
+  projectMapping?: NonNullable<ToolchainMapping["jira"]>,
+): Promise<{ missingEstimateCount?: number; missingDueDateCount?: number }> {
+  const result: { missingEstimateCount?: number; missingDueDateCount?: number } = {};
+
+  const storyPointField = projectMapping?.storyPointField;
+  if (storyPointField?.id) {
+    try {
+      result.missingEstimateCount = await countIssuesByJql(
+        accessToken,
+        cloudId,
+        `${baseJql} AND ${buildNotDoneJql(mapping)} AND ${storyPointField.id} is EMPTY`,
+      );
+    } catch (e) {
+      if (!(e instanceof JiraApiError) || ![400, 401, 403, 404, 429].includes(e.status)) {
+        throw e;
+      }
+    }
+  }
+
+  try {
+    result.missingDueDateCount = await countIssuesByJql(
+      accessToken,
+      cloudId,
+      `${baseJql} AND statusCategory = "In Progress" AND duedate is EMPTY`,
+    );
+  } catch (e) {
+    if (!(e instanceof JiraApiError) || ![400, 401, 403, 404, 429].includes(e.status)) {
+      throw e;
+    }
+  }
+
+  return result;
+}
+
 async function syncProject(
   accessToken: string,
   cloudId: string,
   projectKey: string,
   mapping: JiraMappingSlice,
+  projectMapping?: NonNullable<ToolchainMapping["jira"]>,
 ): Promise<JiraDeliverySnapshot["projects"][number]> {
   const project = await getJiraProject(accessToken, cloudId, projectKey);
   const baseJql = `project = "${projectKey}"`;
@@ -198,6 +244,25 @@ async function syncProject(
     // P2b enrichment is best-effort when JQL or rate limits fail.
   }
 
+  let missingEstimateCount: number | undefined;
+  let missingDueDateCount: number | undefined;
+  try {
+    const hygieneCounts = await enrichHygieneCounts(
+      accessToken,
+      cloudId,
+      projectKey,
+      baseJql,
+      mapping,
+      projectMapping,
+    );
+    missingEstimateCount = hygieneCounts.missingEstimateCount;
+    missingDueDateCount = hygieneCounts.missingDueDateCount;
+  } catch (e) {
+    if (!(e instanceof JiraApiError) || ![400, 401, 403, 404, 429].includes(e.status)) {
+      throw e;
+    }
+  }
+
   return {
     key: project.key,
     name: project.name,
@@ -206,6 +271,8 @@ async function syncProject(
     overdueCount,
     bugsOpen,
     unassignedCount,
+    missingEstimateCount,
+    missingDueDateCount,
     resolvedLast7d,
     statusBreakdown,
     versions: enrichedVersions,
@@ -270,7 +337,16 @@ export async function syncJiraIntegration(input: {
 
   for (const key of projectKeys) {
     try {
-      const snapshot = await syncProject(accessToken, cloudId, key, jiraMapping);
+      const projectMapping = confirmedMapping
+        ? resolveJiraMappingForProject(confirmedMapping, key)
+        : undefined;
+      const snapshot = await syncProject(
+        accessToken,
+        cloudId,
+        key,
+        jiraMapping,
+        projectMapping,
+      );
       projects.push(snapshot);
 
       telemetryEvents.push({
@@ -303,6 +379,10 @@ export async function syncJiraIntegration(input: {
   const syncedAt = new Date().toISOString();
   const deliverySnapshot: JiraDeliverySnapshot = { syncedAt, projects };
 
+  const jiraHygiene = confirmedMapping
+    ? assessPortfolioJiraHygiene(deliverySnapshot, confirmedMapping)
+    : undefined;
+
   const totalOpen = projects.reduce((n, p) => n + p.openIssues, 0);
   const totalBlocked = projects.reduce((n, p) => n + p.blockedCount, 0);
   const totalVersions = projects.reduce((n, p) => n + p.versions.length, 0);
@@ -317,7 +397,8 @@ export async function syncJiraIntegration(input: {
       range: "30d",
       compare: "previous_sync",
     },
-    mapping: confirmedMapping?.jira,
+    mapping: confirmedMapping ?? undefined,
+    jiraHygiene,
   });
 
   await ingestNormalizedEvents({
@@ -331,6 +412,7 @@ export async function syncJiraIntegration(input: {
     projectKeys: projects.map((p) => p.key),
     lastSyncSummary: summary,
     deliverySnapshot,
+    jiraHygiene,
     deliveryAnalysisSnapshot: {
       generatedAt: analysisRollup.generatedAt,
       healthScore: analysisRollup.kpis.healthScore,

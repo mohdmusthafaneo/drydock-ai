@@ -1,4 +1,4 @@
-import { ExternalLink } from "lucide-react";
+import { JiraIssueLink } from "@/components/delivery-analysis/jira-issue-link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -70,17 +70,15 @@ export function SprintCards({ sprints, siteUrl }: Props) {
                     {sprint.startDate ?? "?"} → {sprint.endDate ?? "?"}
                   </p>
                 )}
-                {siteUrl && (
-                  <a
-                    href={`${siteUrl}/jira/software/projects/${sprint.projectKey}/boards`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-2 inline-flex items-center gap-1 text-xs text-brand hover:underline"
-                  >
-                    Open in Jira
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
-                )}
+                <JiraIssueLink
+                  href={
+                    sprint.jiraUrl ??
+                    (siteUrl
+                      ? `${siteUrl.replace(/\/$/, "")}/jira/software/projects/${sprint.projectKey}/boards`
+                      : undefined)
+                  }
+                  label={sprint.jiraUrl ? "View issues in Jira" : "Open in Jira"}
+                />
               </div>
             ))}
           </div>

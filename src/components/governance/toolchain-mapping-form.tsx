@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { JiraSchemaSnapshot } from "@/lib/jira-meta";
+import type { PortfolioJiraHygiene } from "@/lib/jira-hygiene";
+import { JiraIssueLink } from "@/components/delivery-analysis/jira-issue-link";
 import type { ToolchainMapping } from "@/lib/toolchain-mapping";
 import { cn } from "@/lib/utils";
 
@@ -46,6 +48,8 @@ export function ToolchainMappingForm({
     jiraStale: false,
     github: null,
   });
+  const [jiraHygiene, setJiraHygiene] = useState<PortfolioJiraHygiene | null>(null);
+  const [jiraHygieneLinks, setJiraHygieneLinks] = useState<Record<string, string>>({});
 
   const loadSchema = useCallback(async () => {
     const [mappingRes, jiraRes, githubRes] = await Promise.all([
@@ -61,6 +65,8 @@ export function ToolchainMappingForm({
         jiraStale: data.jiraSchemaStale ?? false,
         github: data.githubSchema ?? null,
       });
+      setJiraHygiene(data.jiraHygiene ?? null);
+      setJiraHygieneLinks(data.jiraHygieneLinks ?? {});
     }
 
     if (jiraRes.ok) {
@@ -555,6 +561,40 @@ export function ToolchainMappingForm({
             </>
           )}
         </p>
+      )}
+
+      {confirmed && jiraHygiene && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Actual usage vs. agreed workflow</CardTitle>
+            <CardDescription>
+              Jira hygiene score {jiraHygiene.portfolioScore}/100
+              {jiraHygiene.worstProject
+                ? ` · worst: ${jiraHygiene.worstProject.key}`
+                : ""}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {Object.entries(jiraHygiene.byProject).flatMap(([key, result]) =>
+              result.findings.slice(0, 2).map((finding) => (
+                <div
+                  key={`${key}-${finding.id}`}
+                  className="rounded-lg border border-border-subtle px-3 py-2 text-sm"
+                >
+                  <p className="font-medium text-primary">
+                    {key} · {finding.label}
+                  </p>
+                  <p className="text-secondary">{finding.value}</p>
+                  <p className="mt-1 text-xs text-muted">{finding.recommendation}</p>
+                  <JiraIssueLink href={jiraHygieneLinks[`${key}:${finding.id}`]} />
+                </div>
+              )),
+            )}
+            {Object.values(jiraHygiene.byProject).every((r) => r.findings.length === 0) && (
+              <p className="text-sm text-muted">No hygiene issues detected at last sync.</p>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       <div className="flex flex-wrap items-center gap-4">

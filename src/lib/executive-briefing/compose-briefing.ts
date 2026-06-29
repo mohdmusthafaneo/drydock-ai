@@ -287,6 +287,16 @@ function buildInsight(
     };
   }
 
+  if (input.jiraHygiene?.degradesTrust) {
+    const project = input.jiraHygiene.worstProject;
+    const projectLabel = project ? `Project ${project.key}'s Jira` : "Jira boards";
+    return {
+      tone: "attention",
+      message: `${projectLabel} is not maintained per the agreed workflow — discount delivery numbers until hygiene improves.`,
+      href: "/delivery-analysis",
+    };
+  }
+
   const momentum = input.deliverySnapshot?.kpis;
   if (momentum && momentum.blocked > 0) {
     return {
@@ -602,6 +612,13 @@ function buildClaims(input: ComposeBriefingInput, health: ExecutiveBriefing["hea
             ? `${staleSources[0]} and ${staleSources[1]}`
             : `${staleSources.slice(0, -1).join(", ")}, and ${staleSources[staleSources.length - 1]}`;
       context = `${list} last synced over 24 hours ago — re-sync before deciding`;
+    } else if (input.jiraHygiene?.degradesTrust) {
+      const project = input.jiraHygiene.worstProject;
+      verdict = input.jiraHygiene.portfolioScore < 40 ? "risk" : "attention";
+      verdictLabel = "Low Jira trust";
+      context = project
+        ? `Project ${project.key}'s Jira is not maintained per the agreed workflow — delivery numbers may be unreliable`
+        : "Jira boards are not maintained per the agreed workflow — delivery numbers may be unreliable";
     } else if (input.stats.connectedTools === 0) {
       verdict = "attention";
       verdictLabel = "Not connected";

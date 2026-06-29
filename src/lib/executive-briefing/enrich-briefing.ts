@@ -1,6 +1,8 @@
 import { getMastra } from "@/mastra";
 import { prisma } from "@/lib/prisma";
+import { resolveStoredJiraDelivery } from "@/lib/delivery-analysis/resolve";
 import { loadExecutiveBriefing } from "@/lib/executive-briefing/load-briefing-context";
+import { summarizePortfolioHygiene } from "@/lib/jira-hygiene";
 import {
   computeBriefingFactsHash,
   getBriefingEnrichIntervalSec,
@@ -16,6 +18,12 @@ export type EnrichExecutiveBriefingResult =
 function buildFactsJson(
   briefing: Awaited<ReturnType<typeof loadExecutiveBriefing>>["briefing"],
   orgName: string,
+  jiraHygiene?: {
+    portfolioScore: number;
+    degradesTrust: boolean;
+    worstProject?: { key: string; name: string };
+    topFindings: { id: string; label: string; value: string; severity: string }[];
+  } | null,
 ): string {
   return JSON.stringify(
     {
@@ -26,6 +34,7 @@ function buildFactsJson(
       insight: briefing.insight ?? null,
       freshness: briefing.freshness,
       meta: briefing.meta,
+      jiraHygiene: jiraHygiene ?? null,
     },
     null,
     2,
@@ -51,6 +60,9 @@ export async function enrichExecutiveBriefingForOrg(
     applyLlmSnapshot: false,
   });
 
+  const jiraStored = await resolveStoredJiraDelivery(organizationId);
+  const jiraHygieneFacts = summarizePortfolioHygiene(jiraStored?.jiraHygiene);
+
   const factsHash = computeBriefingFactsHash(briefing);
   const existing = await prisma.executiveBriefingSnapshot.findUnique({
     where: { organizationId },
@@ -66,7 +78,7 @@ export async function enrichExecutiveBriefingForOrg(
     return { status: "skipped", reason: "unchanged_and_fresh" };
   }
 
-  const factsJson = buildFactsJson(briefing, orgName);
+  const factsJson = buildFactsJson(briefing, orgName, jiraHygieneFacts);
 
   try {
     const mastra = await getMastra();

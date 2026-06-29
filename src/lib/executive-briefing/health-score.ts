@@ -7,6 +7,7 @@ import type {
 import type { ObservabilityAnalysisSnapshot } from "@/lib/observability-analysis/types";
 import type { DeliveryAnalysisSnapshot } from "@/lib/delivery-analysis/types";
 import type { CodeAnalysisSnapshot } from "@/lib/code-analysis/types";
+import type { PortfolioHygieneSummary } from "@/lib/jira-hygiene";
 
 export type HealthScoreInput = {
   stats: {
@@ -34,6 +35,7 @@ export type HealthScoreInput = {
   observabilitySnapshot?: ObservabilityAnalysisSnapshot | null;
   observabilityIsDemo?: boolean;
   hasAssessedRelease: boolean;
+  jiraHygiene?: PortfolioHygieneSummary | null;
 };
 
 const DIMENSION_WEIGHTS: Record<HealthDimensionId, number> = {
@@ -149,7 +151,7 @@ function computeStabilityDimension(input: HealthScoreInput): HealthDimension | n
 }
 
 function computeMomentumDimension(input: HealthScoreInput): HealthDimension | null {
-  const { deliverySnapshot } = input;
+  const { deliverySnapshot, jiraHygiene } = input;
   if (!deliverySnapshot?.kpis) return null;
 
   const { healthScore, blocked, overdue, sprintCompletionPct, resolvedLast7d } =
@@ -162,6 +164,10 @@ function computeMomentumDimension(input: HealthScoreInput): HealthDimension | nu
     score -= 10;
   }
 
+  if (jiraHygiene?.degradesTrust) {
+    score = Math.min(score, 70);
+  }
+
   const resolvedLine =
     resolvedLast7d != null && resolvedLast7d > 0
       ? `${resolvedLast7d} tickets closed in the last seven days`
@@ -170,17 +176,19 @@ function computeMomentumDimension(input: HealthScoreInput): HealthDimension | nu
   const blockerLine =
     blocked > 0 ? `; ${blocked} blocked` : overdue > 0 ? `; ${overdue} overdue` : "";
 
+  const hygieneNote = jiraHygiene?.degradesTrust ? "; Jira data may be unreliable" : "";
+
   return {
     id: "momentum",
     label: "Delivery momentum",
     score: clampScore(score),
     weight: DIMENSION_WEIGHTS.momentum,
-    summary: `${resolvedLine}${blockerLine}.`,
+    summary: `${resolvedLine}${blockerLine}${hygieneNote}.`,
   };
 }
 
 function computeGovernanceDimension(input: HealthScoreInput): HealthDimension | null {
-  const { stats } = input;
+  const { stats, jiraHygiene } = input;
 
   let score = 90;
   if (stats.pendingApprovals > 0) score -= Math.min(30, stats.pendingApprovals * 12);
@@ -194,17 +202,26 @@ function computeGovernanceDimension(input: HealthScoreInput): HealthDimension | 
     score -= Math.round((1 - integrationRatio) * 20);
   }
 
+  if (jiraHygiene?.degradesTrust) {
+    const hygienePenalty = jiraHygiene.portfolioScore < 40 ? 25 : 15;
+    score -= hygienePenalty;
+  }
+
   const approvalLine =
     stats.pendingApprovals > 0
       ? `${stats.pendingApprovals} approval${stats.pendingApprovals === 1 ? "" : "s"} waiting for a decision`
       : "No pending release approvals";
+
+  const hygieneLine = jiraHygiene?.degradesTrust
+    ? `; Jira board hygiene is below threshold (${jiraHygiene.portfolioScore}/100)`
+    : "";
 
   return {
     id: "governance",
     label: "Governance & data trust",
     score: clampScore(score),
     weight: DIMENSION_WEIGHTS.governance,
-    summary: `${approvalLine}; ${stats.integrationsHealthy} of ${Math.max(stats.connectedTools, 1)} integrations healthy.`,
+    summary: `${approvalLine}; ${stats.integrationsHealthy} of ${Math.max(stats.connectedTools, 1)} integrations healthy${hygieneLine}.`,
   };
 }
 

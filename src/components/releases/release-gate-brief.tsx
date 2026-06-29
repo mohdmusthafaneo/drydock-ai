@@ -53,6 +53,7 @@ export type ReleaseGateBriefProps = {
   pendingApprovals?: PendingApprovalInfo;
   sourceFreshness?: SourceFreshness[];
   staleData?: boolean;
+  lowJiraHygiene?: boolean;
   postDeployComparison?: PostDeployComparison | null;
   compact?: boolean;
   releaseId?: string;
@@ -158,6 +159,7 @@ export function ReleaseGateBrief({
   pendingApprovals,
   sourceFreshness,
   staleData,
+  lowJiraHygiene,
   postDeployComparison,
   compact = false,
   releaseId,
@@ -201,6 +203,12 @@ export function ReleaseGateBrief({
           <div className="rounded-[16px] border border-warning/30 bg-warning-muted px-3 py-2 text-sm text-warning">
             Assessment used integration data older than 24 hours — re-sync sources or re-assess
             before deciding.
+          </div>
+        )}
+
+        {lowJiraHygiene && (
+          <div className="rounded-[16px] border border-warning/30 bg-warning-muted px-3 py-2 text-sm text-warning">
+            Jira board hygiene is poor — treat Jira-derived readiness signals with caution.
           </div>
         )}
 

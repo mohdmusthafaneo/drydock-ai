@@ -194,6 +194,22 @@ export function inferToolchainMapping(input: {
   return mapping;
 }
 
+/** Merge org Jira baseline with per-project overrides (used by hygiene + agent tools). */
+export function resolveJiraMappingForProject(
+  mapping: ToolchainMapping | null | undefined,
+  projectKey: string,
+): NonNullable<ToolchainMapping["jira"]> | undefined {
+  const jira = mapping?.jira;
+  if (!jira) return undefined;
+  const override = jira.projectOverrides?.[projectKey];
+  if (!override) return jira;
+  return {
+    ...jira,
+    ...override,
+    projectOverrides: jira.projectOverrides,
+  };
+}
+
 export function mergeToolchainMapping(
   inferred: ToolchainMapping,
   saved: ToolchainMapping,

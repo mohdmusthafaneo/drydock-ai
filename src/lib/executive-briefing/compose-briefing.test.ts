@@ -209,4 +209,63 @@ describe("composeExecutiveBriefing", () => {
     assert.ok(briefing.meta.length > 0);
     assertNoBannedL1Terms(briefing.narrative);
   });
+
+  it("surfaces Jira hygiene in data confidence claim when trust is degraded", () => {
+    const briefing = composeExecutiveBriefing({
+      orgName: "Acme Corp",
+      stats: baseStats,
+      hasAssessedRelease: true,
+      latestRelease: {
+        id: "rel-1",
+        name: "v2.4",
+        status: "STAGED",
+        readinessScore: 78,
+        governanceRiskScore: 10,
+        assessedAt: new Date(),
+      },
+      connectedTools: 3,
+      integrationFreshness: {
+        jiraSyncedAt: new Date().toISOString(),
+      },
+      jiraHygiene: {
+        portfolioScore: 42,
+        degradesTrust: true,
+        worstProject: { key: "ACME", name: "Acme" },
+        topFindings: [],
+      },
+    });
+
+    const governance = briefing.claims.find((c) => c.id === "governance");
+    assert.ok(governance);
+    assert.equal(governance!.verdictLabel, "Low Jira trust");
+    assert.match(governance!.context, /ACME/i);
+  });
+
+  it("adds hygiene insight when Jira trust is degraded", () => {
+    const briefing = composeExecutiveBriefing({
+      orgName: "Acme Corp",
+      stats: baseStats,
+      hasAssessedRelease: true,
+      latestRelease: {
+        id: "rel-1",
+        name: "v2.4",
+        status: "STAGED",
+        readinessScore: 78,
+        governanceRiskScore: 10,
+        assessedAt: new Date(),
+      },
+      connectedTools: 3,
+      integrationFreshness: {},
+      jiraHygiene: {
+        portfolioScore: 50,
+        degradesTrust: true,
+        worstProject: { key: "PROJ", name: "Project" },
+        topFindings: [],
+      },
+    });
+
+    assert.ok(briefing.insight);
+    assert.match(briefing.insight!.message, /PROJ/i);
+    assert.equal(briefing.insight!.href, "/delivery-analysis");
+  });
 });

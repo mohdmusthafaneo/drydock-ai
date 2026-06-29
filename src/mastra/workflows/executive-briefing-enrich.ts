@@ -92,6 +92,7 @@ Rules:
 - Write in plain English for executives (no jargon).
 - Never use these terms without translation: telemetry, heartbeat, autonomy mode, governance score, metricCount, agent IDs.
 - When data is stale, mention that integration data may be outdated.
+- When Jira hygiene degrades trust (jiraHygiene.degradesTrust in facts), mention that Jira board maintenance is poor and delivery numbers may be unreliable.
 - When approvals are pending, mention how many need a decision.
 - headline: ONE sentence, max 22 words, with proper spaces and punctuation (e.g. "at 32", not "at32").
 - Do NOT return headline as an array of segments — return headline as a single string.

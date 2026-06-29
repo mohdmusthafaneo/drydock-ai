@@ -39,4 +39,69 @@ describe("computeDeliveryHealthScore gaps", () => {
     assert.ok(result.dataGaps.includes("Jira not connected"));
     assert.ok(result.dataGaps.includes("GitHub activity not synced"));
   });
+
+  it("discounts governance and momentum when Jira hygiene degrades trust", () => {
+    const baseInput = {
+      stats: {
+        releaseReadiness: 78,
+        openIncidents: 0,
+        degradedDeployments: 0,
+        errorRate: 0.3,
+        p95Latency: 140,
+        pendingApprovals: 0,
+        rollbackPending: 0,
+        connectedTools: 3,
+        integrationsHealthy: 3,
+      },
+      hasAssessedRelease: true,
+      latestRelease: {
+        id: "rel-1",
+        name: "v2.4",
+        status: "STAGED" as const,
+        readinessScore: 78,
+        governanceRiskScore: 10,
+        assessedAt: new Date(),
+      },
+      deliverySnapshot: {
+        generatedAt: new Date().toISOString(),
+        projectKeys: ["ACME"],
+        rangeLabel: "30d",
+        kpis: {
+          healthScore: 82,
+          openWork: 40,
+          blocked: 1,
+          overdue: 0,
+          resolvedLast7d: 34,
+          sprintCompletionPct: 72,
+        },
+        riskMix: { blocked: 1, overdue: 0, bugs: 2, otherOpen: 37 },
+        trend: [],
+        byProject: [],
+        versions: [],
+        sprints: [],
+        signals: [],
+        gaps: [],
+      },
+    };
+
+    const withoutHygiene = computeDeliveryHealthScore(baseInput);
+    const withHygiene = computeDeliveryHealthScore({
+      ...baseInput,
+      jiraHygiene: {
+        portfolioScore: 45,
+        degradesTrust: true,
+        worstProject: { key: "ACME", name: "Acme" },
+        topFindings: [],
+      },
+    });
+
+    const govWithout = withoutHygiene.dimensions.find((d) => d.id === "governance")!.score;
+    const govWith = withHygiene.dimensions.find((d) => d.id === "governance")!.score;
+    const momWithout = withoutHygiene.dimensions.find((d) => d.id === "momentum")!.score;
+    const momWith = withHygiene.dimensions.find((d) => d.id === "momentum")!.score;
+
+    assert.ok(govWith < govWithout);
+    assert.ok(momWith <= momWithout);
+    assert.ok(momWith <= 70);
+  });
 });

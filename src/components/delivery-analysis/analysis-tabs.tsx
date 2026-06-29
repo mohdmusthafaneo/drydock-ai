@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronDown, ExternalLink } from "lucide-react";
 import type { DeliveryAnalysisSnapshot } from "@/lib/delivery-analysis/types";
 import { DeliverySignalsPanel } from "@/components/delivery-analysis/delivery-signals";
+import { JiraIssueLink } from "@/components/delivery-analysis/jira-issue-link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -54,9 +55,7 @@ export function AnalysisTabs({ snapshot }: { snapshot: DeliveryAnalysisSnapshot 
         {tab === "overview" && <OverviewTab snapshot={snapshot} />}
         {tab === "versions" && <VersionsTab snapshot={snapshot} />}
         {tab === "sprints" && <SprintsTab snapshot={snapshot} />}
-        {tab === "signals" && (
-          <DeliverySignalsPanel signals={snapshot.signals} siteUrl={snapshot.siteUrl} />
-        )}
+        {tab === "signals" && <DeliverySignalsPanel signals={snapshot.signals} />}
         {tab === "projects" && (
           <ProjectsTab
             snapshot={snapshot}
@@ -196,7 +195,19 @@ function VersionsTab({ snapshot }: { snapshot: DeliveryAnalysisSnapshot }) {
               </td>
               <td className="py-2 tabular-nums text-secondary">{v.releaseDate ?? "—"}</td>
               <td className="py-2 text-right tabular-nums text-secondary">
-                {v.openIssuesInVersion != null ? v.openIssuesInVersion.toLocaleString() : "—"}
+                {v.openIssuesInVersion != null ? (
+                  v.jiraUrl ? (
+                    <JiraIssueLink
+                      href={v.jiraUrl}
+                      label={`${v.openIssuesInVersion.toLocaleString()} open`}
+                      className="inline-flex items-center gap-1 text-brand hover:underline"
+                    />
+                  ) : (
+                    v.openIssuesInVersion.toLocaleString()
+                  )
+                ) : (
+                  "—"
+                )}
               </td>
             </tr>
           ))}

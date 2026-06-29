@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { AlertTriangle, ExternalLink, Info } from "lucide-react";
+import { AlertTriangle, Info } from "lucide-react";
 import type { JiraDeliverySignal } from "@/lib/jira-delivery-health";
+import { JiraIssueLink } from "@/components/delivery-analysis/jira-issue-link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -19,7 +20,6 @@ const SEVERITY_ICON = {
 
 export function DeliverySignalsPanel({
   signals,
-  siteUrl,
 }: {
   signals: JiraDeliverySignal[];
   siteUrl?: string;
@@ -62,17 +62,7 @@ export function DeliverySignalsPanel({
                 </Badge>
               </div>
               <p className="mt-1 text-sm text-secondary">{signal.value}</p>
-              {siteUrl && (
-                <a
-                  href={siteUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-2 inline-flex items-center gap-1 text-xs text-brand hover:underline"
-                >
-                  Open in Jira
-                  <ExternalLink className="h-3 w-3" />
-                </a>
-              )}
+              <JiraIssueLink href={signal.jiraUrl} label="Open in Jira" />
             </div>
           </div>
         );
@@ -89,7 +79,6 @@ export function DeliverySignalsPanel({
 
 export function DeliverySignalsCard({
   signals,
-  siteUrl,
 }: {
   signals: JiraDeliverySignal[];
   siteUrl?: string;
@@ -101,7 +90,7 @@ export function DeliverySignalsCard({
         <CardDescription>Governance-relevant patterns in Jira delivery</CardDescription>
       </CardHeader>
       <CardContent>
-        <DeliverySignalsPanel signals={signals} siteUrl={siteUrl} />
+        <DeliverySignalsPanel signals={signals} />
       </CardContent>
     </Card>
   );

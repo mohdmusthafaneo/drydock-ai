@@ -12,6 +12,10 @@ import { TrendChart } from "@/components/delivery-analysis/trend-chart";
 import { ProjectBreakdown } from "@/components/delivery-analysis/project-breakdown";
 import { SprintCards } from "@/components/delivery-analysis/sprint-cards";
 import { DeliverySignalsCard } from "@/components/delivery-analysis/delivery-signals";
+import {
+  JiraHygieneBanner,
+  JiraHygieneFindingsCard,
+} from "@/components/delivery-analysis/jira-hygiene-banner";
 import { AnalysisTabs } from "@/components/delivery-analysis/analysis-tabs";
 import { SnapshotUnavailable } from "@/components/delivery-analysis/snapshot-unavailable";
 
@@ -238,6 +242,8 @@ export function DeliveryAnalysisDashboard({
             />
           )}
 
+          {snapshot.jiraHygiene && <JiraHygieneBanner hygiene={snapshot.jiraHygiene} />}
+
           <p className="text-xs text-muted">
             {snapshot.rangeLabel}
             {selectedProject ? ` · ${selectedProject}` : ` · ${snapshot.projectKeys.length} projects`}
@@ -261,6 +267,10 @@ export function DeliveryAnalysisDashboard({
           </div>
 
           <DeliverySignalsCard signals={snapshot.signals} siteUrl={snapshot.siteUrl} />
+
+          {snapshot.jiraHygiene?.findings.length ? (
+            <JiraHygieneFindingsCard findings={snapshot.jiraHygiene.findings} />
+          ) : null}
 
           <AnalysisTabs snapshot={snapshot} />
         </>

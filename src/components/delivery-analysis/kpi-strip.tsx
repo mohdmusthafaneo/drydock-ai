@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import type { DeliveryAnalysisKpis } from "@/lib/delivery-analysis/types";
+import { JiraIssueLink } from "@/components/delivery-analysis/jira-issue-link";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { ArrowDown, ArrowUp, Minus } from "lucide-react";
 
@@ -42,12 +43,13 @@ function DeltaBadge({
 }
 
 const KPI_ITEMS: {
-  key: keyof DeliveryAnalysisKpis;
+  key: "healthScore" | "openWork" | "blocked" | "overdue";
   label: string;
   subtitle: string;
   suffix?: string;
   deltaKey?: keyof DeliveryAnalysisKpis;
   invertDelta?: boolean;
+  jiraLinkKey?: keyof NonNullable<DeliveryAnalysisKpis["jiraLinks"]>;
 }[] = [
   {
     key: "healthScore",
@@ -62,6 +64,7 @@ const KPI_ITEMS: {
     subtitle: "Incomplete issues in scope",
     deltaKey: "openWorkDelta",
     invertDelta: true,
+    jiraLinkKey: "openWork",
   },
   {
     key: "blocked",
@@ -69,6 +72,7 @@ const KPI_ITEMS: {
     subtitle: "Issues flagged as blocked",
     deltaKey: "blockedDelta",
     invertDelta: true,
+    jiraLinkKey: "blocked",
   },
   {
     key: "overdue",
@@ -76,6 +80,7 @@ const KPI_ITEMS: {
     subtitle: "Past due date, not done",
     deltaKey: "overdueDelta",
     invertDelta: true,
+    jiraLinkKey: "overdue",
   },
 ];
 
@@ -88,6 +93,7 @@ export function KpiStrip({ kpis, projectCount }: { kpis: DeliveryAnalysisKpis; p
       {KPI_ITEMS.map((item) => {
         const value = kpis[item.key];
         const delta = item.deltaKey ? kpis[item.deltaKey] : undefined;
+        const jiraHref = item.jiraLinkKey ? kpis.jiraLinks?.[item.jiraLinkKey] : undefined;
         return (
           <Card key={item.key} className="min-w-0">
             <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
@@ -106,6 +112,7 @@ export function KpiStrip({ kpis, projectCount }: { kpis: DeliveryAnalysisKpis; p
                 </p>
               )}
               <p className="mt-1 text-[10px] text-muted">{item.subtitle}</p>
+              <JiraIssueLink href={jiraHref} />
             </CardContent>
           </Card>
         );

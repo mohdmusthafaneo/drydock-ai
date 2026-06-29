@@ -1,4 +1,5 @@
 import type { JiraDeliveryGap, JiraDeliverySignal } from "@/lib/jira-delivery-health";
+import type { JiraHygieneFinding, JiraHygieneResult } from "@/lib/jira-hygiene";
 import type { JiraStatusBreakdown } from "@/lib/jira-meta";
 
 export type TimeRange = "7d" | "30d" | "90d";
@@ -27,6 +28,7 @@ export type DeliveryAnalysisKpis = {
   sprintCompletionPct?: number | null;
   /** Sum of resolved issues in the last 7 days across scope (P2b). */
   resolvedLast7d?: number;
+  jiraLinks?: { openWork?: string; blocked?: string; overdue?: string };
 };
 
 export type DeliveryAnalysisProjectRow = {
@@ -45,6 +47,7 @@ export type DeliveryAnalysisProjectRow = {
     committed: number;
     pct: number;
   };
+  hygiene?: JiraHygieneResult;
 };
 
 export type DeliveryAnalysisVersionRow = {
@@ -56,6 +59,7 @@ export type DeliveryAnalysisVersionRow = {
   releaseDate?: string;
   overdue?: boolean;
   openIssuesInVersion?: number;
+  jiraUrl?: string;
 };
 
 export type DeliveryAnalysisSprintRow = {
@@ -69,6 +73,8 @@ export type DeliveryAnalysisSprintRow = {
   committed: number;
   pct: number;
   severity?: "info" | "warning" | "critical";
+  sprintId?: number;
+  jiraUrl?: string;
 };
 
 export type DeliveryAnalysisTrendPoint = {
@@ -97,6 +103,12 @@ export type DeliveryAnalysisSnapshot = {
   sprints: DeliveryAnalysisSprintRow[];
   signals: JiraDeliverySignal[];
   gaps: JiraDeliveryGap[];
+  jiraHygiene?: {
+    score: number;
+    degradesTrust: boolean;
+    worstProject?: { key: string; name: string };
+    findings: JiraHygieneFinding[];
+  };
 };
 
 export const RISK_MIX_COLORS = {

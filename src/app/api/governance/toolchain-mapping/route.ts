@@ -10,6 +10,7 @@ import {
   parseToolchainMapping,
   type ToolchainMapping,
 } from "@/lib/toolchain-mapping";
+import { buildJiraHygieneLinksMap, type JiraLinkContext } from "@/lib/jira-issue-links";
 
 const fieldRefSchema = z.object({
   id: z.string(),
@@ -75,14 +76,29 @@ export async function GET() {
     ? parseIntegrationMeta(githubIntegration.metadataJson)
     : null;
 
+  const confirmed = Boolean(profile?.toolchainMappingConfirmedAt);
+
+  let jiraHygieneLinks: Record<string, string> | null = null;
+  if (confirmed && jiraMeta?.siteUrl && mapping.jira && jiraMeta.jiraHygiene) {
+    const linkCtx: JiraLinkContext = {
+      siteUrl: jiraMeta.siteUrl,
+      mapping,
+      projectKeys: jiraMeta.projectKeys ?? [],
+    };
+    jiraHygieneLinks = buildJiraHygieneLinksMap(linkCtx, jiraMeta.jiraHygiene.byProject);
+  }
+
   return NextResponse.json({
     mapping,
-    confirmed: Boolean(profile?.toolchainMappingConfirmedAt),
+    confirmed,
     jiraSchema: jiraMeta?.jiraSchemaSnapshot ?? null,
     jiraSchemaStale: jiraMeta
       ? isJiraSchemaStale(jiraMeta.jiraSchemaSnapshot, jiraMeta.projectKeys ?? [])
       : false,
     githubSchema: githubMeta?.githubSchemaSnapshot ?? null,
+    jiraHygiene: jiraMeta?.jiraHygiene ?? null,
+    jiraSiteUrl: jiraMeta?.siteUrl ?? null,
+    jiraHygieneLinks,
   });
 }
 

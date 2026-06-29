@@ -24,6 +24,10 @@ export type JiraDeliverySnapshot = {
     overdueCount: number;
     bugsOpen: number;
     unassignedCount: number;
+    /** Open issues with empty story-point field (hygiene). */
+    missingEstimateCount?: number;
+    /** In-progress issues with no due date (hygiene). */
+    missingDueDateCount?: number;
     /** Issues resolved in the last 7 days (P2b). */
     resolvedLast7d?: number;
     /** To Do / In Progress / Done category counts (P2b). */
@@ -112,6 +116,8 @@ export type JiraIntegrationMeta = {
     openWork: number;
     projectKeys: string[];
   };
+  /** Computed Jira board hygiene rollup (Point 5). */
+  jiraHygiene?: import("@/lib/jira-hygiene").JiraHygieneSnapshot;
 };
 
 export function parseJiraMeta(metadataJson: string): Partial<JiraIntegrationMeta> {

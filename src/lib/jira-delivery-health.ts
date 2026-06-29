@@ -12,6 +12,7 @@ export type JiraDeliverySignal = {
   label: string;
   value: string;
   severity: "info" | "warning" | "critical";
+  jiraUrl?: string;
 };
 
 export type JiraDeliveryGap = {

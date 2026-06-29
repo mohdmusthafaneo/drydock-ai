@@ -12,7 +12,23 @@ import {
   type JiraDeliveryGap,
   type JiraDeliverySignal,
 } from "@/lib/jira-delivery-health";
+import {
+  assessJiraHygiene,
+  assessPortfolioJiraHygiene,
+  summarizePortfolioHygiene,
+  type PortfolioJiraHygiene,
+} from "@/lib/jira-hygiene";
+import {
+  buildJiraIssuesSearchUrl,
+  buildSprintJql,
+  jiraUrlForFixVersion,
+  jiraUrlForHygieneFinding,
+  jiraUrlForKpi,
+  jiraUrlForSignal,
+  type JiraLinkContext,
+} from "@/lib/jira-issue-links";
 import type { ToolchainMapping } from "@/lib/toolchain-mapping";
+import { resolveJiraMappingForProject } from "@/lib/toolchain-mapping";
 
 type SnapshotProject = DeliveryAnalysisProjectRow & {
   versions: Omit<DeliveryAnalysisVersionRow, "projectKey" | "projectName">[];
@@ -38,18 +54,30 @@ function sprintSeverity(pct: number): DeliveryAnalysisSprintRow["severity"] {
 function jiraProjectsToSnapshotRows(
   jiraSnapshot: JiraDeliverySnapshot,
   projectKey: string | null,
-  mapping?: ToolchainMapping["jira"],
+  mapping?: ToolchainMapping,
+  hygieneBlock?: PortfolioJiraHygiene,
 ): SnapshotProject[] {
   const projects = projectKey
     ? jiraSnapshot.projects.filter((p) => p.key === projectKey)
     : jiraSnapshot.projects;
 
   return projects.map((p) => {
+    const projectMapping = resolveJiraMappingForProject(mapping, p.key) ?? mapping?.jira;
     const health = analyzePortfolioDeliveryHealth({
       snapshot: jiraSnapshot,
       projectKey: p.key,
-      mapping,
+      mapping: projectMapping,
     });
+
+    const hygiene =
+      hygieneBlock?.byProject[p.key] ??
+      (mapping
+        ? assessJiraHygiene({
+            project: p,
+            mapping: projectMapping,
+            snapshotSyncedAt: jiraSnapshot.syncedAt,
+          })
+        : undefined);
 
     const sprint = p.activeSprint;
     let sprintRow: SnapshotProject["sprint"];
@@ -73,6 +101,7 @@ function jiraProjectsToSnapshotRows(
         committed: sprint.committed,
         pct,
         severity: sprintSeverity(pct),
+        sprintId: sprint.id,
       };
     }
 
@@ -87,6 +116,7 @@ function jiraProjectsToSnapshotRows(
       resolvedLast7d: p.resolvedLast7d,
       statusBreakdown: p.statusBreakdown,
       activeSprint,
+      hygiene,
       versions: p.versions.map((v) => ({
         id: v.id,
         name: v.name,
@@ -104,14 +134,30 @@ export function computeDeliveryAnalysisFromJira(input: {
   jiraSnapshot: JiraDeliverySnapshot;
   siteUrl?: string;
   filters: DeliveryAnalysisFilters;
-  mapping?: ToolchainMapping["jira"];
+  mapping?: ToolchainMapping;
+  jiraHygiene?: PortfolioJiraHygiene;
 }): DeliveryAnalysisSnapshot {
-  const allRows = jiraProjectsToSnapshotRows(input.jiraSnapshot, null, input.mapping);
+  const hygieneBlock =
+    input.jiraHygiene ??
+    (input.mapping
+      ? assessPortfolioJiraHygiene(input.jiraSnapshot, input.mapping)
+      : undefined);
+
+  const allRows = jiraProjectsToSnapshotRows(
+    input.jiraSnapshot,
+    null,
+    input.mapping,
+    hygieneBlock,
+  );
   const health = analyzePortfolioDeliveryHealth({
     snapshot: input.jiraSnapshot,
     projectKey: input.filters.projectKey,
-    mapping: input.mapping,
+    mapping: input.filters.projectKey
+      ? resolveJiraMappingForProject(input.mapping, input.filters.projectKey) ?? input.mapping?.jira
+      : input.mapping?.jira,
   });
+
+  const hygieneSummary = summarizePortfolioHygiene(hygieneBlock);
 
   return computeDeliveryAnalysisSnapshot({
     projects: filterSnapshotProjects(allRows, input.filters),
@@ -122,6 +168,16 @@ export function computeDeliveryAnalysisFromJira(input: {
     gaps: health.gaps,
     trend: [],
     portfolioHealthScore: health.score,
+    jiraHygiene: hygieneSummary
+      ? {
+          score: hygieneSummary.portfolioScore,
+          degradesTrust: hygieneSummary.degradesTrust,
+          worstProject: hygieneSummary.worstProject,
+          findings: hygieneSummary.topFindings,
+        }
+      : undefined,
+    mapping: input.mapping,
+    jiraSnapshot: input.jiraSnapshot,
   });
 }
 
@@ -129,11 +185,15 @@ export function snapshotForFilters(
   jiraSnapshot: JiraDeliverySnapshot,
   siteUrl: string | undefined,
   filters: DeliveryAnalysisFilters,
+  mapping?: ToolchainMapping,
+  jiraHygiene?: PortfolioJiraHygiene,
 ): DeliveryAnalysisSnapshot {
   return computeDeliveryAnalysisFromJira({
     jiraSnapshot,
     siteUrl,
     filters,
+    mapping,
+    jiraHygiene,
   });
 }
 
@@ -147,6 +207,9 @@ export function computeDeliveryAnalysisSnapshot(input: {
   trend: DeliveryAnalysisSnapshot["trend"];
   kpisDeltas?: Partial<DeliveryAnalysisKpis>;
   portfolioHealthScore?: number;
+  jiraHygiene?: DeliveryAnalysisSnapshot["jiraHygiene"];
+  mapping?: ToolchainMapping;
+  jiraSnapshot?: JiraDeliverySnapshot;
 }): DeliveryAnalysisSnapshot {
   const {
     projects,
@@ -158,6 +221,9 @@ export function computeDeliveryAnalysisSnapshot(input: {
     trend,
     kpisDeltas,
     portfolioHealthScore,
+    jiraHygiene,
+    mapping,
+    jiraSnapshot,
   } = input;
 
   const openWork = projects.reduce((n, p) => n + p.openIssues, 0);
@@ -213,7 +279,7 @@ export function computeDeliveryAnalysisSnapshot(input: {
     );
   }
 
-  return {
+  const snapshot: DeliveryAnalysisSnapshot = {
     generatedAt,
     projectKeys: projects.map((p) => p.key),
     siteUrl,
@@ -238,7 +304,146 @@ export function computeDeliveryAnalysisSnapshot(input: {
     sprints: sprintRows,
     signals: filteredSignals,
     gaps,
+    jiraHygiene,
   };
+
+  if (siteUrl && mapping?.jira) {
+    return attachJiraLinksToSnapshot(snapshot, {
+      siteUrl,
+      mapping,
+      projectKeys: snapshot.projectKeys,
+      projects,
+      jiraSnapshot,
+    });
+  }
+
+  return snapshot;
+}
+
+function firstSlippedVersion(projects: SnapshotProject[]): {
+  projectKey: string;
+  versionName: string;
+} | null {
+  for (const p of projects) {
+    for (const v of p.versions) {
+      if (v.overdue && !v.released) {
+        return { projectKey: p.key, versionName: v.name };
+      }
+    }
+  }
+  return null;
+}
+
+function signalLinkExtras(
+  signal: JiraDeliverySignal,
+  projects: SnapshotProject[],
+  jiraSnapshot?: JiraDeliverySnapshot,
+): Parameters<typeof jiraUrlForSignal>[2] {
+  if (signal.id.startsWith("sprint-")) {
+    const projectKey = signal.id.slice(7);
+    const sprintId =
+      projects.find((p) => p.key === projectKey)?.sprint?.sprintId ??
+      jiraSnapshot?.projects.find((p) => p.key === projectKey)?.activeSprint?.id;
+    return { projectKey, sprintId };
+  }
+
+  if (signal.id === "version-slip") {
+    const slipped = firstSlippedVersion(projects);
+    if (slipped) {
+      return { projectKey: slipped.projectKey, versionName: slipped.versionName };
+    }
+  }
+
+  if (signal.id === "jira-sprint" && projects.length === 1) {
+    const project = projects[0];
+    const sprintId =
+      project.sprint?.sprintId ??
+      jiraSnapshot?.projects.find((p) => p.key === project.key)?.activeSprint?.id;
+    return { projectKey: project.key, sprintId };
+  }
+
+  return undefined;
+}
+
+function attachJiraLinksToSnapshot(
+  snapshot: DeliveryAnalysisSnapshot,
+  input: {
+    siteUrl: string;
+    mapping: ToolchainMapping;
+    projectKeys: string[];
+    projects: SnapshotProject[];
+    jiraSnapshot?: JiraDeliverySnapshot;
+  },
+): DeliveryAnalysisSnapshot {
+  const linkCtx: JiraLinkContext = {
+    siteUrl: input.siteUrl,
+    mapping: input.mapping,
+    projectKeys: input.projectKeys,
+  };
+
+  snapshot.kpis.jiraLinks = {
+    openWork: jiraUrlForKpi("openWork", linkCtx),
+    blocked: jiraUrlForKpi("blocked", linkCtx),
+    overdue: jiraUrlForKpi("overdue", linkCtx),
+  };
+
+  snapshot.signals = snapshot.signals.map((signal) => ({
+    ...signal,
+    jiraUrl: jiraUrlForSignal(
+      signal.id,
+      linkCtx,
+      signalLinkExtras(signal, input.projects, input.jiraSnapshot),
+    ),
+  }));
+
+  snapshot.sprints = snapshot.sprints.map((sprint) => {
+    if (sprint.sprintId != null) {
+      return {
+        ...sprint,
+        jiraUrl: buildJiraIssuesSearchUrl(input.siteUrl, buildSprintJql(sprint.sprintId)),
+      };
+    }
+    return sprint;
+  });
+
+  snapshot.versions = snapshot.versions.map((version) => {
+    if (version.openIssuesInVersion != null && version.openIssuesInVersion > 0) {
+      return {
+        ...version,
+        jiraUrl: jiraUrlForFixVersion(version.projectKey, version.name, linkCtx),
+      };
+    }
+    return version;
+  });
+
+  if (snapshot.jiraHygiene) {
+    snapshot.jiraHygiene = {
+      ...snapshot.jiraHygiene,
+      findings: snapshot.jiraHygiene.findings.map((finding) => ({
+        ...finding,
+        jiraUrl: finding.projectKey
+          ? jiraUrlForHygieneFinding(finding.id, finding.projectKey, linkCtx)
+          : undefined,
+      })),
+    };
+  }
+
+  snapshot.byProject = snapshot.byProject.map((row) => {
+    if (!row.hygiene) return row;
+    return {
+      ...row,
+      hygiene: {
+        ...row.hygiene,
+        findings: row.hygiene.findings.map((finding) => ({
+          ...finding,
+          projectKey: row.key,
+          jiraUrl: jiraUrlForHygieneFinding(finding.id, row.key, linkCtx),
+        })),
+      },
+    };
+  });
+
+  return snapshot;
 }
 
 /** @deprecated Use filterSnapshotProjects */

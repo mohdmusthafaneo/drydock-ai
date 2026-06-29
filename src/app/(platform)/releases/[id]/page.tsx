@@ -9,6 +9,9 @@ import {
   parsePostDeployComparison,
   resolveAssessSourceFreshness,
 } from "@/lib/release-assess-snapshot";
+import { matchReleaseToFixVersion } from "@/lib/jira-delivery-health";
+import { resolveLowJiraHygieneForRelease } from "@/lib/jira-hygiene";
+import { isJiraOAuthConnected, parseJiraMeta } from "@/lib/jira-meta";
 import { buildReleaseDetailVerdict } from "@/lib/governance/presentation";
 import { verdictBadgeVariant } from "@/lib/release-gate-brief";
 import { Badge } from "@/components/ui/badge";
@@ -55,6 +58,23 @@ export default async function ReleaseDetailPage({
       assessedAt: release.assessedAt,
       sourceFreshness,
     });
+
+  const jiraIntegration = integrations.find((i) => i.provider === "JIRA" && isJiraOAuthConnected(i));
+  const jiraMeta = jiraIntegration ? parseJiraMeta(jiraIntegration.metadataJson) : null;
+  const matchedVersion =
+    jiraMeta?.deliverySnapshot && release.assessedAt
+      ? matchReleaseToFixVersion(
+          release.name,
+          release.version,
+          jiraMeta.deliverySnapshot,
+          undefined,
+          release.jiraFixVersion,
+        )
+      : undefined;
+  const lowJiraHygiene = resolveLowJiraHygieneForRelease({
+    hygiene: jiraMeta?.jiraHygiene,
+    projectKey: matchedVersion?.projectKey ?? null,
+  });
 
   const pendingApprovals = release.recommendations.flatMap((r) =>
     r.approvals.filter((a) => !a.decision),
@@ -178,6 +198,7 @@ export default async function ReleaseDetailPage({
               }
               sourceFreshness={sourceFreshness}
               staleData={staleData}
+              lowJiraHygiene={lowJiraHygiene}
               postDeployComparison={postDeployComparison}
             />
           </HoverLift>

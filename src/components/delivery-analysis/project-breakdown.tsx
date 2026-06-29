@@ -1,4 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { HygieneGradeChip } from "@/components/delivery-analysis/jira-hygiene-banner";
 import { cn } from "@/lib/utils";
 import type { DeliveryAnalysisProjectRow } from "@/lib/delivery-analysis/types";
 
@@ -37,7 +38,8 @@ export function ProjectBreakdown({
                 <span className="truncate font-medium text-primary">
                   {item.key} · {item.name}
                 </span>
-                <span className="shrink-0 tabular-nums text-secondary">
+                <span className="flex shrink-0 items-center gap-2 tabular-nums text-secondary">
+                  {item.hygiene && <HygieneGradeChip grade={item.hygiene.grade} />}
                   {item.healthScore} health · {item.openIssues} open
                 </span>
               </div>
