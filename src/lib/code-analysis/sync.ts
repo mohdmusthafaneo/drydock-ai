@@ -19,7 +19,12 @@ import {
   type GitHubIntegrationMeta,
 } from "@/lib/integration-meta";
 import { classifyCommit, classifyPullRequest } from "@/lib/code-analysis/classifier";
+import {
+  buildDiffExcerpt,
+  extractJiraKeysFromTexts,
+} from "@/lib/code-analysis/jira-link";
 import { resolveConfirmedToolchainMapping } from "@/lib/toolchain-mapping";
+import { parseJiraMeta } from "@/lib/jira-meta";
 import { snapshotForStoredData } from "@/lib/code-analysis/compute-snapshot";
 import {
   loadStoredCodeAnalysisFromDb,
@@ -93,6 +98,7 @@ async function fetchRepoAnalysis(
   fullName: string,
   since: string,
   branch: string,
+  projectKeys: string[],
 ): Promise<{ commits: CodeAnalysisCommit[]; pullRequests: CodeAnalysisPullRequest[] }> {
   const { owner, repo } = parseOwnerRepo(fullName);
   const commits: CodeAnalysisCommit[] = [];
@@ -131,6 +137,7 @@ async function fetchRepoAnalysis(
         confidence: classified.confidence,
         signals,
         branch,
+        jiraKeys: extractJiraKeysFromTexts([message, branch], projectKeys),
       });
     } catch (e) {
       if (e instanceof GitHubApiError && (e.status === 404 || e.status === 403)) continue;
@@ -169,6 +176,13 @@ async function fetchRepoAnalysis(
         commitClassifications,
       });
 
+      const diffExcerpt = buildDiffExcerpt(files);
+      const branchRef = pr.head?.ref ?? "";
+      const jiraKeys = extractJiraKeysFromTexts(
+        [pr.title, pr.body, branchRef, ...prCommits.slice(0, 8).map((c) => c.message)],
+        projectKeys,
+      );
+
       pullRequests.push({
         id: `${fullName}#${pr.number}`,
         number: pr.number,
@@ -183,6 +197,8 @@ async function fetchRepoAnalysis(
         confidence: classified.confidence,
         reviewCount: countApprovals(reviews),
         tools: classified.tools,
+        jiraKeys,
+        diffExcerpt: diffExcerpt || undefined,
       });
     } catch (e) {
       if (e instanceof GitHubApiError && (e.status === 404 || e.status === 403)) continue;
@@ -223,6 +239,17 @@ export async function syncCodeAnalysis(input: {
   const confirmedMapping = await resolveConfirmedToolchainMapping(input.organizationId);
   const githubMapping = confirmedMapping?.github;
 
+  const jiraIntegration = await prisma.integration.findUnique({
+    where: {
+      organizationId_provider: {
+        organizationId: input.organizationId,
+        provider: "JIRA",
+      },
+    },
+  });
+  const jiraMeta = jiraIntegration ? parseJiraMeta(jiraIntegration.metadataJson) : null;
+  const projectKeys = jiraMeta?.projectKeys ?? [];
+
   const installationRepos = await listInstallationRepos(token);
   const granted = new Set(installationRepos.map((r) => r.full_name.toLowerCase()));
 
@@ -250,7 +277,13 @@ export async function syncCodeAnalysis(input: {
         repoMeta?.defaultBranch ?? "main",
         githubMapping,
       );
-      const { commits, pullRequests } = await fetchRepoAnalysis(token, fullName, since, branch);
+      const { commits, pullRequests } = await fetchRepoAnalysis(
+        token,
+        fullName,
+        since,
+        branch,
+        projectKeys,
+      );
       allCommits.push(...commits);
       allPullRequests.push(...pullRequests);
     } catch (e) {

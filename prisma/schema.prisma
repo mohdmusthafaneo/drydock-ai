@@ -814,6 +814,9 @@ model CodeAnalysisCommit {
   attribution    String
   confidence     Int      @default(0)
   signalsJson    String   @default("[]")
+  jiraKeysJson   String   @default("[]")
+  completionScore Int?
+  completionRationale String?
   lastSeenAt     DateTime @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -839,6 +842,13 @@ model CodeAnalysisPullRequest {
   confidence     Int      @default(0)
   reviewCount    Int      @default(0)
   toolsJson      String   @default("[]")
+  jiraKeysJson   String   @default("[]")
+  diffExcerpt    String?
+  completionScore Int?
+  completionRationale String?
+  riskScore      Int?
+  riskLevel      String?
+  qualityFlagsJson String @default("[]")
   lastSeenAt     DateTime @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)

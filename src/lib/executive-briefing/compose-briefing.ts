@@ -461,6 +461,85 @@ function capitalizeFirst(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
+function buildAiCodeRiskClaim(
+  aiRisk: NonNullable<CodeAnalysisSnapshot["aiRisk"]>,
+): BriefingClaim {
+  const hasAttention =
+    aiRisk.highRiskCount > 0 ||
+    aiRisk.unreviewedAiPrs > 0 ||
+    aiRisk.unlinkedAiPrs > 0;
+
+  if (hasAttention) {
+    let verdict: BriefingClaimVerdict = "attention";
+    let verdictLabel = "Review AI code";
+    if (aiRisk.highRiskCount > 0 || aiRisk.unreviewedAiPrs >= 2) {
+      verdict = "risk";
+      verdictLabel = "High AI risk";
+    }
+
+    const contextParts: string[] = [];
+    if (aiRisk.highRiskCount > 0) {
+      contextParts.push(
+        `${aiRisk.highRiskCount} high-risk AI area${aiRisk.highRiskCount === 1 ? "" : "s"}`,
+      );
+    }
+    if (aiRisk.unreviewedAiPrs > 0) {
+      contextParts.push(
+        `${aiRisk.unreviewedAiPrs} unreviewed AI PR${aiRisk.unreviewedAiPrs === 1 ? "" : "s"}`,
+      );
+    }
+    if (aiRisk.unlinkedAiPrs > 0) {
+      contextParts.push(
+        `${aiRisk.unlinkedAiPrs} AI change${aiRisk.unlinkedAiPrs === 1 ? "" : "s"} not linked to Jira`,
+      );
+    }
+
+    return {
+      id: "ai-code-risk",
+      headline: "AI code risk",
+      metric: `${aiRisk.aiLinesPct}%`,
+      metricLabel: "AI-attributed lines",
+      verdict,
+      verdictLabel,
+      context: capitalizeFirst(contextParts.join(" · ")),
+      href: "/code-analysis",
+    };
+  }
+
+  let context: string;
+  if (aiRisk.aiLinesPct === 0) {
+    context = "No AI-attributed changes merged in this period";
+  } else if (aiRisk.avgCompletionScore != null) {
+    context = `No high-risk AI areas · avg ticket completion ${aiRisk.avgCompletionScore}%`;
+  } else {
+    context = "No high-risk AI areas detected in this period";
+  }
+
+  return {
+    id: "ai-code-risk",
+    headline: "AI code risk",
+    metric: `${aiRisk.aiLinesPct}%`,
+    metricLabel: "AI-attributed lines",
+    verdict: "good",
+    verdictLabel: "Under control",
+    context: capitalizeFirst(context),
+    href: "/code-analysis",
+  };
+}
+
+/** Keep AI code risk visible on the executive dashboard even when other claims fill the grid. */
+function finalizeBriefingClaims(claims: BriefingClaim[]): BriefingClaim[] {
+  const aiClaim = claims.find((c) => c.id === "ai-code-risk");
+  const rest = claims.filter((c) => c.id !== "ai-code-risk");
+  const maxSlots = aiClaim ? 5 : 4;
+  const kept = rest.slice(0, aiClaim ? maxSlots - 1 : maxSlots);
+  if (!aiClaim) return kept;
+
+  const deliveryIndex = kept.findIndex((c) => c.id === "delivery");
+  const insertAt = deliveryIndex >= 0 ? deliveryIndex + 1 : Math.min(2, kept.length);
+  return [...kept.slice(0, insertAt), aiClaim, ...kept.slice(insertAt)];
+}
+
 function buildClaims(input: ComposeBriefingInput, health: ExecutiveBriefing["health"]): BriefingClaim[] {
   const claims: BriefingClaim[] = [];
   const release = input.latestRelease;
@@ -517,6 +596,10 @@ function buildClaims(input: ComposeBriefingInput, health: ExecutiveBriefing["hea
       context: capitalizeFirst(context),
       href: "/delivery-analysis",
     });
+  }
+
+  if (input.codeSnapshot?.aiRisk) {
+    claims.push(buildAiCodeRiskClaim(input.codeSnapshot.aiRisk));
   }
 
   const stabilityDim = health.dimensions.find((d) => d.id === "stability");
@@ -645,7 +728,7 @@ function buildClaims(input: ComposeBriefingInput, health: ExecutiveBriefing["hea
     });
   }
 
-  return claims.slice(0, 4);
+  return finalizeBriefingClaims(claims);
 }
 
 function resolveFreshness(input: ComposeBriefingInput): ExecutiveBriefing["freshness"] {

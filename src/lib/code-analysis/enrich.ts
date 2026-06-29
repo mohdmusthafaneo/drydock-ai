@@ -1,0 +1,189 @@
+import { getMastra } from "@/mastra";
+import { prisma } from "@/lib/prisma";
+import { fetchJiraIssueTexts } from "@/lib/code-analysis/jira-issue-fetch";
+import {
+  computeCompositeRisk,
+  fallbackCompletionScore,
+  mergeCompletionResults,
+  scoreCompletionWithLlm,
+} from "@/lib/code-analysis/scoring";
+import { isLlmAvailable } from "@/lib/code-analysis/enrich-config";
+
+export type EnrichCodeAnalysisResult =
+  | { status: "enriched"; scored: number }
+  | { status: "skipped"; reason: string }
+  | { status: "failed"; error: string };
+
+const BATCH_SIZE = 15;
+
+export async function enrichCodeAnalysisForOrg(
+  organizationId: string,
+): Promise<EnrichCodeAnalysisResult> {
+  const github = await prisma.integration.findUnique({
+    where: {
+      organizationId_provider: {
+        organizationId,
+        provider: "GITHUB",
+      },
+    },
+  });
+
+  if (!github || github.status !== "CONNECTED") {
+    return { status: "skipped", reason: "github_not_connected" };
+  }
+
+  const pending = await prisma.codeAnalysisPullRequest.findMany({
+    where: {
+      organizationId,
+      OR: [{ riskScore: null }, { completionScore: null, jiraKeysJson: { not: "[]" } }],
+    },
+    orderBy: { mergedAt: "desc" },
+    take: BATCH_SIZE,
+  });
+
+  if (pending.length === 0) {
+    return { status: "skipped", reason: "nothing_to_score" };
+  }
+
+  const allKeys = [
+    ...new Set(
+      pending.flatMap((row) => {
+        try {
+          return JSON.parse(row.jiraKeysJson) as string[];
+        } catch {
+          return [];
+        }
+      }),
+    ),
+  ];
+
+  const issueTexts = await fetchJiraIssueTexts(organizationId, allKeys);
+  const llmEnabled = isLlmAvailable();
+  let mastra: Awaited<ReturnType<typeof getMastra>> | null = null;
+  if (llmEnabled) {
+    try {
+      mastra = await getMastra();
+    } catch {
+      mastra = null;
+    }
+  }
+
+  let scored = 0;
+
+  for (const row of pending) {
+    let jiraKeys: string[] = [];
+    try {
+      jiraKeys = JSON.parse(row.jiraKeysJson) as string[];
+    } catch {
+      jiraKeys = [];
+    }
+
+    const diffExcerpt = row.diffExcerpt ?? "";
+    let completionScore = row.completionScore;
+    let completionRationale = row.completionRationale;
+
+    const needsCompletion = completionScore == null && jiraKeys.length > 0;
+
+    if (needsCompletion) {
+      if (jiraKeys.length === 0) {
+        const fallback = fallbackCompletionScore({ jiraKeys, hasDiff: Boolean(diffExcerpt) });
+        completionScore = fallback.completionScore;
+        completionRationale = fallback.completionRationale;
+      } else if (!diffExcerpt) {
+        const fallback = fallbackCompletionScore({ jiraKeys, hasDiff: false });
+        completionScore = fallback.completionScore;
+        completionRationale = fallback.completionRationale;
+      } else if (mastra) {
+        const perKeyResults = [];
+        for (const key of jiraKeys) {
+          const issue = issueTexts.get(key);
+          if (!issue) {
+            perKeyResults.push({
+              completionScore: null,
+              completionRationale: `Ticket ${key} not found in Jira.`,
+            });
+            continue;
+          }
+          perKeyResults.push(
+            await scoreCompletionWithLlm(mastra, issue, diffExcerpt),
+          );
+        }
+        const merged = mergeCompletionResults(perKeyResults);
+        completionScore = merged.completionScore;
+        completionRationale = merged.completionRationale;
+      } else {
+        const fallback = fallbackCompletionScore({ jiraKeys, hasDiff: true });
+        completionScore = fallback.completionScore;
+        completionRationale = fallback.completionRationale;
+      }
+    } else if (completionScore == null && jiraKeys.length === 0) {
+      const fallback = fallbackCompletionScore({ jiraKeys: [], hasDiff: Boolean(diffExcerpt) });
+      completionRationale = fallback.completionRationale;
+    }
+
+    const prForRisk = {
+      id: row.externalId,
+      number: row.number,
+      title: row.title,
+      repo: row.repo,
+      author: row.author,
+      mergedAt: row.mergedAt.toISOString(),
+      url: row.url,
+      linesAdded: row.linesAdded,
+      linesRemoved: row.linesRemoved,
+      attribution: row.attribution as "human_only" | "ai_assisted" | "ai_generated" | "unknown",
+      confidence: row.confidence,
+      reviewCount: row.reviewCount,
+      tools: JSON.parse(row.toolsJson || "[]") as string[],
+      jiraKeys,
+      diffExcerpt: diffExcerpt || undefined,
+      completionScore,
+      completionRationale,
+    };
+
+    const risk = computeCompositeRisk(prForRisk);
+
+    await prisma.codeAnalysisPullRequest.update({
+      where: {
+        organizationId_externalId: {
+          organizationId,
+          externalId: row.externalId,
+        },
+      },
+      data: {
+        completionScore,
+        completionRationale,
+        riskScore: risk.riskScore,
+        riskLevel: risk.riskLevel,
+        qualityFlagsJson: JSON.stringify(risk.qualityFlags),
+      },
+    });
+
+    scored += 1;
+  }
+
+  if (scored > 0) {
+    await prisma.activityEvent.create({
+      data: {
+        organizationId,
+        type: "code_analysis.enriched",
+        title: "Code analysis scores updated",
+        description: `Scored ${scored} pull request${scored === 1 ? "" : "s"} for completion and AI risk.`,
+        metadataJson: JSON.stringify({ scored }),
+      },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        organizationId,
+        userId: null,
+        action: "code_analysis.enriched",
+        entityType: "Organization",
+        entityId: organizationId,
+        metadataJson: JSON.stringify({ scored }),
+      },
+    });
+  }
+
+  return { status: "enriched", scored };
+}

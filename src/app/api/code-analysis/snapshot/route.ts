@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { resolveStoredCodeAnalysis, snapshotForFilters } from "@/lib/code-analysis/sync";
 import { getMockCodeAnalysisSnapshot } from "@/lib/code-analysis/mock-data";
 import type { CodeAnalysisFilters } from "@/lib/code-analysis/types";
+import { parseJiraMeta } from "@/lib/jira-meta";
 
 const querySchema = z.object({
   range: z.enum(["7d", "30d", "90d"]).optional(),
@@ -46,6 +47,18 @@ export async function GET(request: Request) {
     },
   });
 
+  const jiraIntegration = await prisma.integration.findUnique({
+    where: {
+      organizationId_provider: {
+        organizationId: session.organizationId,
+        provider: "JIRA",
+      },
+    },
+  });
+  const jiraSiteUrl = jiraIntegration
+    ? parseJiraMeta(jiraIntegration.metadataJson).siteUrl ?? null
+    : null;
+
   const filters: Partial<CodeAnalysisFilters> = {
     range: query.range ?? "30d",
     author: query.author ?? null,
@@ -64,6 +77,7 @@ export async function GET(request: Request) {
       source: "github",
       syncedAt: stored.syncedAt,
       snapshot,
+      jiraSiteUrl,
     });
   }
 
@@ -73,5 +87,6 @@ export async function GET(request: Request) {
     source: "mock",
     syncedAt: null,
     snapshot,
+    jiraSiteUrl: "https://aidos.atlassian.net",
   });
 }

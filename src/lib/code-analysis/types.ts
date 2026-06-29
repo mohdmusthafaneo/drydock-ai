@@ -28,6 +28,13 @@ export type CodeAnalysisPullRequest = {
   confidence: number;
   reviewCount: number;
   tools: string[];
+  jiraKeys: string[];
+  diffExcerpt?: string;
+  completionScore?: number | null;
+  completionRationale?: string | null;
+  riskScore?: number | null;
+  riskLevel?: "low" | "medium" | "high" | null;
+  qualityFlags?: string[];
 };
 
 export type CodeAnalysisCommit = {
@@ -43,6 +50,9 @@ export type CodeAnalysisCommit = {
   confidence: number;
   signals: string[];
   branch?: string;
+  jiraKeys: string[];
+  completionScore?: number | null;
+  completionRationale?: string | null;
 };
 
 export type CodeAnalysisFile = {
@@ -86,6 +96,14 @@ export type StoredCodeAnalysis = {
   commits: CodeAnalysisCommit[];
 };
 
+export type CodeAnalysisAiRisk = {
+  aiLinesPct: number;
+  highRiskCount: number;
+  unreviewedAiPrs: number;
+  unlinkedAiPrs: number;
+  avgCompletionScore: number | null;
+};
+
 export type CodeAnalysisSnapshot = {
   generatedAt: string;
   rangeLabel: string;
@@ -100,6 +118,7 @@ export type CodeAnalysisSnapshot = {
   files: CodeAnalysisFile[];
   tools: CodeAnalysisTool[];
   governanceSignals: GovernanceSignal[];
+  aiRisk: CodeAnalysisAiRisk;
 };
 
 export type CodeAnalysisFilters = {

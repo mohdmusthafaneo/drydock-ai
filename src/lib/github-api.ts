@@ -172,6 +172,7 @@ export type GitHubClosedPull = GitHubPull & {
   additions?: number;
   deletions?: number;
   changed_files?: number;
+  head?: { ref: string };
 };
 
 export async function listClosedPulls(
@@ -191,6 +192,7 @@ export type GitHubPullFile = {
   additions: number;
   deletions: number;
   changes: number;
+  patch?: string;
 };
 
 export async function getPullRequestFiles(

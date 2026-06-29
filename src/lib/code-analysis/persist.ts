@@ -22,6 +22,14 @@ function sinceDate(days: number): Date {
   return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 }
 
+function parseStringArrayJson(json: string): string[] {
+  try {
+    return JSON.parse(json) as string[];
+  } catch {
+    return [];
+  }
+}
+
 function rowToCommit(row: {
   sha: string;
   message: string;
@@ -34,13 +42,10 @@ function rowToCommit(row: {
   attribution: string;
   confidence: number;
   signalsJson: string;
+  jiraKeysJson: string;
+  completionScore: number | null;
+  completionRationale: string | null;
 }): CodeAnalysisCommit {
-  let signals: string[] = [];
-  try {
-    signals = JSON.parse(row.signalsJson) as string[];
-  } catch {
-    signals = [];
-  }
   return {
     sha: row.sha,
     message: row.message,
@@ -52,7 +57,10 @@ function rowToCommit(row: {
     deletions: row.deletions,
     attribution: row.attribution as CodeAnalysisCommit["attribution"],
     confidence: row.confidence,
-    signals,
+    signals: parseStringArrayJson(row.signalsJson),
+    jiraKeys: parseStringArrayJson(row.jiraKeysJson),
+    completionScore: row.completionScore,
+    completionRationale: row.completionRationale,
   };
 }
 
@@ -70,13 +78,14 @@ function rowToPullRequest(row: {
   confidence: number;
   reviewCount: number;
   toolsJson: string;
+  jiraKeysJson: string;
+  diffExcerpt: string | null;
+  completionScore: number | null;
+  completionRationale: string | null;
+  riskScore: number | null;
+  riskLevel: string | null;
+  qualityFlagsJson: string;
 }): CodeAnalysisPullRequest {
-  let tools: string[] = [];
-  try {
-    tools = JSON.parse(row.toolsJson) as string[];
-  } catch {
-    tools = [];
-  }
   return {
     id: row.externalId,
     number: row.number,
@@ -90,7 +99,14 @@ function rowToPullRequest(row: {
     attribution: row.attribution as CodeAnalysisPullRequest["attribution"],
     confidence: row.confidence,
     reviewCount: row.reviewCount,
-    tools,
+    tools: parseStringArrayJson(row.toolsJson),
+    jiraKeys: parseStringArrayJson(row.jiraKeysJson),
+    diffExcerpt: row.diffExcerpt ?? undefined,
+    completionScore: row.completionScore,
+    completionRationale: row.completionRationale,
+    riskScore: row.riskScore,
+    riskLevel: row.riskLevel as CodeAnalysisPullRequest["riskLevel"],
+    qualityFlags: parseStringArrayJson(row.qualityFlagsJson),
   };
 }
 
@@ -218,6 +234,7 @@ async function persistCodeAnalysisToDbInner(input: {
           attribution: c.attribution,
           confidence: c.confidence,
           signalsJson: JSON.stringify(c.signals),
+          jiraKeysJson: JSON.stringify(c.jiraKeys ?? []),
           lastSeenAt: now,
         },
         update: {
@@ -230,6 +247,7 @@ async function persistCodeAnalysisToDbInner(input: {
           attribution: c.attribution,
           confidence: c.confidence,
           signalsJson: JSON.stringify(c.signals),
+          jiraKeysJson: JSON.stringify(c.jiraKeys ?? []),
           lastSeenAt: now,
         },
       });
@@ -258,6 +276,8 @@ async function persistCodeAnalysisToDbInner(input: {
           confidence: pr.confidence,
           reviewCount: pr.reviewCount,
           toolsJson: JSON.stringify(pr.tools),
+          jiraKeysJson: JSON.stringify(pr.jiraKeys ?? []),
+          diffExcerpt: pr.diffExcerpt ?? null,
           lastSeenAt: now,
         },
         update: {
@@ -271,6 +291,8 @@ async function persistCodeAnalysisToDbInner(input: {
           confidence: pr.confidence,
           reviewCount: pr.reviewCount,
           toolsJson: JSON.stringify(pr.tools),
+          jiraKeysJson: JSON.stringify(pr.jiraKeys ?? []),
+          diffExcerpt: pr.diffExcerpt ?? null,
           lastSeenAt: now,
         },
       });

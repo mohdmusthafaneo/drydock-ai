@@ -24,6 +24,37 @@ function isAiAttribution(a: AiAttribution): boolean {
   return a === "ai_assisted" || a === "ai_generated";
 }
 
+function buildAiRisk(
+  prs: CodeAnalysisPullRequest[],
+  kpis: CodeAnalysisSnapshot["kpis"],
+): CodeAnalysisSnapshot["aiRisk"] {
+  const highRiskCount = prs.filter((p) => p.riskLevel === "high").length;
+  const unreviewedAiPrs = prs.filter(
+    (p) => isAiAttribution(p.attribution) && p.reviewCount === 0,
+  ).length;
+  const unlinkedAiPrs = prs.filter(
+    (p) => isAiAttribution(p.attribution) && (p.jiraKeys?.length ?? 0) === 0,
+  ).length;
+  const completionScores = prs
+    .map((p) => p.completionScore)
+    .filter((s): s is number => s != null);
+  const avgCompletionScore =
+    completionScores.length > 0
+      ? Math.round(
+          completionScores.reduce((sum, score) => sum + score, 0) /
+            completionScores.length,
+        )
+      : null;
+
+  return {
+    aiLinesPct: kpis.aiLinesPct,
+    highRiskCount,
+    unreviewedAiPrs,
+    unlinkedAiPrs,
+    avgCompletionScore,
+  };
+}
+
 function pct(numerator: number, denominator: number): number {
   return denominator > 0 ? Math.round((numerator / denominator) * 100) : 0;
 }
@@ -232,6 +263,36 @@ function buildGovernanceSignals(
         repo: pr.repo,
       });
     }
+
+    if (pr.riskLevel === "high" && isAiAttribution(pr.attribution)) {
+      const flags = pr.qualityFlags?.length
+        ? pr.qualityFlags.join(", ")
+        : "composite risk score";
+      signals.push({
+        id: `sig-risk-${pr.id}`,
+        severity: "error",
+        title: "High-risk AI code area",
+        description: `PR #${pr.number} scored ${pr.riskScore ?? "—"}/100 risk (${flags}).`,
+        entityLabel: `#${pr.number} · ${pr.title}`,
+        entityUrl: pr.url,
+        repo: pr.repo,
+      });
+    }
+
+    if (
+      isAiAttribution(pr.attribution) &&
+      (pr.jiraKeys?.length ?? 0) === 0
+    ) {
+      signals.push({
+        id: `sig-unlinked-${pr.id}`,
+        severity: "warning",
+        title: "AI change with no linked ticket",
+        description: `PR #${pr.number} has no Jira key in branch, title, or body.`,
+        entityLabel: `#${pr.number} · ${pr.title}`,
+        entityUrl: pr.url,
+        repo: pr.repo,
+      });
+    }
   }
 
   for (const c of commits) {
@@ -412,6 +473,7 @@ export function computeCodeAnalysisSnapshot(input: {
     files: buildFiles(commits, repos),
     tools: [...toolMap.values()].sort((a, b) => b.linesAttributed - a.linesAttributed),
     governanceSignals: buildGovernanceSignals(prs, commits, repos, kpis.aiLinesPct),
+    aiRisk: buildAiRisk(prs, kpis),
   };
 }
 

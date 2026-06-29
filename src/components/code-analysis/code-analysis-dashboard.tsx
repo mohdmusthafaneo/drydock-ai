@@ -14,6 +14,7 @@ import {
 import { AnalysisFiltersBar } from "@/components/code-analysis/analysis-filters";
 import { buildCodeAnalysisGovernanceHighlights } from "@/lib/governance/presentation";
 import { BriefingHighlights } from "@/components/executive-briefing/briefing-highlights";
+import { AiRiskCard } from "@/components/code-analysis/ai-risk-card";
 import { KpiStrip } from "@/components/code-analysis/kpi-strip";
 import { AttributionChart } from "@/components/code-analysis/attribution-chart";
 import { TrendChart } from "@/components/code-analysis/trend-chart";
@@ -44,6 +45,7 @@ export function CodeAnalysisDashboard({ lastSyncedAt, connectedRepos }: Props) {
   const [source, setSource] = useState<SnapshotSource>("loading");
   const [syncedAt, setSyncedAt] = useState<string | null>(lastSyncedAt);
   const [liveSnapshot, setLiveSnapshot] = useState<CodeAnalysisSnapshot | null>(null);
+  const [jiraSiteUrl, setJiraSiteUrl] = useState<string | null>(null);
 
   const mockSnapshot = useMemo(
     () => getMockCodeAnalysisSnapshot(filters),
@@ -79,9 +81,11 @@ export function CodeAnalysisDashboard({ lastSyncedAt, connectedRepos }: Props) {
       source: SnapshotSource;
       syncedAt: string | null;
       snapshot: CodeAnalysisSnapshot;
+      jiraSiteUrl?: string | null;
     };
     setSource(data.source === "github" ? "github" : "mock");
     setSyncedAt(data.syncedAt);
+    setJiraSiteUrl(data.jiraSiteUrl ?? null);
     if (data.source === "github") {
       setLiveSnapshot(data.snapshot);
     } else {
@@ -199,6 +203,8 @@ export function CodeAnalysisDashboard({ lastSyncedAt, connectedRepos }: Props) {
 
       <KpiStrip kpis={snapshot.kpis} />
 
+      <AiRiskCard aiRisk={snapshot.aiRisk} />
+
       <div className="grid gap-6 lg:grid-cols-2">
         <AttributionChart attribution={snapshot.attribution} />
         <TrendChart trend={snapshot.trend} metric={trendMetric} onMetricChange={setTrendMetric} />
@@ -221,7 +227,7 @@ export function CodeAnalysisDashboard({ lastSyncedAt, connectedRepos }: Props) {
         <GovernanceSignalsCard signals={snapshot.governanceSignals} />
       )}
 
-      <AnalysisTabs snapshot={snapshot} />
+      <AnalysisTabs snapshot={snapshot} jiraSiteUrl={jiraSiteUrl} />
     </div>
   );
 }

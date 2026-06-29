@@ -241,6 +241,80 @@ describe("composeExecutiveBriefing", () => {
     assert.match(governance!.context, /ACME/i);
   });
 
+  it("always surfaces AI code risk on the dashboard when code analysis exists", () => {
+    const briefing = composeExecutiveBriefing({
+      orgName: "Acme Corp",
+      stats: baseStats,
+      hasAssessedRelease: true,
+      latestRelease: {
+        id: "rel-1",
+        name: "v2.4",
+        status: "STAGED",
+        readinessScore: 78,
+        governanceRiskScore: 10,
+        assessedAt: new Date(),
+      },
+      connectedTools: 3,
+      integrationFreshness: {
+        githubSyncedAt: new Date().toISOString(),
+      },
+      deliverySnapshot: {
+        generatedAt: new Date().toISOString(),
+        projectKeys: ["ACME"],
+        rangeLabel: "30d",
+        kpis: { healthScore: 85, openWork: 8, blocked: 0, overdue: 0, resolvedLast7d: 34 },
+        riskMix: { blocked: 0, overdue: 0, bugs: 0, otherOpen: 8 },
+        trend: [],
+        byProject: [],
+        versions: [],
+        sprints: [],
+        signals: [],
+        gaps: [],
+      },
+      codeSnapshot: {
+        generatedAt: new Date().toISOString(),
+        rangeLabel: "Last 7 days",
+        repos: ["acme/app"],
+        kpis: {
+          aiLinesPct: 12,
+          aiLinesPctDelta: 0,
+          aiCommitsPct: 10,
+          aiCommitsPctDelta: 0,
+          aiPrsPct: 8,
+          aiPrsPctDelta: 0,
+          reviewCoverageOnAiPrsPct: 100,
+        },
+        attribution: {
+          human_only: { count: 5, lines: 400 },
+          ai_assisted: { count: 1, lines: 50 },
+          ai_generated: { count: 0, lines: 0 },
+          unknown: { count: 0, lines: 0 },
+        },
+        trend: [],
+        byRepo: [],
+        byAuthor: [],
+        pullRequests: [],
+        commits: [],
+        files: [],
+        tools: [],
+        governanceSignals: [],
+        aiRisk: {
+          aiLinesPct: 12,
+          highRiskCount: 0,
+          unreviewedAiPrs: 0,
+          unlinkedAiPrs: 0,
+          avgCompletionScore: null,
+        },
+      },
+    });
+
+    const aiRisk = briefing.claims.find((c) => c.id === "ai-code-risk");
+    assert.ok(aiRisk);
+    assert.equal(aiRisk!.verdict, "good");
+    assert.equal(aiRisk!.verdictLabel, "Under control");
+    assert.equal(aiRisk!.metric, "12%");
+  });
+
   it("adds hygiene insight when Jira trust is degraded", () => {
     const briefing = composeExecutiveBriefing({
       orgName: "Acme Corp",

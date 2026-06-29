@@ -16,6 +16,7 @@ import {
   isJiraReconnectError,
   JIRA_RECONNECT_MESSAGE,
 } from "@/lib/jira-errors";
+import { normalizeJiraDescription } from "@/lib/jira-adf";
 
 export class JiraApiError extends Error {
   constructor(
@@ -517,6 +518,50 @@ export async function searchIssuesByJql(
       .filter((issue): issue is JiraIssueSummary => issue !== null),
     nextPageToken: data.nextPageToken,
   };
+}
+
+export type JiraIssueWithDescription = {
+  key: string;
+  summary: string;
+  description: string;
+};
+
+/** Fetch issue summary + description for completion scoring. */
+export async function searchIssuesWithDescriptions(
+  accessToken: string,
+  cloudId: string,
+  keys: string[],
+): Promise<JiraIssueWithDescription[]> {
+  const uniqueKeys = [...new Set(keys)].slice(0, 20);
+  if (uniqueKeys.length === 0) return [];
+
+  const quoted = uniqueKeys.map((k) => `"${k}"`).join(", ");
+  const jql = `key in (${quoted})`;
+
+  const data = await jiraFetch<{
+    issues?: Array<{
+      key?: string;
+      fields?: { summary?: string; description?: unknown };
+    }>;
+  }>(accessToken, cloudId, "/rest/api/3/search/jql", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      jql,
+      maxResults: uniqueKeys.length,
+      fields: ["summary", "description"],
+    }),
+  });
+
+  return (data.issues ?? [])
+    .filter((issue): issue is { key: string; fields?: { summary?: string; description?: unknown } } =>
+      Boolean(issue.key),
+    )
+    .map((issue) => ({
+      key: issue.key,
+      summary: issue.fields?.summary ?? "",
+      description: normalizeJiraDescription(issue.fields?.description),
+    }));
 }
 
 export type JiraFieldSummary = {

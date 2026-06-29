@@ -8,6 +8,7 @@ import type {
   CodeAnalysisSnapshot,
 } from "@/lib/code-analysis/types";
 import { ATTRIBUTION_LABELS } from "@/lib/code-analysis/types";
+import { buildJiraIssueBrowseUrl } from "@/lib/code-analysis/jira-link";
 import { attributionBadgeClass } from "@/components/code-analysis/attribution-chart";
 import { GovernanceSignalsPanel } from "@/components/code-analysis/governance-signals";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,7 +28,13 @@ const TABS: { id: TabId; label: string }[] = [
 
 type SortDir = "asc" | "desc";
 
-export function AnalysisTabs({ snapshot }: { snapshot: CodeAnalysisSnapshot }) {
+export function AnalysisTabs({
+  snapshot,
+  jiraSiteUrl,
+}: {
+  snapshot: CodeAnalysisSnapshot;
+  jiraSiteUrl?: string | null;
+}) {
   const [tab, setTab] = useState<TabId>("pull_requests");
   const [search, setSearch] = useState("");
   const [expandedPr, setExpandedPr] = useState<string | null>(null);
@@ -56,6 +63,8 @@ export function AnalysisTabs({ snapshot }: { snapshot: CodeAnalysisSnapshot }) {
       const av = a[prSort.key];
       const bv = b[prSort.key];
       if (av === bv) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
       const cmp = av > bv ? 1 : -1;
       return prSort.dir === "asc" ? cmp : -cmp;
     });
@@ -157,6 +166,7 @@ export function AnalysisTabs({ snapshot }: { snapshot: CodeAnalysisSnapshot }) {
                   <SortHeader label="Merged" onClick={() => togglePrSort("mergedAt")} />
                   <SortHeader label="Lines" onClick={() => togglePrSort("linesAdded")} />
                   <th className="pb-2 font-medium">AI attribution</th>
+                  <th className="pb-2 font-medium">Jira</th>
                   <th className="pb-2 font-medium">Reviews</th>
                 </tr>
               </thead>
@@ -200,6 +210,9 @@ export function AnalysisTabs({ snapshot }: { snapshot: CodeAnalysisSnapshot }) {
                         </span>
                       </td>
                       <td className="py-2.5">
+                        <JiraKeyChips keys={pr.jiraKeys} siteUrl={jiraSiteUrl} />
+                      </td>
+                      <td className="py-2.5">
                         {pr.reviewCount === 0 && pr.attribution !== "human_only" ? (
                           <Badge variant="warning">Gap</Badge>
                         ) : (
@@ -209,12 +222,26 @@ export function AnalysisTabs({ snapshot }: { snapshot: CodeAnalysisSnapshot }) {
                     </tr>
                     {expandedPr === pr.id && (
                       <tr className="bg-elevated/40">
-                        <td colSpan={7} className="px-3 py-3 text-xs text-secondary">
+                        <td colSpan={8} className="px-3 py-3 text-xs text-secondary">
                           <p className="font-medium text-primary">{pr.title}</p>
                           <p className="mt-1">
                             Tools detected:{" "}
                             {pr.tools.length > 0 ? pr.tools.join(", ") : "None identified"}
                           </p>
+                          {pr.riskLevel && pr.riskLevel !== "low" && (
+                            <p className="mt-1">
+                              Risk: {pr.riskScore}/100 ({pr.riskLevel})
+                              {pr.qualityFlags?.length
+                                ? ` — ${pr.qualityFlags.join(", ")}`
+                                : ""}
+                            </p>
+                          )}
+                          {pr.completionScore != null && (
+                            <p className="mt-1">
+                              Ticket completion: {pr.completionScore}%
+                              {pr.completionRationale ? ` — ${pr.completionRationale}` : ""}
+                            </p>
+                          )}
                           <p className="mt-1 text-muted">
                             Estimated from commit messages, co-author trailers, and change patterns.
                             Not all tools leave markers.
@@ -240,6 +267,7 @@ export function AnalysisTabs({ snapshot }: { snapshot: CodeAnalysisSnapshot }) {
                   <SortHeader label="Date" onClick={() => toggleCommitSort("committedAt")} />
                   <SortHeader label="Lines" onClick={() => toggleCommitSort("additions")} />
                   <th className="pb-2 font-medium">Classification</th>
+                  <th className="pb-2 font-medium">Jira</th>
                 </tr>
               </thead>
               <tbody>
@@ -278,10 +306,13 @@ export function AnalysisTabs({ snapshot }: { snapshot: CodeAnalysisSnapshot }) {
                           {ATTRIBUTION_LABELS[c.attribution]}
                         </span>
                       </td>
+                      <td className="py-2.5">
+                        <JiraKeyChips keys={c.jiraKeys} siteUrl={jiraSiteUrl} />
+                      </td>
                     </tr>
                     {expandedCommit === c.sha && (
                       <tr className="bg-elevated/40">
-                        <td colSpan={6} className="px-3 py-3 text-xs text-secondary">
+                        <td colSpan={7} className="px-3 py-3 text-xs text-secondary">
                           <p className="font-medium text-primary">Matched signals</p>
                           {c.signals.length > 0 ? (
                             <ul className="mt-1 list-disc pl-4">
@@ -378,6 +409,46 @@ export function AnalysisTabs({ snapshot }: { snapshot: CodeAnalysisSnapshot }) {
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function JiraKeyChips({
+  keys,
+  siteUrl,
+}: {
+  keys: string[];
+  siteUrl?: string | null;
+}) {
+  if (!keys?.length) {
+    return (
+      <Badge variant="muted" className="text-[10px] font-normal">
+        None
+      </Badge>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1">
+      {keys.map((key) =>
+        siteUrl ? (
+          <a
+            key={key}
+            href={buildJiraIssueBrowseUrl(siteUrl, key)}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Badge variant="default" className="text-[10px] font-mono hover:bg-hover">
+              {key}
+            </Badge>
+          </a>
+        ) : (
+          <Badge key={key} variant="default" className="text-[10px] font-mono">
+            {key}
+          </Badge>
+        ),
+      )}
+    </div>
   );
 }
 

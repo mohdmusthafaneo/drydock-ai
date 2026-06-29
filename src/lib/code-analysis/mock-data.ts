@@ -25,6 +25,12 @@ const MOCK_PRS: CodeAnalysisPullRequest[] = [
     confidence: 78,
     reviewCount: 2,
     tools: ["Cursor"],
+    jiraKeys: ["AIDOS-142"],
+    completionScore: 82,
+    completionRationale: "Middleware matches ticket scope with minor test gaps.",
+    riskScore: 28,
+    riskLevel: "low",
+    qualityFlags: [],
   },
   {
     id: "pr-2",
@@ -40,6 +46,12 @@ const MOCK_PRS: CodeAnalysisPullRequest[] = [
     confidence: 91,
     reviewCount: 0,
     tools: ["Copilot", "Cursor"],
+    jiraKeys: [],
+    completionScore: null,
+    completionRationale: "No Jira ticket linked — cannot assess ticket completion.",
+    riskScore: 78,
+    riskLevel: "high",
+    qualityFlags: ["no_review", "large_ai_change", "no_test_delta", "unlinked_ticket"],
   },
   {
     id: "pr-3",
@@ -55,6 +67,10 @@ const MOCK_PRS: CodeAnalysisPullRequest[] = [
     confidence: 95,
     reviewCount: 1,
     tools: [],
+    jiraKeys: ["AIDOS-67"],
+    riskScore: 5,
+    riskLevel: "low",
+    qualityFlags: [],
   },
   {
     id: "pr-4",
@@ -70,6 +86,11 @@ const MOCK_PRS: CodeAnalysisPullRequest[] = [
     confidence: 72,
     reviewCount: 2,
     tools: ["Cursor"],
+    jiraKeys: ["AIDOS-141"],
+    completionScore: 71,
+    riskScore: 22,
+    riskLevel: "low",
+    qualityFlags: [],
   },
   {
     id: "pr-5",
@@ -85,6 +106,10 @@ const MOCK_PRS: CodeAnalysisPullRequest[] = [
     confidence: 88,
     reviewCount: 1,
     tools: [],
+    jiraKeys: ["WEB-88"],
+    riskScore: 0,
+    riskLevel: "low",
+    qualityFlags: [],
   },
   {
     id: "pr-6",
@@ -100,6 +125,12 @@ const MOCK_PRS: CodeAnalysisPullRequest[] = [
     confidence: 86,
     reviewCount: 1,
     tools: ["Copilot"],
+    jiraKeys: ["API-66"],
+    completionScore: 45,
+    completionRationale: "Client generated but ticket asked for manual review hooks.",
+    riskScore: 55,
+    riskLevel: "medium",
+    qualityFlags: ["bulk_addition", "shallow_review", "low_completion"],
   },
   {
     id: "pr-7",
@@ -115,6 +146,11 @@ const MOCK_PRS: CodeAnalysisPullRequest[] = [
     confidence: 65,
     reviewCount: 2,
     tools: ["ChatGPT"],
+    jiraKeys: ["AIDOS-140"],
+    completionScore: 88,
+    riskScore: 18,
+    riskLevel: "low",
+    qualityFlags: [],
   },
   {
     id: "pr-8",
@@ -130,6 +166,10 @@ const MOCK_PRS: CodeAnalysisPullRequest[] = [
     confidence: 92,
     reviewCount: 2,
     tools: [],
+    jiraKeys: ["WEB-87"],
+    riskScore: 0,
+    riskLevel: "low",
+    qualityFlags: [],
   },
 ];
 
@@ -146,6 +186,7 @@ const MOCK_COMMITS: CodeAnalysisCommit[] = [
     attribution: "ai_assisted",
     confidence: 74,
     signals: ["Co-authored-by: Cursor <noreply@cursor.com>"],
+    jiraKeys: ["AIDOS-142"],
   },
   {
     sha: "e4f5g6h",
@@ -159,6 +200,7 @@ const MOCK_COMMITS: CodeAnalysisCommit[] = [
     attribution: "ai_generated",
     confidence: 93,
     signals: ["Bulk addition (>300 lines)", "Message: Generated with Copilot"],
+    jiraKeys: ["API-66"],
   },
   {
     sha: "i7j8k9l",
@@ -172,6 +214,7 @@ const MOCK_COMMITS: CodeAnalysisCommit[] = [
     attribution: "human_only",
     confidence: 96,
     signals: [],
+    jiraKeys: ["AIDOS-67"],
   },
   {
     sha: "m0n1o2p",
@@ -185,6 +228,7 @@ const MOCK_COMMITS: CodeAnalysisCommit[] = [
     attribution: "ai_assisted",
     confidence: 68,
     signals: ["PR body mentions Cursor"],
+    jiraKeys: ["AIDOS-141"],
   },
   {
     sha: "q3r4s5t",
@@ -198,6 +242,7 @@ const MOCK_COMMITS: CodeAnalysisCommit[] = [
     attribution: "human_only",
     confidence: 90,
     signals: [],
+    jiraKeys: ["WEB-88"],
   },
   {
     sha: "u6v7w8x",
@@ -211,6 +256,7 @@ const MOCK_COMMITS: CodeAnalysisCommit[] = [
     attribution: "ai_generated",
     confidence: 88,
     signals: ["Bulk addition (>300 lines)", "Generated with Cursor"],
+    jiraKeys: [],
   },
   {
     sha: "y9z0a1b",
@@ -224,6 +270,7 @@ const MOCK_COMMITS: CodeAnalysisCommit[] = [
     attribution: "ai_assisted",
     confidence: 55,
     signals: ["ChatGPT footer in commit message"],
+    jiraKeys: ["AIDOS-140"],
   },
   {
     sha: "c2d3e4f",
@@ -237,6 +284,7 @@ const MOCK_COMMITS: CodeAnalysisCommit[] = [
     attribution: "human_only",
     confidence: 91,
     signals: [],
+    jiraKeys: ["WEB-87"],
   },
 ];
 
