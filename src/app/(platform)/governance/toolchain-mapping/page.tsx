@@ -29,7 +29,7 @@ export default async function ToolchainMappingPage() {
   const syncReady = hasIntegrationSyncForToolchainDiscovery(integrations);
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-4xl space-y-6 pb-24 lg:pb-8">
       <Link
         href="/workflow"
         className="inline-block text-[15px] font-medium text-ink hover:text-rust"
@@ -38,8 +38,8 @@ export default async function ToolchainMappingPage() {
       </Link>
       <PageHeader
         title="Delivery toolchain mapping"
-        description="Every team runs Jira and GitHub differently. Confirm how your organization tracks work, releases, and code so AIDOS governance intelligence uses the right semantics — not generic assumptions."
-        className="pb-4"
+        description="Confirm how your organization tracks work, releases, and code so governance intelligence uses the right semantics."
+        className="pb-2"
       />
 
       <ToolchainMappingForm

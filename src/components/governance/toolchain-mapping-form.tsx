@@ -4,15 +4,23 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { HygieneGradeChip } from "@/components/delivery-analysis/jira-hygiene-banner";
 import type { JiraSchemaSnapshot } from "@/lib/jira-meta";
-import type { PortfolioJiraHygiene } from "@/lib/jira-hygiene";
+import type { JiraHygieneFinding, PortfolioJiraHygiene } from "@/lib/jira-hygiene";
 import { JiraIssueLink } from "@/components/delivery-analysis/jira-issue-link";
 import type { ToolchainMapping } from "@/lib/toolchain-mapping";
 import { cn } from "@/lib/utils";
 
 const selectClass =
   "flex h-10 w-full rounded-lg border border-border bg-input px-3 text-sm text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand";
+
+const SEVERITY_ORDER: Record<JiraHygieneFinding["severity"], number> = {
+  critical: 0,
+  warning: 1,
+  info: 2,
+};
 
 type GitHubSchemaSnapshot = {
   syncedAt: string;
@@ -29,6 +37,66 @@ type SchemaState = {
   github: GitHubSchemaSnapshot | null;
 };
 
+function portfolioGrade(score: number): "good" | "fair" | "poor" {
+  if (score >= 75) return "good";
+  if (score >= 50) return "fair";
+  return "poor";
+}
+
+function sortFindingsBySeverity(findings: JiraHygieneFinding[]): JiraHygieneFinding[] {
+  return [...findings].sort(
+    (a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity],
+  );
+}
+
+function findingCardClass(severity: JiraHygieneFinding["severity"]): string {
+  const accent =
+    severity === "critical"
+      ? "border-l-error"
+      : severity === "warning"
+        ? "border-l-rust"
+        : "border-l-dove";
+  return cn("rounded-lg border border-border-subtle border-l-4 bg-pure-white", accent);
+}
+
+function findingValueClass(severity: JiraHygieneFinding["severity"]): string {
+  switch (severity) {
+    case "critical":
+      return "text-error";
+    case "warning":
+      return "text-rust";
+    default:
+      return "text-ink";
+  }
+}
+
+const METHODOLOGY_LABELS: Record<NonNullable<ToolchainMapping["jira"]>["methodology"], string> = {
+  scrum: "Scrum (sprints)",
+  kanban: "Kanban (flow)",
+  mixed: "Mixed",
+  custom: "Custom",
+};
+
+const RELEASE_TRACKING_LABELS: Record<
+  NonNullable<ToolchainMapping["jira"]>["releaseTracking"],
+  string
+> = {
+  fixVersion: "Fix versions",
+  sprint: "Sprint milestones",
+  labels: "Labels",
+  none: "Not tracked in Jira",
+};
+
+const BRANCH_STRATEGY_LABELS: Record<
+  NonNullable<ToolchainMapping["github"]>["branchStrategy"],
+  string
+> = {
+  trunk: "Trunk-based (main)",
+  gitflow: "GitFlow (main + develop)",
+  "release-branches": "Release branches",
+  custom: "Custom",
+};
+
 export function ToolchainMappingForm({
   initialMapping,
   confirmed,
@@ -43,6 +111,7 @@ export function ToolchainMappingForm({
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingConfig, setEditingConfig] = useState(!confirmed);
   const [schema, setSchema] = useState<SchemaState>({
     jira: null,
     jiraStale: false,
@@ -87,6 +156,10 @@ export function ToolchainMappingForm({
   useEffect(() => {
     setMapping(initialMapping);
   }, [initialMapping]);
+
+  useEffect(() => {
+    if (confirmed) setEditingConfig(false);
+  }, [confirmed]);
 
   useEffect(() => {
     if (syncReady) void loadSchema();
@@ -151,6 +224,7 @@ export function ToolchainMappingForm({
         }
       }
 
+      await loadSchema();
       router.refresh();
     } finally {
       setRefreshing(false);
@@ -172,15 +246,18 @@ export function ToolchainMappingForm({
       setError(data.error || "Failed to save");
       return;
     }
+    if (confirm) setEditingConfig(false);
     router.refresh();
   }
 
   const jiraSchema = schema.jira;
   const githubSchema = schema.github;
   const confidence = mapping.inferredFrom?.suggestionConfidence;
-  const doneStatuses = jiraSchema?.statuses.filter(
-    (s) => s.statusCategory.key === "done",
-  );
+  const doneStatuses = jiraSchema?.statuses.filter((s) => s.statusCategory.key === "done");
+  const showConfigForm = !confirmed || editingConfig;
+  const hasHygieneFindings =
+    jiraHygiene &&
+    Object.values(jiraHygiene.byProject).some((r) => r.findings.length > 0);
 
   if (!syncReady) {
     return (
@@ -202,7 +279,7 @@ export function ToolchainMappingForm({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-4">
       {schema.jiraStale && (
         <div className="rounded-[16px] border border-warning/30 bg-warning-muted px-4 py-3 text-sm text-warning">
           Project selection changed or schema is older than 7 days — refresh schema before
@@ -216,323 +293,427 @@ export function ToolchainMappingForm({
         </div>
       )}
 
-      <div className="flex flex-wrap gap-3">
-        <button
-          type="button"
-          onClick={() => refreshSchema()}
-          disabled={refreshing}
-          className="text-[15px] font-medium text-ink hover:text-rust disabled:opacity-50"
-        >
-          {refreshing ? "Refreshing schema…" : "Refresh schema"}
-        </button>
-      </div>
+      {jiraHygiene && confirmed && (
+        <HygieneScorecard
+          hygiene={jiraHygiene}
+          onRefresh={refreshSchema}
+          refreshing={refreshing}
+        />
+      )}
 
       <Card>
         <CardHeader>
-          <CardTitle>Jira workflow semantics</CardTitle>
-          <CardDescription>
-            {jiraSchema
-              ? "Populated from your Jira project schema. Adjust if your team uses different names."
-              : "Inferred from synced projects. Refresh schema for API-backed field picks."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {mapping.jira ? (
-            <>
-              <Field label="Methodology">
-                <select
-                  value={mapping.jira.methodology}
-                  onChange={(e) =>
-                    setMapping((m) => ({
-                      ...m,
-                      jira: {
-                        ...m.jira!,
-                        methodology: e.target.value as NonNullable<
-                          ToolchainMapping["jira"]
-                        >["methodology"],
-                      },
-                    }))
-                  }
-                  className={selectClass}
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <CardTitle>Agreed workflow</CardTitle>
+              <CardDescription>
+                How your organization tracks work, releases, and code — the semantics AIDOS uses
+                for governance intelligence.
+              </CardDescription>
+            </div>
+            <div className="flex shrink-0 flex-wrap items-center gap-3">
+              {!confirmed && (
+                <button
+                  type="button"
+                  onClick={() => refreshSchema()}
+                  disabled={refreshing}
+                  className="text-[15px] font-medium text-ink hover:text-rust disabled:opacity-50"
                 >
-                  <option value="scrum">Scrum (sprints)</option>
-                  <option value="kanban">Kanban (flow)</option>
-                  <option value="mixed">Mixed</option>
-                  <option value="custom">Custom</option>
-                </select>
-              </Field>
-              <Field
-                label="Release tracking"
-                hint={jiraSchema?.suggestions.releaseTracking?.reason}
-              >
-                <select
-                  value={mapping.jira.releaseTracking}
-                  onChange={(e) =>
-                    setMapping((m) => ({
-                      ...m,
-                      jira: {
-                        ...m.jira!,
-                        releaseTracking: e.target.value as "fixVersion" | "sprint" | "labels" | "none",
-                      },
-                    }))
-                  }
-                  className={selectClass}
-                >
-                  <option value="fixVersion">Fix versions</option>
-                  <option value="sprint">Sprint milestones</option>
-                  <option value="labels">Labels</option>
-                  <option value="none">Not tracked in Jira</option>
-                </select>
-              </Field>
-              {mapping.jira.releaseTracking === "labels" && (
-                <Field label="Release label prefix">
-                  <input
-                    value={mapping.jira.releaseLabelPrefix ?? ""}
-                    onChange={(e) =>
-                      setMapping((m) => ({
-                        ...m,
-                        jira: { ...m.jira!, releaseLabelPrefix: e.target.value },
-                      }))
-                    }
-                    placeholder="release-"
-                    className={selectClass}
-                  />
-                </Field>
+                  {refreshing ? "Refreshing schema…" : "Refresh schema"}
+                </button>
               )}
-              <Field
-                label="Blocked status"
-                hint={jiraSchema?.suggestions.blockedStatus?.reason}
-                confidence={jiraSchema?.suggestions.blockedStatus?.confidence}
-              >
-                {jiraSchema && jiraSchema.statuses.length > 0 ? (
-                  <select
-                    value={mapping.jira.blockedStatusName}
-                    onChange={(e) => {
-                      const status = jiraSchema.statuses.find((s) => s.name === e.target.value);
-                      setMapping((m) => ({
-                        ...m,
-                        jira: {
-                          ...m.jira!,
-                          blockedStatusName: e.target.value,
-                          blockedStatusId: status?.id,
-                        },
-                      }));
-                    }}
-                    className={selectClass}
-                  >
-                    {jiraSchema.statuses.map((s) => (
-                      <option key={`${s.id}-${s.scope?.projectKey ?? ""}`} value={s.name}>
-                        {s.name}
-                        {s.scope?.projectKey ? ` (${s.scope.projectKey})` : ""}
-                      </option>
-                    ))}
-                  </select>
+              {confirmed && !editingConfig && (
+                <button
+                  type="button"
+                  onClick={() => setEditingConfig(true)}
+                  className="text-[15px] font-medium text-ink hover:text-rust"
+                >
+                  Edit mapping
+                </button>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {confirmed && !editingConfig ? (
+            <AgreedWorkflowSummary mapping={mapping} />
+          ) : (
+            <>
+              <section className="space-y-4">
+                <h3 className="text-sm font-[480] text-ink">Primary decisions</h3>
+                {mapping.jira ? (
+                  <div className="space-y-4">
+                    <Field label="Methodology">
+                      <select
+                        value={mapping.jira.methodology}
+                        onChange={(e) =>
+                          setMapping((m) => ({
+                            ...m,
+                            jira: {
+                              ...m.jira!,
+                              methodology: e.target.value as NonNullable<
+                                ToolchainMapping["jira"]
+                              >["methodology"],
+                            },
+                          }))
+                        }
+                        className={selectClass}
+                      >
+                        <option value="scrum">Scrum (sprints)</option>
+                        <option value="kanban">Kanban (flow)</option>
+                        <option value="mixed">Mixed</option>
+                        <option value="custom">Custom</option>
+                      </select>
+                    </Field>
+                    <Field
+                      label="Release tracking"
+                      hint={jiraSchema?.suggestions.releaseTracking?.reason}
+                    >
+                      <select
+                        value={mapping.jira.releaseTracking}
+                        onChange={(e) =>
+                          setMapping((m) => ({
+                            ...m,
+                            jira: {
+                              ...m.jira!,
+                              releaseTracking: e.target.value as
+                                | "fixVersion"
+                                | "sprint"
+                                | "labels"
+                                | "none",
+                            },
+                          }))
+                        }
+                        className={selectClass}
+                      >
+                        <option value="fixVersion">Fix versions</option>
+                        <option value="sprint">Sprint milestones</option>
+                        <option value="labels">Labels</option>
+                        <option value="none">Not tracked in Jira</option>
+                      </select>
+                    </Field>
+                  </div>
                 ) : (
-                  <input
-                    value={mapping.jira.blockedStatusName}
-                    onChange={(e) =>
-                      setMapping((m) => ({
-                        ...m,
-                        jira: { ...m.jira!, blockedStatusName: e.target.value },
-                      }))
-                    }
-                    className={selectClass}
-                  />
+                  <p className="text-sm text-muted">
+                    Connect and sync Jira to infer workflow defaults.{" "}
+                    <Link href="/integrations" className="font-medium text-ink hover:text-rust">
+                      Integrations
+                    </Link>
+                  </p>
                 )}
-              </Field>
-              <Field
-                label="Bug issue type"
-                hint={jiraSchema?.suggestions.bugIssueType?.reason}
-                confidence={jiraSchema?.suggestions.bugIssueType?.confidence}
-              >
-                {jiraSchema && jiraSchema.issueTypes.length > 0 ? (
-                  <select
-                    value={mapping.jira.bugIssueType}
-                    onChange={(e) => {
-                      const t = jiraSchema.issueTypes.find((it) => it.name === e.target.value);
-                      setMapping((m) => ({
-                        ...m,
-                        jira: {
-                          ...m.jira!,
-                          bugIssueType: e.target.value,
-                          bugIssueTypeId: t?.id,
-                        },
-                      }));
-                    }}
-                    className={selectClass}
+
+                {mapping.github && (
+                  <div className="space-y-4 border-t border-border-subtle pt-4">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted">
+                      GitHub
+                    </p>
+                    <Field
+                      label="Branch strategy"
+                      hint={githubSchema?.suggestions.branchStrategy?.reason}
+                    >
+                      <select
+                        value={mapping.github.branchStrategy}
+                        onChange={(e) =>
+                          setMapping((m) => ({
+                            ...m,
+                            github: {
+                              ...m.github!,
+                              branchStrategy: e.target.value as
+                                | "trunk"
+                                | "gitflow"
+                                | "release-branches"
+                                | "custom",
+                            },
+                          }))
+                        }
+                        className={selectClass}
+                      >
+                        <option value="trunk">Trunk-based (main)</option>
+                        <option value="gitflow">GitFlow (main + develop)</option>
+                        <option value="release-branches">Release branches</option>
+                        <option value="custom">Custom</option>
+                      </select>
+                    </Field>
+                    <Field
+                      label="Primary default branch"
+                      hint={githubSchema?.suggestions.productionBranch?.reason}
+                    >
+                      {githubSchema && githubSchema.repos.length > 0 ? (
+                        <select
+                          value={mapping.github.primaryDefaultBranch}
+                          onChange={(e) =>
+                            setMapping((m) => ({
+                              ...m,
+                              github: { ...m.github!, primaryDefaultBranch: e.target.value },
+                            }))
+                          }
+                          className={selectClass}
+                        >
+                          {[
+                            ...new Set(
+                              githubSchema.repos.flatMap((r) => [
+                                r.defaultBranch,
+                                ...(r.branches ?? []),
+                              ]),
+                            ),
+                          ].map((b) => (
+                            <option key={b} value={b}>
+                              {b}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          value={mapping.github.primaryDefaultBranch}
+                          onChange={(e) =>
+                            setMapping((m) => ({
+                              ...m,
+                              github: { ...m.github!, primaryDefaultBranch: e.target.value },
+                            }))
+                          }
+                          className={selectClass}
+                        />
+                      )}
+                    </Field>
+                  </div>
+                )}
+              </section>
+
+              {mapping.jira && (
+                <section className="space-y-4 border-t border-border-subtle pt-4">
+                  <h3 className="text-sm font-[480] text-muted">Advanced / optional</h3>
+                  {mapping.jira.releaseTracking === "labels" && (
+                    <Field label="Release label prefix">
+                      <input
+                        value={mapping.jira.releaseLabelPrefix ?? ""}
+                        onChange={(e) =>
+                          setMapping((m) => ({
+                            ...m,
+                            jira: { ...m.jira!, releaseLabelPrefix: e.target.value },
+                          }))
+                        }
+                        placeholder="release-"
+                        className={selectClass}
+                      />
+                    </Field>
+                  )}
+                  <Field
+                    label="Blocked status"
+                    hint={jiraSchema?.suggestions.blockedStatus?.reason}
+                    confidence={jiraSchema?.suggestions.blockedStatus?.confidence}
                   >
-                    {jiraSchema.issueTypes
-                      .filter((t) => !t.subtask)
-                      .map((t) => (
-                        <option key={t.id} value={t.name}>
-                          {t.name}
-                        </option>
+                    {jiraSchema && jiraSchema.statuses.length > 0 ? (
+                      <select
+                        value={mapping.jira.blockedStatusName}
+                        onChange={(e) => {
+                          const status = jiraSchema.statuses.find((s) => s.name === e.target.value);
+                          setMapping((m) => ({
+                            ...m,
+                            jira: {
+                              ...m.jira!,
+                              blockedStatusName: e.target.value,
+                              blockedStatusId: status?.id,
+                            },
+                          }));
+                        }}
+                        className={selectClass}
+                      >
+                        {jiraSchema.statuses.map((s) => (
+                          <option key={`${s.id}-${s.scope?.projectKey ?? ""}`} value={s.name}>
+                            {s.name}
+                            {s.scope?.projectKey ? ` (${s.scope.projectKey})` : ""}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        value={mapping.jira.blockedStatusName}
+                        onChange={(e) =>
+                          setMapping((m) => ({
+                            ...m,
+                            jira: { ...m.jira!, blockedStatusName: e.target.value },
+                          }))
+                        }
+                        className={selectClass}
+                      />
+                    )}
+                  </Field>
+                  <Field
+                    label="Bug issue type"
+                    hint={jiraSchema?.suggestions.bugIssueType?.reason}
+                    confidence={jiraSchema?.suggestions.bugIssueType?.confidence}
+                  >
+                    {jiraSchema && jiraSchema.issueTypes.length > 0 ? (
+                      <select
+                        value={mapping.jira.bugIssueType}
+                        onChange={(e) => {
+                          const t = jiraSchema.issueTypes.find((it) => it.name === e.target.value);
+                          setMapping((m) => ({
+                            ...m,
+                            jira: {
+                              ...m.jira!,
+                              bugIssueType: e.target.value,
+                              bugIssueTypeId: t?.id,
+                            },
+                          }));
+                        }}
+                        className={selectClass}
+                      >
+                        {jiraSchema.issueTypes
+                          .filter((t) => !t.subtask)
+                          .map((t) => (
+                            <option key={t.id} value={t.name}>
+                              {t.name}
+                            </option>
+                          ))}
+                      </select>
+                    ) : (
+                      <input
+                        value={mapping.jira.bugIssueType}
+                        onChange={(e) =>
+                          setMapping((m) => ({
+                            ...m,
+                            jira: { ...m.jira!, bugIssueType: e.target.value },
+                          }))
+                        }
+                        className={selectClass}
+                      />
+                    )}
+                  </Field>
+                  {jiraSchema && jiraSchema.fields.length > 0 && (
+                    <Field
+                      label="Story point field (optional)"
+                      hint={jiraSchema.suggestions.storyPointField?.reason}
+                    >
+                      <select
+                        value={mapping.jira.storyPointField?.id ?? ""}
+                        onChange={(e) => {
+                          const f = jiraSchema.fields.find((field) => field.id === e.target.value);
+                          setMapping((m) => ({
+                            ...m,
+                            jira: {
+                              ...m.jira!,
+                              storyPointField: f
+                                ? { id: f.id, name: f.name, schemaType: f.schema?.type }
+                                : undefined,
+                            },
+                          }));
+                        }}
+                        className={selectClass}
+                      >
+                        <option value="">Not used</option>
+                        {jiraSchema.fields.map((f) => (
+                          <option key={f.id} value={f.id}>
+                            {f.name}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                  )}
+                  {doneStatuses && doneStatuses.length > 0 && (
+                    <div className="rounded-[16px] border border-border-subtle bg-fog px-3 py-2 text-xs text-muted">
+                      <span className="font-medium text-ink">Done statuses detected: </span>
+                      {[...new Set(doneStatuses.map((s) => s.name))].join(", ")}
+                    </div>
+                  )}
+                </section>
+              )}
+
+              {mapping.github && mapping.github.branchStrategy !== "trunk" && (
+                <section className="space-y-4 border-t border-border-subtle pt-4">
+                  <Field label="Production / analysis branch">
+                    <input
+                      value={mapping.github.productionBranch ?? ""}
+                      onChange={(e) =>
+                        setMapping((m) => ({
+                          ...m,
+                          github: { ...m.github!, productionBranch: e.target.value || undefined },
+                        }))
+                      }
+                      placeholder="main or develop"
+                      className={selectClass}
+                    />
+                  </Field>
+                </section>
+              )}
+
+              {!mapping.github && !mapping.jira && (
+                <p className="text-sm text-muted">
+                  Connect and sync GitHub to infer branch and PR patterns.
+                </p>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {jiraHygiene && confirmed && (
+        <section className="space-y-4">
+          <div>
+            <h2 className="text-base font-medium text-ink">Actual usage</h2>
+            <p className="mt-1 text-sm text-muted">
+              How Jira boards are maintained compared to the agreed workflow above.
+            </p>
+          </div>
+          {!hasHygieneFindings ? (
+            <p className="text-sm text-muted">No hygiene issues detected at last sync.</p>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {Object.entries(jiraHygiene.byProject).map(([projectKey, result]) => {
+                if (result.findings.length === 0) return null;
+                const sorted = sortFindingsBySeverity(result.findings);
+                return (
+                  <Card key={projectKey}>
+                    <CardHeader className="pb-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <CardTitle className="text-base">{projectKey}</CardTitle>
+                        <span className="text-sm tabular-nums text-muted">{result.score}/100</span>
+                        <HygieneGradeChip grade={result.grade} />
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-2 pt-0">
+                      {sorted.map((finding) => (
+                        <div
+                          key={`${projectKey}-${finding.id}`}
+                          className={cn("px-3 py-2.5 text-sm", findingCardClass(finding.severity))}
+                        >
+                          <div className="flex flex-wrap items-baseline justify-between gap-2">
+                            <p className="font-medium text-ink">{finding.label}</p>
+                            <Badge
+                              variant={
+                                finding.severity === "critical"
+                                  ? "error"
+                                  : finding.severity === "warning"
+                                    ? "warning"
+                                    : "muted"
+                              }
+                              className="text-[10px] uppercase"
+                            >
+                              {finding.severity}
+                            </Badge>
+                          </div>
+                          <p
+                            className={cn(
+                              "mt-1 text-[15px] font-[480] tabular-nums",
+                              findingValueClass(finding.severity),
+                            )}
+                          >
+                            {finding.value}
+                          </p>
+                          <p className="mt-1 text-xs text-muted">{finding.recommendation}</p>
+                          <JiraIssueLink href={jiraHygieneLinks[`${projectKey}:${finding.id}`]} />
+                        </div>
                       ))}
-                  </select>
-                ) : (
-                  <input
-                    value={mapping.jira.bugIssueType}
-                    onChange={(e) =>
-                      setMapping((m) => ({
-                        ...m,
-                        jira: { ...m.jira!, bugIssueType: e.target.value },
-                      }))
-                    }
-                    className={selectClass}
-                  />
-                )}
-              </Field>
-              {jiraSchema && jiraSchema.fields.length > 0 && (
-                <Field
-                  label="Story point field (optional)"
-                  hint={jiraSchema.suggestions.storyPointField?.reason}
-                >
-                  <select
-                    value={mapping.jira.storyPointField?.id ?? ""}
-                    onChange={(e) => {
-                      const f = jiraSchema.fields.find((field) => field.id === e.target.value);
-                      setMapping((m) => ({
-                        ...m,
-                        jira: {
-                          ...m.jira!,
-                          storyPointField: f
-                            ? { id: f.id, name: f.name, schemaType: f.schema?.type }
-                            : undefined,
-                        },
-                      }));
-                    }}
-                    className={selectClass}
-                  >
-                    <option value="">Not used</option>
-                    {jiraSchema.fields.map((f) => (
-                      <option key={f.id} value={f.id}>
-                        {f.name}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-              )}
-              {doneStatuses && doneStatuses.length > 0 && (
-                <div className="rounded-[16px] border border-border-subtle bg-fog px-3 py-2 text-xs text-muted">
-                  <span className="font-medium text-ink">Done statuses detected: </span>
-                  {[...new Set(doneStatuses.map((s) => s.name))].join(", ")}
-                </div>
-              )}
-            </>
-          ) : (
-            <p className="text-sm text-muted">
-              Connect and sync Jira to infer workflow defaults.{" "}
-              <Link href="/integrations" className="font-medium text-ink hover:text-rust">
-                Integrations
-              </Link>
-            </p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
           )}
-        </CardContent>
-      </Card>
+        </section>
+      )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>GitHub delivery patterns</CardTitle>
-          <CardDescription>
-            Inferred from selected repositories. Used for code analysis and release correlation.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {mapping.github ? (
-            <>
-              <Field
-                label="Primary default branch"
-                hint={githubSchema?.suggestions.productionBranch?.reason}
-              >
-                {githubSchema && githubSchema.repos.length > 0 ? (
-                  <select
-                    value={mapping.github.primaryDefaultBranch}
-                    onChange={(e) =>
-                      setMapping((m) => ({
-                        ...m,
-                        github: { ...m.github!, primaryDefaultBranch: e.target.value },
-                      }))
-                    }
-                    className={selectClass}
-                  >
-                    {[
-                      ...new Set(
-                        githubSchema.repos.flatMap((r) => [
-                          r.defaultBranch,
-                          ...(r.branches ?? []),
-                        ]),
-                      ),
-                    ].map((b) => (
-                      <option key={b} value={b}>
-                        {b}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    value={mapping.github.primaryDefaultBranch}
-                    onChange={(e) =>
-                      setMapping((m) => ({
-                        ...m,
-                        github: { ...m.github!, primaryDefaultBranch: e.target.value },
-                      }))
-                    }
-                    className={selectClass}
-                  />
-                )}
-              </Field>
-              <Field
-                label="Branch strategy"
-                hint={githubSchema?.suggestions.branchStrategy?.reason}
-              >
-                <select
-                  value={mapping.github.branchStrategy}
-                  onChange={(e) =>
-                    setMapping((m) => ({
-                      ...m,
-                      github: {
-                        ...m.github!,
-                        branchStrategy: e.target.value as
-                          | "trunk"
-                          | "gitflow"
-                          | "release-branches"
-                          | "custom",
-                      },
-                    }))
-                  }
-                  className={selectClass}
-                >
-                  <option value="trunk">Trunk-based (main)</option>
-                  <option value="gitflow">GitFlow (main + develop)</option>
-                  <option value="release-branches">Release branches</option>
-                  <option value="custom">Custom</option>
-                </select>
-              </Field>
-              {mapping.github.branchStrategy !== "trunk" && (
-                <Field label="Production / analysis branch">
-                  <input
-                    value={mapping.github.productionBranch ?? ""}
-                    onChange={(e) =>
-                      setMapping((m) => ({
-                        ...m,
-                        github: { ...m.github!, productionBranch: e.target.value || undefined },
-                      }))
-                    }
-                    placeholder="main or develop"
-                    className={selectClass}
-                  />
-                </Field>
-              )}
-            </>
-          ) : (
-            <p className="text-sm text-muted">
-              Connect and sync GitHub to infer branch and PR patterns.
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {mapping.inferredFrom && (
+      {mapping.inferredFrom && showConfigForm && (
         <p className="text-xs text-muted">
           Suggestions based on discovery answers
           {mapping.inferredFrom.discoveryWorkflows?.length
@@ -563,53 +744,124 @@ export function ToolchainMappingForm({
         </p>
       )}
 
-      {confirmed && jiraHygiene && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Actual usage vs. agreed workflow</CardTitle>
-            <CardDescription>
-              Jira hygiene score {jiraHygiene.portfolioScore}/100
-              {jiraHygiene.worstProject
-                ? ` · worst: ${jiraHygiene.worstProject.key}`
-                : ""}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {Object.entries(jiraHygiene.byProject).flatMap(([key, result]) =>
-              result.findings.slice(0, 2).map((finding) => (
-                <div
-                  key={`${key}-${finding.id}`}
-                  className="rounded-lg border border-border-subtle px-3 py-2 text-sm"
-                >
-                  <p className="font-medium text-primary">
-                    {key} · {finding.label}
-                  </p>
-                  <p className="text-secondary">{finding.value}</p>
-                  <p className="mt-1 text-xs text-muted">{finding.recommendation}</p>
-                  <JiraIssueLink href={jiraHygieneLinks[`${key}:${finding.id}`]} />
-                </div>
-              )),
-            )}
-            {Object.values(jiraHygiene.byProject).every((r) => r.findings.length === 0) && (
-              <p className="text-sm text-muted">No hygiene issues detected at last sync.</p>
-            )}
-          </CardContent>
-        </Card>
-      )}
+      <div className="sticky bottom-0 -mx-4 border-t border-border-subtle bg-pure-white/95 px-4 py-4 backdrop-blur-sm lg:-mx-0 lg:rounded-[16px] lg:border lg:px-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <button
+            type="button"
+            onClick={() => save(false)}
+            disabled={loading}
+            className="text-[15px] font-medium text-ink hover:text-rust disabled:opacity-50"
+          >
+            Save draft
+          </button>
+          <Button onClick={() => save(true)} disabled={loading || confirmed} variant="ink" size="lg">
+            {confirmed ? "Mapping confirmed" : loading ? "Confirming…" : "Confirm mapping"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-      <div className="flex flex-wrap items-center gap-4">
+function HygieneScorecard({
+  hygiene,
+  onRefresh,
+  refreshing,
+}: {
+  hygiene: PortfolioJiraHygiene;
+  onRefresh: () => void;
+  refreshing: boolean;
+}) {
+  const grade = portfolioGrade(hygiene.portfolioScore);
+
+  return (
+    <Card>
+      <CardContent className="pt-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="space-y-3">
+          <p className="text-sm font-medium text-ash">Agreed workflow hygiene</p>
+          <div className="flex flex-wrap items-end gap-3">
+            <p className="text-[48px] font-[480] leading-none tabular-nums tracking-[-0.02em] text-ink">
+              {hygiene.portfolioScore}
+              <span className="text-[22px] font-normal text-muted">/100</span>
+            </p>
+            <HygieneGradeChip grade={grade} />
+          </div>
+          <p className="max-w-md text-[15px] leading-relaxed text-ink">
+            {hygiene.degradesTrust
+              ? "Low confidence — boards not maintained per agreed workflow."
+              : "Governance signals are trustworthy."}
+          </p>
+          {hygiene.worstProject && (
+            <p className="text-sm text-muted">
+              Weakest project:{" "}
+              <span className="font-medium text-ink">
+                {hygiene.worstProject.key}
+              </span>{" "}
+              <span className="tabular-nums">({hygiene.worstProject.score}/100)</span>
+            </p>
+          )}
+        </div>
         <button
           type="button"
-          onClick={() => save(false)}
-          disabled={loading}
-          className="text-[15px] font-medium text-ink hover:text-rust disabled:opacity-50"
+          onClick={onRefresh}
+          disabled={refreshing}
+          className="shrink-0 text-[15px] font-medium text-ink hover:text-rust disabled:opacity-50"
         >
-          Save draft
+          {refreshing ? "Refreshing schema…" : "Refresh schema"}
         </button>
-        <Button onClick={() => save(true)} disabled={loading || confirmed} variant="ink" size="lg">
-          {confirmed ? "Mapping confirmed" : loading ? "Confirming…" : "Confirm mapping"}
-        </Button>
       </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function AgreedWorkflowSummary({ mapping }: { mapping: ToolchainMapping }) {
+  return (
+    <div className="divide-y divide-border-subtle rounded-[16px] border border-border-subtle">
+      {mapping.jira && (
+        <div className="space-y-0 px-4 py-3">
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">Jira</p>
+          <SummaryRow label="Methodology" value={METHODOLOGY_LABELS[mapping.jira.methodology]} />
+          <SummaryRow
+            label="Release tracking"
+            value={RELEASE_TRACKING_LABELS[mapping.jira.releaseTracking]}
+          />
+          {mapping.jira.releaseTracking === "labels" && mapping.jira.releaseLabelPrefix && (
+            <SummaryRow label="Release label prefix" value={mapping.jira.releaseLabelPrefix} />
+          )}
+          <SummaryRow label="Blocked status" value={mapping.jira.blockedStatusName} />
+          <SummaryRow label="Bug issue type" value={mapping.jira.bugIssueType} />
+          {mapping.jira.storyPointField && (
+            <SummaryRow label="Story points" value={mapping.jira.storyPointField.name} />
+          )}
+        </div>
+      )}
+      {mapping.github && (
+        <div className="space-y-0 px-4 py-3">
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">GitHub</p>
+          <SummaryRow
+            label="Branch strategy"
+            value={BRANCH_STRATEGY_LABELS[mapping.github.branchStrategy]}
+          />
+          <SummaryRow
+            label="Default branch"
+            value={mapping.github.primaryDefaultBranch}
+          />
+          {mapping.github.productionBranch && (
+            <SummaryRow label="Production branch" value={mapping.github.productionBranch} />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-2">
+      <span className="text-sm text-muted">{label}</span>
+      <span className="text-right text-sm font-medium text-ink">{value}</span>
     </div>
   );
 }
@@ -630,18 +882,14 @@ function Field({
       <span className="flex items-center gap-2 text-sm font-medium text-ink">
         {label}
         {confidence != null && (
-          <span
-            className={cn(
-              "rounded px-1.5 py-0.5 text-[10px] font-normal",
-              confidence >= 0.8
-                ? "bg-success-muted text-success"
-                : confidence >= 0.5
-                  ? "bg-warning-muted text-warning"
-                  : "bg-error-muted text-error",
-            )}
+          <Badge
+            variant={
+              confidence >= 0.8 ? "success" : confidence >= 0.5 ? "warning" : "error"
+            }
+            className="px-1.5 py-0 text-[10px] font-normal"
           >
             {confidence >= 0.8 ? "high" : confidence >= 0.5 ? "medium" : "low"}
-          </span>
+          </Badge>
         )}
       </span>
       {children}
