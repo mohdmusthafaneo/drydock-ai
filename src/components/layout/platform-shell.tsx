@@ -9,6 +9,7 @@ import { prisma } from "@/lib/prisma";
 import type { SessionPayload } from "@/lib/session";
 import { isNavPathEnabled } from "@/lib/feature-flags";
 import { resolveLandingPath } from "@/lib/landing-path";
+import { isJiraCalibrationComplete } from "@/lib/jira-calibration/status";
 import {
   getIntegrationNavGates,
   isIntegrationGatedPathAccessible,
@@ -60,6 +61,7 @@ export async function PlatformShell({
     releaseCount,
     assessedReleaseCount,
     workflowConfigured,
+    jiraCalibrationComplete,
   ] = await Promise.all([
     prisma.release.count({ where: { organizationId: session.organizationId } }),
     prisma.release.count({
@@ -72,7 +74,12 @@ export async function PlatformShell({
       where: { organizationId: session.organizationId },
       select: { configuredAt: true },
     }),
+    isJiraCalibrationComplete(session.organizationId),
   ]);
+
+  const jiraConnected = ctx.integrations.some(
+    (i) => i.provider === "JIRA" && i.status === "CONNECTED",
+  );
 
   const steps = getOnboardingSteps({
     hasProfile: Boolean(ctx.profile?.completedAt),
@@ -83,6 +90,8 @@ export async function PlatformShell({
     connectedCount: ctx.integrations.filter((i) => i.status === "CONNECTED").length,
     pendingApprovals: ctx.stats.pendingApprovals,
     toolchainMappingConfirmed: Boolean(ctx.profile?.toolchainMappingConfirmedAt),
+    jiraConnected,
+    jiraCalibrationComplete,
   });
 
   return (

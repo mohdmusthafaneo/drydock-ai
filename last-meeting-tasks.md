@@ -2,7 +2,7 @@
 
 **Meeting:** 2026-06-25 stakeholder feedback  
 **Source:** [STAKEHOLDER-MEETING-MINUTES.md](./STAKEHOLDER-MEETING-MINUTES.md)  
-**Last updated:** 2026-06-30
+**Last updated:** 2026-06-30 (Point 4 shipped)
 
 
 | #   | Point                                            | Size | Status      | Notes                                                                             |
@@ -10,7 +10,7 @@
 | 1   | AI-generated code risk on the dashboard          | L    | **Done**    | 1a–1d shipped: Jira linkage, LLM completion score, composite risk, dashboard + executive claim |
 | 2   | Continuous compliance monitoring                 | L    | **Done**    | 2a–2d: `ComplianceFinding` + seeded rule catalog; eval on sync/enrich + cron baseline; `/governance` panel + executive claim |
 | 3   | Customizable compliance & governance per project | M    | Done        | Project-scoped rulesets                                                           |
-| 4   | Background compliance-check agent                | M    | Not started | Depends on 2, 3 — **next**                                                        |
+| 4   | Background compliance-check agent                | M    | **Done**    | 4a–4d: findings on `/code-analysis`; `aidos_list_compliance_findings`; critical → recommendation + approval; eval wakeup |
 | 5   | Jira misgovernance warning                       | M    | Done        | Hygiene score + leadership warning                                                |
 | 6   | Spillover / delayed / reopened indicators        | M    | Done        | Overdue shipped; spillover + reopened via JQL sync, signals, delivery-analysis UI |
 | 7   | Accountability & cost of maintaining code        | L    | **Done**    | 7a–7d shipped: named reviewers, file ownership + maintenance cost, incident↔code links, accountability card + executive claim |
@@ -34,11 +34,11 @@ Chosen path: ship **Point 1 in slices** (linkage → scoring → dashboard), the
 | 7     | **7c** | **Incident ↔ code traceability** — `IncidentCodeLink`, deploy anchor, “Likely related changes” on incident detail | L    | 7a, 7b     | **Done**    |
 | 8     | **7d** | **Accountability dashboard** — `accountability` snapshot block, card on `/code-analysis`, executive claim | S–M  | 7a, 7b     | **Done**    |
 | 9     | **2**  | **Continuous compliance monitoring** — `ComplianceFinding` + seeded rules; eval on sync + periodic baseline | L    | 3 (done)   | **Done**    |
-| 10    | **4**  | **Background compliance-check agent** — Mastra agent + tools on heartbeat/webhook | M    | 2, 3       | **Next**    |
-| 11    | **9**  | **90-day Jira calibration** — onboarding pass: history pull, workflow detection, LLM calibration model | L    | 5, 6 (done) | Not started |
+| 10    | **4**  | **Background compliance-check agent** — Mastra agent + tools on heartbeat/webhook | M    | 2, 3       | **Done**    |
+| 11    | **9**  | **90-day Jira calibration** — onboarding pass: history pull, workflow detection, LLM calibration model | L    | 5, 6 (done) | **Next**    |
 | 12    | **8**  | **Problem predictor** — leading indicators first (trend/threshold), then cross-domain prediction agent | L    | 1–7, 9     | Not started |
 
-**Already shipped (out of sequence):** 1, 2, 3, 5, 6, 7, 10.
+**Already shipped (out of sequence):** 1, 2, 3, 4, 5, 6, 7, 10.
 
 ### Rationale
 
@@ -82,29 +82,34 @@ Both use `Authorization: Bearer $PLATFORM_WORKER_SECRET`; optional body `{ "orga
 
 ---
 
+## Point 4 — shipped (2026-06-30)
+
+| Slice | Delivered |
+| ----- | --------- |
+| **4a** | `ComplianceFindingsPanel` on `/code-analysis` (RBAC-gated); server-load via `loadComplianceFindings` + summary |
+| **4b** | `GET /api/agents/me/compliance/findings`; Mastra tool `aidos_list_compliance_findings`; `read_compliance_findings` on GOVERNANCE allowlist |
+| **4c** | `compliance_finding` inbox items; Governance agent instructions; `aidos_create_recommendation` with `idempotencyKey` → `Recommendation` + `Approval` (deduped by finding id) |
+| **4d** | `enqueueComplianceEvaluatedWakeups` on `newCritical`; `EVENT_ROLE_ROUTING["compliance.evaluated"]` → governance; Super delegates via `compliance_delegate` inbox |
+
+**Validated:** `npm run build` green; tool allowlist tests pass. Manual test: enrich → compliance eval → findings on `/code-analysis` → invoke Governance agent → recommendation + approval for critical findings.
+
+**Ops (production):** unchanged from Point 2 — after GitHub code-analysis sync, schedule enrich then compliance eval. Run agent worker (`POST /api/cron/agents/worker` or `npm run worker:agents` in dev) so compliance eval wakeups drain.
+
+---
+
 ## What to develop next
 
-**Recommended focus: Point 4 — Background compliance-check agent** (order #10 in the table above).
+**Recommended focus: Point 9 — 90-day Jira calibration** (order #11 in the table above).
 
 Why now:
-- Point 2 is done — durable findings pipeline with sync/enrich hooks and periodic baseline cron.
-- Point 3 (per-project governance rulesets) was already shipped.
-- Findings are queryable via API and visible on `/governance`; agent can recommend remediation (no auto-fix).
+- Points 2 and 4 are done — compliance engine + Governance agent remediation loop.
+- Hygiene (#5) and delivery signals (#6) exist; calibration reduces false “bad project” flags on Jira connect.
 
-Suggested slices:
-
-| Slice | Work | Outcome |
-| ----- | ---- | ------- |
-| **4a** | **Agent + tools** — Mastra agent reads `ComplianceFinding` rows; tool to list/summarize open findings by severity | Agent can answer “what compliance issues are open?” |
-| **4b** | **Recommendation surface** — agent proposes remediation steps; writes `Recommendation` rows for human approval | Recommend-only loop per MVP autonomy |
-| **4c** | **Heartbeat / webhook trigger** — run on timer or after compliance eval completes | Continuous agent observation without manual invoke |
-
-**After Point 4 (in order):**
-1. **Point 9** — 90-day Jira calibration on connect (workflow model from history; pairs with hygiene #5).
-2. **Point 8** — Problem predictor (heuristic leading indicators first, then cross-domain agent).
+**After Point 9 (in order):**
+1. **Point 8** — Problem predictor (heuristic leading indicators first, then cross-domain agent).
 
 **Optional quick wins:**
 - Point 7 follow-ups: Jira assignee in incident people rollup; merge-commit SHA on deploy when available from release/GitHub.
 - Point 2 follow-up: `ComplianceRuleState` UI to enable/disable seeded rules per project (schema exists; no CRUD UI yet).
 
-**Ops note (code analysis + compliance):** schedule enrich then compliance eval after every GitHub code-analysis sync so risk-dependent rules and completion scores stay current.
+**Ops note (code analysis + compliance):** schedule enrich then compliance eval after every GitHub code-analysis sync so risk-dependent rules and completion scores stay current. Agent worker must run for compliance eval → Governance recommendation flow.

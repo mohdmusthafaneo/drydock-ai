@@ -5,6 +5,7 @@ import {
   mergeApprovalPayload,
   type ApprovalChatContext,
 } from "@/lib/approvals/chat-context";
+import { complianceRecommendationTitle } from "@/lib/compliance/recommendation-keys";
 import { logAgentActivity, logAgentAudit } from "./audit";
 
 const createSchema = z.object({
@@ -35,17 +36,25 @@ export async function createAgentRecommendation(
   const body = createSchema.parse(input);
 
   if (body.idempotencyKey) {
+    const keyedTitle = complianceRecommendationTitle(
+      body.idempotencyKey,
+      body.title,
+    );
     const existing = await prisma.recommendation.findFirst({
       where: {
         organizationId: input.organizationId,
-        title: body.title,
-        releaseId: body.releaseId ?? null,
         status: "PENDING",
+        title: { startsWith: `[compliance:${body.idempotencyKey}]` },
       },
     });
     if (existing) {
-      return { ok: true as const, recommendationId: existing.id, coalesced: true };
+      return {
+        ok: true as const,
+        recommendationId: existing.id,
+        coalesced: true,
+      };
     }
+    body.title = keyedTitle;
   }
 
   if (body.releaseId) {

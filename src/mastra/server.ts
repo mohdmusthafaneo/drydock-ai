@@ -22,6 +22,7 @@ import { weatherWorkflow } from "./examples/workflows/weather-workflow";
 import { chatRoutingWorkflow } from "./workflows/chat-routing";
 import { discoveryDnaWorkflow } from "./workflows/discovery-dna";
 import { executiveBriefingEnrichWorkflow } from "./workflows/executive-briefing-enrich";
+import { jiraCalibrationWorkflow } from "./workflows/jira-calibration";
 import { heartbeatWorkflow } from "./workflows/heartbeat";
 import { hireAgentWorkflow } from "./workflows/hire-agent";
 import { mvpAcceleratorWorkflow } from "./workflows/mvp-accelerator";
@@ -47,6 +48,7 @@ export function createMastraInstance(options: CreateMastraOptions = {}): Mastra 
     | typeof hireAgentWorkflow
     | typeof discoveryDnaWorkflow
     | typeof executiveBriefingEnrichWorkflow
+    | typeof jiraCalibrationWorkflow
     | typeof mvpAcceleratorWorkflow
     | typeof weatherWorkflow
   > = {
@@ -56,6 +58,7 @@ export function createMastraInstance(options: CreateMastraOptions = {}): Mastra 
     hireAgentWorkflow,
     discoveryDnaWorkflow,
     executiveBriefingEnrichWorkflow,
+    jiraCalibrationWorkflow,
     mvpAcceleratorWorkflow,
   };
   if (options.includeExamples) {

@@ -148,6 +148,7 @@ model Organization {
   agentChatMessages        AgentChatMessage[]
   agentChatStreamChunks    AgentChatStreamChunk[]
   executiveBriefingSnapshots ExecutiveBriefingSnapshot[]
+  jiraCalibrationProfiles JiraCalibrationProfile[]
 }
 
 enum MetricSource {
@@ -724,6 +725,27 @@ model OrganizationProfile {
   updatedAt        DateTime @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model JiraCalibrationProfile {
+  id             String    @id @default(cuid())
+  organizationId String
+  projectKey     String
+  status         String    @default("pending")
+  windowDays     Int       @default(90)
+  observedJson   String    @default("{}")
+  profileJson    String    @default("{}")
+  llmRationale   String?
+  confidence     String?
+  source         String    @default("deterministic")
+  calibratedAt   DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, projectKey])
+  @@index([organizationId])
 }
 
 model DeliveryDNA {

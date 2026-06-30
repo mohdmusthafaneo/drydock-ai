@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { computeCompletedStepIds } from "@/lib/enterprise-workflow";
 import { hasObservabilitySynced } from "@/lib/observability-connectivity";
+import { isJiraCalibrationComplete } from "@/lib/jira-calibration/status";
 import { rollupAgentTokens } from "@/lib/agent-control-plane/token-rollup";
 
 export async function getOrganizationContext(organizationId: string) {
@@ -125,12 +126,18 @@ export async function getOrganizationContext(organizationId: string) {
 
   const workflowConfigured = Boolean(workflow?.configuredAt);
   const toolchainMappingConfirmed = Boolean(profile?.toolchainMappingConfirmedAt);
+  const jiraConnected = connectedIntegrations.some((i) => i.provider === "JIRA");
+  const jiraCalibrationComplete = jiraConnected
+    ? await isJiraCalibrationComplete(organizationId)
+    : true;
   const hasObservabilitySyncedFlag = hasObservabilitySynced(integrations);
   const completedStepIds = computeCompletedStepIds({
     hasDna: Boolean(dna),
     hasProfile: Boolean(profile?.completedAt),
     connectedCount: connectedIntegrations.length,
     toolchainMappingConfirmed,
+    jiraConnected,
+    jiraCalibrationComplete,
     workflowConfigured,
     hasAssessedRelease: assessedReleases.length > 0,
     hasPendingApprovals: pendingApprovals.length > 0,

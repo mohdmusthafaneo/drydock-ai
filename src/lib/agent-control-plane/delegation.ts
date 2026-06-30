@@ -11,6 +11,7 @@ export type DelegationTargetRole = HireRole;
 export const EVENT_ROLE_ROUTING: Record<string, DelegationTargetRole> = {
   "release.detected": "qa_intelligence",
   "release.assessed": "governance",
+  "compliance.evaluated": "governance",
   "webhook.received": "integration",
   "telemetry.ingested": "devops_intelligence",
   "incident.opened": "incident_correlation",

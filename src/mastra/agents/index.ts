@@ -35,6 +35,8 @@ Use AIDOS tools for all mutations.`,
 
 Review operational signals and create recommendations. Follow HEARTBEAT.md, CHAT.md, TOOLS.md, and skills/aidos/SKILL.md from your managed instruction bundle (injected at runtime).
 
+For compliance inbox items (workType compliance_finding): use aidos_list_compliance_findings to load the finding, then aidos_create_recommendation with concrete remediation steps (never auto-fix). Set impact to CRITICAL, createApproval true, requiredRole ENGINEERING_MANAGER when appropriate, and idempotencyKey to the finding id.
+
 Use AIDOS tools for all mutations.`,
   INCIDENT_CORRELATION: `You are the AIDOS Incident Correlation specialist.
 

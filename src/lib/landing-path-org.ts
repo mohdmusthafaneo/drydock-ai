@@ -2,11 +2,12 @@ import "server-only";
 
 import { computeCompletedStepIds } from "@/lib/enterprise-workflow";
 import { hasObservabilitySynced } from "@/lib/observability-connectivity";
+import { isJiraCalibrationComplete } from "@/lib/jira-calibration/status";
 import { resolveLandingPath } from "@/lib/landing-path";
 import { prisma } from "@/lib/prisma";
 
 export async function getLandingPathForOrganization(organizationId: string): Promise<string> {
-  const [profile, dna, integrations, releases, approvals, workflow, incidents] =
+  const [profile, dna, integrations, releases, approvals, workflow, incidents, jiraCalibrationComplete] =
     await Promise.all([
       prisma.organizationProfile.findUnique({
         where: { organizationId },
@@ -34,6 +35,7 @@ export async function getLandingPathForOrganization(organizationId: string): Pro
         select: { id: true },
         take: 1,
       }),
+      isJiraCalibrationComplete(organizationId),
     ]);
 
   const assessedReleases = releases.filter((r) => r.assessedAt);
@@ -41,11 +43,15 @@ export async function getLandingPathForOrganization(organizationId: string): Pro
   const pendingApprovals = approvals.filter((a) => !a.decision);
   const hasObservabilitySyncedFlag = hasObservabilitySynced(integrations);
 
+  const jiraConnected = integrations.some((i) => i.provider === "JIRA");
+
   const completedStepIds = computeCompletedStepIds({
     hasDna: Boolean(dna),
     hasProfile: Boolean(profile?.completedAt),
     connectedCount: integrations.length,
     toolchainMappingConfirmed: Boolean(profile?.toolchainMappingConfirmedAt),
+    jiraConnected,
+    jiraCalibrationComplete,
     workflowConfigured: Boolean(workflow?.configuredAt),
     hasAssessedRelease: assessedReleases.length > 0,
     hasPendingApprovals: pendingApprovals.length > 0,

@@ -31,11 +31,46 @@ type GitHubSchemaSnapshot = {
   };
 };
 
+type CalibrationSuggestion = {
+  projectKey: string;
+  status: string;
+  confidence: string | null;
+  calibratedAt: string | null;
+  doneStatusNames: string[];
+  blockedStatusName: string;
+  releaseTracking: string;
+  methodology: string;
+  rationale: string | null;
+};
+
+type CalibrationProfileSummary = {
+  projectKey: string;
+  status: string;
+  confidence: string | null;
+  calibratedAt: string | null;
+  source: string;
+};
+
 type SchemaState = {
   jira: JiraSchemaSnapshot | null;
   jiraStale: boolean;
   github: GitHubSchemaSnapshot | null;
 };
+
+function calibrationStatusLabel(status: string): string {
+  switch (status) {
+    case "calibrating":
+      return "Calibrating…";
+    case "calibrated":
+      return "Calibrated";
+    case "needs_review":
+      return "Needs review";
+    case "failed":
+      return "Failed";
+    default:
+      return "Pending";
+  }
+}
 
 function portfolioGrade(score: number): "good" | "fair" | "poor" {
   if (score >= 75) return "good";
@@ -119,6 +154,8 @@ export function ToolchainMappingForm({
   });
   const [jiraHygiene, setJiraHygiene] = useState<PortfolioJiraHygiene | null>(null);
   const [jiraHygieneLinks, setJiraHygieneLinks] = useState<Record<string, string>>({});
+  const [calibrationProfiles, setCalibrationProfiles] = useState<CalibrationProfileSummary[]>([]);
+  const [calibrationSuggestions, setCalibrationSuggestions] = useState<CalibrationSuggestion[]>([]);
 
   const loadSchema = useCallback(async () => {
     const [mappingRes, jiraRes, githubRes] = await Promise.all([
@@ -136,6 +173,8 @@ export function ToolchainMappingForm({
       });
       setJiraHygiene(data.jiraHygiene ?? null);
       setJiraHygieneLinks(data.jiraHygieneLinks ?? {});
+      setCalibrationProfiles(data.calibrationProfiles ?? []);
+      setCalibrationSuggestions(data.calibrationSuggestions ?? []);
     }
 
     if (jiraRes.ok) {
@@ -285,6 +324,55 @@ export function ToolchainMappingForm({
           Project selection changed or schema is older than 7 days — refresh schema before
           confirming.
         </div>
+      )}
+
+      {calibrationProfiles.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">90-day Jira calibration</CardTitle>
+            <CardDescription>
+              Workflow semantics learned from recent Jira activity. Delivery scores stay discounted
+              until calibration completes.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {calibrationProfiles.map((profile) => (
+              <div
+                key={profile.projectKey}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border-subtle bg-pure-white px-3 py-2 text-sm"
+              >
+                <span className="font-medium text-ink">{profile.projectKey}</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="muted">{calibrationStatusLabel(profile.status)}</Badge>
+                  {profile.confidence && (
+                    <Badge variant="accent">{profile.confidence} confidence</Badge>
+                  )}
+                </div>
+              </div>
+            ))}
+            {calibrationSuggestions.map((suggestion) => (
+              <div
+                key={`suggestion-${suggestion.projectKey}`}
+                className="rounded-lg border border-border-subtle bg-surface-muted px-3 py-3 text-sm"
+              >
+                <p className="font-medium text-ink">
+                  Suggested from 90-day history — {suggestion.projectKey}
+                </p>
+                <ul className="mt-2 space-y-1 text-muted">
+                  <li>
+                    Done statuses: {suggestion.doneStatusNames.join(", ") || "—"}
+                  </li>
+                  <li>Blocked status: {suggestion.blockedStatusName}</li>
+                  <li>Release tracking: {suggestion.releaseTracking}</li>
+                  <li>Methodology: {suggestion.methodology}</li>
+                </ul>
+                {suggestion.rationale && (
+                  <p className="mt-2 text-ash">{suggestion.rationale}</p>
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
       )}
 
       {confidence === "low" && (

@@ -37,6 +37,13 @@ export const ENTERPRISE_WORKFLOW_STEPS: EnterpriseWorkflowStep[] = [
     href: "/governance/toolchain-mapping",
   },
   {
+    id: "jira-calibration",
+    order: 4.5,
+    label: "Jira workflow calibration",
+    description: "Learn done/blocked statuses and release semantics from 90-day history",
+    href: "/governance/toolchain-mapping",
+  },
+  {
     id: "workflow-config",
     order: 5,
     label: "Workflow configuration",
@@ -101,6 +108,8 @@ export function computeCompletedStepIds(input: {
   hasProfile: boolean;
   connectedCount: number;
   toolchainMappingConfirmed: boolean;
+  jiraCalibrationComplete?: boolean;
+  jiraConnected?: boolean;
   workflowConfigured: boolean;
   hasAssessedRelease: boolean;
   hasPendingApprovals: boolean;
@@ -117,6 +126,9 @@ export function computeCompletedStepIds(input: {
   if (input.hasDna && input.hasProfile) done.push("discovery");
   if (input.connectedCount >= 1) done.push("integrations");
   if (input.toolchainMappingConfirmed) done.push("toolchain-mapping");
+  if (!input.jiraConnected || input.jiraCalibrationComplete) {
+    done.push("jira-calibration");
+  }
   if (input.workflowConfigured) done.push("workflow-config");
   if (input.hasAssessedRelease) done.push("qa-init");
   if (observabilitySynced) done.push("telemetry");

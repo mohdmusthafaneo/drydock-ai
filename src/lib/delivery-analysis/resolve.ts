@@ -7,7 +7,8 @@ import type {
   DeliveryAnalysisSnapshot,
 } from "@/lib/delivery-analysis/types";
 import type { PortfolioJiraHygiene } from "@/lib/jira-hygiene";
-import { resolveConfirmedToolchainMapping, type ToolchainMapping } from "@/lib/toolchain-mapping";
+import { getJiraCalibrationGate } from "@/lib/jira-calibration/status";
+import { resolveEffectiveToolchainMapping, type ToolchainMapping } from "@/lib/toolchain-mapping";
 
 export type StoredJiraDelivery = {
   snapshot: JiraDeliverySnapshot;
@@ -15,12 +16,13 @@ export type StoredJiraDelivery = {
   projectKeys: string[];
   jiraHygiene?: PortfolioJiraHygiene;
   mapping?: ToolchainMapping;
+  calibrationGate?: Awaited<ReturnType<typeof getJiraCalibrationGate>>;
 };
 
 export async function resolveStoredJiraDelivery(
   organizationId: string,
 ): Promise<StoredJiraDelivery | null> {
-  const [integration, mapping] = await Promise.all([
+  const [integration, mapping, calibrationGate] = await Promise.all([
     prisma.integration.findUnique({
       where: {
         organizationId_provider: {
@@ -30,7 +32,8 @@ export async function resolveStoredJiraDelivery(
       },
       select: { metadataJson: true, status: true, provider: true },
     }),
-    resolveConfirmedToolchainMapping(organizationId),
+    resolveEffectiveToolchainMapping(organizationId),
+    getJiraCalibrationGate(organizationId),
   ]);
 
   if (!integration || integration.provider !== "JIRA") {
@@ -49,12 +52,14 @@ export async function resolveStoredJiraDelivery(
     projectKeys: meta.projectKeys ?? snapshot.projects.map((p) => p.key),
     jiraHygiene: meta.jiraHygiene,
     mapping: mapping ?? undefined,
+    calibrationGate,
   };
 }
 
 export function deliveryAnalysisForFilters(
   stored: StoredJiraDelivery,
   filters: DeliveryAnalysisFilters,
+  calibration?: { pending: boolean; message?: string },
 ): DeliveryAnalysisSnapshot {
   return snapshotForFilters(
     stored.snapshot,
@@ -62,6 +67,7 @@ export function deliveryAnalysisForFilters(
     filters,
     stored.mapping,
     stored.jiraHygiene,
+    calibration,
   );
 }
 

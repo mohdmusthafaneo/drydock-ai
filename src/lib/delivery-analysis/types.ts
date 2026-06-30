@@ -32,6 +32,9 @@ export type DeliveryAnalysisKpis = {
   sprintCompletionPct?: number | null;
   /** Sum of resolved issues in the last 7 days across scope (P2b). */
   resolvedLast7d?: number;
+  /** True when Jira is connected but 90-day calibration has not finished. */
+  calibrationPending?: boolean;
+  calibrationMessage?: string;
   jiraLinks?: { openWork?: string; blocked?: string; overdue?: string };
 };
 

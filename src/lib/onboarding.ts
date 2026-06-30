@@ -1,16 +1,5 @@
 import { isNavPathEnabled } from "@/lib/feature-flags";
 
-type Ctx = {
-  hasProfile: boolean;
-  hasDna: boolean;
-  workflowConfigured: boolean;
-  hasRelease: boolean;
-  hasAssessedRelease: boolean;
-  connectedCount: number;
-  pendingApprovals: number;
-  toolchainMappingConfirmed: boolean;
-};
-
 type OnboardingStep = {
   id: string;
   label: string;
@@ -22,8 +11,21 @@ function filterEnabledSteps(steps: OnboardingStep[]): OnboardingStep[] {
   return steps.filter((step) => isNavPathEnabled(step.href));
 }
 
-export function getOnboardingSteps(ctx: Ctx) {
-  return filterEnabledSteps([
+type Ctx = {
+  hasProfile: boolean;
+  hasDna: boolean;
+  workflowConfigured: boolean;
+  hasRelease: boolean;
+  hasAssessedRelease: boolean;
+  connectedCount: number;
+  pendingApprovals: number;
+  toolchainMappingConfirmed: boolean;
+  jiraConnected: boolean;
+  jiraCalibrationComplete: boolean;
+};
+
+function buildOnboardingSteps(ctx: Ctx): OnboardingStep[] {
+  const steps: OnboardingStep[] = [
     {
       id: "governance-setup",
       label: "Discovery & Delivery DNA",
@@ -42,6 +44,18 @@ export function getOnboardingSteps(ctx: Ctx) {
       href: "/governance/toolchain-mapping",
       done: ctx.toolchainMappingConfirmed,
     },
+  ];
+
+  if (ctx.jiraConnected) {
+    steps.push({
+      id: "jira-calibration",
+      label: "Calibrate Jira workflow (90 days)",
+      href: "/governance/toolchain-mapping",
+      done: ctx.jiraCalibrationComplete,
+    });
+  }
+
+  steps.push(
     {
       id: "workflow",
       label: "Configure workflow & autonomy",
@@ -60,5 +74,11 @@ export function getOnboardingSteps(ctx: Ctx) {
       href: "/approvals",
       done: ctx.hasAssessedRelease && ctx.pendingApprovals === 0,
     },
-  ]);
+  );
+
+  return steps;
+}
+
+export function getOnboardingSteps(ctx: Ctx) {
+  return filterEnabledSteps(buildOnboardingSteps(ctx));
 }

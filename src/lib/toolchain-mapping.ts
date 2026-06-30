@@ -9,6 +9,10 @@ import {
 } from "@/lib/jira-meta";
 import { suggestionConfidence } from "@/lib/jira-introspection";
 import type { GitHubSchemaSnapshot } from "@/lib/github-introspection";
+import {
+  getCalibratedProfiles,
+} from "@/lib/jira-calibration/persist";
+import type { CalibratedWorkflowProfile as CalibratedProfile } from "@/lib/jira-calibration/types";
 
 /** Org-specific semantics for Jira/GitHub — confirmed after integration sync. */
 export type ToolchainMapping = {
@@ -23,6 +27,11 @@ export type ToolchainMapping = {
     bugIssueTypeId?: string;
     doneStatusCategory: "Done" | "Complete" | "Closed";
     doneStatusNames?: string[];
+    hygieneBaselines?: {
+      unassignedRatioP50: number;
+      overdueRatioP50: number;
+      missingEstimateRatioP50?: number;
+    };
     storyPointField?: JiraFieldRef;
     releaseLabelPrefix?: string;
     sprintField?: JiraFieldRef;
@@ -39,6 +48,8 @@ export type ToolchainMapping = {
     jiraSyncedAt?: string;
     githubSyncedAt?: string;
     jiraSchemaSyncedAt?: string;
+    jiraCalibratedAt?: string;
+    calibrationConfidence?: "high" | "medium" | "low";
     discoveryWorkflows?: string[];
     suggestionConfidence?: "high" | "medium" | "low";
   };
@@ -91,6 +102,103 @@ export async function resolveConfirmedToolchainMapping(
   });
   if (!profile?.toolchainMappingConfirmedAt) return null;
   return parseToolchainMapping(profile.toolchainMappingJson);
+}
+
+/** Merge calibrated workflow profile onto org mapping (per-project or portfolio). */
+export function mergeCalibrationIntoMapping(
+  mapping: ToolchainMapping,
+  profile: CalibratedProfile,
+  meta?: { calibratedAt?: string; confidence?: "high" | "medium" | "low"; projectKey?: string },
+): ToolchainMapping {
+  const baseJira = mapping.jira ?? {
+    methodology: profile.methodology,
+    usesSprints: profile.usesSprints,
+    releaseTracking: profile.releaseTracking,
+    blockedStatusName: profile.blockedStatusName,
+    bugIssueType: profile.bugIssueType ?? "Bug",
+    doneStatusCategory: profile.doneStatusCategory,
+  };
+
+  const calibratedJira: NonNullable<ToolchainMapping["jira"]> = {
+    ...baseJira,
+    methodology: profile.methodology,
+    usesSprints: profile.usesSprints,
+    releaseTracking: profile.releaseTracking,
+    blockedStatusName: profile.blockedStatusName,
+    doneStatusNames: profile.doneStatusNames,
+    doneStatusCategory: profile.doneStatusCategory,
+    bugIssueType: profile.bugIssueType ?? baseJira.bugIssueType,
+    hygieneBaselines: profile.hygieneBaselines,
+  };
+
+  if (meta?.projectKey && meta.projectKey !== "*") {
+    return {
+      ...mapping,
+      jira: {
+        ...calibratedJira,
+        projectOverrides: {
+          ...baseJira.projectOverrides,
+          [meta.projectKey]: {
+            ...(baseJira.projectOverrides?.[meta.projectKey] ?? {}),
+            ...calibratedJira,
+            projectOverrides: undefined,
+          },
+        },
+      },
+      inferredFrom: {
+        ...mapping.inferredFrom,
+        jiraCalibratedAt: meta.calibratedAt ?? mapping.inferredFrom?.jiraCalibratedAt,
+        calibrationConfidence: meta.confidence ?? mapping.inferredFrom?.calibrationConfidence,
+      },
+    };
+  }
+
+  return {
+    ...mapping,
+    jira: calibratedJira,
+    inferredFrom: {
+      ...mapping.inferredFrom,
+      jiraCalibratedAt: meta?.calibratedAt ?? mapping.inferredFrom?.jiraCalibratedAt,
+      calibrationConfidence: meta?.confidence ?? mapping.inferredFrom?.calibrationConfidence,
+    },
+  };
+}
+
+function applyCalibratedProfiles(
+  mapping: ToolchainMapping,
+  profiles: Awaited<ReturnType<typeof getCalibratedProfiles>>,
+): ToolchainMapping {
+  let result = mapping;
+  for (const row of profiles) {
+    result = mergeCalibrationIntoMapping(result, row.profile, {
+      calibratedAt: row.calibratedAt?.toISOString(),
+      confidence: (row.confidence as "high" | "medium" | "low" | null) ?? row.profile.confidence,
+      projectKey: row.projectKey,
+    });
+  }
+  return result;
+}
+
+/** Effective mapping: inferred + saved + calibrated overlays (used by sync/JQL even before confirm). */
+export async function resolveEffectiveToolchainMapping(
+  organizationId: string,
+): Promise<ToolchainMapping | null> {
+  const [profile, integrations, calibrated] = await Promise.all([
+    prisma.organizationProfile.findUnique({ where: { organizationId } }),
+    prisma.integration.findMany({ where: { organizationId } }),
+    getCalibratedProfiles(organizationId),
+  ]);
+
+  const inferred = inferToolchainMapping({ profile, integrations });
+  const saved = parseToolchainMapping(profile?.toolchainMappingJson);
+  let mapping = mergeToolchainMapping(inferred, saved);
+
+  if (calibrated.length === 0) {
+    return mapping.jira || mapping.github ? mapping : null;
+  }
+
+  mapping = applyCalibratedProfiles(mapping, calibrated);
+  return mapping;
 }
 
 function inferJiraMethodology(

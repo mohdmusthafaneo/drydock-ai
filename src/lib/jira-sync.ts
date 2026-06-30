@@ -33,8 +33,10 @@ import {
 } from "@/lib/jira-jql";
 import { assessPortfolioJiraHygiene } from "@/lib/jira-hygiene";
 import { resolveSyncProjectKeys } from "@/lib/jira-project-selection";
+import { enqueueJiraCalibration } from "@/lib/jira-calibration/run";
+import { getJiraCalibrationGate } from "@/lib/jira-calibration/status";
 import {
-  resolveConfirmedToolchainMapping,
+  resolveEffectiveToolchainMapping,
   resolveJiraMappingForProject,
   type ToolchainMapping,
 } from "@/lib/toolchain-mapping";
@@ -331,13 +333,13 @@ export async function syncJiraIntegration(input: {
   const meta = parseJiraMeta(integration.metadataJson);
   const { accessToken, cloudId, metaPatch } = await resolveJiraAccessToken(integration);
 
-  const confirmedMapping = await resolveConfirmedToolchainMapping(input.organizationId);
-  const jiraMapping: JiraMappingSlice = confirmedMapping?.jira
+  const effectiveMapping = await resolveEffectiveToolchainMapping(input.organizationId);
+  const jiraMapping: JiraMappingSlice = effectiveMapping?.jira
     ? {
-        blockedStatusName: confirmedMapping.jira.blockedStatusName,
-        bugIssueType: confirmedMapping.jira.bugIssueType,
-        doneStatusCategory: confirmedMapping.jira.doneStatusCategory,
-        doneStatusNames: confirmedMapping.jira.doneStatusNames,
+        blockedStatusName: effectiveMapping.jira.blockedStatusName,
+        bugIssueType: effectiveMapping.jira.bugIssueType,
+        doneStatusCategory: effectiveMapping.jira.doneStatusCategory,
+        doneStatusNames: effectiveMapping.jira.doneStatusNames,
       }
     : LEGACY_JIRA_MAPPING;
 
@@ -366,8 +368,8 @@ export async function syncJiraIntegration(input: {
 
   for (const key of projectKeys) {
     try {
-      const projectMapping = confirmedMapping
-        ? resolveJiraMappingForProject(confirmedMapping, key)
+      const projectMapping = effectiveMapping
+        ? resolveJiraMappingForProject(effectiveMapping, key)
         : undefined;
       const snapshot = await syncProject(
         accessToken,
@@ -408,14 +410,16 @@ export async function syncJiraIntegration(input: {
   const syncedAt = new Date().toISOString();
   const deliverySnapshot: JiraDeliverySnapshot = { syncedAt, projects };
 
-  const jiraHygiene = confirmedMapping
-    ? assessPortfolioJiraHygiene(deliverySnapshot, confirmedMapping)
+  const jiraHygiene = effectiveMapping
+    ? assessPortfolioJiraHygiene(deliverySnapshot, effectiveMapping)
     : undefined;
 
   const totalOpen = projects.reduce((n, p) => n + p.openIssues, 0);
   const totalBlocked = projects.reduce((n, p) => n + p.blockedCount, 0);
   const totalVersions = projects.reduce((n, p) => n + p.versions.length, 0);
   const summary = `Synced ${projects.map((p) => p.key).join(", ")} · ${totalOpen} open · ${totalBlocked} blocked · ${totalVersions} versions`;
+
+  const calibrationGate = await getJiraCalibrationGate(input.organizationId);
 
   const analysisRollup = computeDeliveryAnalysisFromJira({
     jiraSnapshot: deliverySnapshot,
@@ -426,9 +430,16 @@ export async function syncJiraIntegration(input: {
       range: "30d",
       compare: "previous_sync",
     },
-    mapping: confirmedMapping ?? undefined,
+    mapping: effectiveMapping ?? undefined,
     jiraHygiene,
+    calibrationPending: !calibrationGate.calibrated,
+    calibrationMessage: calibrationGate.message,
   });
+
+  void enqueueJiraCalibration(
+    input.organizationId,
+    projects.map((p) => p.key),
+  );
 
   await ingestNormalizedEvents({
     organizationId: input.organizationId,

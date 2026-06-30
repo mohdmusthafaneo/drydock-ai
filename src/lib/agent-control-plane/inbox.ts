@@ -1,11 +1,14 @@
 import type { AgentRegistry, AgentType } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { loadPendingComplianceFindingIds } from "@/lib/compliance/recommendation-keys";
 import { EVENT_ROLE_ROUTING } from "./delegation";
 import type { HireRole } from "./hire";
 
 export type InboxWorkType =
   | "release_assess"
   | "release_delegate"
+  | "compliance_delegate"
+  | "compliance_finding"
   | "incident_triage"
   | "webhook_process"
   | "telemetry_review"
@@ -38,7 +41,7 @@ export function parseInboxItemId(
   id: string,
 ): { workType: InboxWorkType; entityId: string } | null {
   const match = id.match(
-    /^(release_assess|release_delegate|incident_triage|webhook_process|telemetry_review|approval_followup|team_initialization):(.+)$/,
+    /^(release_assess|release_delegate|compliance_delegate|compliance_finding|incident_triage|webhook_process|telemetry_review|approval_followup|team_initialization):(.+)$/,
   );
   if (!match) return null;
   return {
@@ -164,6 +167,75 @@ async function buildReleaseDelegateInbox(
   return items.sort((a, b) => a.priority - b.priority);
 }
 
+async function buildComplianceDelegateInbox(
+  organizationId: string,
+  payload: Record<string, unknown>,
+): Promise<InboxWorkItem[]> {
+  const event = String(payload.event ?? payload.reason ?? "");
+  if (event !== "compliance.evaluated") return [];
+
+  const targetRole = EVENT_ROLE_ROUTING[event] ?? "governance";
+  const batchKey = String(payload.batchKey ?? organizationId);
+
+  return [
+    {
+      id: inboxItemId("compliance_delegate", batchKey),
+      workType: "compliance_delegate",
+      entityType: "Organization",
+      entityId: organizationId,
+      status: "pending",
+      priority: 0,
+      assignedAt: new Date().toISOString(),
+      title: "Delegate compliance remediation to governance specialist",
+      metadata: {
+        targetRole,
+        event,
+        newCritical: payload.newCritical,
+        phase: payload.phase,
+      },
+    },
+  ];
+}
+
+async function buildComplianceFindingInbox(
+  organizationId: string,
+): Promise<InboxWorkItem[]> {
+  const [criticalFindings, pendingFindingIds] = await Promise.all([
+    prisma.complianceFinding.findMany({
+      where: {
+        organizationId,
+        status: "open",
+        severity: "critical",
+      },
+      orderBy: { lastSeenAt: "desc" },
+      take: 20,
+    }),
+    loadPendingComplianceFindingIds(organizationId),
+  ]);
+
+  return criticalFindings
+    .filter((finding) => !pendingFindingIds.has(finding.id))
+    .map((finding) => ({
+      id: inboxItemId("compliance_finding", finding.id),
+      workType: "compliance_finding" as const,
+      entityType: "ComplianceFinding",
+      entityId: finding.id,
+      status: "pending" as const,
+      priority: 0,
+      assignedAt: finding.lastSeenAt.toISOString(),
+      title: `Remediate critical compliance: ${finding.title}`,
+      metadata: {
+        ruleKey: finding.ruleKey,
+        severity: finding.severity,
+        targetType: finding.targetType,
+        entityLabel: finding.entityLabel,
+        entityUrl: finding.entityUrl,
+        repo: finding.repo,
+        projectKey: finding.projectKey,
+      },
+    }));
+}
+
 async function buildGovernanceInbox(
   organizationId: string,
   payload: Record<string, unknown>,
@@ -193,22 +265,25 @@ async function buildGovernanceInbox(
     }
   }
 
-  const highRiskReleases = await prisma.release.findMany({
-    where: {
-      organizationId,
-      status: "PENDING_APPROVAL",
-      riskLevel: { in: ["HIGH", "CRITICAL"] },
-    },
-    orderBy: { assessedAt: "desc" },
-    take: 5,
-  });
+  const [highRiskReleases, complianceFindings] = await Promise.all([
+    prisma.release.findMany({
+      where: {
+        organizationId,
+        status: "PENDING_APPROVAL",
+        riskLevel: { in: ["HIGH", "CRITICAL"] },
+      },
+      orderBy: { assessedAt: "desc" },
+      take: 5,
+    }),
+    buildComplianceFindingInbox(organizationId),
+  ]);
 
-  return highRiskReleases.map((release) => ({
+  const releaseItems = highRiskReleases.map((release) => ({
     id: inboxItemId("release_assess", release.id),
-    workType: "release_assess",
+    workType: "release_assess" as const,
     entityType: "Release",
     entityId: release.id,
-    status: "pending",
+    status: "pending" as const,
     priority: releasePriority(release.environment),
     assignedAt: (release.assessedAt ?? release.detectedAt).toISOString(),
     title: `Review high-risk release: ${release.name}`,
@@ -217,6 +292,10 @@ async function buildGovernanceInbox(
       riskLevel: release.riskLevel,
     },
   }));
+
+  return [...complianceFindings, ...releaseItems].sort(
+    (a, b) => a.priority - b.priority,
+  );
 }
 
 async function buildWebhookInbox(
@@ -313,14 +392,15 @@ async function buildSuperOrchestratorInbox(
   organizationId: string,
   payload: Record<string, unknown>,
 ): Promise<InboxWorkItem[]> {
-  const [init, delegate, governance] = await Promise.all([
+  const [init, delegate, complianceDelegate, governance] = await Promise.all([
     buildTeamInitializationInbox(organizationId),
     buildReleaseDelegateInbox(organizationId, payload),
+    buildComplianceDelegateInbox(organizationId, payload),
     buildGovernanceInbox(organizationId, payload),
   ]);
 
   const byId = new Map<string, InboxWorkItem>();
-  for (const item of [...init, ...delegate, ...governance]) {
+  for (const item of [...init, ...delegate, ...complianceDelegate, ...governance]) {
     byId.set(item.id, item);
   }
 

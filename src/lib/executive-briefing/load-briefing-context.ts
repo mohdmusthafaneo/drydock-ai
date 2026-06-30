@@ -7,6 +7,7 @@ import type { BriefingCharts, ExecutiveBriefing } from "@/lib/executive-briefing
 import { mergeExecutiveBriefingSnapshot } from "@/lib/executive-briefing/snapshot-utils";
 import { summarizePortfolioHygiene } from "@/lib/jira-hygiene";
 import { loadComplianceFindingSummary } from "@/lib/compliance/summary";
+import { getJiraCalibrationGate } from "@/lib/jira-calibration/status";
 import { isPrometheusTrulyConnected, parsePrometheusMeta } from "@/lib/prometheus-meta";
 import { isGrafanaTrulyConnected, parseGrafanaMeta } from "@/lib/grafana-meta";
 import type { ObservabilityAnalysisSnapshot } from "@/lib/observability-analysis/types";
@@ -190,7 +191,8 @@ export async function loadExecutiveBriefing(
   orgName: string;
 }> {
   const applyLlmSnapshot = options?.applyLlmSnapshot ?? true;
-  const [ctx, org, jiraStored, githubIntegration, complianceSummary] = await Promise.all([
+  const [ctx, org, jiraStored, githubIntegration, complianceSummary, calibrationGate] =
+    await Promise.all([
     getOrganizationContext(organizationId),
     prisma.organization.findUnique({
       where: { id: organizationId },
@@ -210,10 +212,14 @@ export async function loadExecutiveBriefing(
       infoOpen: 0,
       lastEvaluatedAt: null,
     })),
+    getJiraCalibrationGate(organizationId),
   ]);
 
   const deliverySnapshot = jiraStored
-    ? deliveryAnalysisForFilters(jiraStored, DEFAULT_DELIVERY_FILTERS)
+    ? deliveryAnalysisForFilters(jiraStored, DEFAULT_DELIVERY_FILTERS, {
+        pending: !jiraStored.calibrationGate?.calibrated,
+        message: jiraStored.calibrationGate?.message,
+      })
     : null;
 
   const jiraHygieneSummary = summarizePortfolioHygiene(jiraStored?.jiraHygiene);
@@ -252,6 +258,8 @@ export async function loadExecutiveBriefing(
     observabilitySnapshot,
     observabilityIsDemo,
     jiraHygiene: jiraHygieneSummary,
+    jiraCalibrationPending: !calibrationGate.calibrated && calibrationGate.status !== "not_applicable",
+    jiraCalibrationMessage: calibrationGate.message,
     connectedTools: ctx.stats.connectedTools,
     activeAuthors: codeSnapshot ? activeAuthors : undefined,
     topAuthors: codeSnapshot ? topAuthors : undefined,

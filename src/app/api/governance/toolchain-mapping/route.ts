@@ -10,6 +10,8 @@ import {
   parseToolchainMapping,
   type ToolchainMapping,
 } from "@/lib/toolchain-mapping";
+import { listCalibrationProfiles } from "@/lib/jira-calibration/persist";
+import { parseCalibrationObservations } from "@/lib/jira-calibration/types";
 import { buildJiraHygieneLinksMap, type JiraLinkContext } from "@/lib/jira-issue-links";
 
 const fieldRefSchema = z.object({
@@ -78,6 +80,28 @@ export async function GET() {
 
   const confirmed = Boolean(profile?.toolchainMappingConfirmedAt);
 
+  const calibrationProfiles = jiraIntegration
+    ? await listCalibrationProfiles(session.organizationId)
+    : [];
+
+  const calibrationSuggestions = calibrationProfiles
+    .map((row) => {
+      const observed = parseCalibrationObservations(row.observedJson);
+      if (!observed) return null;
+      return {
+        projectKey: row.projectKey,
+        status: row.status,
+        confidence: row.confidence,
+        calibratedAt: row.calibratedAt?.toISOString() ?? null,
+        doneStatusNames: observed.inferredDoneStatusNames,
+        blockedStatusName: observed.inferredBlockedStatusName,
+        releaseTracking: observed.releaseTrackingEvidence.suggestedMode,
+        methodology: observed.methodology,
+        rationale: row.llmRationale,
+      };
+    })
+    .filter((row): row is NonNullable<typeof row> => row !== null);
+
   let jiraHygieneLinks: Record<string, string> | null = null;
   if (confirmed && jiraMeta?.siteUrl && mapping.jira && jiraMeta.jiraHygiene) {
     const linkCtx: JiraLinkContext = {
@@ -99,6 +123,14 @@ export async function GET() {
     jiraHygiene: jiraMeta?.jiraHygiene ?? null,
     jiraSiteUrl: jiraMeta?.siteUrl ?? null,
     jiraHygieneLinks,
+    calibrationProfiles: calibrationProfiles.map((row) => ({
+      projectKey: row.projectKey,
+      status: row.status,
+      confidence: row.confidence,
+      calibratedAt: row.calibratedAt?.toISOString() ?? null,
+      source: row.source,
+    })),
+    calibrationSuggestions,
   });
 }
 

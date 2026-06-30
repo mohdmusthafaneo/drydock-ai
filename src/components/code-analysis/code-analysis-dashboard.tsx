@@ -22,15 +22,28 @@ import { TrendChart } from "@/components/code-analysis/trend-chart";
 import { AuthorBreakdown, RepoBreakdown } from "@/components/code-analysis/repo-breakdown";
 import { AnalysisTabs } from "@/components/code-analysis/analysis-tabs";
 import { GovernanceSignalsCard } from "@/components/code-analysis/governance-signals";
+import { ComplianceFindingsPanel } from "@/components/governance/compliance-findings-panel";
+import type { ComplianceFindingView } from "@/lib/compliance/types";
 
 type Props = {
   lastSyncedAt: string | null;
   connectedRepos?: string[];
+  complianceFindings?: ComplianceFindingView[];
+  complianceOpenCount?: number;
+  complianceCriticalOpen?: number;
+  showCompliancePanel?: boolean;
 };
 
 type SnapshotSource = "mock" | "github" | "loading";
 
-export function CodeAnalysisDashboard({ lastSyncedAt, connectedRepos }: Props) {
+export function CodeAnalysisDashboard({
+  lastSyncedAt,
+  connectedRepos,
+  complianceFindings = [],
+  complianceOpenCount = 0,
+  complianceCriticalOpen = 0,
+  showCompliancePanel = false,
+}: Props) {
   const allRepos = connectedRepos?.length ? connectedRepos : getAvailableMockRepos();
 
   const [filters, setFilters] = useState<CodeAnalysisFilters>({
@@ -207,6 +220,14 @@ export function CodeAnalysisDashboard({ lastSyncedAt, connectedRepos }: Props) {
       <AiRiskCard aiRisk={snapshot.aiRisk} />
 
       <AccountabilityCard accountability={snapshot.accountability} />
+
+      {showCompliancePanel && (
+        <ComplianceFindingsPanel
+          findings={complianceFindings}
+          openCount={complianceOpenCount}
+          criticalOpen={complianceCriticalOpen}
+        />
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <AttributionChart attribution={snapshot.attribution} />

@@ -1,4 +1,5 @@
 import { Prisma } from "@/generated/prisma/client";
+import { enqueueComplianceEvaluatedWakeups } from "@/lib/agent-control-plane/compliance-wakeups";
 import { loadStoredCodeAnalysisFromDb } from "@/lib/code-analysis/persist";
 import { prisma } from "@/lib/prisma";
 import { invalidateExecutiveBriefingSnapshot } from "@/lib/executive-briefing/invalidate-snapshot";
@@ -231,6 +232,14 @@ async function evaluateComplianceInner(
           newCritical,
         }),
       },
+    });
+
+    void enqueueComplianceEvaluatedWakeups(organizationId, {
+      newCritical,
+      phase,
+      batchKey: `${organizationId}:${phase}`,
+    }).catch((error) => {
+      console.error("[compliance] failed to enqueue agent wakeup", error);
     });
   }
 

@@ -72,6 +72,43 @@ export const aidosAssessReleaseTool = createTool({
   },
 });
 
+export const aidosListComplianceFindingsTool = createTool({
+  id: "aidos_list_compliance_findings",
+  description:
+    "List compliance monitoring findings for the organization. Use to review open policy violations on PRs, commits, and AI code governance before creating remediation recommendations.",
+  inputSchema: z.object({
+    status: z
+      .enum(["open", "resolved"])
+      .optional()
+      .describe("Filter by finding status (default: all statuses)"),
+    severity: z
+      .enum(["critical", "warning", "info"])
+      .optional()
+      .describe("Filter by severity"),
+    projectKey: z
+      .string()
+      .optional()
+      .describe("Filter by Jira project key"),
+    limit: z
+      .number()
+      .optional()
+      .describe("Max findings to return (default 100, max 200)"),
+  }),
+  execute: async (input, context) => {
+    const ctx = getAidosToolContext(context);
+    const params = new URLSearchParams();
+    if (input.status) params.set("status", input.status);
+    if (input.severity) params.set("severity", input.severity);
+    if (input.projectKey) params.set("projectKey", input.projectKey);
+    if (input.limit != null) params.set("limit", String(input.limit));
+    const query = params.toString();
+    return agentJson(
+      ctx,
+      `/api/agents/me/compliance/findings${query ? `?${query}` : ""}`,
+    );
+  },
+});
+
 export const aidosQueryJiraJqlTool = createTool({
   id: "aidos_query_jira_jql",
   description:
@@ -123,6 +160,12 @@ export const aidosCreateRecommendationTool = createTool({
     releaseId: z.string().optional(),
     requiredRole: z.enum(APPROVAL_ROLE_VALUES).optional(),
     createApproval: z.boolean().optional(),
+    idempotencyKey: z
+      .string()
+      .optional()
+      .describe(
+        "Stable key to avoid duplicate recommendations, e.g. compliance finding id",
+      ),
   }),
   execute: async (input, context) => {
     const ctx = getAidosToolContext(context);
@@ -386,6 +429,7 @@ export const aidosTools = {
   aidos_get_me: aidosGetMeTool,
   aidos_get_inbox: aidosGetInboxTool,
   aidos_assess_release: aidosAssessReleaseTool,
+  aidos_list_compliance_findings: aidosListComplianceFindingsTool,
   aidos_query_jira_jql: aidosQueryJiraJqlTool,
   aidos_create_recommendation: aidosCreateRecommendationTool,
   aidos_complete_work_item: aidosCompleteWorkItemTool,

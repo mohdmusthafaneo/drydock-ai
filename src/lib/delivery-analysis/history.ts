@@ -18,7 +18,10 @@ export async function enrichDeliverySnapshot(
   stored: StoredJiraDelivery,
   filters: DeliveryAnalysisFilters,
 ): Promise<DeliveryAnalysisSnapshot> {
-  const snapshot = deliveryAnalysisForFilters(stored, filters);
+  const snapshot = deliveryAnalysisForFilters(stored, filters, {
+    pending: !stored.calibrationGate?.calibrated,
+    message: stored.calibrationGate?.message,
+  });
   const historyRows = await loadDeliveryAnalysisHistory(organizationId, filters.range);
   const trend = buildTrendFromHistory(historyRows, filters.projectKey);
 

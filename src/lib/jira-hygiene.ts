@@ -66,6 +66,23 @@ function ratio(numerator: number, denominator: number): number {
   return numerator / denominator;
 }
 
+function baselineSeverity(
+  ratioValue: number,
+  baselineP50: number | undefined,
+  defaults: { warning: number; critical: number },
+): "warning" | "critical" | null {
+  if (baselineP50 != null && baselineP50 >= 0) {
+    const warningThreshold = Math.max(baselineP50 * 1.35, baselineP50 + 0.08, defaults.warning);
+    const criticalThreshold = Math.max(baselineP50 * 1.75, baselineP50 + 0.18, defaults.critical);
+    if (ratioValue >= criticalThreshold) return "critical";
+    if (ratioValue >= warningThreshold) return "warning";
+    return null;
+  }
+  if (ratioValue >= defaults.critical) return "critical";
+  if (ratioValue >= defaults.warning) return "warning";
+  return null;
+}
+
 function buildHygieneFindings(input: {
   project: ProjectScope;
   mapping?: NonNullable<ToolchainMapping["jira"]>;
@@ -77,43 +94,33 @@ function buildHygieneFindings(input: {
 
   if (project.openIssues > 0) {
     const unassignedRatio = ratio(project.unassignedCount, project.openIssues);
-    if (unassignedRatio > 0.4) {
+    const unassignedSeverity = baselineSeverity(unassignedRatio, mapping?.hygieneBaselines?.unassignedRatioP50, {
+      warning: 0.25,
+      critical: 0.4,
+    });
+    if (unassignedSeverity) {
       findings.push({
         id: "high-unassigned",
         category: "assignment",
         label: "Unassigned work",
         value: `${Math.round(unassignedRatio * 100)}% of open issues have no assignee`,
-        severity: "critical",
-        recommendation: "Assign owners to open issues so delivery signals reflect accountability.",
-      });
-    } else if (unassignedRatio > 0.25) {
-      findings.push({
-        id: "high-unassigned",
-        category: "assignment",
-        label: "Unassigned work",
-        value: `${Math.round(unassignedRatio * 100)}% of open issues have no assignee`,
-        severity: "warning",
+        severity: unassignedSeverity,
         recommendation: "Assign owners to open issues so delivery signals reflect accountability.",
       });
     }
 
     const overdueRatio = ratio(project.overdueCount, project.openIssues);
-    if (overdueRatio > 0.35) {
+    const overdueSeverity = baselineSeverity(overdueRatio, mapping?.hygieneBaselines?.overdueRatioP50, {
+      warning: 0.2,
+      critical: 0.35,
+    });
+    if (overdueSeverity) {
       findings.push({
         id: "high-overdue",
         category: "schedule",
         label: "Overdue backlog",
         value: `${Math.round(overdueRatio * 100)}% of open issues are past due date`,
-        severity: "critical",
-        recommendation: "Update due dates or close stale tickets — overdue ratios inflate schedule risk.",
-      });
-    } else if (overdueRatio > 0.2) {
-      findings.push({
-        id: "high-overdue",
-        category: "schedule",
-        label: "Overdue backlog",
-        value: `${Math.round(overdueRatio * 100)}% of open issues are past due date`,
-        severity: "warning",
+        severity: overdueSeverity,
         recommendation: "Update due dates or close stale tickets — overdue ratios inflate schedule risk.",
       });
     }

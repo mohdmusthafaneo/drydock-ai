@@ -51,7 +51,10 @@ export async function GET(request: Request) {
     compare: "previous_sync",
   };
 
-  const snapshot = deliveryAnalysisForFilters(stored, filters);
+  const snapshot = deliveryAnalysisForFilters(stored, filters, {
+    pending: !stored.calibrationGate?.calibrated,
+    message: stored.calibrationGate?.message,
+  });
   const csv = deliveryAnalysisToCsv(snapshot);
   const suffix = filters.projectKey ?? "all";
 

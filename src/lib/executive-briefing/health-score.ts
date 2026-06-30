@@ -36,6 +36,8 @@ export type HealthScoreInput = {
   observabilityIsDemo?: boolean;
   hasAssessedRelease: boolean;
   jiraHygiene?: PortfolioHygieneSummary | null;
+  jiraCalibrationPending?: boolean;
+  jiraCalibrationMessage?: string;
 };
 
 const DIMENSION_WEIGHTS: Record<HealthDimensionId, number> = {
@@ -241,6 +243,12 @@ export function computeDeliveryHealthScore(input: HealthScoreInput): DeliveryHea
   ];
 
   if (!input.deliverySnapshot) dataGaps.push("Jira not connected");
+  if (input.jiraCalibrationPending) {
+    dataGaps.push(
+      input.jiraCalibrationMessage ??
+        "Jira workflow calibration in progress — scores use discounted confidence",
+    );
+  }
   if (!input.codeSnapshot) dataGaps.push("GitHub activity not synced");
   if (!input.observabilitySnapshot || input.observabilityIsDemo) {
     dataGaps.push("Observability metrics not available");
@@ -291,6 +299,10 @@ export function computeDeliveryHealthScore(input: HealthScoreInput): DeliveryHea
     if (!dataGaps.includes("No assessed release")) {
       dataGaps.push("Release confidence unavailable — score capped");
     }
+  }
+
+  if (input.jiraCalibrationPending) {
+    overall = Math.min(overall, 69);
   }
 
   const band = scoreToBand(overall);

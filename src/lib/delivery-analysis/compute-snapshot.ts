@@ -138,6 +138,8 @@ export function computeDeliveryAnalysisFromJira(input: {
   filters: DeliveryAnalysisFilters;
   mapping?: ToolchainMapping;
   jiraHygiene?: PortfolioJiraHygiene;
+  calibrationPending?: boolean;
+  calibrationMessage?: string;
 }): DeliveryAnalysisSnapshot {
   const hygieneBlock =
     input.jiraHygiene ??
@@ -180,6 +182,8 @@ export function computeDeliveryAnalysisFromJira(input: {
       : undefined,
     mapping: input.mapping,
     jiraSnapshot: input.jiraSnapshot,
+    calibrationPending: input.calibrationPending,
+    calibrationMessage: input.calibrationMessage,
   });
 }
 
@@ -189,6 +193,7 @@ export function snapshotForFilters(
   filters: DeliveryAnalysisFilters,
   mapping?: ToolchainMapping,
   jiraHygiene?: PortfolioJiraHygiene,
+  calibration?: { pending: boolean; message?: string },
 ): DeliveryAnalysisSnapshot {
   return computeDeliveryAnalysisFromJira({
     jiraSnapshot,
@@ -196,6 +201,8 @@ export function snapshotForFilters(
     filters,
     mapping,
     jiraHygiene,
+    calibrationPending: calibration?.pending,
+    calibrationMessage: calibration?.message,
   });
 }
 
@@ -212,6 +219,8 @@ export function computeDeliveryAnalysisSnapshot(input: {
   jiraHygiene?: DeliveryAnalysisSnapshot["jiraHygiene"];
   mapping?: ToolchainMapping;
   jiraSnapshot?: JiraDeliverySnapshot;
+  calibrationPending?: boolean;
+  calibrationMessage?: string;
 }): DeliveryAnalysisSnapshot {
   const {
     projects,
@@ -226,6 +235,8 @@ export function computeDeliveryAnalysisSnapshot(input: {
     jiraHygiene,
     mapping,
     jiraSnapshot,
+    calibrationPending,
+    calibrationMessage,
   } = input;
 
   const openWork = projects.reduce((n, p) => n + p.openIssues, 0);
@@ -238,11 +249,12 @@ export function computeDeliveryAnalysisSnapshot(input: {
   const hasThroughput = projects.some((p) => p.resolvedLast7d != null);
   const otherOpen = Math.max(0, openWork - blocked - overdue);
 
-  const healthScore =
+  const healthScoreRaw =
     portfolioHealthScore ??
     (projects.length > 0
       ? Math.round(projects.reduce((n, p) => n + p.healthScore, 0) / projects.length)
       : 0);
+  const healthScore = calibrationPending ? Math.min(healthScoreRaw, 69) : healthScoreRaw;
 
   const sprintRows: DeliveryAnalysisSprintRow[] = projects
     .filter((p) => p.sprint)
@@ -304,6 +316,8 @@ export function computeDeliveryAnalysisSnapshot(input: {
       bugsOpen,
       sprintCompletionPct,
       resolvedLast7d: hasThroughput ? resolvedLast7d : undefined,
+      calibrationPending,
+      calibrationMessage,
     },
     riskMix: { blocked, overdue, bugs: bugsOpen, otherOpen },
     trend,

@@ -7,6 +7,9 @@ import { CodeAnalysisDashboard } from "@/components/code-analysis/code-analysis-
 import { ConnectGitHubEmpty } from "@/components/code-analysis/connect-github-empty";
 import { getAvailableMockRepos } from "@/lib/code-analysis/mock-data";
 import { resolveStoredCodeAnalysis } from "@/lib/code-analysis/sync";
+import { loadComplianceFindings } from "@/lib/compliance/load-findings";
+import { loadComplianceFindingSummary } from "@/lib/compliance/summary";
+import { hasPermission } from "@/lib/rbac";
 
 export default async function CodeAnalysisPage() {
   const session = await getSession();
@@ -35,6 +38,14 @@ export default async function CodeAnalysisPage() {
   const lastAnalyzedAt =
     storedAnalysis?.syncedAt ?? github?.lastSyncAt?.toISOString() ?? null;
 
+  const canViewCompliance = hasPermission(session, "compliance", "view");
+  const [complianceFindings, complianceSummary] = canViewCompliance
+    ? await Promise.all([
+        loadComplianceFindings(session.organizationId, { status: "open", limit: 50 }),
+        loadComplianceFindingSummary(session.organizationId),
+      ])
+    : [[], { openCount: 0, criticalOpen: 0, warningOpen: 0, infoOpen: 0, lastEvaluatedAt: null }];
+
   return (
     <div className="w-full space-y-8 pb-24 lg:pb-8">
       <PageHeader
@@ -48,6 +59,10 @@ export default async function CodeAnalysisPage() {
         <CodeAnalysisDashboard
           lastSyncedAt={lastAnalyzedAt}
           connectedRepos={repoNames}
+          complianceFindings={complianceFindings}
+          complianceOpenCount={complianceSummary.openCount}
+          complianceCriticalOpen={complianceSummary.criticalOpen}
+          showCompliancePanel={canViewCompliance}
         />
       )}
     </div>
