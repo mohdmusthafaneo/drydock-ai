@@ -129,6 +129,7 @@ model Organization {
   agentWakeupRequests AgentWakeupRequest[]
   agentHeartbeatRuns AgentHeartbeatRun[]
   incidents          Incident[]
+  incidentCodeLinks  IncidentCodeLink[]
   telemetryMetrics   TelemetryMetric[]
   telemetryEvents    TelemetryEvent[]
   deploymentEvents   DeploymentEvent[]
@@ -260,6 +261,8 @@ model DeploymentEvent {
   rollbackReason      String?
   durationMs          Int?
   notes               String?
+  mergeCommitSha      String?
+  pullRequestNumber   Int?
   deployedAt          DateTime         @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -501,9 +504,27 @@ model Incident {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   release      Release?     @relation(fields: [releaseId], references: [id], onDelete: SetNull)
+  codeLinks    IncidentCodeLink[]
 
   @@index([organizationId])
   @@index([correlationId])
+}
+
+model IncidentCodeLink {
+  id                    String   @id @default(cuid())
+  organizationId        String
+  incidentId            String
+  pullRequestExternalId String?
+  commitSha             String?
+  confidence            Float    @default(0.5)
+  reason                String
+  peopleJson            String   @default("[]")
+  createdAt             DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  incident     Incident     @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, incidentId])
 }
 
 enum ReleaseEnvironment {
@@ -841,6 +862,8 @@ model CodeAnalysisPullRequest {
   attribution    String
   confidence     Int      @default(0)
   reviewCount    Int      @default(0)
+  reviewersJson  String   @default("[]")
+  filesJson      String   @default("[]")
   toolsJson      String   @default("[]")
   jiraKeysJson   String   @default("[]")
   diffExcerpt    String?

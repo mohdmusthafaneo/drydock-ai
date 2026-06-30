@@ -4,6 +4,7 @@ import {
   correlateIncidentFromTelemetry,
 } from "@/lib/operational-intelligence";
 import { analyzeDeployment, buildRemediationRecommendation } from "@/lib/devops-intelligence";
+import { resolveDeployAnchor } from "@/lib/incident-code-correlation";
 import {
   comparePostDeploy,
   parseAssessmentSnapshot,
@@ -63,6 +64,11 @@ export async function ingestTelemetryForOrganization(input: {
         })
       : null;
 
+    const deployAnchor = await resolveDeployAnchor({
+      organizationId: input.organizationId,
+      releaseId: release.id,
+    });
+
     deploymentEvent = await prisma.deploymentEvent.create({
       data: {
         organizationId: input.organizationId,
@@ -74,6 +80,8 @@ export async function ingestTelemetryForOrganization(input: {
         rollbackReason: analysis.rollbackReason,
         durationMs: analysis.durationMs,
         notes: postDeployComparison?.summary ?? analysis.notes,
+        mergeCommitSha: deployAnchor.mergeCommitSha,
+        pullRequestNumber: deployAnchor.pullRequestNumber,
       },
     });
 

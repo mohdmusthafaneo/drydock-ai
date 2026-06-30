@@ -30,6 +30,14 @@ function parseStringArrayJson(json: string): string[] {
   }
 }
 
+function parseFilesJson(json: string): CodeAnalysisPullRequest["files"] {
+  try {
+    return JSON.parse(json) as NonNullable<CodeAnalysisPullRequest["files"]>;
+  } catch {
+    return [];
+  }
+}
+
 function rowToCommit(row: {
   sha: string;
   message: string;
@@ -77,6 +85,8 @@ function rowToPullRequest(row: {
   attribution: string;
   confidence: number;
   reviewCount: number;
+  reviewersJson: string;
+  filesJson: string;
   toolsJson: string;
   jiraKeysJson: string;
   diffExcerpt: string | null;
@@ -99,6 +109,8 @@ function rowToPullRequest(row: {
     attribution: row.attribution as CodeAnalysisPullRequest["attribution"],
     confidence: row.confidence,
     reviewCount: row.reviewCount,
+    reviewers: parseStringArrayJson(row.reviewersJson),
+    files: parseFilesJson(row.filesJson),
     tools: parseStringArrayJson(row.toolsJson),
     jiraKeys: parseStringArrayJson(row.jiraKeysJson),
     diffExcerpt: row.diffExcerpt ?? undefined,
@@ -275,6 +287,8 @@ async function persistCodeAnalysisToDbInner(input: {
           attribution: pr.attribution,
           confidence: pr.confidence,
           reviewCount: pr.reviewCount,
+          reviewersJson: JSON.stringify(pr.reviewers ?? []),
+          filesJson: JSON.stringify(pr.files ?? []),
           toolsJson: JSON.stringify(pr.tools),
           jiraKeysJson: JSON.stringify(pr.jiraKeys ?? []),
           diffExcerpt: pr.diffExcerpt ?? null,
@@ -290,6 +304,8 @@ async function persistCodeAnalysisToDbInner(input: {
           attribution: pr.attribution,
           confidence: pr.confidence,
           reviewCount: pr.reviewCount,
+          reviewersJson: JSON.stringify(pr.reviewers ?? []),
+          filesJson: JSON.stringify(pr.files ?? []),
           toolsJson: JSON.stringify(pr.tools),
           jiraKeysJson: JSON.stringify(pr.jiraKeys ?? []),
           diffExcerpt: pr.diffExcerpt ?? null,

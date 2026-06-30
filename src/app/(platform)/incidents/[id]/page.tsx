@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { IncidentRemediationForm } from "@/components/incidents/incident-remediation-form";
+import { IncidentRelatedChanges } from "@/components/incidents/incident-related-changes";
+import { correlateIncidentCodeChanges } from "@/lib/incident-code-correlation";
 
 const DEVOPS_ROLES = new Set(["ORG_ADMIN", "DEVOPS_LEAD", "ENGINEERING_MANAGER", "DELIVERY_MANAGER"]);
 
@@ -24,6 +26,11 @@ export default async function IncidentDetailPage({
   });
 
   if (!incident) notFound();
+
+  const relatedChanges = await correlateIncidentCodeChanges({
+    organizationId: session.organizationId,
+    incidentId: incident.id,
+  });
 
   const services = JSON.parse(incident.affectedServicesJson || "[]") as string[];
   const canRemediate = DEVOPS_ROLES.has(session.role);
@@ -87,6 +94,8 @@ export default async function IncidentDetailPage({
           <p className="text-muted">Detected {incident.detectedAt.toLocaleString()}</p>
         </CardContent>
       </Card>
+
+      <IncidentRelatedChanges links={relatedChanges} />
 
       {canRemediate ? (
         <Card>

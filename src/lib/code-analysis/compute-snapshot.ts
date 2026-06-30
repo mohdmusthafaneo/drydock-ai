@@ -24,13 +24,17 @@ function isAiAttribution(a: AiAttribution): boolean {
   return a === "ai_assisted" || a === "ai_generated";
 }
 
+function hasNamedReviewer(pr: CodeAnalysisPullRequest): boolean {
+  return (pr.reviewers?.length ?? 0) > 0 || pr.reviewCount > 0;
+}
+
 function buildAiRisk(
   prs: CodeAnalysisPullRequest[],
   kpis: CodeAnalysisSnapshot["kpis"],
 ): CodeAnalysisSnapshot["aiRisk"] {
   const highRiskCount = prs.filter((p) => p.riskLevel === "high").length;
   const unreviewedAiPrs = prs.filter(
-    (p) => isAiAttribution(p.attribution) && p.reviewCount === 0,
+    (p) => isAiAttribution(p.attribution) && !hasNamedReviewer(p),
   ).length;
   const unlinkedAiPrs = prs.filter(
     (p) => isAiAttribution(p.attribution) && (p.jiraKeys?.length ?? 0) === 0,
@@ -204,29 +208,120 @@ function buildTrend(
     }));
 }
 
-function buildFiles(commits: CodeAnalysisCommit[], repos: string[]): CodeAnalysisSnapshot["files"] {
+function computeMaintenanceCost(v: {
+  changes: number;
+  ai: number;
+  total: number;
+  aiTouches: number;
+  unreviewedAiTouches: number;
+}): number {
+  const aiPct = v.total > 0 ? v.ai / v.total : 0;
+  const unreviewedRatio =
+    v.aiTouches > 0 ? v.unreviewedAiTouches / v.aiTouches : 0;
+  return Math.round(v.changes * (0.3 + aiPct * 0.5 + unreviewedRatio * 0.2) * 10) / 10;
+}
+
+function buildAccountability(
+  prs: CodeAnalysisPullRequest[],
+  files: CodeAnalysisSnapshot["files"],
+): CodeAnalysisSnapshot["accountability"] {
+  const highRiskPrsWithoutReviewer = prs.filter(
+    (p) =>
+      isAiAttribution(p.attribution) &&
+      (p.riskLevel === "high" || p.riskLevel === "medium") &&
+      !hasNamedReviewer(p),
+  ).length;
+  const unnamedReviewerAiPrs = prs.filter(
+    (p) => isAiAttribution(p.attribution) && (p.reviewers?.length ?? 0) === 0,
+  ).length;
+  const unownedHighCostPaths = files.filter(
+    (f) =>
+      f.maintenanceCost >= 8 &&
+      (f.topContributors.length === 0 || f.topContributors.length > 2),
+  ).length;
+
+  return {
+    highRiskPrsWithoutReviewer,
+    unownedHighCostPaths,
+    unnamedReviewerAiPrs,
+  };
+}
+
+function buildFiles(
+  commits: CodeAnalysisCommit[],
+  prs: CodeAnalysisPullRequest[],
+  repos: string[],
+): CodeAnalysisSnapshot["files"] {
   const byPath = new Map<
     string,
-    { repo: string; changes: number; ai: number; total: number; authors: Set<string> }
+    {
+      repo: string;
+      changes: number;
+      ai: number;
+      total: number;
+      authors: Set<string>;
+      reviewers: Set<string>;
+      aiTouches: number;
+      unreviewedAiTouches: number;
+    }
   >();
 
-  for (const c of commits) {
-    for (const signal of c.signals) {
-      const match = signal.match(/^File:\s*(.+)$/);
-      if (!match) continue;
-      const path = match[1];
-      const cur = byPath.get(path) ?? {
-        repo: c.repo,
+  for (const pr of prs) {
+    const prFiles = pr.files ?? [];
+    const isAi = isAiAttribution(pr.attribution);
+    const noReviewer = !hasNamedReviewer(pr);
+
+    for (const file of prFiles) {
+      const cur = byPath.get(file.path) ?? {
+        repo: pr.repo,
         changes: 0,
         ai: 0,
         total: 0,
         authors: new Set<string>(),
+        reviewers: new Set<string>(),
+        aiTouches: 0,
+        unreviewedAiTouches: 0,
       };
       cur.changes += 1;
-      cur.total += c.additions;
-      if (isAiAttribution(c.attribution)) cur.ai += c.additions;
-      cur.authors.add(c.author);
-      byPath.set(path, cur);
+      cur.total += file.additions;
+      if (isAi) {
+        cur.ai += file.additions;
+        cur.aiTouches += 1;
+        if (noReviewer) cur.unreviewedAiTouches += 1;
+      }
+      cur.authors.add(pr.author);
+      for (const reviewer of pr.reviewers ?? []) {
+        cur.reviewers.add(reviewer);
+      }
+      byPath.set(file.path, cur);
+    }
+  }
+
+  if (byPath.size === 0) {
+    for (const c of commits) {
+      for (const signal of c.signals) {
+        const match = signal.match(/^File:\s*(.+)$/);
+        if (!match) continue;
+        const path = match[1];
+        const cur = byPath.get(path) ?? {
+          repo: c.repo,
+          changes: 0,
+          ai: 0,
+          total: 0,
+          authors: new Set<string>(),
+          reviewers: new Set<string>(),
+          aiTouches: 0,
+          unreviewedAiTouches: 0,
+        };
+        cur.changes += 1;
+        cur.total += c.additions;
+        if (isAiAttribution(c.attribution)) {
+          cur.ai += c.additions;
+          cur.aiTouches += 1;
+        }
+        cur.authors.add(c.author);
+        byPath.set(path, cur);
+      }
     }
   }
 
@@ -237,9 +332,11 @@ function buildFiles(commits: CodeAnalysisCommit[], repos: string[]): CodeAnalysi
       changeCount: v.changes,
       aiLinesPct: pct(v.ai, v.total),
       topContributors: [...v.authors].slice(0, 3),
+      reviewers: [...v.reviewers].slice(0, 3),
+      maintenanceCost: computeMaintenanceCost(v),
     }))
     .filter((f) => repos.includes(f.repo))
-    .sort((a, b) => b.changeCount - a.changeCount)
+    .sort((a, b) => b.maintenanceCost - a.maintenanceCost || b.changeCount - a.changeCount)
     .slice(0, 12);
 }
 
@@ -252,12 +349,16 @@ function buildGovernanceSignals(
   const signals: CodeAnalysisSnapshot["governanceSignals"] = [];
 
   for (const pr of prs) {
-    if (isAiAttribution(pr.attribution) && pr.reviewCount === 0) {
+    if (isAiAttribution(pr.attribution) && !hasNamedReviewer(pr)) {
+      const reviewerGap =
+        (pr.reviewers?.length ?? 0) === 0
+          ? "no named approver"
+          : "insufficient review coverage";
       signals.push({
         id: `sig-${pr.id}`,
         severity: pr.attribution === "ai_generated" ? "error" : "warning",
         title: "High-AI PR merged without review",
-        description: `PR #${pr.number} had ${pr.confidence}% AI confidence and zero approvals before merge.`,
+        description: `PR #${pr.number} had ${pr.confidence}% AI confidence with ${reviewerGap} before merge.`,
         entityLabel: `#${pr.number} · ${pr.title}`,
         entityUrl: pr.url,
         repo: pr.repo,
@@ -446,6 +547,8 @@ export function computeCodeAnalysisSnapshot(input: {
     kpis = applyKpiDeltas(kpis, priorKpis);
   }
 
+  const files = buildFiles(commits, prs, repos);
+
   return {
     generatedAt: new Date().toISOString(),
     rangeLabel: RANGE_LABELS[range],
@@ -470,10 +573,11 @@ export function computeCodeAnalysisSnapshot(input: {
       .slice(0, 8),
     pullRequests: prs,
     commits,
-    files: buildFiles(commits, repos),
+    files,
     tools: [...toolMap.values()].sort((a, b) => b.linesAttributed - a.linesAttributed),
     governanceSignals: buildGovernanceSignals(prs, commits, repos, kpis.aiLinesPct),
     aiRisk: buildAiRisk(prs, kpis),
+    accountability: buildAccountability(prs, files),
   };
 }
 

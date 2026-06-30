@@ -8,6 +8,7 @@ import {
   scoreCompletionWithLlm,
 } from "@/lib/code-analysis/scoring";
 import { isLlmAvailable } from "@/lib/code-analysis/enrich-config";
+import type { CodeAnalysisPullRequest } from "@/lib/code-analysis/types";
 
 export type EnrichCodeAnalysisResult =
   | { status: "enriched"; scored: number }
@@ -134,6 +135,10 @@ export async function enrichCodeAnalysisForOrg(
       attribution: row.attribution as "human_only" | "ai_assisted" | "ai_generated" | "unknown",
       confidence: row.confidence,
       reviewCount: row.reviewCount,
+      reviewers: JSON.parse(row.reviewersJson || "[]") as string[],
+      files: JSON.parse(row.filesJson || "[]") as NonNullable<
+        CodeAnalysisPullRequest["files"]
+      >,
       tools: JSON.parse(row.toolsJson || "[]") as string[],
       jiraKeys,
       diffExcerpt: diffExcerpt || undefined,

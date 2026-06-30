@@ -14,6 +14,12 @@ export type CodeAnalysisKpis = {
   reviewCoverageOnAiPrsPct: number;
 };
 
+export type CodeAnalysisPullRequestFile = {
+  path: string;
+  additions: number;
+  deletions: number;
+};
+
 export type CodeAnalysisPullRequest = {
   id: string;
   number: number;
@@ -27,6 +33,8 @@ export type CodeAnalysisPullRequest = {
   attribution: AiAttribution;
   confidence: number;
   reviewCount: number;
+  reviewers: string[];
+  files?: CodeAnalysisPullRequestFile[];
   tools: string[];
   jiraKeys: string[];
   diffExcerpt?: string;
@@ -61,6 +69,8 @@ export type CodeAnalysisFile = {
   changeCount: number;
   aiLinesPct: number;
   topContributors: string[];
+  reviewers: string[];
+  maintenanceCost: number;
 };
 
 export type CodeAnalysisTool = {
@@ -104,6 +114,12 @@ export type CodeAnalysisAiRisk = {
   avgCompletionScore: number | null;
 };
 
+export type CodeAnalysisAccountability = {
+  highRiskPrsWithoutReviewer: number;
+  unownedHighCostPaths: number;
+  unnamedReviewerAiPrs: number;
+};
+
 export type CodeAnalysisSnapshot = {
   generatedAt: string;
   rangeLabel: string;
@@ -119,6 +135,7 @@ export type CodeAnalysisSnapshot = {
   tools: CodeAnalysisTool[];
   governanceSignals: GovernanceSignal[];
   aiRisk: CodeAnalysisAiRisk;
+  accountability: CodeAnalysisAccountability;
 };
 
 export type CodeAnalysisFilters = {

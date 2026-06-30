@@ -527,6 +527,63 @@ function buildAiCodeRiskClaim(
   };
 }
 
+function buildAccountabilityClaim(
+  accountability: NonNullable<CodeAnalysisSnapshot["accountability"]>,
+): BriefingClaim {
+  const hasGaps =
+    accountability.highRiskPrsWithoutReviewer > 0 ||
+    accountability.unownedHighCostPaths > 0 ||
+    accountability.unnamedReviewerAiPrs > 0;
+
+  if (hasGaps) {
+    const contextParts: string[] = [];
+    if (accountability.highRiskPrsWithoutReviewer > 0) {
+      contextParts.push(
+        `${accountability.highRiskPrsWithoutReviewer} high-risk AI PR${accountability.highRiskPrsWithoutReviewer === 1 ? "" : "s"} merged with no named reviewer`,
+      );
+    }
+    if (accountability.unownedHighCostPaths > 0) {
+      contextParts.push(
+        `${accountability.unownedHighCostPaths} hot path${accountability.unownedHighCostPaths === 1 ? "" : "s"} with no clear owner`,
+      );
+    }
+    if (accountability.unnamedReviewerAiPrs > 0) {
+      contextParts.push(
+        `${accountability.unnamedReviewerAiPrs} AI PR${accountability.unnamedReviewerAiPrs === 1 ? "" : "s"} missing named approver`,
+      );
+    }
+
+    const verdict: BriefingClaimVerdict =
+      accountability.highRiskPrsWithoutReviewer > 0 ? "risk" : "attention";
+
+    return {
+      id: "code-accountability",
+      headline: "Code accountability",
+      metric: String(
+        accountability.highRiskPrsWithoutReviewer ||
+          accountability.unnamedReviewerAiPrs ||
+          accountability.unownedHighCostPaths,
+      ),
+      metricLabel: "Ownership gaps",
+      verdict,
+      verdictLabel: verdict === "risk" ? "Review gaps" : "Ownership gaps",
+      context: capitalizeFirst(contextParts.join(" · ")),
+      href: "/code-analysis",
+    };
+  }
+
+  return {
+    id: "code-accountability",
+    headline: "Code accountability",
+    metric: "0",
+    metricLabel: "Ownership gaps",
+    verdict: "good",
+    verdictLabel: "Attributed",
+    context: "AI changes have named reviewers and file owners in this period",
+    href: "/code-analysis",
+  };
+}
+
 /** Keep AI code risk visible on the executive dashboard even when other claims fill the grid. */
 function finalizeBriefingClaims(claims: BriefingClaim[]): BriefingClaim[] {
   const aiClaim = claims.find((c) => c.id === "ai-code-risk");
@@ -600,6 +657,10 @@ function buildClaims(input: ComposeBriefingInput, health: ExecutiveBriefing["hea
 
   if (input.codeSnapshot?.aiRisk) {
     claims.push(buildAiCodeRiskClaim(input.codeSnapshot.aiRisk));
+  }
+
+  if (input.codeSnapshot?.accountability) {
+    claims.push(buildAccountabilityClaim(input.codeSnapshot.accountability));
   }
 
   const stabilityDim = health.dimensions.find((d) => d.id === "stability");

@@ -19,6 +19,7 @@ import {
   type GitHubIntegrationMeta,
 } from "@/lib/integration-meta";
 import { classifyCommit, classifyPullRequest } from "@/lib/code-analysis/classifier";
+import { collectReviewers, countApprovals } from "@/lib/code-analysis/collect-reviewers";
 import {
   buildDiffExcerpt,
   extractJiraKeysFromTexts,
@@ -70,10 +71,6 @@ export function snapshotForFilters(
 
 function sinceIso(days: number): string {
   return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
-}
-
-function countApprovals(reviews: { state: string }[]): number {
-  return reviews.filter((r) => r.state === "APPROVED").length;
 }
 
 function resolveAnalysisBranch(
@@ -196,6 +193,12 @@ async function fetchRepoAnalysis(
         attribution: classified.attribution,
         confidence: classified.confidence,
         reviewCount: countApprovals(reviews),
+        reviewers: collectReviewers(reviews),
+        files: files.map((f) => ({
+          path: f.filename,
+          additions: f.additions,
+          deletions: f.deletions,
+        })),
         tools: classified.tools,
         jiraKeys,
         diffExcerpt: diffExcerpt || undefined,

@@ -242,6 +242,12 @@ export function AnalysisTabs({
                               {pr.completionRationale ? ` — ${pr.completionRationale}` : ""}
                             </p>
                           )}
+                          <p className="mt-1">
+                            Reviewed by:{" "}
+                            {(pr.reviewers?.length ?? 0) > 0
+                              ? pr.reviewers.map((r) => `@${r}`).join(", ")
+                              : "No named approver"}
+                          </p>
                           <p className="mt-1 text-muted">
                             Estimated from commit messages, co-author trailers, and change patterns.
                             Not all tools leave markers.
@@ -345,7 +351,9 @@ export function AnalysisTabs({
                   <th className="pb-2 font-medium">Repo</th>
                   <th className="pb-2 font-medium">Changes</th>
                   <th className="pb-2 text-right font-medium">AI lines</th>
-                  <th className="pb-2 font-medium">Contributors</th>
+                  <th className="pb-2 font-medium">Owner</th>
+                  <th className="pb-2 font-medium">Reviewers</th>
+                  <th className="pb-2 text-right font-medium">Cost</th>
                 </tr>
               </thead>
               <tbody>
@@ -359,7 +367,23 @@ export function AnalysisTabs({
                         {f.aiLinesPct}%
                       </span>
                     </td>
-                    <td className="py-2 text-xs text-muted">{f.topContributors.join(", ")}</td>
+                    <td className="py-2 text-xs text-muted">
+                      {f.topContributors[0] ?? "—"}
+                    </td>
+                    <td className="py-2 text-xs text-muted">
+                      {f.reviewers.length > 0 ? f.reviewers.join(", ") : "—"}
+                    </td>
+                    <td className="py-2 text-right tabular-nums">
+                      <span
+                        className={
+                          f.maintenanceCost >= 8 && f.aiLinesPct >= 50
+                            ? "font-medium text-rust"
+                            : "text-secondary"
+                        }
+                      >
+                        {f.maintenanceCost}
+                      </span>
+                    </td>
                   </tr>
                 ))}
               </tbody>

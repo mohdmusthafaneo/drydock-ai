@@ -305,6 +305,11 @@ describe("composeExecutiveBriefing", () => {
           unlinkedAiPrs: 0,
           avgCompletionScore: null,
         },
+        accountability: {
+          highRiskPrsWithoutReviewer: 0,
+          unownedHighCostPaths: 0,
+          unnamedReviewerAiPrs: 0,
+        },
       },
     });
 
@@ -341,5 +346,61 @@ describe("composeExecutiveBriefing", () => {
     assert.ok(briefing.insight);
     assert.match(briefing.insight!.message, /PROJ/i);
     assert.equal(briefing.insight!.href, "/delivery-analysis");
+  });
+
+  it("surfaces code accountability claim when ownership gaps exist", () => {
+    const briefing = composeExecutiveBriefing({
+      orgName: "Acme Corp",
+      stats: baseStats,
+      hasAssessedRelease: false,
+      connectedTools: 3,
+      integrationFreshness: {},
+      codeSnapshot: {
+        generatedAt: new Date().toISOString(),
+        rangeLabel: "Last 30 days",
+        repos: ["acme/app"],
+        kpis: {
+          aiLinesPct: 40,
+          aiLinesPctDelta: 0,
+          aiCommitsPct: 30,
+          aiCommitsPctDelta: 0,
+          aiPrsPct: 25,
+          aiPrsPctDelta: 0,
+          reviewCoverageOnAiPrsPct: 40,
+        },
+        attribution: {
+          human_only: { count: 2, lines: 100 },
+          ai_assisted: { count: 3, lines: 200 },
+          ai_generated: { count: 1, lines: 150 },
+          unknown: { count: 0, lines: 0 },
+        },
+        trend: [],
+        byRepo: [],
+        byAuthor: [],
+        pullRequests: [],
+        commits: [],
+        files: [],
+        tools: [],
+        governanceSignals: [],
+        aiRisk: {
+          aiLinesPct: 40,
+          highRiskCount: 2,
+          unreviewedAiPrs: 3,
+          unlinkedAiPrs: 1,
+          avgCompletionScore: 55,
+        },
+        accountability: {
+          highRiskPrsWithoutReviewer: 3,
+          unownedHighCostPaths: 2,
+          unnamedReviewerAiPrs: 3,
+        },
+      },
+    });
+
+    const claim = briefing.claims.find((c) => c.id === "code-accountability");
+    assert.ok(claim);
+    assert.equal(claim!.verdict, "risk");
+    assert.match(claim!.context, /high-risk AI PR/i);
+    assert.match(claim!.context, /hot path/i);
   });
 });

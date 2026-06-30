@@ -20,6 +20,7 @@ const basePr: CodeAnalysisPullRequest = {
   attribution: "ai_generated",
   confidence: 90,
   reviewCount: 0,
+  reviewers: [],
   tools: ["Cursor"],
   jiraKeys: [],
 };

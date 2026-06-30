@@ -15,6 +15,7 @@ import { AnalysisFiltersBar } from "@/components/code-analysis/analysis-filters"
 import { buildCodeAnalysisGovernanceHighlights } from "@/lib/governance/presentation";
 import { BriefingHighlights } from "@/components/executive-briefing/briefing-highlights";
 import { AiRiskCard } from "@/components/code-analysis/ai-risk-card";
+import { AccountabilityCard } from "@/components/code-analysis/accountability-card";
 import { KpiStrip } from "@/components/code-analysis/kpi-strip";
 import { AttributionChart } from "@/components/code-analysis/attribution-chart";
 import { TrendChart } from "@/components/code-analysis/trend-chart";
@@ -204,6 +205,8 @@ export function CodeAnalysisDashboard({ lastSyncedAt, connectedRepos }: Props) {
       <KpiStrip kpis={snapshot.kpis} />
 
       <AiRiskCard aiRisk={snapshot.aiRisk} />
+
+      <AccountabilityCard accountability={snapshot.accountability} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <AttributionChart attribution={snapshot.attribution} />
