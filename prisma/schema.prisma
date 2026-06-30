@@ -141,6 +141,8 @@ model Organization {
   codeAnalysisPullRequests CodeAnalysisPullRequest[]
   integrationConnectInvites IntegrationConnectInvite[]
   deliveryAnalysisSnapshots DeliveryAnalysisSnapshot[]
+  complianceRuleStates     ComplianceRuleState[]
+  complianceFindings       ComplianceFinding[]
   agentChatThreads         AgentChatThread[]
   agentChatParticipants    AgentChatParticipant[]
   agentChatMessages        AgentChatMessage[]
@@ -248,6 +250,51 @@ model GovernancePolicy {
   updatedAt             DateTime @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+/// Per-org (and optional per-project) enable/threshold overrides for seeded compliance rules.
+model ComplianceRuleState {
+  id             String   @id @default(cuid())
+  organizationId String
+  ruleKey        String
+  projectKey     String?
+  enabled        Boolean  @default(true)
+  thresholdsJson String   @default("{}")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, ruleKey, projectKey])
+  @@index([organizationId])
+}
+
+/// Durable compliance findings from continuous rule evaluation.
+model ComplianceFinding {
+  id               String   @id @default(cuid())
+  organizationId   String
+  ruleKey          String
+  dedupKey         String
+  severity         String
+  status           String   @default("open")
+  targetType       String
+  targetExternalId String
+  projectKey       String?
+  title            String
+  detailJson       String   @default("{}")
+  entityLabel      String?
+  entityUrl        String?
+  repo             String?
+  firstSeenAt      DateTime @default(now())
+  lastSeenAt       DateTime @default(now())
+  resolvedAt       DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, dedupKey])
+  @@index([organizationId, status])
+  @@index([organizationId, severity])
+  @@index([organizationId, ruleKey])
 }
 
 model DeploymentEvent {

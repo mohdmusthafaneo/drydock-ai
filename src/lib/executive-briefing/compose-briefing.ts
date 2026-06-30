@@ -11,10 +11,12 @@ import type {
 import type { HealthScoreInput } from "@/lib/executive-briefing/health-score";
 import type { DeliveryAnalysisSnapshot } from "@/lib/delivery-analysis/types";
 import type { CodeAnalysisSnapshot } from "@/lib/code-analysis/types";
+import type { ComplianceFindingSummary } from "@/lib/compliance/types";
 
 export type ComposeBriefingInput = HealthScoreInput & {
   orgName: string;
   assessmentSummary?: string | null;
+  complianceSummary?: ComplianceFindingSummary | null;
   integrationFreshness: {
     jiraSyncedAt?: string | null;
     githubSyncedAt?: string | null;
@@ -584,6 +586,47 @@ function buildAccountabilityClaim(
   };
 }
 
+function buildComplianceClaim(
+  summary: ComplianceFindingSummary,
+): BriefingClaim {
+  if (summary.criticalOpen > 0) {
+    return {
+      id: "compliance-monitoring",
+      headline: "Compliance monitoring",
+      metric: String(summary.criticalOpen),
+      metricLabel: "Critical findings",
+      verdict: "risk",
+      verdictLabel: "Compliance drift",
+      context: `${summary.criticalOpen} critical finding${summary.criticalOpen === 1 ? "" : "s"} open · ${summary.openCount} total open compliance issue${summary.openCount === 1 ? "" : "s"}`,
+      href: "/governance",
+    };
+  }
+
+  if (summary.openCount > 0) {
+    return {
+      id: "compliance-monitoring",
+      headline: "Compliance monitoring",
+      metric: String(summary.openCount),
+      metricLabel: "Open findings",
+      verdict: "attention",
+      verdictLabel: "Review findings",
+      context: `${summary.warningOpen} warning${summary.warningOpen === 1 ? "" : "s"} and ${summary.infoOpen} informational finding${summary.infoOpen === 1 ? "" : "s"} need review`,
+      href: "/governance",
+    };
+  }
+
+  return {
+    id: "compliance-monitoring",
+    headline: "Compliance monitoring",
+    metric: "0",
+    metricLabel: "Open findings",
+    verdict: "good",
+    verdictLabel: "Compliant",
+    context: "No open compliance findings in the current monitoring window",
+    href: "/governance",
+  };
+}
+
 /** Keep AI code risk visible on the executive dashboard even when other claims fill the grid. */
 function finalizeBriefingClaims(claims: BriefingClaim[]): BriefingClaim[] {
   const aiClaim = claims.find((c) => c.id === "ai-code-risk");
@@ -661,6 +704,10 @@ function buildClaims(input: ComposeBriefingInput, health: ExecutiveBriefing["hea
 
   if (input.codeSnapshot?.accountability) {
     claims.push(buildAccountabilityClaim(input.codeSnapshot.accountability));
+  }
+
+  if (input.complianceSummary) {
+    claims.push(buildComplianceClaim(input.complianceSummary));
   }
 
   const stabilityDim = health.dimensions.find((d) => d.id === "stability");

@@ -6,6 +6,7 @@ import { composeExecutiveBriefing } from "@/lib/executive-briefing/compose-brief
 import type { BriefingCharts, ExecutiveBriefing } from "@/lib/executive-briefing/types";
 import { mergeExecutiveBriefingSnapshot } from "@/lib/executive-briefing/snapshot-utils";
 import { summarizePortfolioHygiene } from "@/lib/jira-hygiene";
+import { loadComplianceFindingSummary } from "@/lib/compliance/summary";
 import { isPrometheusTrulyConnected, parsePrometheusMeta } from "@/lib/prometheus-meta";
 import { isGrafanaTrulyConnected, parseGrafanaMeta } from "@/lib/grafana-meta";
 import type { ObservabilityAnalysisSnapshot } from "@/lib/observability-analysis/types";
@@ -189,7 +190,7 @@ export async function loadExecutiveBriefing(
   orgName: string;
 }> {
   const applyLlmSnapshot = options?.applyLlmSnapshot ?? true;
-  const [ctx, org, jiraStored, githubIntegration] = await Promise.all([
+  const [ctx, org, jiraStored, githubIntegration, complianceSummary] = await Promise.all([
     getOrganizationContext(organizationId),
     prisma.organization.findUnique({
       where: { id: organizationId },
@@ -202,6 +203,13 @@ export async function loadExecutiveBriefing(
       },
       select: { metadataJson: true, status: true, lastSyncAt: true },
     }),
+    loadComplianceFindingSummary(organizationId).catch(() => ({
+      openCount: 0,
+      criticalOpen: 0,
+      warningOpen: 0,
+      infoOpen: 0,
+      lastEvaluatedAt: null,
+    })),
   ]);
 
   const deliverySnapshot = jiraStored
@@ -252,6 +260,7 @@ export async function loadExecutiveBriefing(
       githubSyncedAt: codeStored?.syncedAt ?? githubIntegration?.lastSyncAt?.toISOString() ?? null,
       observabilitySyncedAt: obsSyncedAt,
     },
+    complianceSummary,
   });
 
   let briefing = deterministic;

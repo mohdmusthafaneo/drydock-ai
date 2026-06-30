@@ -334,6 +334,14 @@ export async function syncCodeAnalysis(input: {
     syncedAt: new Date(syncedAt),
   });
 
+  const { evaluateCompliance } = await import("@/lib/compliance/evaluate");
+  void evaluateCompliance(input.organizationId, "sync").catch((error) => {
+    console.error(
+      `[compliance] sync-phase evaluation failed for org ${input.organizationId}`,
+      error,
+    );
+  });
+
   await markIntegrationSync(input.organizationId, "GITHUB");
 
   await prisma.activityEvent.create({

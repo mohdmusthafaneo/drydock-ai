@@ -15,7 +15,11 @@ import {
 import { PageHeader } from "@/components/layout/page-header";
 import { BriefingHeadline } from "@/components/executive-briefing/briefing-headline";
 import { GovernanceLiveSignals } from "@/components/governance/governance-live-signals";
+import { ComplianceFindingsPanel } from "@/components/governance/compliance-findings-panel";
 import { GovernanceEscalationPanel } from "@/components/governance/governance-escalation-panel";
+import { loadComplianceFindings } from "@/lib/compliance/load-findings";
+import { loadComplianceFindingSummary } from "@/lib/compliance/summary";
+import { hasPermission } from "@/lib/rbac";
 import { RevealSection } from "@/components/motion/reveal-section";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +47,14 @@ export default async function GovernancePage() {
       select: { name: true },
     }),
   ]);
+
+  const canViewCompliance = hasPermission(session, "compliance", "view");
+  const [complianceFindings, complianceSummary] = canViewCompliance
+    ? await Promise.all([
+        loadComplianceFindings(session.organizationId, { status: "open", limit: 50 }),
+        loadComplianceFindingSummary(session.organizationId),
+      ])
+    : [[], { openCount: 0, criticalOpen: 0, warningOpen: 0, infoOpen: 0, lastEvaluatedAt: null }];
 
   if (!ctx.dna) {
     redirect("/governance/setup");
@@ -128,6 +140,14 @@ export default async function GovernancePage() {
         band={band}
         bandLabel={bandLabel}
       />
+
+      {canViewCompliance && (
+        <ComplianceFindingsPanel
+          findings={complianceFindings}
+          openCount={complianceSummary.openCount}
+          criticalOpen={complianceSummary.criticalOpen}
+        />
+      )}
 
       <RevealSection className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-[24px] border border-border-subtle bg-pure-white p-5 shadow-[var(--shadow)]">

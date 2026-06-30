@@ -188,6 +188,14 @@ export async function enrichCodeAnalysisForOrg(
         metadataJson: JSON.stringify({ scored }),
       },
     });
+
+    const { evaluateCompliance } = await import("@/lib/compliance/evaluate");
+    void evaluateCompliance(organizationId, "enrich").catch((error) => {
+      console.error(
+        `[compliance] enrich-phase evaluation failed for org ${organizationId}`,
+        error,
+      );
+    });
   }
 
   return { status: "enriched", scored };
