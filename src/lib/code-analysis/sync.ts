@@ -1,3 +1,5 @@
+import { enrichCodeAnalysisForOrg } from "@/lib/code-analysis/enrich";
+import { invalidateExecutiveBriefingSnapshot } from "@/lib/executive-briefing/invalidate-snapshot";
 import { prisma } from "@/lib/prisma";
 import { markIntegrationSync } from "@/lib/integration-health";
 import {
@@ -8,6 +10,7 @@ import {
   listClosedPulls,
   listCommits,
   listInstallationRepos,
+  listPullRequestCommits,
   listPullRequestReviews,
   parseOwnerRepo,
 } from "@/lib/github-api";
@@ -149,34 +152,33 @@ async function fetchRepoAnalysis(
 
   for (const pr of mergedPulls) {
     try {
-      const [files, reviews] = await Promise.all([
+      const [files, reviews, prCommitList] = await Promise.all([
         getPullRequestFiles(token, owner, repo, pr.number),
         listPullRequestReviews(token, owner, repo, pr.number),
+        listPullRequestCommits(token, owner, repo, pr.number).catch(() => []),
       ]);
 
       const linesAdded = files.reduce((n, f) => n + f.additions, 0);
       const linesRemoved = files.reduce((n, f) => n + f.deletions, 0);
-      const prCommits = commits.filter((c) => c.repo === fullName);
-      const commitClassifications = prCommits.slice(0, 5).map((c) =>
-        classifyCommit({
-          message: c.message,
-          additions: c.additions,
-          deletions: c.deletions,
-          prBody: pr.body,
-        }),
-      );
-
+      const prCommitMessages = prCommitList.map((c) => c.commit.message);
       const classified = classifyPullRequest({
         body: pr.body,
         linesAdded,
         linesRemoved,
-        commitClassifications,
+        commitClassifications: prCommitMessages.slice(0, 5).map((message) =>
+          classifyCommit({
+            message,
+            additions: Math.round(linesAdded / Math.max(prCommitMessages.length, 1)),
+            deletions: Math.round(linesRemoved / Math.max(prCommitMessages.length, 1)),
+            prBody: pr.body,
+          }),
+        ),
       });
 
       const diffExcerpt = buildDiffExcerpt(files);
       const branchRef = pr.head?.ref ?? "";
       const jiraKeys = extractJiraKeysFromTexts(
-        [pr.title, pr.body, branchRef, ...prCommits.slice(0, 8).map((c) => c.message)],
+        [pr.title, pr.body, branchRef, ...prCommitMessages.slice(0, 12)],
         projectKeys,
       );
 
@@ -341,6 +343,26 @@ export async function syncCodeAnalysis(input: {
       error,
     );
   });
+
+  invalidateExecutiveBriefingSnapshot(input.organizationId);
+
+  void enrichCodeAnalysisForOrg(input.organizationId)
+    .then((result) => {
+      if (result.status === "enriched") {
+        void evaluateCompliance(input.organizationId, "enrich").catch((error) => {
+          console.error(
+            `[compliance] enrich-phase evaluation failed for org ${input.organizationId}`,
+            error,
+          );
+        });
+      }
+    })
+    .catch((error) => {
+      console.error(
+        `[code-analysis] post-sync enrich failed for org ${input.organizationId}`,
+        error,
+      );
+    });
 
   await markIntegrationSync(input.organizationId, "GITHUB");
 

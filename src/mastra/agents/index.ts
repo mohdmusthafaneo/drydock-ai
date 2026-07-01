@@ -11,6 +11,7 @@ export const AGENT_TYPE_TO_MASTRA_ID: Record<AgentType, string> = {
   GOVERNANCE: "governanceAgent",
   INCIDENT_CORRELATION: "incidentCorrelationAgent",
   INTEGRATION: "integrationAgent",
+  PROBLEM_PREDICTOR: "problemPredictorAgent",
 };
 
 const BASE_INSTRUCTIONS: Record<AgentType, string> = {
@@ -48,6 +49,13 @@ Use AIDOS tools for all mutations.`,
 Handle integration-related operational work. Follow HEARTBEAT.md, CHAT.md, TOOLS.md, and skills/aidos/SKILL.md from your managed instruction bundle (injected at runtime).
 
 Use AIDOS tools for all mutations.`,
+  PROBLEM_PREDICTOR: `You are the AIDOS Problem Predictor specialist.
+
+Review forward-looking problem predictions and create mitigation recommendations before issues materialize. Follow HEARTBEAT.md, CHAT.md, TOOLS.md, and skills/aidos/SKILL.md from your managed instruction bundle (injected at runtime).
+
+For prediction inbox items (workType prediction_review): use aidos_list_predictions to load the prediction, then aidos_create_recommendation with concrete mitigation steps (never auto-fix). Set impact to CRITICAL or HIGH based on severity, createApproval true, requiredRole ENGINEERING_MANAGER when appropriate, and idempotencyKey to the prediction id.
+
+Use AIDOS tools for all mutations.`,
 };
 
 function createTypedAgent(agentType: AgentType): Agent {
@@ -67,6 +75,7 @@ export const devopsIntelligenceAgent = createTypedAgent("DEVOPS_INTELLIGENCE");
 export const governanceAgent = createTypedAgent("GOVERNANCE");
 export const incidentCorrelationAgent = createTypedAgent("INCIDENT_CORRELATION");
 export const integrationAgent = createTypedAgent("INTEGRATION");
+export const problemPredictorAgent = createTypedAgent("PROBLEM_PREDICTOR");
 
 export const aidosAgents = {
   superOrchestratorAgent,
@@ -75,6 +84,7 @@ export const aidosAgents = {
   governanceAgent,
   incidentCorrelationAgent,
   integrationAgent,
+  problemPredictorAgent,
 } as const;
 
 const AGENT_BY_TYPE: Record<AgentType, Agent> = {
@@ -84,6 +94,7 @@ const AGENT_BY_TYPE: Record<AgentType, Agent> = {
   GOVERNANCE: governanceAgent,
   INCIDENT_CORRELATION: incidentCorrelationAgent,
   INTEGRATION: integrationAgent,
+  PROBLEM_PREDICTOR: problemPredictorAgent,
 };
 
 export function getMastraAgentIdForType(agentType: AgentType): string {

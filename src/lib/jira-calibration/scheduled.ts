@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { parseJiraMeta } from "@/lib/jira-meta";
 import { enqueueJiraCalibration, runJiraCalibrationForProject } from "@/lib/jira-calibration/run";
+import { resetStuckCalibratingProfiles } from "@/lib/jira-calibration/status";
+
+const DEFAULT_RECALIBRATE_AFTER_DAYS = 90;
 
 export type ScheduledJiraCalibrationOrgResult = {
   organizationId: string;
@@ -11,6 +14,8 @@ export type ScheduledJiraCalibrationOrgResult = {
 
 export async function runScheduledJiraCalibration(input?: {
   organizationId?: string;
+  force?: boolean;
+  recalibrateAfterDays?: number;
 }): Promise<{
   attempted: number;
   calibrated: number;
@@ -28,10 +33,13 @@ export async function runScheduledJiraCalibration(input?: {
     orderBy: { organizationId: "asc" },
   });
 
+  const recalibrateAfterDays = input?.recalibrateAfterDays ?? DEFAULT_RECALIBRATE_AFTER_DAYS;
+  const recalibrateCutoff = new Date(Date.now() - recalibrateAfterDays * 86400000);
   const results: ScheduledJiraCalibrationOrgResult[] = [];
 
   for (const integration of integrations) {
     const { organizationId } = integration;
+    await resetStuckCalibratingProfiles(organizationId);
     const projectKeys = parseJiraMeta(integration.metadataJson).projectKeys ?? [];
 
     if (projectKeys.length === 0) {
@@ -43,19 +51,28 @@ export async function runScheduledJiraCalibration(input?: {
       continue;
     }
 
-    const pending = await prisma.jiraCalibrationProfile.findMany({
-      where: {
-        organizationId,
-        projectKey: { in: projectKeys },
-        status: { in: ["pending", "failed", "calibrating"] },
-      },
-      select: { projectKey: true, status: true },
+    const profiles = await prisma.jiraCalibrationProfile.findMany({
+      where: { organizationId, projectKey: { in: projectKeys } },
+      select: { projectKey: true, status: true, calibratedAt: true },
     });
+    const profileByKey = new Map(profiles.map((p) => [p.projectKey, p]));
 
-    const pendingKeys = new Set(pending.map((p) => p.projectKey));
-    const keysToRun = projectKeys.filter(
-      (key) => pendingKeys.has(key) || !pending.some((p) => p.projectKey === key),
-    );
+    const keysToRun = projectKeys.filter((key) => {
+      if (input?.force) return true;
+      const row = profileByKey.get(key);
+      if (!row) return true;
+      if (row.status === "pending" || row.status === "failed" || row.status === "calibrating") {
+        return true;
+      }
+      if (
+        (row.status === "calibrated" || row.status === "needs_review") &&
+        row.calibratedAt &&
+        row.calibratedAt < recalibrateCutoff
+      ) {
+        return true;
+      }
+      return false;
+    });
 
     if (keysToRun.length === 0) {
       results.push({
@@ -69,18 +86,23 @@ export async function runScheduledJiraCalibration(input?: {
     const projectResults: ScheduledJiraCalibrationOrgResult["projectResults"] = [];
 
     for (const projectKey of keysToRun) {
-      const existing = await prisma.jiraCalibrationProfile.findUnique({
-        where: {
-          organizationId_projectKey: { organizationId, projectKey },
-        },
-        select: { status: true },
-      });
-      if (existing?.status === "calibrated" || existing?.status === "needs_review") {
+      const existing = profileByKey.get(projectKey);
+      if (
+        !input?.force &&
+        existing &&
+        (existing.status === "calibrated" || existing.status === "needs_review") &&
+        existing.calibratedAt &&
+        existing.calibratedAt >= recalibrateCutoff
+      ) {
         projectResults.push({ projectKey, status: "skipped" });
         continue;
       }
 
-      const result = await runJiraCalibrationForProject({ organizationId, projectKey });
+      const result = await runJiraCalibrationForProject({
+        organizationId,
+        projectKey,
+        force: input?.force,
+      });
       if (result.status === "failed") {
         projectResults.push({ projectKey, status: "failed", error: result.error });
       } else if (result.status === "skipped") {

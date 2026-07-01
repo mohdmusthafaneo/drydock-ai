@@ -40,8 +40,21 @@ export async function runJiraCalibrationForProject(input: {
   organizationId: string;
   projectKey: string;
   windowDays?: number;
+  force?: boolean;
 }): Promise<RunJiraCalibrationResult> {
   const { organizationId, projectKey } = input;
+
+  if (!input.force) {
+    const existing = await prisma.jiraCalibrationProfile.findUnique({
+      where: {
+        organizationId_projectKey: { organizationId, projectKey },
+      },
+      select: { status: true },
+    });
+    if (existing?.status === "calibrating") {
+      return { status: "skipped", reason: "already_calibrating" };
+    }
+  }
 
   const [org, profile, integration] = await Promise.all([
     prisma.organization.findUnique({

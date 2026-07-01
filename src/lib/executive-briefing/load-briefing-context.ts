@@ -1,12 +1,14 @@
 import { getOrganizationContext } from "@/lib/org-data";
 import { prisma } from "@/lib/prisma";
 import { deliveryAnalysisForFilters, resolveStoredJiraDelivery } from "@/lib/delivery-analysis/resolve";
+import { DEFAULT_CODE_ANALYSIS_FILTERS } from "@/lib/code-analysis/default-filters";
 import { resolveStoredCodeAnalysis, snapshotForFilters } from "@/lib/code-analysis/sync";
 import { composeExecutiveBriefing } from "@/lib/executive-briefing/compose-briefing";
 import type { BriefingCharts, ExecutiveBriefing } from "@/lib/executive-briefing/types";
 import { mergeExecutiveBriefingSnapshot } from "@/lib/executive-briefing/snapshot-utils";
 import { summarizePortfolioHygiene } from "@/lib/jira-hygiene";
 import { loadComplianceFindingSummary } from "@/lib/compliance/summary";
+import { loadPredictionSummary } from "@/lib/problem-prediction/load-predictions";
 import { getJiraCalibrationGate } from "@/lib/jira-calibration/status";
 import { isPrometheusTrulyConnected, parsePrometheusMeta } from "@/lib/prometheus-meta";
 import { isGrafanaTrulyConnected, parseGrafanaMeta } from "@/lib/grafana-meta";
@@ -22,8 +24,6 @@ const DEFAULT_DELIVERY_FILTERS = {
   range: "30d" as const,
   compare: "previous_sync" as const,
 };
-
-const CODE_FILTERS = { range: "7d" as const };
 
 function countActiveAuthors(
   codeSnapshot: ReturnType<typeof snapshotForFilters> | null,
@@ -191,7 +191,7 @@ export async function loadExecutiveBriefing(
   orgName: string;
 }> {
   const applyLlmSnapshot = options?.applyLlmSnapshot ?? true;
-  const [ctx, org, jiraStored, githubIntegration, complianceSummary, calibrationGate] =
+  const [ctx, org, jiraStored, githubIntegration, complianceSummary, predictionSummary, calibrationGate] =
     await Promise.all([
     getOrganizationContext(organizationId),
     prisma.organization.findUnique({
@@ -206,6 +206,13 @@ export async function loadExecutiveBriefing(
       select: { metadataJson: true, status: true, lastSyncAt: true },
     }),
     loadComplianceFindingSummary(organizationId).catch(() => ({
+      openCount: 0,
+      criticalOpen: 0,
+      warningOpen: 0,
+      infoOpen: 0,
+      lastEvaluatedAt: null,
+    })),
+    loadPredictionSummary(organizationId).catch(() => ({
       openCount: 0,
       criticalOpen: 0,
       warningOpen: 0,
@@ -228,7 +235,9 @@ export async function loadExecutiveBriefing(
     githubIntegration?.status === "CONNECTED"
       ? await resolveStoredCodeAnalysis(organizationId, githubIntegration.metadataJson)
       : null;
-  const codeSnapshot = codeStored ? snapshotForFilters(codeStored, CODE_FILTERS) : null;
+  const codeSnapshot = codeStored
+    ? snapshotForFilters(codeStored, DEFAULT_CODE_ANALYSIS_FILTERS)
+    : null;
 
   const { snapshot: observabilitySnapshot, isDemo: observabilityIsDemo, syncedAt: obsSyncedAt } =
     resolveObservabilitySnapshot(ctx.integrations);
@@ -269,6 +278,7 @@ export async function loadExecutiveBriefing(
       observabilitySyncedAt: obsSyncedAt,
     },
     complianceSummary,
+    predictionSummary,
   });
 
   let briefing = deterministic;

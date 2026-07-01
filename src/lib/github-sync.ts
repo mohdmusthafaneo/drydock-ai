@@ -1,3 +1,4 @@
+import { invalidateExecutiveBriefingSnapshot } from "@/lib/executive-briefing/invalidate-snapshot";
 import { prisma } from "@/lib/prisma";
 import { markIntegrationSync } from "@/lib/integration-health";
 import {
@@ -191,6 +192,8 @@ export async function syncGitHubIntegration(input: {
   });
 
   await markIntegrationSync(input.organizationId, "GITHUB");
+
+  invalidateExecutiveBriefingSnapshot(input.organizationId);
 
   void maybeIntrospectGitHubAfterSync(input.organizationId);
 

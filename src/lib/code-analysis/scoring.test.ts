@@ -31,6 +31,16 @@ describe("fallbackCompletionScore", () => {
     assert.equal(result.completionScore, null);
     assert.match(result.completionRationale, /no jira ticket/i);
   });
+
+  it("returns deterministic numeric score when linked ticket and diff exist", () => {
+    const result = fallbackCompletionScore({
+      jiraKeys: ["ACME-42"],
+      hasDiff: true,
+      diffExcerpt: "--- src/foo.test.ts\n+++ ACME-42 change",
+    });
+    assert.ok(result.completionScore != null && result.completionScore >= 50);
+    assert.match(result.completionRationale, /deterministic estimate/i);
+  });
 });
 
 describe("computeCompositeRisk", () => {

@@ -143,6 +143,7 @@ model Organization {
   deliveryAnalysisSnapshots DeliveryAnalysisSnapshot[]
   complianceRuleStates     ComplianceRuleState[]
   complianceFindings       ComplianceFinding[]
+  problemPredictions       ProblemPrediction[]
   agentChatThreads         AgentChatThread[]
   agentChatParticipants    AgentChatParticipant[]
   agentChatMessages        AgentChatMessage[]
@@ -298,6 +299,31 @@ model ComplianceFinding {
   @@index([organizationId, ruleKey])
 }
 
+/// Forward-looking problem predictions from trend/threshold analysis across domains.
+model ProblemPrediction {
+  id             String   @id @default(cuid())
+  organizationId String
+  key            String
+  domain         String
+  severity       String
+  horizon        String
+  confidence     Float
+  status         String   @default("open")
+  rationale      String
+  signalsJson    String   @default("{}")
+  projectKey     String?
+  firstSeenAt    DateTime @default(now())
+  lastSeenAt     DateTime @default(now())
+  resolvedAt     DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, key])
+  @@index([organizationId, status])
+  @@index([organizationId, severity])
+  @@index([organizationId, domain])
+}
+
 model DeploymentEvent {
   id                  String           @id @default(cuid())
   organizationId      String
@@ -333,6 +359,7 @@ enum AgentType {
   GOVERNANCE
   INCIDENT_CORRELATION
   INTEGRATION
+  PROBLEM_PREDICTOR
 }
 
 enum AgentStatus {
@@ -905,6 +932,7 @@ model CodeAnalysisCommit {
   confidence     Int      @default(0)
   signalsJson    String   @default("[]")
   jiraKeysJson   String   @default("[]")
+  branch         String?
   completionScore Int?
   completionRationale String?
   lastSeenAt     DateTime @default(now())

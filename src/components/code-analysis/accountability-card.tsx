@@ -7,9 +7,13 @@ import { cn } from "@/lib/utils";
 
 type Props = {
   accountability: CodeAnalysisAccountability;
+  needsOwnershipBackfill?: boolean;
 };
 
-export function AccountabilityCard({ accountability }: Props) {
+export function AccountabilityCard({
+  accountability,
+  needsOwnershipBackfill = false,
+}: Props) {
   const hasGaps =
     accountability.highRiskPrsWithoutReviewer > 0 ||
     accountability.unownedHighCostPaths > 0 ||
@@ -29,6 +33,12 @@ export function AccountabilityCard({ accountability }: Props) {
         </div>
       </CardHeader>
       <CardContent>
+        {needsOwnershipBackfill && (
+          <p className="mb-3 text-sm text-muted">
+            Reviewer and file ownership data is missing for some PRs. Run code analysis sync to
+            backfill legacy rows.
+          </p>
+        )}
         {hasGaps ? (
           <ul className="space-y-1 text-sm text-primary">
             {accountability.highRiskPrsWithoutReviewer > 0 && (

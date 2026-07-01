@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { IncidentRemediationForm } from "@/components/incidents/incident-remediation-form";
 import { IncidentRelatedChanges } from "@/components/incidents/incident-related-changes";
-import { correlateIncidentCodeChanges } from "@/lib/incident-code-correlation";
+import { loadIncidentCodeLinks } from "@/lib/incident-code-correlation";
 
 const DEVOPS_ROLES = new Set(["ORG_ADMIN", "DEVOPS_LEAD", "ENGINEERING_MANAGER", "DELIVERY_MANAGER"]);
 
@@ -27,7 +27,7 @@ export default async function IncidentDetailPage({
 
   if (!incident) notFound();
 
-  const relatedChanges = await correlateIncidentCodeChanges({
+  const relatedChanges = await loadIncidentCodeLinks({
     organizationId: session.organizationId,
     incidentId: incident.id,
   });

@@ -98,6 +98,8 @@ export async function GET() {
         releaseTracking: observed.releaseTrackingEvidence.suggestedMode,
         methodology: observed.methodology,
         rationale: row.llmRationale,
+        sampleCapped: observed.sampleCapped ?? false,
+        totalInWindow: observed.totalInWindow,
       };
     })
     .filter((row): row is NonNullable<typeof row> => row !== null);
@@ -123,13 +125,18 @@ export async function GET() {
     jiraHygiene: jiraMeta?.jiraHygiene ?? null,
     jiraSiteUrl: jiraMeta?.siteUrl ?? null,
     jiraHygieneLinks,
-    calibrationProfiles: calibrationProfiles.map((row) => ({
-      projectKey: row.projectKey,
-      status: row.status,
-      confidence: row.confidence,
-      calibratedAt: row.calibratedAt?.toISOString() ?? null,
-      source: row.source,
-    })),
+    calibrationProfiles: calibrationProfiles.map((row) => {
+      const observed = parseCalibrationObservations(row.observedJson);
+      return {
+        projectKey: row.projectKey,
+        status: row.status,
+        confidence: row.confidence,
+        calibratedAt: row.calibratedAt?.toISOString() ?? null,
+        source: row.source,
+        sampleCapped: observed?.sampleCapped ?? false,
+        totalInWindow: observed?.totalInWindow,
+      };
+    }),
     calibrationSuggestions,
   });
 }

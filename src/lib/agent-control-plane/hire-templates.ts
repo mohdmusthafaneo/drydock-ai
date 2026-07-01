@@ -8,6 +8,7 @@ const ROLE_TEMPLATE_FILES: Record<HireRole, string> = {
   governance: "governance.md",
   incident_correlation: "incident-correlation.md",
   integration: "integration.md",
+  problem_predictor: "problem-predictor.md",
 };
 
 const TEMPLATES_DIR = path.join(

@@ -16,6 +16,8 @@ export type JiraStatusBreakdown = {
 /** Stored in metadataJson after PR2 sync */
 export type JiraDeliverySnapshot = {
   syncedAt: string;
+  /** Portfolio-level data-quality flags from partial JQL failures. */
+  dataQualityFlags?: string[];
   projects: Array<{
     key: string;
     name: string;
@@ -32,6 +34,12 @@ export type JiraDeliverySnapshot = {
     missingEstimateCount?: number;
     /** In-progress issues with no due date (hygiene). */
     missingDueDateCount?: number;
+    /** Open issues created more than 30 days ago. */
+    staleOpenCount?: number;
+    /** Open issues in non-standard workflow status categories. */
+    unknownWorkflowStatusCount?: number;
+    /** JQL enrichment steps that failed silently during sync. */
+    jqlPartialFailures?: string[];
     /** Issues resolved in the last 7 days (P2b). */
     resolvedLast7d?: number;
     /** To Do / In Progress / Done category counts (P2b). */

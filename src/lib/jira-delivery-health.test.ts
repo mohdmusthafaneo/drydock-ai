@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { analyzePortfolioDeliveryHealth } from "@/lib/jira-delivery-health";
+import {
+  analyzeJiraDeliveryHealth,
+  analyzePortfolioDeliveryHealth,
+} from "@/lib/jira-delivery-health";
 import type { JiraDeliverySnapshot } from "@/lib/jira-meta";
 
 function snapshot(
@@ -104,5 +107,32 @@ describe("analyzePortfolioDeliveryHealth — reopened and spillover", () => {
     );
     assert.equal(health.signals.find((s) => s.id === "spillover")?.severity, "info");
     assert.equal(health.gaps.filter((g) => g.area === "Sprint").length, 0);
+  });
+});
+
+describe("analyzeJiraDeliveryHealth — per-release reopened and spillover", () => {
+  it("includes reopened and spillover signals and gaps for release scope", () => {
+    const health = analyzeJiraDeliveryHealth({
+      snapshot: snapshot([
+        {
+          key: "REL",
+          name: "Release",
+          openIssues: 12,
+          blockedCount: 0,
+          overdueCount: 0,
+          reopenedCount: 2,
+          spilloverCount: 3,
+          bugsOpen: 0,
+          unassignedCount: 0,
+          versions: [],
+        },
+      ]),
+      releaseName: "R1",
+    });
+
+    assert.ok(health.signals.some((s) => s.id === "jira-reopened"));
+    assert.ok(health.signals.some((s) => s.id === "jira-spillover"));
+    assert.ok(health.gaps.some((g) => g.gap.includes("reopened")));
+    assert.ok(health.gaps.some((g) => g.gap.includes("spilled over")));
   });
 });

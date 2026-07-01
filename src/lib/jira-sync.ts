@@ -27,6 +27,8 @@ import {
   buildOpenJql,
   buildReopenedJql,
   buildSpilloverJql,
+  buildStaleOpenJql,
+  buildUnknownWorkflowStatusJql,
   jqlQuoteLiteral,
   LEGACY_JIRA_MAPPING,
   type JiraMappingSlice,
@@ -47,6 +49,28 @@ function isOverdueVersion(version: { released: boolean; releaseDate?: string }):
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   return new Date(version.releaseDate) < today;
+}
+
+function recordJqlFailure(flags: string[], label: string): void {
+  if (!flags.includes(label)) flags.push(label);
+}
+
+async function countIssuesSafe(
+  accessToken: string,
+  cloudId: string,
+  jql: string,
+  flags: string[],
+  label: string,
+): Promise<number | undefined> {
+  try {
+    return await countIssuesByJql(accessToken, cloudId, jql);
+  } catch (e) {
+    if (e instanceof JiraApiError && [400, 401, 403, 404, 429].includes(e.status)) {
+      recordJqlFailure(flags, label);
+      return undefined;
+    }
+    throw e;
+  }
 }
 
 function pickBoard(boards: Array<{ id: number; name: string; type: string }>) {
@@ -125,35 +149,55 @@ async function enrichHygieneCounts(
   baseJql: string,
   mapping: JiraMappingSlice,
   projectMapping?: NonNullable<ToolchainMapping["jira"]>,
-): Promise<{ missingEstimateCount?: number; missingDueDateCount?: number }> {
-  const result: { missingEstimateCount?: number; missingDueDateCount?: number } = {};
+  jqlFailures?: string[],
+): Promise<{
+  missingEstimateCount?: number;
+  missingDueDateCount?: number;
+  staleOpenCount?: number;
+  unknownWorkflowStatusCount?: number;
+}> {
+  const result: {
+    missingEstimateCount?: number;
+    missingDueDateCount?: number;
+    staleOpenCount?: number;
+    unknownWorkflowStatusCount?: number;
+  } = {};
+  const flags = jqlFailures ?? [];
 
   const storyPointField = projectMapping?.storyPointField;
   if (storyPointField?.id) {
-    try {
-      result.missingEstimateCount = await countIssuesByJql(
-        accessToken,
-        cloudId,
-        `${baseJql} AND ${buildNotDoneJql(mapping)} AND ${storyPointField.id} is EMPTY`,
-      );
-    } catch (e) {
-      if (!(e instanceof JiraApiError) || ![400, 401, 403, 404, 429].includes(e.status)) {
-        throw e;
-      }
-    }
-  }
-
-  try {
-    result.missingDueDateCount = await countIssuesByJql(
+    result.missingEstimateCount = await countIssuesSafe(
       accessToken,
       cloudId,
-      `${baseJql} AND statusCategory = "In Progress" AND duedate is EMPTY`,
+      `${baseJql} AND ${buildNotDoneJql(mapping)} AND ${storyPointField.id} is EMPTY`,
+      flags,
+      "missing_estimates",
     );
-  } catch (e) {
-    if (!(e instanceof JiraApiError) || ![400, 401, 403, 404, 429].includes(e.status)) {
-      throw e;
-    }
   }
+
+  result.missingDueDateCount = await countIssuesSafe(
+    accessToken,
+    cloudId,
+    `${baseJql} AND statusCategory = "In Progress" AND duedate is EMPTY`,
+    flags,
+    "missing_due_dates",
+  );
+
+  result.staleOpenCount = await countIssuesSafe(
+    accessToken,
+    cloudId,
+    buildStaleOpenJql(baseJql, mapping),
+    flags,
+    "stale_open",
+  );
+
+  result.unknownWorkflowStatusCount = await countIssuesSafe(
+    accessToken,
+    cloudId,
+    buildUnknownWorkflowStatusJql(baseJql, mapping),
+    flags,
+    "unknown_status",
+  );
 
   return result;
 }
@@ -167,6 +211,7 @@ async function syncProject(
 ): Promise<JiraDeliverySnapshot["projects"][number]> {
   const project = await getJiraProject(accessToken, cloudId, projectKey);
   const baseJql = `project = "${projectKey}"`;
+  const jqlPartialFailures: string[] = [];
 
   const [openIssues, blockedCount, overdueCount, bugsOpen, unassignedCount, rawVersions] =
     await Promise.all([
@@ -231,7 +276,9 @@ async function syncProject(
               buildSpilloverJql(sprint.id),
             );
           } catch (e) {
-            if (!(e instanceof JiraApiError) || ![400, 401, 403, 404, 429].includes(e.status)) {
+            if (e instanceof JiraApiError && [400, 401, 403, 404, 429].includes(e.status)) {
+              recordJqlFailure(jqlPartialFailures, "spillover");
+            } else {
               throw e;
             }
           }
@@ -255,7 +302,9 @@ async function syncProject(
     statusBreakdown = p2b.statusBreakdown;
     enrichedVersions = p2b.versions;
   } catch (e) {
-    if (!(e instanceof JiraApiError) || ![400, 401, 403, 404, 429].includes(e.status)) {
+    if (e instanceof JiraApiError && [400, 401, 403, 404, 429].includes(e.status)) {
+      recordJqlFailure(jqlPartialFailures, "p2b_enrichment");
+    } else if (!(e instanceof JiraApiError) || ![400, 401, 403, 404, 429].includes(e.status)) {
       throw e;
     }
     // P2b enrichment is best-effort when JQL or rate limits fail.
@@ -263,6 +312,8 @@ async function syncProject(
 
   let missingEstimateCount: number | undefined;
   let missingDueDateCount: number | undefined;
+  let staleOpenCount: number | undefined;
+  let unknownWorkflowStatusCount: number | undefined;
   try {
     const hygieneCounts = await enrichHygieneCounts(
       accessToken,
@@ -271,11 +322,16 @@ async function syncProject(
       baseJql,
       mapping,
       projectMapping,
+      jqlPartialFailures,
     );
     missingEstimateCount = hygieneCounts.missingEstimateCount;
     missingDueDateCount = hygieneCounts.missingDueDateCount;
+    staleOpenCount = hygieneCounts.staleOpenCount;
+    unknownWorkflowStatusCount = hygieneCounts.unknownWorkflowStatusCount;
   } catch (e) {
-    if (!(e instanceof JiraApiError) || ![400, 401, 403, 404, 429].includes(e.status)) {
+    if (e instanceof JiraApiError && [400, 401, 403, 404, 429].includes(e.status)) {
+      recordJqlFailure(jqlPartialFailures, "hygiene_counts");
+    } else if (!(e instanceof JiraApiError) || ![400, 401, 403, 404, 429].includes(e.status)) {
       throw e;
     }
   }
@@ -283,13 +339,13 @@ async function syncProject(
   let reopenedCount: number | undefined;
   const reopenedJql = buildReopenedJql(baseJql, mapping);
   if (reopenedJql) {
-    try {
-      reopenedCount = await countIssuesByJql(accessToken, cloudId, reopenedJql);
-    } catch (e) {
-      if (!(e instanceof JiraApiError) || ![400, 401, 403, 404, 429].includes(e.status)) {
-        throw e;
-      }
-    }
+    reopenedCount = await countIssuesSafe(
+      accessToken,
+      cloudId,
+      reopenedJql,
+      jqlPartialFailures,
+      "reopened",
+    );
   }
 
   return {
@@ -304,6 +360,9 @@ async function syncProject(
     unassignedCount,
     missingEstimateCount,
     missingDueDateCount,
+    staleOpenCount,
+    unknownWorkflowStatusCount,
+    jqlPartialFailures: jqlPartialFailures.length > 0 ? jqlPartialFailures : undefined,
     resolvedLast7d,
     statusBreakdown,
     versions: enrichedVersions,
@@ -408,7 +467,14 @@ export async function syncJiraIntegration(input: {
   }
 
   const syncedAt = new Date().toISOString();
-  const deliverySnapshot: JiraDeliverySnapshot = { syncedAt, projects };
+  const dataQualityFlags = [
+    ...new Set(projects.flatMap((p) => p.jqlPartialFailures ?? [])),
+  ];
+  const deliverySnapshot: JiraDeliverySnapshot = {
+    syncedAt,
+    dataQualityFlags: dataQualityFlags.length > 0 ? dataQualityFlags : undefined,
+    projects,
+  };
 
   const jiraHygiene = effectiveMapping
     ? assessPortfolioJiraHygiene(deliverySnapshot, effectiveMapping)

@@ -5,6 +5,7 @@ import type { GrafanaAssessContext } from "@/lib/grafana-assess-context";
 import type { JiraAssessContext } from "@/lib/jira-delivery-health";
 import { isJiraOAuthConnected } from "@/lib/jira-meta";
 import type { MetricsAssessContext } from "@/lib/observability-metrics/types";
+import { applyHygieneScoreDiscount } from "@/lib/jira-hygiene";
 import {
   hasLiveObservability,
   resolveMetricsAssessContext,
@@ -221,6 +222,7 @@ function computeWeightedReadiness(input: {
   github?: GitHubAssessContext;
   testGaps: TestGap[];
   signals: QASignal[];
+  jiraHygiene?: { degradesTrust: boolean; portfolioScore: number } | null;
 }): number {
   const components: Array<{ weight: number; score: number }> = [];
 
@@ -251,7 +253,13 @@ function computeWeightedReadiness(input: {
     input.signals.filter((s) => s.severity === "warning").length * 3 +
     input.signals.filter((s) => s.severity === "critical").length * 6;
 
-  return Math.max(0, Math.min(100, Math.round(blended - penalty)));
+  let score = Math.max(0, Math.min(100, Math.round(blended - penalty)));
+
+  if (input.jiraHygiene?.degradesTrust) {
+    score = applyHygieneScoreDiscount(score, input.jiraHygiene);
+  }
+
+  return score;
 }
 
 export function assessQAIntelligence(input: {
@@ -266,6 +274,7 @@ export function assessQAIntelligence(input: {
   metrics?: MetricsAssessContext;
   github?: GitHubAssessContext;
   codeAnalysis?: CodeAnalysisAssessContext;
+  jiraHygiene?: { degradesTrust: boolean; portfolioScore: number } | null;
 }): QAAssessment {
   const tools = input.profile
     ? (JSON.parse(input.profile.toolsJson || "[]") as string[])
@@ -536,6 +545,7 @@ export function assessQAIntelligence(input: {
     github,
     testGaps,
     signals,
+    jiraHygiene: input.jiraHygiene,
   });
 
   let regressionNotes: string;

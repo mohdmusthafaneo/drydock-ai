@@ -78,6 +78,8 @@ export type ExecutiveBriefing = {
     staleSources: string[];
   };
   source: "deterministic" | "llm_enriched";
+  /** When source is llm_enriched — ISO timestamp of the LLM snapshot. */
+  llmGeneratedAt?: string | null;
 };
 
 export type BriefingCharts = {

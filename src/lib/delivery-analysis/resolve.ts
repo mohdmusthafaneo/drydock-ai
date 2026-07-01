@@ -7,6 +7,7 @@ import type {
   DeliveryAnalysisSnapshot,
 } from "@/lib/delivery-analysis/types";
 import type { PortfolioJiraHygiene } from "@/lib/jira-hygiene";
+import { assessPortfolioJiraHygiene } from "@/lib/jira-hygiene";
 import { getJiraCalibrationGate } from "@/lib/jira-calibration/status";
 import { resolveEffectiveToolchainMapping, type ToolchainMapping } from "@/lib/toolchain-mapping";
 
@@ -46,11 +47,15 @@ export async function resolveStoredJiraDelivery(
     return null;
   }
 
+  const jiraHygiene = mapping
+    ? assessPortfolioJiraHygiene(snapshot, mapping)
+    : meta.jiraHygiene;
+
   return {
     snapshot,
     siteUrl: meta.siteUrl,
     projectKeys: meta.projectKeys ?? snapshot.projects.map((p) => p.key),
-    jiraHygiene: meta.jiraHygiene,
+    jiraHygiene,
     mapping: mapping ?? undefined,
     calibrationGate,
   };

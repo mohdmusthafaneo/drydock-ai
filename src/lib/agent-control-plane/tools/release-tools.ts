@@ -12,7 +12,9 @@ import {
 } from "@/lib/observability-connectivity";
 import { assessReleaseGovernance } from "@/lib/release-governance";
 import { buildAssessmentSnapshot } from "@/lib/release-assess-snapshot";
-import { parseToolchainMapping } from "@/lib/toolchain-mapping";
+import { parseToolchainMapping, resolveEffectiveToolchainMapping } from "@/lib/toolchain-mapping";
+import { assessPortfolioJiraHygiene, summarizePortfolioHygiene } from "@/lib/jira-hygiene";
+import { parseJiraMeta } from "@/lib/jira-meta";
 import {
   parseGovernancePolicy,
   resolveGovernancePolicyForProject,
@@ -102,6 +104,16 @@ export async function buildReleaseAssessContext(
     branch: releaseBranch,
   });
 
+  const jiraIntegration = integrations.find((i) => i.provider === "JIRA");
+  const jiraMeta = jiraIntegration ? parseJiraMeta(jiraIntegration.metadataJson) : null;
+  const effectiveMapping = await resolveEffectiveToolchainMapping(organizationId);
+  const jiraHygiene =
+    jiraMeta?.deliverySnapshot && effectiveMapping
+      ? summarizePortfolioHygiene(
+          assessPortfolioJiraHygiene(jiraMeta.deliverySnapshot, effectiveMapping),
+        )
+      : null;
+
   return {
     release,
     dna,
@@ -114,6 +126,7 @@ export async function buildReleaseAssessContext(
     github,
     codeAnalysis,
     governancePolicy,
+    jiraHygiene,
   };
 }
 
@@ -202,6 +215,7 @@ export async function assessReleaseForAgent(input: {
     github: ctx.github,
     codeAnalysis: ctx.codeAnalysis,
     governancePolicy: ctx.governancePolicy,
+    jiraHygiene: ctx.jiraHygiene,
   });
 
   const assessmentSnapshot = buildAssessmentSnapshot({

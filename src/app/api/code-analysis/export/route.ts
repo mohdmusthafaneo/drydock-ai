@@ -12,6 +12,10 @@ const querySchema = z.object({
   repos: z.string().optional(),
 });
 
+function csvEscape(value: string): string {
+  return `"${value.replace(/"/g, '""')}"`;
+}
+
 export async function GET(request: Request) {
   const session = await getSession();
   if (!session) {
@@ -58,16 +62,51 @@ export async function GET(request: Request) {
     ? snapshotForFilters(stored, filters)
     : getMockCodeAnalysisSnapshot(filters);
 
-  const header =
-    "repo,pr_number,title,author,merged_at,ai_attribution,confidence,reviews\n";
-  const rows = snapshot.pullRequests
-    .map(
-      (p) =>
-        `"${p.repo}",${p.number},"${p.title.replace(/"/g, '""')}",${p.author},${p.mergedAt},${p.attribution},${p.confidence},${p.reviewCount}`,
+  const prHeader =
+    "repo,pr_number,title,author,merged_at,ai_attribution,confidence,reviews,reviewers,jira_keys,completion_score,completion_rationale,risk_score,risk_level,quality_flags\n";
+  const prRows = snapshot.pullRequests
+    .map((p) =>
+      [
+        csvEscape(p.repo),
+        p.number,
+        csvEscape(p.title),
+        p.author,
+        p.mergedAt,
+        p.attribution,
+        p.confidence,
+        p.reviewCount,
+        csvEscape((p.reviewers ?? []).join(";")),
+        csvEscape((p.jiraKeys ?? []).join(";")),
+        p.completionScore ?? "",
+        csvEscape(p.completionRationale ?? ""),
+        p.riskScore ?? "",
+        p.riskLevel ?? "",
+        csvEscape((p.qualityFlags ?? []).join(";")),
+      ].join(","),
     )
     .join("\n");
 
-  return new NextResponse(header + rows, {
+  const commitHeader =
+    "\n\nrepo,sha,message,author,committed_at,branch,ai_attribution,confidence,jira_keys,completion_score,completion_rationale\n";
+  const commitRows = snapshot.commits
+    .map((c) =>
+      [
+        csvEscape(c.repo),
+        c.sha,
+        csvEscape(c.message),
+        c.author,
+        c.committedAt,
+        csvEscape(c.branch ?? ""),
+        c.attribution,
+        c.confidence,
+        csvEscape((c.jiraKeys ?? []).join(";")),
+        c.completionScore ?? "",
+        csvEscape(c.completionRationale ?? ""),
+      ].join(","),
+    )
+    .join("\n");
+
+  return new NextResponse(prHeader + prRows + commitHeader + commitRows, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
       "Content-Disposition": `attachment; filename="code-analysis-${filters.range ?? "30d"}.csv"`,

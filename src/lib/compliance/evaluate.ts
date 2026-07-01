@@ -3,6 +3,7 @@ import { enqueueComplianceEvaluatedWakeups } from "@/lib/agent-control-plane/com
 import { loadStoredCodeAnalysisFromDb } from "@/lib/code-analysis/persist";
 import { prisma } from "@/lib/prisma";
 import { invalidateExecutiveBriefingSnapshot } from "@/lib/executive-briefing/invalidate-snapshot";
+import { isDismissedFinding } from "@/lib/compliance/mutate-finding";
 import { pruneOldComplianceFindings } from "@/lib/compliance/prune";
 import { rulesForPhase } from "@/lib/compliance/rules";
 import type {
@@ -139,6 +140,10 @@ async function evaluateComplianceInner(
     }
 
     if (existing.status === "resolved") {
+      if (isDismissedFinding(existing.detailJson)) {
+        continue;
+      }
+
       await prisma.complianceFinding.update({
         where: { id: existing.id },
         data: {

@@ -109,6 +109,48 @@ export const aidosListComplianceFindingsTool = createTool({
   },
 });
 
+export const aidosListPredictionsTool = createTool({
+  id: "aidos_list_predictions",
+  description:
+    "List forward-looking problem predictions for the organization. Use to review early-warning signals before creating mitigation recommendations.",
+  inputSchema: z.object({
+    status: z
+      .enum(["open", "resolved"])
+      .optional()
+      .describe("Filter by prediction status (default: all statuses)"),
+    severity: z
+      .enum(["critical", "warning", "info"])
+      .optional()
+      .describe("Filter by severity"),
+    domain: z
+      .enum(["delivery", "devops", "compliance", "planning", "code"])
+      .optional()
+      .describe("Filter by prediction domain"),
+    projectKey: z
+      .string()
+      .optional()
+      .describe("Filter by Jira project key"),
+    limit: z
+      .number()
+      .optional()
+      .describe("Max predictions to return (default 100, max 200)"),
+  }),
+  execute: async (input, context) => {
+    const ctx = getAidosToolContext(context);
+    const params = new URLSearchParams();
+    if (input.status) params.set("status", input.status);
+    if (input.severity) params.set("severity", input.severity);
+    if (input.domain) params.set("domain", input.domain);
+    if (input.projectKey) params.set("projectKey", input.projectKey);
+    if (input.limit != null) params.set("limit", String(input.limit));
+    const query = params.toString();
+    return agentJson(
+      ctx,
+      `/api/agents/me/predictions${query ? `?${query}` : ""}`,
+    );
+  },
+});
+
 export const aidosQueryJiraJqlTool = createTool({
   id: "aidos_query_jira_jql",
   description:
@@ -430,6 +472,7 @@ export const aidosTools = {
   aidos_get_inbox: aidosGetInboxTool,
   aidos_assess_release: aidosAssessReleaseTool,
   aidos_list_compliance_findings: aidosListComplianceFindingsTool,
+  aidos_list_predictions: aidosListPredictionsTool,
   aidos_query_jira_jql: aidosQueryJiraJqlTool,
   aidos_create_recommendation: aidosCreateRecommendationTool,
   aidos_complete_work_item: aidosCompleteWorkItemTool,

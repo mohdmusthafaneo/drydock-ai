@@ -14,7 +14,7 @@ function parseDetailJson(json: string): Record<string, unknown> {
   }
 }
 
-function rowToView(row: {
+export function rowToComplianceFindingView(row: {
   id: string;
   ruleKey: string;
   severity: string;
@@ -70,5 +70,5 @@ export async function loadComplianceFindings(
     take: filters?.limit ?? 100,
   });
 
-  return rows.map(rowToView);
+  return rows.map(rowToComplianceFindingView);
 }

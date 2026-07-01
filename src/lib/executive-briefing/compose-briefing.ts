@@ -12,11 +12,13 @@ import type { HealthScoreInput } from "@/lib/executive-briefing/health-score";
 import type { DeliveryAnalysisSnapshot } from "@/lib/delivery-analysis/types";
 import type { CodeAnalysisSnapshot } from "@/lib/code-analysis/types";
 import type { ComplianceFindingSummary } from "@/lib/compliance/types";
+import type { PredictionSummary } from "@/lib/problem-prediction/types";
 
 export type ComposeBriefingInput = HealthScoreInput & {
   orgName: string;
   assessmentSummary?: string | null;
   complianceSummary?: ComplianceFindingSummary | null;
+  predictionSummary?: PredictionSummary | null;
   integrationFreshness: {
     jiraSyncedAt?: string | null;
     githubSyncedAt?: string | null;
@@ -122,6 +124,7 @@ function buildMetaLine(input: ComposeBriefingInput): string {
   const syncLabel = relativeSyncLabel(freshest);
   const sources = connectedSourceNames(input);
 
+  let base: string;
   if (syncLabel && sources.length > 0) {
     const sourceList =
       sources.length === 1
@@ -129,14 +132,20 @@ function buildMetaLine(input: ComposeBriefingInput): string {
         : sources.length === 2
           ? `${sources[0]} and ${sources[1]}`
           : `${sources.slice(0, -1).join(", ")}, and ${sources[sources.length - 1]}`;
-    return `Updated ${syncLabel} · drawn from ${sourceList}`;
+    base = `Updated ${syncLabel} · drawn from ${sourceList}`;
+  } else if (sources.length > 0) {
+    base = `Drawn from ${sources.join(", ")}`;
+  } else {
+    base = "Connect integrations to keep this briefing current";
   }
 
-  if (sources.length > 0) {
-    return `Drawn from ${sources.join(", ")}`;
+  const summary = input.assessmentSummary?.trim();
+  if (summary) {
+    const clipped = summary.length > 160 ? `${summary.slice(0, 157)}…` : summary;
+    return `${base} · ${clipped}`;
   }
 
-  return "Connect integrations to keep this briefing current";
+  return base;
 }
 
 function buildOnboardingHeadline(input: ComposeBriefingInput): HeadlineSegment[] {
@@ -227,6 +236,15 @@ function buildProductionHeadline(
       segments.push({ kind: "text", text: `, delivery ${bandPhrase(health.band)}.` });
     } else {
       segments.push({ kind: "text", text: "." });
+    }
+
+    const assessmentSummary = input.assessmentSummary?.trim();
+    if (assessmentSummary && input.stats.pendingApprovals === 0) {
+      const clipped =
+        assessmentSummary.length > 120
+          ? `${assessmentSummary.slice(0, 117)}…`
+          : assessmentSummary;
+      segments.push({ kind: "text", text: ` ${clipped}` });
     }
 
     return segments;
@@ -627,17 +645,59 @@ function buildComplianceClaim(
   };
 }
 
-/** Keep AI code risk visible on the executive dashboard even when other claims fill the grid. */
-function finalizeBriefingClaims(claims: BriefingClaim[]): BriefingClaim[] {
-  const aiClaim = claims.find((c) => c.id === "ai-code-risk");
-  const rest = claims.filter((c) => c.id !== "ai-code-risk");
-  const maxSlots = aiClaim ? 5 : 4;
-  const kept = rest.slice(0, aiClaim ? maxSlots - 1 : maxSlots);
-  if (!aiClaim) return kept;
+function buildPredictedRiskClaim(summary: PredictionSummary): BriefingClaim {
+  if (summary.criticalOpen > 0) {
+    return {
+      id: "predicted-risk",
+      headline: "Early warnings",
+      metric: String(summary.criticalOpen),
+      metricLabel: "Critical predictions",
+      verdict: "risk",
+      verdictLabel: "Rising risk",
+      context: `${summary.criticalOpen} critical prediction${summary.criticalOpen === 1 ? "" : "s"} · ${summary.openCount} total open early-warning signal${summary.openCount === 1 ? "" : "s"}`,
+      href: "/dashboard#early-warnings",
+    };
+  }
 
+  if (summary.warningOpen > 0) {
+    return {
+      id: "predicted-risk",
+      headline: "Early warnings",
+      metric: String(summary.warningOpen),
+      metricLabel: "Warning signals",
+      verdict: "attention",
+      verdictLabel: "Watch trends",
+      context: `${summary.warningOpen} warning-level prediction${summary.warningOpen === 1 ? "" : "s"} need review · ${summary.infoOpen} informational`,
+      href: "/dashboard#early-warnings",
+    };
+  }
+
+  return {
+    id: "predicted-risk",
+    headline: "Early warnings",
+    metric: "0",
+    metricLabel: "Open predictions",
+    verdict: "good",
+    verdictLabel: "No signals",
+    context: "Leading indicators are stable in the current monitoring window",
+    href: "/dashboard#early-warnings",
+  };
+}
+
+/** Keep AI code risk, code accountability, and predicted risk visible on the executive dashboard. */
+function finalizeBriefingClaims(claims: BriefingClaim[]): BriefingClaim[] {
+  const pinnedIds = ["ai-code-risk", "code-accountability", "predicted-risk"] as const;
+  const pinned = pinnedIds
+    .map((id) => claims.find((c) => c.id === id))
+    .filter((c): c is BriefingClaim => Boolean(c));
+  const rest = claims.filter((c) => !pinnedIds.includes(c.id as (typeof pinnedIds)[number]));
+  const maxSlots = 6;
+  const kept = rest.slice(0, Math.max(0, maxSlots - pinned.length));
   const deliveryIndex = kept.findIndex((c) => c.id === "delivery");
   const insertAt = deliveryIndex >= 0 ? deliveryIndex + 1 : Math.min(2, kept.length);
-  return [...kept.slice(0, insertAt), aiClaim, ...kept.slice(insertAt)];
+  const before = kept.slice(0, insertAt);
+  const after = kept.slice(insertAt);
+  return [...before, ...pinned, ...after].slice(0, maxSlots);
 }
 
 function buildClaims(input: ComposeBriefingInput, health: ExecutiveBriefing["health"]): BriefingClaim[] {
@@ -708,6 +768,10 @@ function buildClaims(input: ComposeBriefingInput, health: ExecutiveBriefing["hea
 
   if (input.complianceSummary) {
     claims.push(buildComplianceClaim(input.complianceSummary));
+  }
+
+  if (input.predictionSummary) {
+    claims.push(buildPredictedRiskClaim(input.predictionSummary));
   }
 
   const stabilityDim = health.dimensions.find((d) => d.id === "stability");

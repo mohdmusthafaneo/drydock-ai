@@ -52,6 +52,12 @@ const CATALOG_META: Record<
     category: "integrations",
     capabilities: "Webhook processing, integration health, sync anomalies",
   },
+  problem_predictor: {
+    displayName: "Problem Predictor",
+    description: "Early-warning signals, trend analysis, proactive mitigation",
+    category: "intelligence",
+    capabilities: "Early-warning signals, trend analysis, proactive mitigation",
+  },
 };
 
 export function listTeamCatalog(): TeamCatalogEntry[] {

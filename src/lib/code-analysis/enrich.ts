@@ -87,7 +87,11 @@ export async function enrichCodeAnalysisForOrg(
 
     if (needsCompletion) {
       if (jiraKeys.length === 0) {
-        const fallback = fallbackCompletionScore({ jiraKeys, hasDiff: Boolean(diffExcerpt) });
+        const fallback = fallbackCompletionScore({
+          jiraKeys,
+          hasDiff: Boolean(diffExcerpt),
+          diffExcerpt,
+        });
         completionScore = fallback.completionScore;
         completionRationale = fallback.completionRationale;
       } else if (!diffExcerpt) {
@@ -113,7 +117,11 @@ export async function enrichCodeAnalysisForOrg(
         completionScore = merged.completionScore;
         completionRationale = merged.completionRationale;
       } else {
-        const fallback = fallbackCompletionScore({ jiraKeys, hasDiff: true });
+        const fallback = fallbackCompletionScore({
+          jiraKeys,
+          hasDiff: true,
+          diffExcerpt,
+        });
         completionScore = fallback.completionScore;
         completionRationale = fallback.completionRationale;
       }

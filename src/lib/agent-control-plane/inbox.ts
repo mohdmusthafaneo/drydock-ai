@@ -1,6 +1,8 @@
 import type { AgentRegistry, AgentType } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { isAcknowledgedFinding } from "@/lib/compliance/mutate-finding";
 import { loadPendingComplianceFindingIds } from "@/lib/compliance/recommendation-keys";
+import { loadPendingPredictionIds } from "@/lib/problem-prediction/recommendation-keys";
 import { EVENT_ROLE_ROUTING } from "./delegation";
 import type { HireRole } from "./hire";
 
@@ -9,6 +11,8 @@ export type InboxWorkType =
   | "release_delegate"
   | "compliance_delegate"
   | "compliance_finding"
+  | "prediction_delegate"
+  | "prediction_review"
   | "incident_triage"
   | "webhook_process"
   | "telemetry_review"
@@ -41,7 +45,7 @@ export function parseInboxItemId(
   id: string,
 ): { workType: InboxWorkType; entityId: string } | null {
   const match = id.match(
-    /^(release_assess|release_delegate|compliance_delegate|compliance_finding|incident_triage|webhook_process|telemetry_review|approval_followup|team_initialization):(.+)$/,
+    /^(release_assess|release_delegate|compliance_delegate|compliance_finding|prediction_delegate|prediction_review|incident_triage|webhook_process|telemetry_review|approval_followup|team_initialization):(.+)$/,
   );
   if (!match) return null;
   return {
@@ -60,6 +64,7 @@ function resolveEffectiveRole(
     GOVERNANCE: "governance",
     INCIDENT_CORRELATION: "incident_correlation",
     INTEGRATION: "integration",
+    PROBLEM_PREDICTOR: "problem_predictor",
   };
   return typeToRole[agent.agentType as AgentType] ?? null;
 }
@@ -200,7 +205,7 @@ async function buildComplianceDelegateInbox(
 async function buildComplianceFindingInbox(
   organizationId: string,
 ): Promise<InboxWorkItem[]> {
-  const [criticalFindings, pendingFindingIds] = await Promise.all([
+  const [criticalFindings, warningFindings, pendingFindingIds] = await Promise.all([
     prisma.complianceFinding.findMany({
       where: {
         organizationId,
@@ -210,20 +215,34 @@ async function buildComplianceFindingInbox(
       orderBy: { lastSeenAt: "desc" },
       take: 20,
     }),
+    prisma.complianceFinding.findMany({
+      where: {
+        organizationId,
+        status: "open",
+        severity: "warning",
+      },
+      orderBy: { lastSeenAt: "desc" },
+      take: 10,
+    }),
     loadPendingComplianceFindingIds(organizationId),
   ]);
 
-  return criticalFindings
-    .filter((finding) => !pendingFindingIds.has(finding.id))
+  const allFindings = [...criticalFindings, ...warningFindings];
+
+  return allFindings
+    .filter(
+      (finding) =>
+        !pendingFindingIds.has(finding.id) && !isAcknowledgedFinding(finding.detailJson),
+    )
     .map((finding) => ({
       id: inboxItemId("compliance_finding", finding.id),
       workType: "compliance_finding" as const,
       entityType: "ComplianceFinding",
       entityId: finding.id,
       status: "pending" as const,
-      priority: 0,
+      priority: finding.severity === "critical" ? 0 : 1,
       assignedAt: finding.lastSeenAt.toISOString(),
-      title: `Remediate critical compliance: ${finding.title}`,
+      title: `Remediate ${finding.severity} compliance: ${finding.title}`,
       metadata: {
         ruleKey: finding.ruleKey,
         severity: finding.severity,
@@ -232,6 +251,73 @@ async function buildComplianceFindingInbox(
         entityUrl: finding.entityUrl,
         repo: finding.repo,
         projectKey: finding.projectKey,
+      },
+    }));
+}
+
+async function buildPredictionDelegateInbox(
+  organizationId: string,
+  payload: Record<string, unknown>,
+): Promise<InboxWorkItem[]> {
+  const event = String(payload.event ?? payload.reason ?? "");
+  if (event !== "prediction.evaluated") return [];
+
+  const targetRole = EVENT_ROLE_ROUTING[event] ?? "problem_predictor";
+  const batchKey = String(payload.batchKey ?? organizationId);
+
+  return [
+    {
+      id: inboxItemId("prediction_delegate", batchKey),
+      workType: "prediction_delegate",
+      entityType: "Organization",
+      entityId: organizationId,
+      status: "pending",
+      priority: 0,
+      assignedAt: new Date().toISOString(),
+      title: "Delegate problem predictions to predictor specialist",
+      metadata: {
+        targetRole,
+        event,
+        newCritical: payload.newCritical,
+      },
+    },
+  ];
+}
+
+async function buildPredictionReviewInbox(
+  organizationId: string,
+): Promise<InboxWorkItem[]> {
+  const [openPredictions, pendingPredictionIds] = await Promise.all([
+    prisma.problemPrediction.findMany({
+      where: {
+        organizationId,
+        status: "open",
+        severity: { in: ["critical", "warning"] },
+      },
+      orderBy: [{ severity: "asc" }, { confidence: "desc" }, { lastSeenAt: "desc" }],
+      take: 20,
+    }),
+    loadPendingPredictionIds(organizationId),
+  ]);
+
+  return openPredictions
+    .filter((prediction) => !pendingPredictionIds.has(prediction.id))
+    .map((prediction) => ({
+      id: inboxItemId("prediction_review", prediction.id),
+      workType: "prediction_review" as const,
+      entityType: "ProblemPrediction",
+      entityId: prediction.id,
+      status: "pending" as const,
+      priority: prediction.severity === "critical" ? 0 : 1,
+      assignedAt: prediction.lastSeenAt.toISOString(),
+      title: `Review ${prediction.severity} prediction: ${prediction.rationale.slice(0, 80)}`,
+      metadata: {
+        key: prediction.key,
+        domain: prediction.domain,
+        severity: prediction.severity,
+        horizon: prediction.horizon,
+        confidence: prediction.confidence,
+        projectKey: prediction.projectKey,
       },
     }));
 }
@@ -388,19 +474,43 @@ async function buildTeamInitializationInbox(
   ];
 }
 
+async function buildProblemPredictorInbox(
+  organizationId: string,
+  payload: Record<string, unknown>,
+): Promise<InboxWorkItem[]> {
+  const [predictions, approvalFollowup] = await Promise.all([
+    buildPredictionReviewInbox(organizationId),
+    buildGovernanceInbox(organizationId, payload),
+  ]);
+
+  const approvalItems = approvalFollowup.filter(
+    (item) => item.workType === "approval_followup",
+  );
+
+  return [...predictions, ...approvalItems].sort((a, b) => a.priority - b.priority);
+}
+
 async function buildSuperOrchestratorInbox(
   organizationId: string,
   payload: Record<string, unknown>,
 ): Promise<InboxWorkItem[]> {
-  const [init, delegate, complianceDelegate, governance] = await Promise.all([
+  const [init, delegate, complianceDelegate, predictionDelegate, governance] =
+    await Promise.all([
     buildTeamInitializationInbox(organizationId),
     buildReleaseDelegateInbox(organizationId, payload),
     buildComplianceDelegateInbox(organizationId, payload),
+    buildPredictionDelegateInbox(organizationId, payload),
     buildGovernanceInbox(organizationId, payload),
   ]);
 
   const byId = new Map<string, InboxWorkItem>();
-  for (const item of [...init, ...delegate, ...complianceDelegate, ...governance]) {
+  for (const item of [
+    ...init,
+    ...delegate,
+    ...complianceDelegate,
+    ...predictionDelegate,
+    ...governance,
+  ]) {
     byId.set(item.id, item);
   }
 
@@ -428,6 +538,10 @@ async function buildSpecialistInbox(
 
   if (role === "devops_intelligence" || agent.agentType === "DEVOPS_INTELLIGENCE") {
     items.push(...(await buildTelemetryInbox(agent.organizationId, payload)));
+  }
+
+  if (role === "problem_predictor" || agent.agentType === "PROBLEM_PREDICTOR") {
+    items.push(...(await buildProblemPredictorInbox(agent.organizationId, payload)));
   }
 
   if (role === "qa_intelligence" && typeof payload.releaseId === "string") {

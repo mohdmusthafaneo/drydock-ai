@@ -16,6 +16,7 @@ export type CalibrationIssueSample = {
   fixVersions: string[];
   assignee?: string;
   dueDate?: string;
+  hasEstimate?: boolean;
   transitions: StatusTransition[];
 };
 
@@ -37,6 +38,8 @@ export type CalibrationObservations = {
   analyzedAt: string;
   windowDays: number;
   projectKey: string;
+  sampleCapped?: boolean;
+  totalInWindow?: number;
   statusUsage: Record<string, number>;
   transitions: Array<{ from: string; to: string; count: number }>;
   inferredDoneStatusNames: string[];

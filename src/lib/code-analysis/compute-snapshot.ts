@@ -7,6 +7,7 @@ import type {
   TimeRange,
   TrendBucket,
 } from "@/lib/code-analysis/types";
+import { hasNamedReviewer } from "@/lib/compliance/helpers";
 
 const RANGE_LABELS: Record<TimeRange, string> = {
   "7d": "Last 7 days",
@@ -22,10 +23,6 @@ const RANGE_MS: Record<TimeRange, number> = {
 
 function isAiAttribution(a: AiAttribution): boolean {
   return a === "ai_assisted" || a === "ai_generated";
-}
-
-function hasNamedReviewer(pr: CodeAnalysisPullRequest): boolean {
-  return (pr.reviewers?.length ?? 0) > 0 || pr.reviewCount > 0;
 }
 
 function buildAiRisk(

@@ -43,7 +43,7 @@ export async function createAgentRecommendation(
     const existing = await prisma.recommendation.findFirst({
       where: {
         organizationId: input.organizationId,
-        status: "PENDING",
+        status: { in: ["PENDING", "APPROVED", "MODIFIED"] },
         title: { startsWith: `[compliance:${body.idempotencyKey}]` },
       },
     });

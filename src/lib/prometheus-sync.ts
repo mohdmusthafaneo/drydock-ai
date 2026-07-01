@@ -11,6 +11,7 @@ import {
   createDirectPrometheusTransport,
   getPrometheusAuth,
 } from "@/lib/prometheus-api";
+import { invalidateExecutiveBriefingSnapshot } from "@/lib/executive-briefing/invalidate-snapshot";
 import { mergePrometheusMeta, parsePrometheusMeta } from "@/lib/prometheus-meta";
 import { prisma } from "@/lib/prisma";
 
@@ -149,6 +150,8 @@ export async function syncPrometheusIntegration(input: {
   });
 
   await markIntegrationSync(input.organizationId, "PROMETHEUS");
+
+  invalidateExecutiveBriefingSnapshot(input.organizationId);
 
   return {
     summary,

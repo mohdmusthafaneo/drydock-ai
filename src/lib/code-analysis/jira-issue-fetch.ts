@@ -6,6 +6,7 @@ export type JiraIssueText = {
   key: string;
   summary: string;
   description: string;
+  assignee?: string;
 };
 
 /** Fetch issue summary + description for linked Jira keys (read-only). */
@@ -37,7 +38,12 @@ export async function fetchJiraIssueTexts(
     const { accessToken, cloudId } = await resolveJiraAccessToken(integration);
     const issues = await searchIssuesWithDescriptions(accessToken, cloudId, uniqueKeys);
     for (const issue of issues) {
-      result.set(issue.key, issue);
+      result.set(issue.key, {
+        key: issue.key,
+        summary: issue.summary,
+        description: issue.description,
+        assignee: issue.assignee,
+      });
     }
   } catch {
     return result;

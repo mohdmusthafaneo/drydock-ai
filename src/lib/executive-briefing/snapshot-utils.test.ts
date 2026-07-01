@@ -68,10 +68,12 @@ describe("mergeExecutiveBriefingSnapshot", () => {
       ]),
       narrative: "AI narrative with more context for leadership.",
       expiresAt: new Date(Date.now() + 60_000),
+      generatedAt: new Date("2026-06-30T10:00:00.000Z"),
     });
 
     assert.equal(merged.source, "llm_enriched");
     assert.equal(merged.narrative, "AI narrative with more context for leadership.");
+    assert.equal(merged.llmGeneratedAt, "2026-06-30T10:00:00.000Z");
     assert.equal(merged.health.overall, deterministicBriefing.health.overall);
     assert.deepEqual(merged.claims, deterministicBriefing.claims);
     assert.equal(merged.headline[1]?.kind, "emphasis");
@@ -82,6 +84,7 @@ describe("mergeExecutiveBriefingSnapshot", () => {
       headlineJson: serializeHeadlineJson([{ kind: "text", text: "Expired" }]),
       narrative: "Expired narrative",
       expiresAt: new Date(Date.now() - 60_000),
+      generatedAt: new Date("2026-06-30T10:00:00.000Z"),
     });
 
     assert.equal(merged.source, "deterministic");
@@ -93,6 +96,7 @@ describe("mergeExecutiveBriefingSnapshot", () => {
       headlineJson: "not-json",
       narrative: "Broken",
       expiresAt: new Date(Date.now() + 60_000),
+      generatedAt: new Date("2026-06-30T10:00:00.000Z"),
     });
 
     assert.equal(merged.source, "deterministic");
@@ -108,6 +112,7 @@ describe("mergeExecutiveBriefingSnapshot", () => {
       ]),
       narrative: "Broken spacing",
       expiresAt: new Date(Date.now() + 60_000),
+      generatedAt: new Date("2026-06-30T10:00:00.000Z"),
     });
 
     assert.equal(merged.source, "deterministic");

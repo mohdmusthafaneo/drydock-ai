@@ -51,6 +51,7 @@ function rowToCommit(row: {
   confidence: number;
   signalsJson: string;
   jiraKeysJson: string;
+  branch: string | null;
   completionScore: number | null;
   completionRationale: string | null;
 }): CodeAnalysisCommit {
@@ -67,6 +68,7 @@ function rowToCommit(row: {
     confidence: row.confidence,
     signals: parseStringArrayJson(row.signalsJson),
     jiraKeys: parseStringArrayJson(row.jiraKeysJson),
+    branch: row.branch ?? undefined,
     completionScore: row.completionScore,
     completionRationale: row.completionRationale,
   };
@@ -247,6 +249,7 @@ async function persistCodeAnalysisToDbInner(input: {
           confidence: c.confidence,
           signalsJson: JSON.stringify(c.signals),
           jiraKeysJson: JSON.stringify(c.jiraKeys ?? []),
+          branch: c.branch ?? null,
           lastSeenAt: now,
         },
         update: {
@@ -260,6 +263,9 @@ async function persistCodeAnalysisToDbInner(input: {
           confidence: c.confidence,
           signalsJson: JSON.stringify(c.signals),
           jiraKeysJson: JSON.stringify(c.jiraKeys ?? []),
+          branch: c.branch ?? null,
+          completionScore: null,
+          completionRationale: null,
           lastSeenAt: now,
         },
       });
@@ -309,6 +315,11 @@ async function persistCodeAnalysisToDbInner(input: {
           toolsJson: JSON.stringify(pr.tools),
           jiraKeysJson: JSON.stringify(pr.jiraKeys ?? []),
           diffExcerpt: pr.diffExcerpt ?? null,
+          completionScore: null,
+          completionRationale: null,
+          riskScore: null,
+          riskLevel: null,
+          qualityFlagsJson: "[]",
           lastSeenAt: now,
         },
       });

@@ -49,6 +49,7 @@ export default async function GovernancePage() {
   ]);
 
   const canViewCompliance = hasPermission(session, "compliance", "view");
+  const canManageCompliance = hasPermission(session, "compliance", "manage");
   const [complianceFindings, complianceSummary] = canViewCompliance
     ? await Promise.all([
         loadComplianceFindings(session.organizationId, { status: "open", limit: 50 }),
@@ -146,6 +147,7 @@ export default async function GovernancePage() {
           findings={complianceFindings}
           openCount={complianceSummary.openCount}
           criticalOpen={complianceSummary.criticalOpen}
+          canManage={canManageCompliance}
         />
       )}
 

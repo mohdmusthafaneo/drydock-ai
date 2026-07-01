@@ -1,3 +1,4 @@
+import { invalidateExecutiveBriefingSnapshot } from "@/lib/executive-briefing/invalidate-snapshot";
 import { prisma } from "@/lib/prisma";
 import {
   countDashboardPanels,
@@ -391,6 +392,8 @@ export async function syncGrafanaIntegration(input: {
   });
 
   await markIntegrationSync(input.organizationId, "GRAFANA");
+
+  invalidateExecutiveBriefingSnapshot(input.organizationId);
 
   return {
     summary,

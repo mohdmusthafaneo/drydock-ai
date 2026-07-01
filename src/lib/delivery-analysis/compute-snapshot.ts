@@ -15,6 +15,7 @@ import {
 import {
   assessJiraHygiene,
   assessPortfolioJiraHygiene,
+  applyHygieneScoreDiscount,
   summarizePortfolioHygiene,
   type PortfolioJiraHygiene,
 } from "@/lib/jira-hygiene";
@@ -76,6 +77,7 @@ function jiraProjectsToSnapshotRows(
             project: p,
             mapping: projectMapping,
             snapshotSyncedAt: jiraSnapshot.syncedAt,
+            dataQualityFlags: jiraSnapshot.dataQualityFlags,
           })
         : undefined);
 
@@ -108,7 +110,7 @@ function jiraProjectsToSnapshotRows(
     return {
       key: p.key,
       name: p.name,
-      healthScore: health.score,
+      healthScore: applyHygieneScoreDiscount(health.score, hygiene),
       openIssues: p.openIssues,
       blockedCount: p.blockedCount,
       overdueCount: p.overdueCount,
@@ -162,6 +164,13 @@ export function computeDeliveryAnalysisFromJira(input: {
   });
 
   const hygieneSummary = summarizePortfolioHygiene(hygieneBlock);
+  let portfolioHealth = health.score;
+  if (hygieneSummary?.degradesTrust) {
+    portfolioHealth = applyHygieneScoreDiscount(portfolioHealth, {
+      degradesTrust: true,
+      portfolioScore: hygieneSummary.portfolioScore,
+    });
+  }
 
   return computeDeliveryAnalysisSnapshot({
     projects: filterSnapshotProjects(allRows, input.filters),
@@ -171,7 +180,7 @@ export function computeDeliveryAnalysisFromJira(input: {
     signals: health.signals,
     gaps: health.gaps,
     trend: [],
-    portfolioHealthScore: health.score,
+    portfolioHealthScore: portfolioHealth,
     jiraHygiene: hygieneSummary
       ? {
           score: hygieneSummary.portfolioScore,
@@ -254,7 +263,13 @@ export function computeDeliveryAnalysisSnapshot(input: {
     (projects.length > 0
       ? Math.round(projects.reduce((n, p) => n + p.healthScore, 0) / projects.length)
       : 0);
-  const healthScore = calibrationPending ? Math.min(healthScoreRaw, 69) : healthScoreRaw;
+  let healthScore = calibrationPending ? Math.min(healthScoreRaw, 69) : healthScoreRaw;
+  if (jiraHygiene?.degradesTrust) {
+    healthScore = applyHygieneScoreDiscount(healthScore, {
+      degradesTrust: true,
+      portfolioScore: jiraHygiene.score,
+    });
+  }
 
   const sprintRows: DeliveryAnalysisSprintRow[] = projects
     .filter((p) => p.sprint)

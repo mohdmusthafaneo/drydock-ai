@@ -4,7 +4,7 @@ import {
   correlateIncidentFromTelemetry,
 } from "@/lib/operational-intelligence";
 import { analyzeDeployment, buildRemediationRecommendation } from "@/lib/devops-intelligence";
-import { resolveDeployAnchor } from "@/lib/incident-code-correlation";
+import { resolveDeployAnchor, correlateIncidentCodeChanges } from "@/lib/incident-code-correlation";
 import {
   comparePostDeploy,
   parseAssessmentSnapshot,
@@ -109,6 +109,17 @@ export async function ingestTelemetryForOrganization(input: {
       });
 
       incident = await prisma.incident.create({ data: { organizationId: input.organizationId, ...incidentData } });
+
+      void correlateIncidentCodeChanges({
+        organizationId: input.organizationId,
+        incidentId: incident.id,
+        force: true,
+      }).catch((error) => {
+        console.error(
+          `[incident-correlation] failed for incident ${incident!.id}`,
+          error,
+        );
+      });
 
       const rollbackReason =
         analysis.rollbackReason ??

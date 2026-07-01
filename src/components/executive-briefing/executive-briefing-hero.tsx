@@ -4,6 +4,7 @@ import type { ExecutiveBriefing } from "@/lib/executive-briefing/types";
 import { BriefingHeadline } from "@/components/executive-briefing/briefing-headline";
 import { BriefingHighlights } from "@/components/executive-briefing/briefing-highlights";
 import { BriefingInsightBox } from "@/components/executive-briefing/briefing-insight";
+import { BriefingNarrative } from "@/components/executive-briefing/briefing-narrative";
 import { ScrollCue } from "@/components/executive-briefing/scroll-cue";
 import { MountItem, MountSequence } from "@/components/motion/mount-sequence";
 import { cn } from "@/lib/utils";
@@ -13,8 +14,20 @@ type Props = {
   orgName: string;
 };
 
+function formatLlmGeneratedAt(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export function ExecutiveBriefingHero({ briefing, orgName }: Props) {
   const hasHighlights = briefing.highlights.length > 0;
+  const isLlmEnriched = briefing.source === "llm_enriched";
 
   return (
     <section
@@ -27,9 +40,15 @@ export function ExecutiveBriefingHero({ briefing, orgName }: Props) {
           <MountItem>
             <p className="text-[13px] font-medium uppercase tracking-[0.04em] text-graphite">
               Executive briefing
-              {briefing.source === "llm_enriched" && (
+              {isLlmEnriched && (
                 <span className="ml-2 normal-case tracking-normal text-ash">
                   · AI summary
+                  {briefing.llmGeneratedAt && (
+                    <span className="text-graphite">
+                      {" "}
+                      · generated {formatLlmGeneratedAt(briefing.llmGeneratedAt)}
+                    </span>
+                  )}
                 </span>
               )}
             </p>
@@ -48,7 +67,16 @@ export function ExecutiveBriefingHero({ briefing, orgName }: Props) {
           )}
         >
           <div className="space-y-6">
-            <BriefingHeadline segments={briefing.headline} />
+            {isLlmEnriched ? (
+              <MountItem transition={{ delay: 0.16 }}>
+                <BriefingNarrative
+                  narrative={briefing.narrative}
+                  healthLabel={briefing.health.bandLabel}
+                />
+              </MountItem>
+            ) : (
+              <BriefingHeadline segments={briefing.headline} />
+            )}
             <MountItem transition={{ delay: 0.24 }}>
               <p className="text-[14px] leading-relaxed text-graphite">{briefing.meta}</p>
             </MountItem>

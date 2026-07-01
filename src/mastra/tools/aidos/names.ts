@@ -5,6 +5,7 @@ export const AIDOS_TOOL_IDS = [
   "aidos_get_inbox",
   "aidos_assess_release",
   "aidos_list_compliance_findings",
+  "aidos_list_predictions",
   "aidos_query_jira_jql",
   "aidos_create_recommendation",
   "aidos_complete_work_item",
@@ -26,6 +27,7 @@ export const TOOL_TO_REGISTRY: Record<AidosToolId, AgentToolName | null> = {
   aidos_get_inbox: null,
   aidos_assess_release: "assess_release",
   aidos_list_compliance_findings: "read_compliance_findings",
+  aidos_list_predictions: "read_predictions",
   aidos_query_jira_jql: "query_jira_jql",
   aidos_create_recommendation: "create_recommendation",
   aidos_complete_work_item: null,
@@ -46,6 +48,7 @@ export const SPECIALIST_ROLE_VALUES = [
   "governance",
   "incident_correlation",
   "integration",
+  "problem_predictor",
 ] as const;
 
 export const APPROVAL_ROLE_VALUES = [

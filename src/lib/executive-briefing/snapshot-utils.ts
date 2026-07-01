@@ -66,6 +66,7 @@ export function mergeExecutiveBriefingSnapshot(
     headlineJson: string;
     narrative: string;
     expiresAt: Date;
+    generatedAt: Date;
   } | null,
   now: Date = new Date(),
 ): ExecutiveBriefing {
@@ -89,6 +90,7 @@ export function mergeExecutiveBriefingSnapshot(
     narrative: snapshot.narrative,
     wordCount: countBriefingWords(snapshot.narrative),
     source: "llm_enriched",
+    llmGeneratedAt: snapshot.generatedAt.toISOString(),
   };
 }
 

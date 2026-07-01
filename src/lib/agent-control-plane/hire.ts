@@ -25,6 +25,7 @@ export const HIRE_ROLES = [
   "governance",
   "incident_correlation",
   "integration",
+  "problem_predictor",
 ] as const;
 
 export type HireRole = (typeof HIRE_ROLES)[number];
@@ -35,6 +36,7 @@ const ROLE_TO_AGENT_TYPE: Record<HireRole, AgentType> = {
   governance: "GOVERNANCE",
   incident_correlation: "INCIDENT_CORRELATION",
   integration: "INTEGRATION",
+  problem_predictor: "PROBLEM_PREDICTOR",
 };
 
 export const hireRequestSchema = z.object({
@@ -78,6 +80,7 @@ const DEFAULT_DOMAIN_SKILLS: Partial<Record<HireRole, string[]>> = {
   qa_intelligence: ["aidos", "aidos-release-assess"],
   devops_intelligence: ["aidos", "aidos-telemetry"],
   governance: ["aidos", "aidos-release-assess"],
+  problem_predictor: ["aidos", "aidos-predictions"],
 };
 
 export function defaultDesiredSkillsForRole(role: HireRole): string[] {

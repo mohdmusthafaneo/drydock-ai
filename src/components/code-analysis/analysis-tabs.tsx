@@ -31,9 +31,11 @@ type SortDir = "asc" | "desc";
 export function AnalysisTabs({
   snapshot,
   jiraSiteUrl,
+  needsReviewerBackfill = false,
 }: {
   snapshot: CodeAnalysisSnapshot;
   jiraSiteUrl?: string | null;
+  needsReviewerBackfill?: boolean;
 }) {
   const [tab, setTab] = useState<TabId>("pull_requests");
   const [search, setSearch] = useState("");
@@ -236,17 +238,21 @@ export function AnalysisTabs({
                                 : ""}
                             </p>
                           )}
-                          {pr.completionScore != null && (
+                          {pr.completionScore != null ? (
                             <p className="mt-1">
                               Ticket completion: {pr.completionScore}%
                               {pr.completionRationale ? ` — ${pr.completionRationale}` : ""}
                             </p>
-                          )}
+                          ) : pr.completionRationale ? (
+                            <p className="mt-1">Ticket completion: {pr.completionRationale}</p>
+                          ) : null}
                           <p className="mt-1">
                             Reviewed by:{" "}
                             {(pr.reviewers?.length ?? 0) > 0
                               ? pr.reviewers.map((r) => `@${r}`).join(", ")
-                              : "No named approver"}
+                              : pr.reviewCount > 0
+                                ? "Approval recorded but reviewer identity missing — re-sync code analysis"
+                                : "No named approver"}
                           </p>
                           <p className="mt-1 text-muted">
                             Estimated from commit messages, co-author trailers, and change patterns.
@@ -344,6 +350,17 @@ export function AnalysisTabs({
 
         {tab === "files" && (
           <div className="overflow-x-auto">
+            {snapshot.files.length === 0 && snapshot.pullRequests.length > 0 ? (
+              <p className="mb-3 text-sm text-muted">
+                File ownership and maintenance cost are empty for this window. Re-sync code analysis
+                to backfill reviewers and per-file history.
+              </p>
+            ) : null}
+            {needsReviewerBackfill && snapshot.files.length > 0 ? (
+              <p className="mb-3 text-sm text-muted">
+                Some PRs predate reviewer capture — re-sync to refresh named approvers on file rows.
+              </p>
+            ) : null}
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-xs text-muted">

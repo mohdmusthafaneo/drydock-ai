@@ -173,6 +173,7 @@ export type GitHubClosedPull = GitHubPull & {
   deletions?: number;
   changed_files?: number;
   head?: { ref: string };
+  merge_commit_sha?: string | null;
 };
 
 export async function listClosedPulls(
@@ -223,6 +224,35 @@ export async function listPullRequestReviews(
   return githubFetch<GitHubPullReview[]>(
     accessToken,
     `/repos/${owner}/${repo}/pulls/${pullNumber}/reviews?per_page=100`,
+  );
+}
+
+export type GitHubPullCommit = {
+  sha: string;
+  commit: { message: string };
+};
+
+export async function listPullRequestCommits(
+  accessToken: string,
+  owner: string,
+  repo: string,
+  pullNumber: number,
+) {
+  return githubFetch<GitHubPullCommit[]>(
+    accessToken,
+    `/repos/${owner}/${repo}/pulls/${pullNumber}/commits?per_page=100`,
+  );
+}
+
+export async function getPullRequest(
+  accessToken: string,
+  owner: string,
+  repo: string,
+  pullNumber: number,
+) {
+  return githubFetch<GitHubClosedPull>(
+    accessToken,
+    `/repos/${owner}/${repo}/pulls/${pullNumber}`,
   );
 }
 

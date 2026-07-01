@@ -10,11 +10,39 @@ export type JiraCalibrationGate = {
 };
 
 const COMPLETE_STATUSES = new Set<JiraCalibrationStatus>(["calibrated", "needs_review"]);
+const STUCK_CALIBRATING_MS = 30 * 60 * 1000;
+
+/** Reset profiles stuck in calibrating beyond the timeout window. */
+export async function resetStuckCalibratingProfiles(organizationId: string): Promise<number> {
+  const cutoff = new Date(Date.now() - STUCK_CALIBRATING_MS);
+  const stuck = await prisma.jiraCalibrationProfile.findMany({
+    where: {
+      organizationId,
+      status: "calibrating",
+      updatedAt: { lt: cutoff },
+    },
+    select: { projectKey: true },
+  });
+
+  if (stuck.length === 0) return 0;
+
+  await prisma.jiraCalibrationProfile.updateMany({
+    where: {
+      organizationId,
+      status: "calibrating",
+      updatedAt: { lt: cutoff },
+    },
+    data: { status: "failed" },
+  });
+
+  return stuck.length;
+}
 
 /** Whether delivery scores should be gated pending calibration. */
 export async function getJiraCalibrationGate(
   organizationId: string,
 ): Promise<JiraCalibrationGate> {
+  await resetStuckCalibratingProfiles(organizationId);
   const integration = await prisma.integration.findUnique({
     where: {
       organizationId_provider: { organizationId, provider: "JIRA" },
@@ -63,7 +91,9 @@ export async function getJiraCalibrationGate(
     message:
       activeStatus === "calibrating"
         ? "Calibrating Jira workflow from 90-day history…"
-        : "Jira workflow calibration pending — delivery scores use discounted confidence",
+        : activeStatus === "failed"
+          ? "Jira calibration failed for one or more projects — retry from toolchain mapping"
+          : "Jira workflow calibration pending — delivery scores use discounted confidence",
   };
 }
 

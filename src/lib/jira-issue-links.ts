@@ -6,6 +6,8 @@ import {
   buildPortfolioSpilloverJql,
   buildReopenedJql,
   buildSpilloverJql,
+  buildStaleOpenJql,
+  buildUnknownWorkflowStatusJql,
   jqlQuoteLiteral,
   type JiraMappingSlice,
 } from "@/lib/jira-jql";
@@ -155,10 +157,10 @@ export function jqlForSignal(
     if (extras?.sprintId == null) return null;
     return buildSprintJql(extras.sprintId);
   }
-  if (signalId === "reopened-cluster") {
+  if (signalId === "reopened-cluster" || signalId === "jira-reopened") {
     return buildReopenedJql(base, mapping);
   }
-  if (signalId === "spillover") {
+  if (signalId === "spillover" || signalId === "jira-spillover") {
     if (extras?.sprintId != null) {
       return buildSpilloverJql(extras.sprintId);
     }
@@ -187,6 +189,12 @@ export function jqlForHygieneFinding(
       if (!fieldId) return null;
       return buildMissingEstimatesJql(base, mapping, fieldId);
     }
+    case "missing-due-dates":
+      return buildMissingDueDateJql(base);
+    case "aged-open-tickets":
+      return buildStaleOpenJql(base, mapping);
+    case "unknown-status-vs-workflow":
+      return buildUnknownWorkflowStatusJql(base, mapping);
     case "fixversion-not-used":
       return buildFixVersionUnusedJql(base, mapping);
     case "scrum-no-sprint":

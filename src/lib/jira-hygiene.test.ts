@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   assessJiraHygiene,
   assessPortfolioJiraHygiene,
+  applyHygieneScoreDiscount,
 } from "@/lib/jira-hygiene";
 import type { JiraDeliverySnapshot } from "@/lib/jira-meta";
 import type { ToolchainMapping } from "@/lib/toolchain-mapping";
@@ -135,5 +136,19 @@ describe("assessPortfolioJiraHygiene", () => {
 
     const result = assessPortfolioJiraHygiene(snapshot, mapping);
     assert.ok(!result.byProject.KAN!.findings.some((f) => f.id === "scrum-no-sprint"));
+  });
+});
+
+describe("applyHygieneScoreDiscount", () => {
+  it("caps score when hygiene degrades trust", () => {
+    assert.equal(
+      applyHygieneScoreDiscount(82, { degradesTrust: true, portfolioScore: 55 }),
+      65,
+    );
+    assert.equal(
+      applyHygieneScoreDiscount(82, { degradesTrust: true, portfolioScore: 30 }),
+      55,
+    );
+    assert.equal(applyHygieneScoreDiscount(82, { degradesTrust: false }), 82);
   });
 });

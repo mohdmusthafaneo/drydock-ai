@@ -6,7 +6,14 @@ import {
 
 export type JiraHygieneFinding = {
   id: string;
-  category: "assignment" | "schedule" | "traceability" | "sprint" | "freshness" | "estimates";
+  category:
+    | "assignment"
+    | "schedule"
+    | "traceability"
+    | "sprint"
+    | "freshness"
+    | "estimates"
+    | "data-quality";
   label: string;
   value: string;
   severity: "info" | "warning" | "critical";
@@ -43,6 +50,7 @@ type ProjectScope = JiraDeliverySnapshot["projects"][number];
 
 const STALE_SYNC_HOURS = 48;
 const CRITICAL_STALE_HOURS = 96;
+const STALE_OPEN_THRESHOLD = 5;
 
 function hygieneGrade(score: number): JiraHygieneResult["grade"] {
   if (score >= 75) return "good";
@@ -88,8 +96,9 @@ function buildHygieneFindings(input: {
   mapping?: NonNullable<ToolchainMapping["jira"]>;
   snapshotSyncedAt: string;
   traceabilityGap?: boolean;
+  dataQualityFlags?: string[];
 }): JiraHygieneFinding[] {
-  const { project, mapping, snapshotSyncedAt, traceabilityGap } = input;
+  const { project, mapping, snapshotSyncedAt, traceabilityGap, dataQualityFlags } = input;
   const findings: JiraHygieneFinding[] = [];
 
   if (project.openIssues > 0) {
@@ -127,20 +136,99 @@ function buildHygieneFindings(input: {
 
     if (
       project.missingEstimateCount != null &&
-      ratio(project.missingEstimateCount, project.openIssues) > 0.3
+      project.openIssues > 0
     ) {
-      const pct = Math.round(
-        ratio(project.missingEstimateCount, project.openIssues) * 100,
+      const estimateRatio = ratio(project.missingEstimateCount, project.openIssues);
+      const estimateSeverity = baselineSeverity(
+        estimateRatio,
+        mapping?.hygieneBaselines?.missingEstimateRatioP50,
+        { warning: 0.3, critical: 0.5 },
       );
+      if (estimateSeverity) {
+        findings.push({
+          id: "missing-estimates",
+          category: "estimates",
+          label: "Missing estimates",
+          value: `${Math.round(estimateRatio * 100)}% of open issues lack story points`,
+          severity: estimateSeverity,
+          recommendation:
+            "Add story-point estimates so sprint and capacity signals are trustworthy.",
+        });
+      }
+    }
+
+    const inProgress =
+      project.statusBreakdown?.inProgress ?? project.openIssues;
+    if (
+      project.missingDueDateCount != null &&
+      inProgress > 0
+    ) {
+      const dueDateRatio = ratio(project.missingDueDateCount, inProgress);
+      const dueDateSeverity = baselineSeverity(dueDateRatio, undefined, {
+        warning: 0.35,
+        critical: 0.55,
+      });
+      if (dueDateSeverity) {
+        findings.push({
+          id: "missing-due-dates",
+          category: "schedule",
+          label: "In-progress without due date",
+          value: `${Math.round(dueDateRatio * 100)}% of in-progress issues have no due date`,
+          severity: dueDateSeverity,
+          recommendation:
+            "Set due dates on active work so schedule risk and overdue signals stay meaningful.",
+        });
+      }
+    }
+
+    if (
+      project.staleOpenCount != null &&
+      project.openIssues > 0 &&
+      project.staleOpenCount >= STALE_OPEN_THRESHOLD
+    ) {
+      const staleRatio = ratio(project.staleOpenCount, project.openIssues);
+      const staleSeverity = baselineSeverity(staleRatio, undefined, {
+        warning: 0.15,
+        critical: 0.3,
+      });
+      if (staleSeverity) {
+        findings.push({
+          id: "aged-open-tickets",
+          category: "schedule",
+          label: "Aged open tickets",
+          value: `${project.staleOpenCount} open issue${project.staleOpenCount === 1 ? "" : "s"} older than 30 days (${Math.round(staleRatio * 100)}% of backlog)`,
+          severity: staleSeverity,
+          recommendation:
+            "Close or re-prioritize stale tickets — aged backlog inflates delivery risk.",
+        });
+      }
+    }
+
+    if (project.unknownWorkflowStatusCount != null && project.unknownWorkflowStatusCount > 0) {
       findings.push({
-        id: "missing-estimates",
-        category: "estimates",
-        label: "Missing estimates",
-        value: `${pct}% of open issues lack story points`,
-        severity: "warning",
-        recommendation: "Add story-point estimates so sprint and capacity signals are trustworthy.",
+        id: "unknown-status-vs-workflow",
+        category: "data-quality",
+        label: "Unknown workflow statuses",
+        value: `${project.unknownWorkflowStatusCount} open issue${project.unknownWorkflowStatusCount === 1 ? "" : "s"} in non-standard status categories`,
+        severity: project.unknownWorkflowStatusCount >= 5 ? "critical" : "warning",
+        recommendation:
+          "Align custom statuses with your agreed workflow mapping so blockers and done states are detected correctly.",
       });
     }
+  }
+
+  const projectJqlFailures = project.jqlPartialFailures ?? [];
+  const portfolioFlags = dataQualityFlags ?? [];
+  const qualityFlags = [...new Set([...projectJqlFailures, ...portfolioFlags])];
+  if (qualityFlags.length > 0) {
+    findings.push({
+      id: "jql-partial-failure",
+      category: "data-quality",
+      label: "Partial Jira data",
+      value: `Some counts unavailable: ${qualityFlags.slice(0, 3).join(", ")}${qualityFlags.length > 3 ? "…" : ""}`,
+      severity: qualityFlags.length >= 3 ? "critical" : "warning",
+      recommendation: "Re-sync Jira or review field mapping — some delivery metrics may be incomplete.",
+    });
   }
 
   const ageHours = syncAgeHours(snapshotSyncedAt);
@@ -230,9 +318,20 @@ export function assessJiraHygiene(input: {
   mapping?: NonNullable<ToolchainMapping["jira"]>;
   snapshotSyncedAt: string;
   traceabilityGap?: boolean;
+  dataQualityFlags?: string[];
 }): JiraHygieneResult {
   const findings = buildHygieneFindings(input);
   return finalizeHygieneResult(findings);
+}
+
+/** Cap delivery/readiness scores when Jira board hygiene degrades trust. */
+export function applyHygieneScoreDiscount(
+  score: number,
+  hygiene?: { degradesTrust: boolean; portfolioScore?: number } | null,
+): number {
+  if (!hygiene?.degradesTrust) return score;
+  const cap = (hygiene.portfolioScore ?? 100) < 40 ? 55 : 65;
+  return Math.min(score, cap);
 }
 
 /** Portfolio rollup — leadership surfaces worst project (min score). */
@@ -253,6 +352,7 @@ export function assessPortfolioJiraHygiene(
       mapping: projectMapping,
       snapshotSyncedAt: snapshot.syncedAt,
       traceabilityGap: options?.traceabilityGapByProject?.[project.key],
+      dataQualityFlags: snapshot.dataQualityFlags,
     });
     byProject[project.key] = result;
     portfolioScore = Math.min(portfolioScore, result.score);

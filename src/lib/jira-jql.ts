@@ -54,3 +54,16 @@ export function buildSpilloverJql(sprintId: number): string {
 export function buildPortfolioSpilloverJql(baseJql: string): string {
   return `${baseJql} AND sprint in openSprints() AND sprint in closedSprints()`;
 }
+
+/** Open issues created more than 30 days ago (aged backlog). */
+export function buildStaleOpenJql(baseJql: string, mapping: JiraMappingSlice): string {
+  return `${baseJql} AND ${buildNotDoneJql(mapping)} AND created <= -30d`;
+}
+
+/** Open issues in non-standard status categories (outside To Do / In Progress). */
+export function buildUnknownWorkflowStatusJql(
+  baseJql: string,
+  mapping: JiraMappingSlice,
+): string {
+  return `${baseJql} AND ${buildNotDoneJql(mapping)} AND statusCategory NOT IN ("To Do", "In Progress") AND status != ${jqlQuoteLiteral(mapping.blockedStatusName)}`;
+}

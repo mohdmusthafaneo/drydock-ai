@@ -43,7 +43,7 @@ function DeltaBadge({
 }
 
 const KPI_ITEMS: {
-  key: "healthScore" | "openWork" | "blocked" | "overdue";
+  key: "healthScore" | "openWork" | "blocked" | "overdue" | "reopened" | "spillover";
   label: string;
   subtitle: string;
   suffix?: string;
@@ -82,6 +82,20 @@ const KPI_ITEMS: {
     invertDelta: true,
     jiraLinkKey: "overdue",
   },
+  {
+    key: "reopened",
+    label: "Reopened",
+    subtitle: "Returned from done status",
+    deltaKey: "reopenedDelta",
+    invertDelta: true,
+  },
+  {
+    key: "spillover",
+    label: "Spillover",
+    subtitle: "Carried from prior sprint",
+    deltaKey: "spilloverDelta",
+    invertDelta: true,
+  },
 ];
 
 export function KpiStrip({ kpis, projectCount }: { kpis: DeliveryAnalysisKpis; projectCount: number }) {
@@ -89,7 +103,7 @@ export function KpiStrip({ kpis, projectCount }: { kpis: DeliveryAnalysisKpis; p
     projectCount === 1 ? "1 project" : `Across ${projectCount} projects`;
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
       {KPI_ITEMS.map((item) => {
         const value = kpis[item.key];
         const delta = item.deltaKey ? kpis[item.deltaKey] : undefined;

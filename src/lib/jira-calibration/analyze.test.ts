@@ -69,6 +69,42 @@ describe("analyzeCalibrationSample", () => {
     assert.equal(typeof observations.hygieneBaselines.unassignedRatioP50, "number");
     assert.equal(typeof observations.hygieneBaselines.overdueRatioP50, "number");
   });
+
+  it("computes missingEstimateRatioP50 when estimate flags are present", () => {
+    const observations = analyzeCalibrationSample(
+      baseSample({
+        issues: [
+          {
+            key: "ACME-1",
+            status: "In Progress",
+            issueType: "Story",
+            labels: [],
+            fixVersions: [],
+            hasEstimate: false,
+            transitions: [],
+          },
+          {
+            key: "ACME-2",
+            status: "In Progress",
+            issueType: "Story",
+            labels: [],
+            fixVersions: [],
+            hasEstimate: true,
+            transitions: [],
+          },
+        ],
+      }),
+    );
+    assert.equal(observations.hygieneBaselines.missingEstimateRatioP50, 1);
+  });
+
+  it("downgrades confidence when sample is capped", () => {
+    const observations = analyzeCalibrationSample(
+      baseSample({ capped: true, issueCount: 500 }),
+    );
+    assert.equal(observations.confidence, "low");
+    assert.equal(observations.sampleCapped, true);
+  });
 });
 
 describe("mergeCalibrationIntoMapping", () => {

@@ -41,6 +41,8 @@ type CalibrationSuggestion = {
   releaseTracking: string;
   methodology: string;
   rationale: string | null;
+  sampleCapped?: boolean;
+  totalInWindow?: number;
 };
 
 type CalibrationProfileSummary = {
@@ -49,6 +51,8 @@ type CalibrationProfileSummary = {
   confidence: string | null;
   calibratedAt: string | null;
   source: string;
+  sampleCapped?: boolean;
+  totalInWindow?: number;
 };
 
 type SchemaState = {
@@ -156,6 +160,8 @@ export function ToolchainMappingForm({
   const [jiraHygieneLinks, setJiraHygieneLinks] = useState<Record<string, string>>({});
   const [calibrationProfiles, setCalibrationProfiles] = useState<CalibrationProfileSummary[]>([]);
   const [calibrationSuggestions, setCalibrationSuggestions] = useState<CalibrationSuggestion[]>([]);
+  const [recalibrating, setRecalibrating] = useState(false);
+  const [recalibrateMessage, setRecalibrateMessage] = useState<string | null>(null);
 
   const loadSchema = useCallback(async () => {
     const [mappingRes, jiraRes, githubRes] = await Promise.all([
@@ -203,6 +209,36 @@ export function ToolchainMappingForm({
   useEffect(() => {
     if (syncReady) void loadSchema();
   }, [syncReady, loadSchema]);
+
+  async function handleRecalibrate(projectKey?: string) {
+    setRecalibrating(true);
+    setRecalibrateMessage(null);
+    setError(null);
+    try {
+      const res = await fetch("/api/governance/jira/calibrate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ projectKey, force: true }),
+      });
+      const data = (await res.json()) as { ok?: boolean; error?: string };
+      if (!res.ok) {
+        setError(data.error ?? "Recalibration failed");
+        return;
+      }
+      setRecalibrateMessage(
+        projectKey
+          ? `Recalibration started for ${projectKey}`
+          : "Recalibration started for all synced projects",
+      );
+      await loadSchema();
+      router.refresh();
+    } catch {
+      setError("Recalibration request failed");
+    } finally {
+      setRecalibrating(false);
+    }
+  }
 
   async function refreshSchema() {
     setRefreshing(true);
@@ -329,13 +365,31 @@ export function ToolchainMappingForm({
       {calibrationProfiles.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">90-day Jira calibration</CardTitle>
-            <CardDescription>
-              Workflow semantics learned from recent Jira activity. Delivery scores stay discounted
-              until calibration completes.
-            </CardDescription>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <CardTitle className="text-base">90-day Jira calibration</CardTitle>
+                <CardDescription>
+                  Workflow semantics learned from recent Jira activity. Delivery scores stay
+                  discounted until calibration completes.
+                </CardDescription>
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={recalibrating}
+                onClick={() => void handleRecalibrate()}
+              >
+                {recalibrating ? "Starting…" : "Recalibrate all"}
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-3">
+            {recalibrateMessage && (
+              <p className="rounded-lg border border-chart-blue/30 bg-sky-wash px-3 py-2 text-sm text-chart-blue">
+                {recalibrateMessage}
+              </p>
+            )}
             {calibrationProfiles.map((profile) => (
               <div
                 key={profile.projectKey}
@@ -346,6 +400,21 @@ export function ToolchainMappingForm({
                   <Badge variant="muted">{calibrationStatusLabel(profile.status)}</Badge>
                   {profile.confidence && (
                     <Badge variant="accent">{profile.confidence} confidence</Badge>
+                  )}
+                  {profile.sampleCapped && (
+                    <Badge variant="muted" title="90-day sample capped at 500 issues">
+                      500-issue cap
+                    </Badge>
+                  )}
+                  {(profile.status === "failed" || profile.status === "calibrating") && (
+                    <button
+                      type="button"
+                      onClick={() => void handleRecalibrate(profile.projectKey)}
+                      disabled={recalibrating}
+                      className="text-[13px] font-medium text-ink hover:text-rust disabled:opacity-50"
+                    >
+                      Retry
+                    </button>
                   )}
                 </div>
               </div>
@@ -358,6 +427,14 @@ export function ToolchainMappingForm({
                 <p className="font-medium text-ink">
                   Suggested from 90-day history — {suggestion.projectKey}
                 </p>
+                {suggestion.sampleCapped && (
+                  <p className="mt-1 text-xs text-warning">
+                    Sample capped at 500 issues
+                    {suggestion.totalInWindow != null
+                      ? ` (${suggestion.totalInWindow} updated in window) — confidence reduced`
+                      : " — confidence reduced"}
+                  </p>
+                )}
                 <ul className="mt-2 space-y-1 text-muted">
                   <li>
                     Done statuses: {suggestion.doneStatusNames.join(", ") || "—"}

@@ -571,6 +571,36 @@ export function analyzeJiraDeliveryHealth(input: {
             ? "warning"
             : "info",
     },
+    {
+      id: "jira-reopened",
+      category: "quality",
+      label: "Reopened work",
+      value:
+        metrics.reopenedCount > 0
+          ? `${metrics.reopenedCount} issue${metrics.reopenedCount === 1 ? "" : "s"} reopened from done`
+          : "No reopened issues in scope",
+      severity:
+        metrics.reopenedCount >= 10
+          ? "critical"
+          : metrics.reopenedCount > 0
+            ? "warning"
+            : "info",
+    },
+    {
+      id: "jira-spillover",
+      category: "sprint",
+      label: "Spillover work",
+      value:
+        metrics.spilloverCount > 0
+          ? `${metrics.spilloverCount} issue${metrics.spilloverCount === 1 ? "" : "s"} carried from prior sprint${metrics.spilloverCount === 1 ? "" : "s"}`
+          : "No sprint spillover in scope",
+      severity:
+        metrics.spilloverCount >= 10
+          ? "critical"
+          : metrics.spilloverCount > 0
+            ? "warning"
+            : "info",
+    },
   ];
 
   if (matchedFixVersion) {
@@ -657,6 +687,22 @@ export function analyzeJiraDeliveryHealth(input: {
       area: "Quality",
       gap: `${metrics.bugsOpen} open ${labels.bug}s in Jira scope`,
       priority: metrics.bugsOpen >= 10 ? "high" : "medium",
+    });
+  }
+
+  if (metrics.reopenedCount > 0) {
+    gaps.push({
+      area: "Quality",
+      gap: `${metrics.reopenedCount} issue${metrics.reopenedCount === 1 ? "" : "s"} reopened from done status`,
+      priority: metrics.reopenedCount >= 5 ? "high" : "medium",
+    });
+  }
+
+  if (metrics.spilloverCount > 0) {
+    gaps.push({
+      area: "Sprint",
+      gap: `${metrics.spilloverCount} issue${metrics.spilloverCount === 1 ? "" : "s"} spilled over from prior sprint${metrics.spilloverCount === 1 ? "" : "s"}`,
+      priority: metrics.spilloverCount >= 5 ? "high" : "medium",
     });
   }
 

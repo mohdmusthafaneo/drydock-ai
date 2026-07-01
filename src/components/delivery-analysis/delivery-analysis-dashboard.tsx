@@ -233,6 +233,13 @@ export function DeliveryAnalysisDashboard({
 
       {showMetrics && (
         <>
+          {snapshot.kpis.calibrationPending && (
+            <p className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning">
+              {snapshot.kpis.calibrationMessage ??
+                "Jira workflow calibration in progress — delivery scores use discounted confidence until complete."}
+            </p>
+          )}
+
           {deliveryVerdict && (
             <ExecutiveVerdictBanner
               verdict={deliveryVerdict.verdict}

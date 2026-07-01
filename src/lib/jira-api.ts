@@ -663,6 +663,7 @@ export type JiraIssueWithDescription = {
   key: string;
   summary: string;
   description: string;
+  assignee?: string;
 };
 
 /** Fetch issue summary + description for completion scoring. */
@@ -680,7 +681,11 @@ export async function searchIssuesWithDescriptions(
   const data = await jiraFetch<{
     issues?: Array<{
       key?: string;
-      fields?: { summary?: string; description?: unknown };
+      fields?: {
+        summary?: string;
+        description?: unknown;
+        assignee?: { displayName?: string };
+      };
     }>;
   }>(accessToken, cloudId, "/rest/api/3/search/jql", {
     method: "POST",
@@ -688,18 +693,19 @@ export async function searchIssuesWithDescriptions(
     body: JSON.stringify({
       jql,
       maxResults: uniqueKeys.length,
-      fields: ["summary", "description"],
+      fields: ["summary", "description", "assignee"],
     }),
   });
 
   return (data.issues ?? [])
-    .filter((issue): issue is { key: string; fields?: { summary?: string; description?: unknown } } =>
+    .filter((issue): issue is { key: string; fields?: { summary?: string; description?: unknown; assignee?: { displayName?: string } } } =>
       Boolean(issue.key),
     )
     .map((issue) => ({
       key: issue.key,
       summary: issue.fields?.summary ?? "",
       description: normalizeJiraDescription(issue.fields?.description),
+      assignee: issue.fields?.assignee?.displayName,
     }));
 }
 

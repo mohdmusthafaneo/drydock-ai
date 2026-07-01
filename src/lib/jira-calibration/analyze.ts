@@ -128,11 +128,42 @@ function inferHygieneBaselines(issues: CalibrationIssueSample[]): CalibrationObs
     if (!i.dueDate) return 0;
     return new Date(i.dueDate).getTime() < now ? 1 : 0;
   });
+  const missingEstimateFlags = openLike.map((i) =>
+    i.hasEstimate === false ? 1 : i.hasEstimate === true ? 0 : 0,
+  );
+  const hasEstimateData = openLike.some((i) => i.hasEstimate != null);
 
   return {
     unassignedRatioP50: percentile(unassignedFlags, 0.5),
     overdueRatioP50: percentile(overdueFlags, 0.5),
+    ...(hasEstimateData
+      ? { missingEstimateRatioP50: percentile(missingEstimateFlags, 0.5) }
+      : {}),
   };
+}
+
+function downgradeConfidence(
+  confidence: "high" | "medium" | "low",
+): "high" | "medium" | "low" {
+  if (confidence === "high") return "medium";
+  if (confidence === "medium") return "low";
+  return "low";
+}
+
+function inferConfidence(
+  sample: CalibrationSample,
+  transitions: Array<{ from: string; to: string; count: number }>,
+): "high" | "medium" | "low" {
+  let confidence: "high" | "medium" | "low";
+  if (sample.issueCount >= 100 && transitions.length >= 10) confidence = "high";
+  else if (sample.issueCount >= 30 && transitions.length >= 3) confidence = "medium";
+  else confidence = "low";
+
+  if (sample.capped) {
+    confidence = downgradeConfidence(confidence);
+  }
+
+  return confidence;
 }
 
 function inferMethodology(sample: CalibrationSample): CalibrationObservations["methodology"] {
@@ -141,12 +172,6 @@ function inferMethodology(sample: CalibrationSample): CalibrationObservations["m
   if (closedSprintSignal || spilloverSignal) return "scrum";
   if (sample.issueCount >= 20) return "kanban";
   return "custom";
-}
-
-function inferConfidence(sample: CalibrationSample, transitions: Array<{ from: string; to: string; count: number }>): "high" | "medium" | "low" {
-  if (sample.issueCount >= 100 && transitions.length >= 10) return "high";
-  if (sample.issueCount >= 30 && transitions.length >= 3) return "medium";
-  return "low";
 }
 
 /** Deterministic transition analysis from a calibration sample. */
@@ -178,6 +203,8 @@ export function analyzeCalibrationSample(sample: CalibrationSample): Calibration
     analyzedAt: new Date().toISOString(),
     windowDays: sample.windowDays,
     projectKey: sample.projectKey,
+    sampleCapped: sample.capped,
+    totalInWindow: sample.aggregates.totalInWindow,
     statusUsage,
     transitions: transitions.slice(0, 50),
     inferredDoneStatusNames,

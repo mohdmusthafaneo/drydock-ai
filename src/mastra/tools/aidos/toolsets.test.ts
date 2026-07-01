@@ -15,6 +15,7 @@ const ALL_AGENT_TYPES: AgentType[] = [
   "GOVERNANCE",
   "INCIDENT_CORRELATION",
   "INTEGRATION",
+  "PROBLEM_PREDICTOR",
 ];
 
 const EXPECTED_TOOL_COUNTS: Record<
@@ -27,11 +28,12 @@ const EXPECTED_TOOL_COUNTS: Record<
   GOVERNANCE: { withHire: 8, withoutHire: 8 },
   INCIDENT_CORRELATION: { withHire: 7, withoutHire: 7 },
   INTEGRATION: { withHire: 6, withoutHire: 6 },
+  PROBLEM_PREDICTOR: { withHire: 8, withoutHire: 8 },
 };
 
 describe("AIDOS Mastra tool allowlists", () => {
-  it("defines all 16 aidos_* tools", () => {
-    assert.equal(AIDOS_TOOL_IDS.length, 16);
+  it("defines all 17 aidos_* tools", () => {
+    assert.equal(AIDOS_TOOL_IDS.length, 17);
   });
 
   for (const agentType of ALL_AGENT_TYPES) {
@@ -110,6 +112,23 @@ describe("AIDOS Mastra tool allowlists", () => {
       isAidosToolAllowedForAgent(
         "aidos_list_compliance_findings",
         "QA_INTELLIGENCE",
+      ),
+      false,
+    );
+  });
+
+  it("allows list_predictions only for PROBLEM_PREDICTOR", () => {
+    assert.equal(
+      isAidosToolAllowedForAgent(
+        "aidos_list_predictions",
+        "PROBLEM_PREDICTOR",
+      ),
+      true,
+    );
+    assert.equal(
+      isAidosToolAllowedForAgent(
+        "aidos_list_predictions",
+        "GOVERNANCE",
       ),
       false,
     );

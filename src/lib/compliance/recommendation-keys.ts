@@ -13,21 +13,22 @@ export function parseComplianceFindingIdFromTitle(
   return match?.[1] ?? null;
 }
 
+/** Finding ids that already have a non-rejected compliance recommendation. */
 export async function loadPendingComplianceFindingIds(
   organizationId: string,
 ): Promise<Set<string>> {
   const { prisma } = await import("@/lib/prisma");
-  const pending = await prisma.recommendation.findMany({
+  const existing = await prisma.recommendation.findMany({
     where: {
       organizationId,
-      status: "PENDING",
+      status: { in: ["PENDING", "APPROVED", "MODIFIED"] },
       title: { startsWith: "[compliance:" },
     },
     select: { title: true },
   });
 
   const ids = new Set<string>();
-  for (const row of pending) {
+  for (const row of existing) {
     const findingId = parseComplianceFindingIdFromTitle(row.title);
     if (findingId) ids.add(findingId);
   }

@@ -4,6 +4,7 @@ import type { GitHubAssessContext } from "@/lib/github-assess-context";
 import type { GrafanaAssessContext } from "@/lib/grafana-assess-context";
 import type { JiraAssessContext } from "@/lib/jira-delivery-health";
 import type { GovernancePolicyConfig } from "@/lib/governance/policy";
+import type { PortfolioHygieneSummary } from "@/lib/jira-hygiene";
 import {
   formatErrorRateDelta,
   formatObservabilityCoverage,
@@ -234,6 +235,7 @@ export function assessReleaseGovernance(input: {
   github?: GitHubAssessContext;
   codeAnalysis?: CodeAnalysisAssessContext;
   governancePolicy?: GovernancePolicyConfig;
+  jiraHygiene?: PortfolioHygieneSummary | null;
 }): GovernanceAssessment {
   const metrics =
     input.metrics ?? resolveMetricsAssessContext({ integrations: input.integrations });
@@ -251,6 +253,12 @@ export function assessReleaseGovernance(input: {
     metrics,
     github: input.github,
     codeAnalysis: input.codeAnalysis,
+    jiraHygiene: input.jiraHygiene
+      ? {
+          degradesTrust: input.jiraHygiene.degradesTrust,
+          portfolioScore: input.jiraHygiene.portfolioScore,
+        }
+      : null,
   });
 
   const connected = input.integrations.filter((i) => i.status === "CONNECTED").length;

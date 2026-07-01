@@ -4,6 +4,7 @@ export type AgentToolName =
   | "assess_release"
   | "read_release_context"
   | "read_compliance_findings"
+  | "read_predictions"
   | "create_recommendation"
   | "query_jira_jql"
   | "hire_agent"
@@ -25,6 +26,10 @@ const TOOL_ALLOWLIST: Record<AgentType, AgentToolName[]> = {
   ],
   INCIDENT_CORRELATION: ["read_release_context", "create_recommendation"],
   INTEGRATION: ["read_release_context"],
+  PROBLEM_PREDICTOR: [
+    "read_predictions",
+    "create_recommendation",
+  ],
 };
 
 export function getAllowedTools(agentType: AgentType): AgentToolName[] {

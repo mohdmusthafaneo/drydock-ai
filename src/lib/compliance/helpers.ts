@@ -5,7 +5,7 @@ export function isAiAttribution(a: AiAttribution): boolean {
 }
 
 export function hasNamedReviewer(pr: CodeAnalysisPullRequest): boolean {
-  return (pr.reviewers?.length ?? 0) > 0 || pr.reviewCount > 0;
+  return (pr.reviewers?.length ?? 0) > 0;
 }
 
 export function primaryJiraProjectKey(jiraKeys: string[]): string | null {

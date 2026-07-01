@@ -15,7 +15,9 @@ import { enqueueReleaseAssessedWakeups } from "@/lib/agent-control-plane/release
 import { invalidateExecutiveBriefingSnapshot } from "@/lib/executive-briefing/invalidate-snapshot";
 import { assessReleaseGovernance } from "@/lib/release-governance";
 import { buildAssessmentSnapshot } from "@/lib/release-assess-snapshot";
-import { parseToolchainMapping } from "@/lib/toolchain-mapping";
+import { parseToolchainMapping, resolveEffectiveToolchainMapping } from "@/lib/toolchain-mapping";
+import { assessPortfolioJiraHygiene, summarizePortfolioHygiene } from "@/lib/jira-hygiene";
+import { parseJiraMeta } from "@/lib/jira-meta";
 import {
   parseGovernancePolicy,
   resolveGovernancePolicyForProject,
@@ -136,6 +138,16 @@ export async function POST(
     branch: releaseBranch,
   });
 
+  const jiraIntegration = integrations.find((i) => i.provider === "JIRA");
+  const jiraMeta = jiraIntegration ? parseJiraMeta(jiraIntegration.metadataJson) : null;
+  const effectiveMapping = await resolveEffectiveToolchainMapping(session.organizationId);
+  const jiraHygieneSummary =
+    jiraMeta?.deliverySnapshot && effectiveMapping
+      ? summarizePortfolioHygiene(
+          assessPortfolioJiraHygiene(jiraMeta.deliverySnapshot, effectiveMapping),
+        )
+      : null;
+
   const assessment = assessReleaseGovernance({
     profile,
     dna,
@@ -150,6 +162,7 @@ export async function POST(
     github,
     codeAnalysis,
     governancePolicy,
+    jiraHygiene: jiraHygieneSummary,
   });
 
   const assessmentSnapshot = buildAssessmentSnapshot({

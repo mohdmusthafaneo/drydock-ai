@@ -37,6 +37,7 @@ function riskLevelFromScore(score: number): RiskLevel {
 export function fallbackCompletionScore(input: {
   jiraKeys: string[];
   hasDiff: boolean;
+  diffExcerpt?: string;
 }): CompletionScoreResult {
   if (input.jiraKeys.length === 0) {
     return {
@@ -50,9 +51,27 @@ export function fallbackCompletionScore(input: {
       completionRationale: "No diff captured — re-run code analysis sync to score completion.",
     };
   }
+
+  let score = 50;
+  const rationaleParts = [
+    "Deterministic estimate — LLM scoring unavailable; linked ticket and diff present.",
+  ];
+  const diffUpper = (input.diffExcerpt ?? "").toUpperCase();
+  const keysInDiff = input.jiraKeys.filter((key) => diffUpper.includes(key.toUpperCase()));
+  if (keysInDiff.length > 0) {
+    score += 15;
+    rationaleParts.push(
+      `Ticket key${keysInDiff.length === 1 ? "" : "s"} ${keysInDiff.join(", ")} referenced in diff.`,
+    );
+  }
+  if (/\.(test|spec)\.[jt]sx?/i.test(diffUpper) || /__tests__\//i.test(diffUpper)) {
+    score += 10;
+    rationaleParts.push("Test file changes detected in diff.");
+  }
+
   return {
-    completionScore: null,
-    completionRationale: "LLM scoring unavailable — completion not assessed.",
+    completionScore: clampScore(score),
+    completionRationale: rationaleParts.join(" "),
   };
 }
 

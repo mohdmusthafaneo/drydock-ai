@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { DEFAULT_CODE_ANALYSIS_RANGE } from "@/lib/code-analysis/default-filters";
 import type {
   CodeAnalysisFilters,
   CodeAnalysisSnapshot,
@@ -32,6 +33,7 @@ type Props = {
   complianceOpenCount?: number;
   complianceCriticalOpen?: number;
   showCompliancePanel?: boolean;
+  canManageCompliance?: boolean;
 };
 
 type SnapshotSource = "mock" | "github" | "loading";
@@ -43,13 +45,14 @@ export function CodeAnalysisDashboard({
   complianceOpenCount = 0,
   complianceCriticalOpen = 0,
   showCompliancePanel = false,
+  canManageCompliance = false,
 }: Props) {
   const allRepos = connectedRepos?.length ? connectedRepos : getAvailableMockRepos();
 
   const [filters, setFilters] = useState<CodeAnalysisFilters>({
     repos: allRepos,
     branch: "default",
-    range: "30d",
+    range: DEFAULT_CODE_ANALYSIS_RANGE,
     author: null,
   });
   const [trendMetric, setTrendMetric] = useState<TrendMetric>("lines");
@@ -219,13 +222,19 @@ export function CodeAnalysisDashboard({
 
       <AiRiskCard aiRisk={snapshot.aiRisk} />
 
-      <AccountabilityCard accountability={snapshot.accountability} />
+      <AccountabilityCard
+        accountability={snapshot.accountability}
+        needsOwnershipBackfill={snapshot.pullRequests.some(
+          (pr) => (pr.files?.length ?? 0) === 0,
+        )}
+      />
 
       {showCompliancePanel && (
         <ComplianceFindingsPanel
           findings={complianceFindings}
           openCount={complianceOpenCount}
           criticalOpen={complianceCriticalOpen}
+          canManage={canManageCompliance}
         />
       )}
 
@@ -251,7 +260,13 @@ export function CodeAnalysisDashboard({
         <GovernanceSignalsCard signals={snapshot.governanceSignals} />
       )}
 
-      <AnalysisTabs snapshot={snapshot} jiraSiteUrl={jiraSiteUrl} />
+      <AnalysisTabs
+        snapshot={snapshot}
+        jiraSiteUrl={jiraSiteUrl}
+        needsReviewerBackfill={snapshot.pullRequests.some(
+          (pr) => pr.reviewCount > 0 && (pr.reviewers?.length ?? 0) === 0,
+        )}
+      />
     </div>
   );
 }
