@@ -566,14 +566,19 @@ export function assessQAIntelligence(input: {
   }
 
   if (jiraHealth) {
+    const scopeNote = jiraHealth.scopeLabel
+      ? `scope ${jiraHealth.scopeLabel} (${jiraHealth.scopedProject?.key ?? "project"})`
+      : jiraHealth.matchedVersion
+        ? jiraHealth.matchedVersion.matchedOn === "sprint"
+          ? `matched sprint ${jiraHealth.matchedVersion.versionName} (${jiraHealth.matchedVersion.projectKey})`
+          : `matched fix version ${jiraHealth.matchedVersion.versionName} (${jiraHealth.matchedVersion.projectKey})`
+        : "no release scope match";
     const jiraParts = [
       `Jira delivery health ${jiraHealth.score}/100`,
-      jiraHealth.matchedVersion
-        ? `matched fix version ${jiraHealth.matchedVersion.versionName} (${jiraHealth.matchedVersion.projectKey})`
-        : "no fix version match",
+      scopeNote,
     ];
-    if (jiraHealth.scopedProject) {
-      jiraParts.push(`scope ${jiraHealth.scopedProject.key}`);
+    if (jiraHealth.scopedProject && !jiraHealth.scopeLabel) {
+      jiraParts.push(`project ${jiraHealth.scopedProject.key}`);
     }
     regressionNotes = `${input.releaseName}: ${jiraParts.join("; ")}. ${regressionNotes.replace(`${input.releaseName}: `, "")}`;
   } else if (hasJira && !jiraSynced) {

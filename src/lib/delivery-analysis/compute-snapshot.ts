@@ -7,6 +7,7 @@ import type {
   DeliveryAnalysisVersionRow,
 } from "@/lib/delivery-analysis/types";
 import type { JiraDeliverySnapshot } from "@/lib/jira-meta";
+import { sprintDaysOverdue } from "@/lib/jira-sprint-metrics";
 import {
   analyzePortfolioDeliveryHealth,
   type JiraDeliveryGap,
@@ -30,6 +31,7 @@ import {
 } from "@/lib/jira-issue-links";
 import type { ToolchainMapping } from "@/lib/toolchain-mapping";
 import { resolveJiraMappingForProject } from "@/lib/toolchain-mapping";
+import { aggregateOrgScopedMetrics } from "@/lib/release-scope";
 
 type SnapshotProject = DeliveryAnalysisProjectRow & {
   versions: Omit<DeliveryAnalysisVersionRow, "projectKey" | "projectName">[];
@@ -88,11 +90,15 @@ function jiraProjectsToSnapshotRows(
     if (sprint && sprint.committed != null && sprint.committed > 0) {
       const done = sprint.done ?? 0;
       const pct = Math.round((done / sprint.committed) * 100);
+      const daysOverdue =
+        sprint.daysOverdue ??
+        (sprint.state === "active" ? sprintDaysOverdue(sprint.endDate) : 0);
       activeSprint = {
         name: sprint.name,
         done,
         committed: sprint.committed,
         pct,
+        storyPoints: sprint.storyPoints,
       };
       sprintRow = {
         name: sprint.name,
@@ -104,6 +110,10 @@ function jiraProjectsToSnapshotRows(
         pct,
         severity: sprintSeverity(pct),
         sprintId: sprint.id,
+        storyPoints: sprint.storyPoints,
+        daysOverdue: daysOverdue > 0 ? daysOverdue : undefined,
+        statusByName: sprint.statusByName,
+        qaPipelineCount: sprint.qaPipelineCount ?? p.qaPipelineCount,
       };
     }
 
@@ -119,6 +129,8 @@ function jiraProjectsToSnapshotRows(
       bugsOpen: p.bugsOpen,
       resolvedLast7d: p.resolvedLast7d,
       statusBreakdown: p.statusBreakdown,
+      qaPipelineCount: p.qaPipelineCount ?? sprint?.qaPipelineCount,
+      assigneeWorkload: p.assigneeWorkload,
       activeSprint,
       hygiene,
       versions: p.versions.map((v) => ({
@@ -139,6 +151,7 @@ export function computeDeliveryAnalysisFromJira(input: {
   siteUrl?: string;
   filters: DeliveryAnalysisFilters;
   mapping?: ToolchainMapping;
+  releaseTracking?: NonNullable<ToolchainMapping["jira"]>["releaseTracking"];
   jiraHygiene?: PortfolioJiraHygiene;
   calibrationPending?: boolean;
   calibrationMessage?: string;
@@ -191,6 +204,7 @@ export function computeDeliveryAnalysisFromJira(input: {
       : undefined,
     mapping: input.mapping,
     jiraSnapshot: input.jiraSnapshot,
+    releaseTracking: input.releaseTracking ?? input.mapping?.jira?.releaseTracking,
     calibrationPending: input.calibrationPending,
     calibrationMessage: input.calibrationMessage,
   });
@@ -209,6 +223,7 @@ export function snapshotForFilters(
     siteUrl,
     filters,
     mapping,
+    releaseTracking: mapping?.jira?.releaseTracking,
     jiraHygiene,
     calibrationPending: calibration?.pending,
     calibrationMessage: calibration?.message,
@@ -228,6 +243,7 @@ export function computeDeliveryAnalysisSnapshot(input: {
   jiraHygiene?: DeliveryAnalysisSnapshot["jiraHygiene"];
   mapping?: ToolchainMapping;
   jiraSnapshot?: JiraDeliverySnapshot;
+  releaseTracking?: NonNullable<ToolchainMapping["jira"]>["releaseTracking"];
   calibrationPending?: boolean;
   calibrationMessage?: string;
 }): DeliveryAnalysisSnapshot {
@@ -244,17 +260,38 @@ export function computeDeliveryAnalysisSnapshot(input: {
     jiraHygiene,
     mapping,
     jiraSnapshot,
+    releaseTracking,
     calibrationPending,
     calibrationMessage,
   } = input;
 
-  const openWork = projects.reduce((n, p) => n + p.openIssues, 0);
-  const blocked = projects.reduce((n, p) => n + p.blockedCount, 0);
-  const overdue = projects.reduce((n, p) => n + p.overdueCount, 0);
-  const reopened = projects.reduce((n, p) => n + (p.reopenedCount ?? 0), 0);
-  const spillover = projects.reduce((n, p) => n + (p.spilloverCount ?? 0), 0);
-  const bugsOpen = projects.reduce((n, p) => n + p.bugsOpen, 0);
+  const tracking = releaseTracking ?? mapping?.jira?.releaseTracking;
+  const useReleaseScope =
+    jiraSnapshot &&
+    (tracking === "sprint" || tracking === "fixVersion");
+
+  const scopedMetrics = useReleaseScope
+    ? aggregateOrgScopedMetrics(
+        jiraSnapshot!,
+        tracking,
+        filters.projectKey,
+      )
+    : null;
+
+  const openWork = scopedMetrics?.openIssues ?? projects.reduce((n, p) => n + p.openIssues, 0);
+  const blocked = scopedMetrics?.blockedCount ?? projects.reduce((n, p) => n + p.blockedCount, 0);
+  const overdue = scopedMetrics?.overdueCount ?? projects.reduce((n, p) => n + p.overdueCount, 0);
+  const reopened =
+    scopedMetrics?.reopenedCount ??
+    projects.reduce((n, p) => n + (p.reopenedCount ?? 0), 0);
+  const spillover =
+    scopedMetrics?.spilloverCount ??
+    projects.reduce((n, p) => n + (p.spilloverCount ?? 0), 0);
+  const bugsOpen = scopedMetrics?.bugsOpen ?? projects.reduce((n, p) => n + p.bugsOpen, 0);
   const resolvedLast7d = projects.reduce((n, p) => n + (p.resolvedLast7d ?? 0), 0);
+  const qaPipeline =
+    scopedMetrics?.qaPipelineCount ??
+    projects.reduce((n, p) => n + (p.qaPipelineCount ?? 0), 0);
   const hasThroughput = projects.some((p) => p.resolvedLast7d != null);
   const otherOpen = Math.max(0, openWork - blocked - overdue);
 
@@ -280,9 +317,10 @@ export function computeDeliveryAnalysisSnapshot(input: {
     }));
 
   const sprintCompletionPct =
-    sprintRows.length > 0
+    scopedMetrics?.sprintCompletionPct ??
+    (sprintRows.length > 0
       ? Math.round(sprintRows.reduce((n, s) => n + s.pct, 0) / sprintRows.length)
-      : null;
+      : null);
 
   const versions: DeliveryAnalysisVersionRow[] = projects.flatMap((p) =>
     p.versions.map((v) => ({
@@ -329,10 +367,13 @@ export function computeDeliveryAnalysisSnapshot(input: {
       spillover,
       spilloverDelta: kpisDeltas?.spilloverDelta,
       bugsOpen,
+      qaPipeline: qaPipeline > 0 ? qaPipeline : undefined,
       sprintCompletionPct,
       resolvedLast7d: hasThroughput ? resolvedLast7d : undefined,
       calibrationPending,
       calibrationMessage,
+      scopeLabel: scopedMetrics?.scopeLabel,
+      scopeMode: scopedMetrics?.mode,
     },
     riskMix: { blocked, overdue, bugs: bugsOpen, otherOpen },
     trend,
@@ -342,6 +383,8 @@ export function computeDeliveryAnalysisSnapshot(input: {
     signals: filteredSignals,
     gaps,
     jiraHygiene,
+    scopeLabel: scopedMetrics?.scopeLabel,
+    scopeMode: scopedMetrics?.mode,
   };
 
   if (siteUrl && mapping?.jira) {
@@ -351,6 +394,7 @@ export function computeDeliveryAnalysisSnapshot(input: {
       projectKeys: snapshot.projectKeys,
       projects,
       jiraSnapshot,
+      releaseTracking: tracking,
     });
   }
 
@@ -412,6 +456,34 @@ function signalLinkExtras(
   return undefined;
 }
 
+function resolveLinkReleaseScope(
+  snapshot: DeliveryAnalysisSnapshot,
+  projects: SnapshotProject[],
+  jiraSnapshot?: JiraDeliverySnapshot,
+): JiraLinkContext["releaseScope"] {
+  if (!snapshot.scopeMode || projects.length === 0) return undefined;
+  const project = projects[0]!;
+  if (snapshot.scopeMode === "sprint") {
+    const sprintId =
+      project.sprint?.sprintId ??
+      jiraSnapshot?.projects.find((p) => p.key === project.key)?.activeSprint?.id;
+    return {
+      mode: "sprint",
+      scopeLabel: snapshot.scopeLabel,
+      projectKey: project.key,
+      sprintId,
+    };
+  }
+  const versionName =
+    project.versions.find((v) => !v.released)?.name ?? snapshot.scopeLabel;
+  return {
+    mode: "fixVersion",
+    scopeLabel: snapshot.scopeLabel,
+    projectKey: project.key,
+    versionName,
+  };
+}
+
 function attachJiraLinksToSnapshot(
   snapshot: DeliveryAnalysisSnapshot,
   input: {
@@ -420,12 +492,14 @@ function attachJiraLinksToSnapshot(
     projectKeys: string[];
     projects: SnapshotProject[];
     jiraSnapshot?: JiraDeliverySnapshot;
+    releaseTracking?: NonNullable<ToolchainMapping["jira"]>["releaseTracking"];
   },
 ): DeliveryAnalysisSnapshot {
   const linkCtx: JiraLinkContext = {
     siteUrl: input.siteUrl,
     mapping: input.mapping,
     projectKeys: input.projectKeys,
+    releaseScope: resolveLinkReleaseScope(snapshot, input.projects, input.jiraSnapshot),
   };
 
   snapshot.kpis.jiraLinks = {

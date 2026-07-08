@@ -9,6 +9,7 @@ import {
   inferToolchainMapping,
   mergeToolchainMapping,
   parseToolchainMapping,
+  resolveEffectiveToolchainMapping,
 } from "@/lib/toolchain-mapping";
 
 export default async function ToolchainMappingPage() {
@@ -25,7 +26,8 @@ export default async function ToolchainMappingPage() {
 
   const inferred = inferToolchainMapping({ profile, integrations });
   const saved = parseToolchainMapping(profile?.toolchainMappingJson);
-  const mapping = mergeToolchainMapping(inferred, saved);
+  const effective = await resolveEffectiveToolchainMapping(session.organizationId);
+  const mapping = effective ?? mergeToolchainMapping(inferred, saved);
   const syncReady = hasIntegrationSyncForToolchainDiscovery(integrations);
 
   return (

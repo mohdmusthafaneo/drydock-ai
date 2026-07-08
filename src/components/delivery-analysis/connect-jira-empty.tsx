@@ -13,7 +13,8 @@ export function ConnectJiraEmpty() {
         <CardTitle className="mt-4">Connect Jira to analyze delivery</CardTitle>
         <CardDescription className="mx-auto max-w-md">
           Delivery analysis pulls fix versions, issue counts, and sprint progress from your
-          connected Jira projects. Connect Jira on the integrations page to see portfolio health.
+          connected Jira projects. If Jira is already connected, open Integrations to select
+          projects or run a sync.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col items-center gap-3 pb-8">

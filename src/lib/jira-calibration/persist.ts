@@ -5,6 +5,11 @@ import type {
   JiraCalibrationStatus,
 } from "@/lib/jira-calibration/types";
 import { parseCalibratedWorkflowProfile } from "@/lib/jira-calibration/types";
+import {
+  mergeCalibrationIntoMapping,
+  parseToolchainMapping,
+  type ToolchainMapping,
+} from "@/lib/toolchain-mapping";
 
 export async function upsertCalibrationProfile(input: {
   organizationId: string;
@@ -103,4 +108,34 @@ export function observationsToDeterministicProfile(
     hygieneBaselines: observations.hygieneBaselines,
     confidence: observations.confidence,
   };
+}
+
+/** Merge calibrated Jira semantics into org toolchain mapping (persists sprint/fixVersion mode). */
+export async function persistCalibratedToolchainMapping(input: {
+  organizationId: string;
+  profile: CalibratedWorkflowProfile;
+  projectKey?: string;
+  calibratedAt?: Date;
+  confidence?: string;
+}): Promise<ToolchainMapping> {
+  const orgProfile = await prisma.organizationProfile.findUnique({
+    where: { organizationId: input.organizationId },
+    select: { toolchainMappingJson: true },
+  });
+
+  const existing = parseToolchainMapping(orgProfile?.toolchainMappingJson);
+  const merged = mergeCalibrationIntoMapping(existing, input.profile, {
+    projectKey: input.projectKey,
+    calibratedAt: input.calibratedAt?.toISOString(),
+    confidence: (input.confidence as "high" | "medium" | "low" | undefined) ?? input.profile.confidence,
+  });
+
+  await prisma.organizationProfile.update({
+    where: { organizationId: input.organizationId },
+    data: {
+      toolchainMappingJson: JSON.stringify(merged),
+    },
+  });
+
+  return merged;
 }

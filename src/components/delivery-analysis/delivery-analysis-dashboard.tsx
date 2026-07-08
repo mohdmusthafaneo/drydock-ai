@@ -273,7 +273,12 @@ export function DeliveryAnalysisDashboard({
             <SprintCards sprints={snapshot.sprints} siteUrl={snapshot.siteUrl} />
           </div>
 
-          <DeliverySignalsCard signals={snapshot.signals} siteUrl={snapshot.siteUrl} />
+          <DeliverySignalsCard
+            signals={snapshot.signals}
+            siteUrl={snapshot.siteUrl}
+            scopeLabel={snapshot.scopeLabel}
+            scopeMode={snapshot.scopeMode}
+          />
 
           {snapshot.jiraHygiene?.findings.length ? (
             <JiraHygieneFindingsCard findings={snapshot.jiraHygiene.findings} />

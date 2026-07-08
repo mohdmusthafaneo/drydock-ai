@@ -99,8 +99,11 @@ const KPI_ITEMS: {
 ];
 
 export function KpiStrip({ kpis, projectCount }: { kpis: DeliveryAnalysisKpis; projectCount: number }) {
-  const scopeLabel =
-    projectCount === 1 ? "1 project" : `Across ${projectCount} projects`;
+  const scopeLabel = kpis.scopeLabel
+    ? `${kpis.scopeMode === "sprint" ? "Sprint" : "Fix version"}: ${kpis.scopeLabel}`
+    : projectCount === 1
+      ? "1 project"
+      : `Across ${projectCount} projects`;
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">

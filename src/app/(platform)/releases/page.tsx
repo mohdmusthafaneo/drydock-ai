@@ -67,7 +67,10 @@ export default async function ReleasesPage() {
                       {r.name}
                       {r.version ? ` · ${r.version}` : ""}
                     </p>
-                    <p className="text-sm text-muted">{r.environment}</p>
+                    <p className="text-sm text-muted">
+                      {r.environment}
+                      {r.serviceScope ? ` · ${r.serviceScope}` : ""}
+                    </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     {verdict && (
@@ -94,6 +97,7 @@ export default async function ReleasesPage() {
                   <p className="mt-2 text-sm text-ash">
                     QA readiness {Math.round(r.readinessScore)}% · governance risk{" "}
                     {r.governanceRiskScore != null ? Math.round(r.governanceRiskScore) : "—"}%
+                    {r.jiraSprintId != null ? " · synced from Jira sprint" : ""}
                   </p>
                 )}
               </Link>

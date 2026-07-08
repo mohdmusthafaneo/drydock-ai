@@ -1,4 +1,5 @@
 import type { HealthDimension, HealthDimensionId } from "@/lib/executive-briefing/types";
+import type { JiraConnectionState } from "@/lib/executive-briefing/health-score";
 
 export type ScoredHealthDimension = HealthDimension & { missing: false };
 
@@ -8,6 +9,7 @@ export type MissingHealthDimension = {
   summary: string;
   missing: true;
   href: string;
+  actionLabel?: string;
 };
 
 export type DisplayHealthDimension = ScoredHealthDimension | MissingHealthDimension;
@@ -40,9 +42,39 @@ const MISSING_HREFS: Record<HealthDimensionId, string> = {
   governance: "/integrations",
 };
 
+function momentumMissingState(jira?: JiraConnectionState): Pick<MissingHealthDimension, "summary" | "href" | "actionLabel"> {
+  if (!jira?.connected) {
+    return {
+      summary: "Connect Jira to score how fast work is moving.",
+      href: "/integrations",
+      actionLabel: "Connect Jira",
+    };
+  }
+  if (!jira.projectKeysSelected) {
+    return {
+      summary: "Jira is connected — select which projects to include in delivery analysis.",
+      href: "/integrations",
+      actionLabel: "Select projects",
+    };
+  }
+  if (!jira.hasSnapshot) {
+    return {
+      summary: "Jira is connected — run a sync to load sprint and backlog signals.",
+      href: "/integrations",
+      actionLabel: "Sync Jira data",
+    };
+  }
+  return {
+    summary: MISSING_SUMMARIES.momentum,
+    href: MISSING_HREFS.momentum,
+    actionLabel: "Set up",
+  };
+}
+
 /** Always returns four dimension slots so the confidence grid never has a hole. */
 export function buildDisplayHealthDimensions(
   dimensions: HealthDimension[],
+  jiraConnection?: JiraConnectionState,
 ): DisplayHealthDimension[] {
   const byId = new Map(dimensions.map((dim) => [dim.id, dim]));
 
@@ -52,12 +84,25 @@ export function buildDisplayHealthDimensions(
       return { ...scored, missing: false as const };
     }
 
+    if (id === "momentum") {
+      const momentum = momentumMissingState(jiraConnection);
+      return {
+        id,
+        label: DIMENSION_LABELS[id],
+        summary: momentum.summary,
+        missing: true as const,
+        href: momentum.href,
+        actionLabel: momentum.actionLabel,
+      };
+    }
+
     return {
       id,
       label: DIMENSION_LABELS[id],
       summary: MISSING_SUMMARIES[id],
       missing: true as const,
       href: MISSING_HREFS[id],
+      actionLabel: "Set up",
     };
   });
 }

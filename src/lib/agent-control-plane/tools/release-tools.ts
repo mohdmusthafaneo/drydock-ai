@@ -54,9 +54,8 @@ export async function buildReleaseAssessContext(
   if (!dna) return { release, error: "Delivery DNA not configured" as const };
 
   const toolchainMapping = parseToolchainMapping(profile?.toolchainMappingJson);
-  const jiraMapping = profile?.toolchainMappingConfirmedAt
-    ? toolchainMapping.jira
-    : undefined;
+  const effectiveMapping = await resolveEffectiveToolchainMapping(organizationId);
+  const jiraMapping = effectiveMapping?.jira;
   const githubMapping = profile?.toolchainMappingConfirmedAt
     ? toolchainMapping.github
     : undefined;
@@ -74,6 +73,7 @@ export async function buildReleaseAssessContext(
     releaseName: release.name,
     version: release.version,
     jiraFixVersion: release.jiraFixVersion,
+    jiraSprintId: release.jiraSprintId,
     mapping: jiraMapping,
   });
 
@@ -106,11 +106,11 @@ export async function buildReleaseAssessContext(
 
   const jiraIntegration = integrations.find((i) => i.provider === "JIRA");
   const jiraMeta = jiraIntegration ? parseJiraMeta(jiraIntegration.metadataJson) : null;
-  const effectiveMapping = await resolveEffectiveToolchainMapping(organizationId);
   const jiraHygiene =
     jiraMeta?.deliverySnapshot && effectiveMapping
       ? summarizePortfolioHygiene(
           assessPortfolioJiraHygiene(jiraMeta.deliverySnapshot, effectiveMapping),
+          projectKey,
         )
       : null;
 

@@ -5,6 +5,7 @@ import { getOrganizationContext } from "@/lib/org-data";
 import { parseIntegrationMeta } from "@/lib/integration-meta";
 import { getJiraOAuthConfig } from "@/lib/jira-oauth";
 import { parseJiraMeta } from "@/lib/jira-meta";
+import { fetchOrgJiraProjects } from "@/lib/jira-project-selection";
 import { checkIntegrationHealth, summarizeIntegrationHealth } from "@/lib/integration-health";
 import { persistGitHubAppInstallation } from "@/lib/github-app-install";
 import { prisma } from "@/lib/prisma";
@@ -110,6 +111,20 @@ export default async function IntegrationsPage({
   const health = await Promise.all(integrations.map((i) => checkIntegrationHealth(i)));
   const healthSummary = summarizeIntegrationHealth(health);
 
+  const jiraIntegration = integrations.find((i) => i.provider === "JIRA");
+  const jiraConnected = jiraIntegration?.status === "CONNECTED";
+  let jiraProjectOptions: Array<{ key: string; name: string }> = [];
+  let jiraProjectLoadError: string | undefined;
+  if (jiraConnected && hasPermission(session, "integrations", "view")) {
+    try {
+      const { projects } = await fetchOrgJiraProjects(session.organizationId);
+      jiraProjectOptions = projects;
+    } catch (e) {
+      jiraProjectLoadError =
+        e instanceof Error ? e.message : "Failed to load Jira projects";
+    }
+  }
+
   return (
     <div className="space-y-8">
       <PageHeader
@@ -213,6 +228,8 @@ export default async function IntegrationsPage({
                     selectedProjectKeys={jiraMeta.projectKeys}
                     deliverySnapshot={jiraMeta.deliverySnapshot}
                     availableSitesCount={jiraMeta.availableSites?.length}
+                    initialProjects={jiraProjectOptions}
+                    initialProjectLoadError={jiraProjectLoadError}
                     canManage={canManage}
                     appUrlConfigured={appUrlConfigured}
                   />

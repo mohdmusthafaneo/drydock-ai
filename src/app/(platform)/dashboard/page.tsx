@@ -15,7 +15,7 @@ export default async function EnterpriseDashboardPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const [{ briefing, charts, ctx, orgName }, predictions] = await Promise.all([
+  const [{ briefing, charts, ctx, orgName, deliverySnapshot, effectiveMapping, jiraConnection }, predictions] = await Promise.all([
     loadExecutiveBriefing(session.organizationId),
     loadProblemPredictions(session.organizationId, {
       status: "open",
@@ -30,6 +30,8 @@ export default async function EnterpriseDashboardPage() {
   const deck = composeExecutiveDeck({
     briefing,
     ctx,
+    deliverySnapshot,
+    mapping: effectiveMapping,
     hasDelivery: charts.delivery != null,
     hasEngineering: charts.engineering != null,
     hasObservability: charts.stability != null,
@@ -43,7 +45,12 @@ export default async function EnterpriseDashboardPage() {
         predictions={predictions}
         lastEvaluatedAt={briefing.freshness.asOf}
       />
-      <BriefingExecutiveDeck briefing={briefing} deck={deck} orgName={orgName} />
+      <BriefingExecutiveDeck
+        briefing={briefing}
+        deck={deck}
+        orgName={orgName}
+        jiraConnection={jiraConnection}
+      />
     </div>
   );
 }

@@ -79,14 +79,30 @@ export function DeliverySignalsPanel({
 
 export function DeliverySignalsCard({
   signals,
+  scopeLabel,
+  scopeMode,
 }: {
   signals: JiraDeliverySignal[];
   siteUrl?: string;
+  scopeLabel?: string;
+  scopeMode?: "sprint" | "fixVersion";
 }) {
+  const scopeBadge =
+    scopeLabel && scopeMode
+      ? `${scopeMode === "sprint" ? "Sprint" : "Fix version"}: ${scopeLabel}`
+      : null;
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Delivery signals</CardTitle>
+        <div className="flex flex-wrap items-center gap-2">
+          <CardTitle className="text-base">Delivery signals</CardTitle>
+          {scopeBadge && (
+            <Badge variant="muted" className="text-[10px]">
+              {scopeBadge}
+            </Badge>
+          )}
+        </div>
         <CardDescription>Governance-relevant patterns in Jira delivery</CardDescription>
       </CardHeader>
       <CardContent>

@@ -83,12 +83,11 @@ export async function POST(
     );
   }
 
-  const toolchainMapping = parseToolchainMapping(profile?.toolchainMappingJson);
-  const jiraMapping = profile?.toolchainMappingConfirmedAt
-    ? toolchainMapping.jira
-    : undefined;
+  const effectiveMapping = await resolveEffectiveToolchainMapping(session.organizationId);
+  const jiraMapping = effectiveMapping?.jira;
+
   const githubMapping = profile?.toolchainMappingConfirmedAt
-    ? toolchainMapping.github
+    ? parseToolchainMapping(profile?.toolchainMappingJson).github
     : undefined;
 
   const releaseBranch =
@@ -104,6 +103,7 @@ export async function POST(
     releaseName: release.name,
     version: release.version,
     jiraFixVersion: release.jiraFixVersion,
+    jiraSprintId: release.jiraSprintId,
     mapping: jiraMapping,
   });
 
@@ -140,11 +140,11 @@ export async function POST(
 
   const jiraIntegration = integrations.find((i) => i.provider === "JIRA");
   const jiraMeta = jiraIntegration ? parseJiraMeta(jiraIntegration.metadataJson) : null;
-  const effectiveMapping = await resolveEffectiveToolchainMapping(session.organizationId);
   const jiraHygieneSummary =
     jiraMeta?.deliverySnapshot && effectiveMapping
       ? summarizePortfolioHygiene(
           assessPortfolioJiraHygiene(jiraMeta.deliverySnapshot, effectiveMapping),
+          projectKey,
         )
       : null;
 

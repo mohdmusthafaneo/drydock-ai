@@ -10,6 +10,7 @@ import {
   resolveAssessSourceFreshness,
 } from "@/lib/release-assess-snapshot";
 import { matchReleaseToFixVersion } from "@/lib/jira-delivery-health";
+import { resolveEffectiveToolchainMapping } from "@/lib/toolchain-mapping";
 import { resolveLowJiraHygieneForRelease } from "@/lib/jira-hygiene";
 import { isJiraOAuthConnected, parseJiraMeta } from "@/lib/jira-meta";
 import { buildReleaseDetailVerdict } from "@/lib/governance/presentation";
@@ -22,6 +23,7 @@ import { ReleaseGateBrief } from "@/components/releases/release-gate-brief";
 import { ExecutiveVerdictBanner } from "@/components/executive-briefing/executive-verdict-banner";
 import { RevealSection } from "@/components/motion/reveal-section";
 import { HoverLift } from "@/components/motion/hover-lift";
+import { buildJiraIssuesSearchUrl, buildSprintJql } from "@/lib/jira-issue-links";
 
 export default async function ReleaseDetailPage({
   params,
@@ -33,7 +35,7 @@ export default async function ReleaseDetailPage({
 
   const { id } = await params;
 
-  const [release, integrations] = await Promise.all([
+  const [release, integrations, effectiveMapping] = await Promise.all([
     prisma.release.findFirst({
       where: { id, organizationId: session.organizationId },
       include: {
@@ -43,6 +45,7 @@ export default async function ReleaseDetailPage({
     prisma.integration.findMany({
       where: { organizationId: session.organizationId },
     }),
+    resolveEffectiveToolchainMapping(session.organizationId),
   ]);
 
   if (!release) notFound();
@@ -67,10 +70,21 @@ export default async function ReleaseDetailPage({
           release.name,
           release.version,
           jiraMeta.deliverySnapshot,
-          undefined,
+          effectiveMapping?.jira,
           release.jiraFixVersion,
+          release.jiraSprintId,
         )
       : undefined;
+  const scopeLabel =
+    release.jiraSprintId != null
+      ? `Sprint ${release.name}`
+      : release.jiraFixVersion
+        ? `Fix version ${release.jiraFixVersion}`
+        : matchedVersion?.matchedOn === "sprint"
+          ? `Sprint ${matchedVersion.versionName}`
+          : matchedVersion
+            ? `Fix version ${matchedVersion.versionName}`
+            : null;
   const lowJiraHygiene = resolveLowJiraHygieneForRelease({
     hygiene: jiraMeta?.jiraHygiene,
     projectKey: matchedVersion?.projectKey ?? null,
@@ -91,6 +105,10 @@ export default async function ReleaseDetailPage({
 
   const showGateBrief = release.assessedAt != null;
   const releaseVerdict = buildReleaseDetailVerdict(release);
+  const jiraSprintUrl =
+    release.jiraSprintId != null && jiraMeta?.siteUrl
+      ? buildJiraIssuesSearchUrl(jiraMeta.siteUrl, buildSprintJql(release.jiraSprintId))
+      : null;
 
   return (
     <div className="space-y-6">
@@ -109,9 +127,23 @@ export default async function ReleaseDetailPage({
             </h1>
             <p className="mt-2 text-[16px] text-ash">
               {release.environment}
+              {scopeLabel ? ` · ${scopeLabel}` : ""}
               {release.branch ? ` · branch ${release.branch}` : ""}
-              {release.jiraFixVersion ? ` · Jira ${release.jiraFixVersion}` : ""}
+              {release.jiraFixVersion && !release.jiraSprintId
+                ? ` · Jira ${release.jiraFixVersion}`
+                : ""}
+              {release.serviceScope ? ` · project ${release.serviceScope}` : ""}
             </p>
+            {jiraSprintUrl && (
+              <a
+                href={jiraSprintUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-block text-[15px] font-medium text-chart-blue hover:underline"
+              >
+                Open sprint in Jira
+              </a>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {releaseVerdict.gateVerdict && (

@@ -5,6 +5,7 @@ import { invalidateExecutiveBriefingSnapshot } from "@/lib/executive-briefing/in
 import { markIntegrationSync } from "@/lib/integration-health";
 import {
   countIssuesByJql,
+  fetchAllSprintIssues,
   getJiraProject,
   JiraApiError,
   listBoardsForProject,
@@ -26,13 +27,18 @@ import {
   buildNotDoneJql,
   buildOpenJql,
   buildReopenedJql,
-  buildSpilloverJql,
+  buildSprintDoneJql,
   buildStaleOpenJql,
   buildUnknownWorkflowStatusJql,
   jqlQuoteLiteral,
   LEGACY_JIRA_MAPPING,
   type JiraMappingSlice,
 } from "@/lib/jira-jql";
+import { resolveSpilloverCount } from "@/lib/jira-spillover";
+import {
+  aggregateSprintIssues,
+  sprintDaysOverdue,
+} from "@/lib/jira-sprint-metrics";
 import { assessPortfolioJiraHygiene } from "@/lib/jira-hygiene";
 import { resolveSyncProjectKeys } from "@/lib/jira-project-selection";
 import { enqueueJiraCalibration } from "@/lib/jira-calibration/run";
@@ -43,6 +49,109 @@ import {
   type ToolchainMapping,
 } from "@/lib/toolchain-mapping";
 import { ingestNormalizedEvents } from "@/lib/telemetry-ingest";
+
+async function upsertFixVersionReleases(
+  organizationId: string,
+  projects: JiraDeliverySnapshot["projects"],
+  releaseTracking: string | undefined,
+): Promise<void> {
+  if (releaseTracking !== "fixVersion") return;
+
+  for (const project of projects) {
+    for (const version of project.versions) {
+      if (version.released) continue;
+
+      const openCount = version.openIssuesInVersion ?? 0;
+      const readinessScore =
+        openCount === 0 ? 100 : openCount <= 5 ? 75 : openCount <= 15 ? 50 : 25;
+
+      const existing = await prisma.release.findFirst({
+        where: {
+          organizationId,
+          jiraFixVersion: version.name,
+          serviceScope: project.key,
+        },
+      });
+
+      const data = {
+        name: version.name,
+        version: version.name,
+        jiraFixVersion: version.name,
+        serviceScope: project.key,
+        readinessScore,
+        status: "DETECTED" as const,
+        metadataJson: JSON.stringify({
+          source: "jira_fixversion_sync",
+          projectKey: project.key,
+          versionId: version.id,
+          releaseDate: version.releaseDate,
+        }),
+      };
+
+      if (existing) {
+        await prisma.release.update({ where: { id: existing.id }, data });
+      } else {
+        await prisma.release.create({
+          data: {
+            organizationId,
+            environment: "STAGING",
+            ...data,
+          },
+        });
+      }
+    }
+  }
+}
+
+async function upsertSprintReleases(
+  organizationId: string,
+  projects: JiraDeliverySnapshot["projects"],
+  releaseTracking: string | undefined,
+): Promise<void> {
+  const trackSprints =
+    releaseTracking === "sprint" || projects.some((p) => p.activeSprint != null);
+  if (!trackSprints) return;
+
+  for (const project of projects) {
+    const sprint = project.activeSprint;
+    if (!sprint) continue;
+
+    const committed = sprint.committed ?? 0;
+    const done = sprint.done ?? 0;
+    const readinessScore =
+      committed > 0 ? Math.round((done / committed) * 100) : null;
+
+    const existing = await prisma.release.findFirst({
+      where: { organizationId, jiraSprintId: sprint.id },
+    });
+
+    const data = {
+      name: sprint.name,
+      serviceScope: project.key,
+      readinessScore,
+      status: sprint.state === "closed" ? ("DEPLOYED" as const) : ("DETECTED" as const),
+      metadataJson: JSON.stringify({
+        source: "jira_sync",
+        projectKey: project.key,
+        sprintState: sprint.state,
+        sprintEndDate: sprint.endDate,
+      }),
+    };
+
+    if (existing) {
+      await prisma.release.update({ where: { id: existing.id }, data });
+    } else {
+      await prisma.release.create({
+        data: {
+          organizationId,
+          jiraSprintId: sprint.id,
+          environment: "STAGING",
+          ...data,
+        },
+      });
+    }
+  }
+}
 
 function isOverdueVersion(version: { released: boolean; releaseDate?: string }): boolean {
   if (version.released || !version.releaseDate) return false;
@@ -239,6 +348,8 @@ async function syncProject(
   let board: JiraDeliverySnapshot["projects"][number]["board"];
   let activeSprint: JiraDeliverySnapshot["projects"][number]["activeSprint"];
   let spilloverCount: number | undefined;
+  let qaPipelineCount: number | undefined;
+  let assigneeWorkload: JiraDeliverySnapshot["projects"][number]["assigneeWorkload"];
 
   try {
     const boards = await listBoardsForProject(accessToken, cloudId, projectKey);
@@ -247,40 +358,156 @@ async function syncProject(
     if (picked) {
       board = { id: picked.id, name: picked.name, type: picked.type };
 
-      if (picked.type === "scrum") {
-        const sprints = await listBoardSprints(accessToken, cloudId, picked.id);
-        const sprint = sprints.find((s) => s.state === "active") ?? sprints[0];
-        if (sprint) {
-          const [committed, done] = await Promise.all([
-            countIssuesByJql(accessToken, cloudId, `sprint = ${sprint.id}`),
-            countIssuesByJql(
-              accessToken,
-              cloudId,
-              `sprint = ${sprint.id} AND statusCategory = ${jqlQuoteLiteral(mapping.doneStatusCategory)}`,
-            ),
-          ]);
-          activeSprint = {
-            id: sprint.id,
-            name: sprint.name,
-            state: sprint.state,
-            startDate: sprint.startDate,
-            endDate: sprint.endDate,
-            committed,
-            done,
-          };
+      // Fetch sprints for any board that supports the agile API — some SCRUM boards
+      // report type "simple" instead of "scrum" (e.g. Connexus CX board).
+      const sprints = await listBoardSprints(accessToken, cloudId, picked.id);
+      const sprint = sprints.find((s) => s.state === "active") ?? sprints[0];
+      if (sprint) {
+        const storyPointFieldId = projectMapping?.storyPointField?.id;
+        let sprintIssues: Awaited<ReturnType<typeof fetchAllSprintIssues>> = [];
 
+        try {
+          sprintIssues = await fetchAllSprintIssues(
+            accessToken,
+            cloudId,
+            sprint.id,
+            storyPointFieldId,
+          );
+        } catch (e) {
+          if (e instanceof JiraApiError && [400, 401, 403, 404, 429].includes(e.status)) {
+            recordJqlFailure(jqlPartialFailures, "sprint_issues");
+          } else {
+            throw e;
+          }
+        }
+
+        let committed = sprintIssues.length;
+        let done = sprintIssues.length > 0 ? undefined : 0;
+        let sprintStatusByName: Record<string, number> | undefined;
+        let storyPoints:
+          | { committed: number; done: number; unestimatedIssues: number }
+          | undefined;
+        let sprintQaCount: number | undefined;
+        let sprintAssigneeWorkload:
+          | Array<{ assignee: string; openCount: number }>
+          | undefined;
+
+        if (sprintIssues.length > 0) {
+          const aggregates = aggregateSprintIssues(sprintIssues, mapping);
+          committed = aggregates.committed;
+          done = aggregates.done;
+          sprintStatusByName = aggregates.statusByName;
+          storyPoints = aggregates.storyPoints;
+          sprintQaCount = aggregates.qaPipelineCount;
+          sprintAssigneeWorkload = aggregates.assigneeWorkload;
+        } else {
           try {
-            spilloverCount = await countIssuesByJql(
-              accessToken,
-              cloudId,
-              buildSpilloverJql(sprint.id),
-            );
+            [committed, done] = await Promise.all([
+              countIssuesByJql(accessToken, cloudId, `sprint = ${sprint.id}`),
+              countIssuesByJql(
+                accessToken,
+                cloudId,
+                buildSprintDoneJql(sprint.id, mapping),
+              ),
+            ]);
           } catch (e) {
             if (e instanceof JiraApiError && [400, 401, 403, 404, 429].includes(e.status)) {
-              recordJqlFailure(jqlPartialFailures, "spillover");
+              recordJqlFailure(jqlPartialFailures, "sprint_counts");
             } else {
               throw e;
             }
+          }
+        }
+
+        const daysOverdue =
+          sprint.state === "active" ? sprintDaysOverdue(sprint.endDate) : 0;
+
+        const sprintJql = `sprint = ${sprint.id}`;
+        const [sprintBlocked, sprintOverdue, sprintBugs, sprintUnassigned] =
+          await Promise.all([
+            countIssuesSafe(
+              accessToken,
+              cloudId,
+              buildBlockedJql(sprintJql, mapping),
+              jqlPartialFailures,
+              "sprint_blocked",
+            ),
+            countIssuesSafe(
+              accessToken,
+              cloudId,
+              `${sprintJql} AND duedate < now() AND ${buildNotDoneJql(mapping)}`,
+              jqlPartialFailures,
+              "sprint_overdue",
+            ),
+            countIssuesSafe(
+              accessToken,
+              cloudId,
+              buildBugJql(sprintJql, mapping),
+              jqlPartialFailures,
+              "sprint_bugs",
+            ),
+            countIssuesSafe(
+              accessToken,
+              cloudId,
+              `${sprintJql} AND assignee is EMPTY AND ${buildNotDoneJql(mapping)}`,
+              jqlPartialFailures,
+              "sprint_unassigned",
+            ),
+          ]);
+
+        const sprintReopenedJql = buildReopenedJql(sprintJql, mapping);
+        const sprintReopened = sprintReopenedJql
+          ? await countIssuesSafe(
+              accessToken,
+              cloudId,
+              sprintReopenedJql,
+              jqlPartialFailures,
+              "sprint_reopened",
+            )
+          : undefined;
+
+        activeSprint = {
+          id: sprint.id,
+          name: sprint.name,
+          state: sprint.state,
+          startDate: sprint.startDate,
+          endDate: sprint.endDate,
+          committed,
+          done,
+          openIssues: Math.max(0, committed - (done ?? 0)),
+          blockedCount: sprintBlocked,
+          overdueCount: sprintOverdue,
+          bugsOpen: sprintBugs,
+          reopenedCount: sprintReopened,
+          unassignedCount: sprintUnassigned,
+          statusByName: sprintStatusByName,
+          storyPoints,
+          qaPipelineCount: sprintQaCount,
+          daysOverdue: daysOverdue > 0 ? daysOverdue : undefined,
+        };
+
+        qaPipelineCount = sprintQaCount;
+        assigneeWorkload = sprintAssigneeWorkload;
+
+        try {
+          const spillover = await resolveSpilloverCount(accessToken, cloudId, {
+            sprintId: sprint.id,
+            sprintStartDate: sprint.startDate,
+            sprintName: sprint.name,
+            boardId: picked.id,
+            mapping,
+            sprintIssues: sprintIssues.length > 0 ? sprintIssues : undefined,
+            useChangelog: sprintIssues.length > 0 && sprintIssues.length <= 80,
+          });
+          spilloverCount = spillover.count;
+          if (activeSprint) {
+            activeSprint = { ...activeSprint, spilloverCount };
+          }
+        } catch (e) {
+          if (e instanceof JiraApiError && [400, 401, 403, 404, 429].includes(e.status)) {
+            recordJqlFailure(jqlPartialFailures, "spillover");
+          } else {
+            throw e;
           }
         }
       }
@@ -348,6 +575,10 @@ async function syncProject(
     );
   }
 
+  if (activeSprint?.statusByName && statusBreakdown) {
+    statusBreakdown = { ...statusBreakdown, byName: activeSprint.statusByName };
+  }
+
   return {
     key: project.key,
     name: project.name,
@@ -365,6 +596,8 @@ async function syncProject(
     jqlPartialFailures: jqlPartialFailures.length > 0 ? jqlPartialFailures : undefined,
     resolvedLast7d,
     statusBreakdown,
+    qaPipelineCount,
+    assigneeWorkload,
     versions: enrichedVersions,
     board,
     activeSprint,
@@ -497,6 +730,7 @@ export async function syncJiraIntegration(input: {
       compare: "previous_sync",
     },
     mapping: effectiveMapping ?? undefined,
+    releaseTracking: effectiveMapping?.jira?.releaseTracking,
     jiraHygiene,
     calibrationPending: !calibrationGate.calibrated,
     calibrationMessage: calibrationGate.message,
@@ -548,6 +782,18 @@ export async function syncJiraIntegration(input: {
     siteUrl: meta.siteUrl,
     syncedAt: new Date(syncedAt),
   });
+
+  await upsertSprintReleases(
+    input.organizationId,
+    projects,
+    effectiveMapping?.jira?.releaseTracking,
+  );
+
+  await upsertFixVersionReleases(
+    input.organizationId,
+    projects,
+    effectiveMapping?.jira?.releaseTracking,
+  );
 
   invalidateExecutiveBriefingSnapshot(input.organizationId);
 

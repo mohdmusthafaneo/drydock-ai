@@ -637,7 +637,9 @@ model Release {
   version              String?
   branch               String?
   jiraFixVersion       String?
+  jiraSprintId         Int?
   serviceScope         String?
+  metadataJson         String              @default("{}")
   environment          ReleaseEnvironment  @default(STAGING)
   status               ReleaseStatus       @default(DETECTED)
   governanceRiskScore  Float?
@@ -664,6 +666,8 @@ model Release {
   telemetryEvents  TelemetryEvent[]
   deploymentEvents DeploymentEvent[]
 
+  @@unique([organizationId, jiraSprintId])
+  @@unique([organizationId, jiraFixVersion, serviceScope])
   @@index([organizationId])
 }
 

@@ -366,43 +366,54 @@ Requires passing `jiraConnected: boolean` into `HealthScoreInput`.
 
 ## 6. Verification checklist (dev QA)
 
-After implementing P0 + P1, verify against live Connexus:
+**Status: verified 2026-07-07** against live Connexus (`connexus@neoito.com`) in browser + audit scripts.
 
 ```bash
 # 1. Platform state audit
 npx tsx scripts/audit-connexus-platform-state.ts
-# Expect: projectKeys: ["CX"], hasSnapshot: true, activeSprint populated
+# ✅ projectKeys: ["CX"], hasSnapshot: true, activeSprint Sprint 35 (75 committed, 54 done)
 
 # 2. Ground truth comparison
 npx tsx scripts/query-connexus-sprint.ts
-npx tsx scripts/sprint-analysis-completion.ts
+npx tsx scripts/verify-p2-metrics.ts
+# ✅ spillover 15, QA pipeline 10, 0/29 SP, 7 days overdue, assignee Vysakh R J
 
-# 3. API snapshot
-curl -b <session> http://localhost:3000/api/delivery-analysis/snapshot | jq '.snapshot.kpis'
-# Expect: sprintCompletionPct ~ 70, openWork ~ 22-25, spillover > 0
+# 3. Unit tests
+npx tsx --test src/lib/jira-jql.test.ts src/lib/jira-sprint-metrics.test.ts \
+  src/lib/jira-spillover.test.ts src/lib/jira-delivery-health.test.ts
+# ✅ 16/16 pass
 ```
 
-### Browser acceptance
+### Browser acceptance (verified)
 
-| Page | Pass criteria |
-|------|---------------|
-| **Dashboard** | Headline mentions **Sprint 35**, not "Platform onboarding release" |
-| **Dashboard KPIs** | Sprint completion ~70%; no duplicate portfolio entries |
-| **Delivery analysis** | KPI strip, sprint card, signals for spillover + sprint pace |
-| **Integrations** | CX checked; last sync < 24h; projects list loads |
-| **Blind spots** | No "Jira not connected" when synced |
+| Page | Pass criteria | Result |
+|------|---------------|--------|
+| **Dashboard** | Headline mentions **Sprint 35**, not "Platform onboarding release" | ✅ "Connexus Sprint 35 — 72% complete, delivery at risk" |
+| **Dashboard KPIs** | Sprint completion ~70%; no duplicate portfolio entries | ✅ 72% sprint complete; single Sprint 35 portfolio row |
+| **Delivery analysis** | KPI strip, sprint card, signals for spillover + sprint pace | ✅ spillover 15, overdue 7d, QA 10, assignee load, 0/29 SP |
+| **Integrations** | CX checked; last sync < 24h; projects list loads | ✅ CX + AI visible; CX checked; sync today |
+| **Blind spots** | No "Jira not connected" when synced | ✅ No Jira disconnect blind spot |
+
+### Known variances vs ground-truth report
+
+| Metric | Report (2026-07-07 AM) | Platform (post-P2) | Reason |
+|--------|------------------------|---------------------|--------|
+| Total issues | 74 | 75 | +1 issue added in Jira since report |
+| Done count | 49 (status name) | 54 | Calibrated `doneStatusNames` includes Dev Completed |
+| QA pipeline | 13 | 10 | Live Jira status drift (6 Ready for Testing vs 9) |
+| Spillover | 11 (changelog) | 15 (carry-over JQL) | Improved semantics; count ≥ report threshold |
 
 ---
 
 ## 7. Connexus data remediation (immediate ops)
 
-Until code ships, restore Connexus manually:
+**Status: Connexus restored.** Manual steps below were executed during P0/P1/P2 implementation. New orgs get correct behavior automatically.
 
-1. **Integrations → Jira** — fix project picker (or PATCH `projectKeys: ["CX"]` via API if UI blocked)
-2. **Save selection** → **Sync Jira data**
-3. **Governance → Toolchain mapping** — set methodology Scrum, release tracking Sprint; run calibration
-4. **Delete or archive** duplicate `Platform onboarding release` rows in DB (optional, for demo cleanliness)
-5. **Refresh executive briefing** — trigger sync or call briefing invalidation endpoint
+1. ~~**Integrations → Jira** — fix project picker~~ ✅ Server-prefetched projects + client refresh
+2. ~~**Save selection** → **Sync Jira data**~~ ✅ CX saved; auto-sync on save
+3. ~~**Governance → Toolchain mapping**~~ ✅ `releaseTracking: "sprint"`, calibration complete
+4. **Delete duplicate `Platform onboarding release` rows** — optional cleanup (filtered from briefing)
+5. ~~**Refresh executive briefing**~~ ✅ Invalidation on reconnect/save/sync
 
 ---
 
@@ -415,6 +426,7 @@ Until code ships, restore Connexus manually:
 | `scripts/sprint-analysis-completion.ts` | Completion & scope |
 | `scripts/analyze-sprint-spillover.ts` | Spillover & carry-over |
 | `scripts/connexus-sprint35-risk-profile.ts` | Risk register |
+| `scripts/verify-p2-metrics.ts` | Live P2 metric verification against Sprint 35 |
 
 Use these as **contract tests** when refactoring — platform output should converge on these numbers.
 
@@ -451,15 +463,54 @@ flowchart TB
 
 ## 10. Summary for product
 
-The platform has the **building blocks** for accurate Connexus data (Jira sync, sprint cards, spillover signals, sprint release matching in `jira-delivery-health.ts`). They are **not wired end-to-end** because:
+**Implementation complete (P0–P2, 2026-07-07).** Connexus now shows Sprint 35 as the primary delivery unit across dashboard, portfolio, and delivery analysis.
 
-- The data pipeline is empty (no projects, no snapshot)
-- Sprint sync is gated on the wrong board type
-- The executive layer defaults to a onboarding placeholder release instead of Jira sprints
-- Toolchain mapping for sprint-based methodology was never saved
+| Phase | Status | Key outcome |
+|-------|--------|-------------|
+| **P0** | ✅ Done | Project picker, sprint sync for `board.type=simple`, briefing invalidation |
+| **P1** | ✅ Done | Sprint-first briefing, demo release filtered, toolchain `releaseTracking=sprint` |
+| **P2** | ✅ Done | Overdue, QA pipeline, spillover, status breakdown, SP, assignee load |
+| **P3** | Pending | OAuth metadata preservation, integration health degradation, E2E tests |
 
-**P0 restores the pipe. P1 makes the narrative sprint-native. P2 aligns metrics with the ground-truth report.**
+**P3** (hardening) remains for a follow-up sprint.
 
 ---
 
-*Audit script added: `scripts/audit-connexus-platform-state.ts`*
+## 11. Implementation log
+
+### P0 — Data pipeline (subagent + verification)
+
+| Task | Files changed | Verified |
+|------|---------------|----------|
+| P0.1 Project picker | `jira-integration-panel.tsx`, `projects/route.ts`, `integrations/page.tsx` (server prefetch) | CX + AI visible in browser |
+| P0.2 Auto-sync on save | `projects/route.ts` | `syncedAt` within last hour |
+| P0.3 Board type gate | `jira-sync.ts` | `activeSprint` Sprint 35 populated |
+| P0.4 Briefing invalidation | `jira-oauth-connection.ts`, `projects/route.ts`, `jira-sync.ts` | Dashboard "Updated 1m ago" |
+
+### P1 — Sprint-first model (subagent + verification)
+
+| Task | Files changed | Verified |
+|------|---------------|----------|
+| P1.1 Demo release filter | `discovery/route.ts`, `release-source.ts` | No "Platform onboarding release" in headline |
+| P1.2 Sprint headline/portfolio | `compose-briefing.ts`, `compose-executive-deck.ts` | Sprint 35 headline + portfolio |
+| P1.3 Sprint release upsert | `schema.prisma`, `jira-sync.ts` | `/releases` lists Sprint 35 |
+| P1.4 Portfolio dedup | `compose-executive-deck.ts`, `release-source.ts` | Single portfolio entry |
+| P1.5 Toolchain persist | `jira-calibration/persist.ts`, `toolchain-mapping.ts` | `releaseTracking: "sprint"` |
+| P1.6 Connection messaging | `health-score.ts`, `connect-jira-empty.tsx` | Precise Jira states |
+| P1.7 Momentum CTAs | `briefing-executive-deck.tsx`, `health-dimensions-display.ts` | Actionable CTAs |
+
+### P2 — Metric accuracy (subagent + verification)
+
+| Task | Files changed | Verified |
+|------|---------------|----------|
+| P2.1 Done counting | `jira-jql.ts`, `jira-sprint-metrics.ts` | Calibrated doneStatusNames |
+| P2.2 Sprint overdue | `jira-delivery-health.ts` | "Sprint 35 overdue by 7 days" |
+| P2.3 QA pipeline | `jira-sprint-metrics.ts`, `jira-delivery-health.ts` | 10 issues in testing/review |
+| P2.4 Spillover | `jira-spillover.ts` | 15 carry-over (≥ 11) |
+| P2.5 Status breakdown | `jira-meta.ts`, `jira-sync.ts` | `statusByName` in snapshot |
+| P2.6 Story points | `jira-sync.ts`, `sprint-cards.tsx` | 0/29 SP (0%) |
+| P2.7 Assignee load | `jira-sprint-metrics.ts`, `compute-snapshot.ts` | Vysakh R J top assignee |
+
+---
+
+*Audit script: `scripts/audit-connexus-platform-state.ts` · P2 verification: `scripts/verify-p2-metrics.ts`*

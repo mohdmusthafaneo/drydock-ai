@@ -9,6 +9,7 @@ import type {
 } from "@/lib/delivery-analysis/types";
 import type { JiraDeliverySnapshot } from "@/lib/jira-meta";
 import { prisma } from "@/lib/prisma";
+import { resolveEffectiveToolchainMapping } from "@/lib/toolchain-mapping";
 
 const HISTORY_WINDOW_DAYS = 90;
 
@@ -217,10 +218,13 @@ async function persistDeliveryAnalysisSnapshotInner(input: {
   siteUrl?: string;
   syncedAt: Date;
 }): Promise<DeliveryAnalysisSnapshot> {
+  const mapping = await resolveEffectiveToolchainMapping(input.organizationId);
   const rollup = computeDeliveryAnalysisFromJira({
     jiraSnapshot: input.jiraSnapshot,
     siteUrl: input.siteUrl,
     filters: DEFAULT_FILTERS,
+    mapping: mapping ?? undefined,
+    releaseTracking: mapping?.jira?.releaseTracking,
   });
 
   const storedSnapshot: DeliveryAnalysisSnapshot = {

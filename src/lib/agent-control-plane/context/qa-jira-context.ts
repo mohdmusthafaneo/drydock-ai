@@ -58,6 +58,11 @@ function formatProjectSection(
       `- Active sprint: ${sprint.name} (${sprint.state}, id ${sprint.id})${progress}`,
     );
     lines.push(`- Sprint JQL hint: sprint = ${sprint.id}`);
+    if (sprint.openIssues != null) {
+      lines.push(
+        `- Sprint scope counts: open ${sprint.openIssues} · blocked ${sprint.blockedCount ?? 0} · bugs ${sprint.bugsOpen ?? 0} · overdue ${sprint.overdueCount ?? 0}`,
+      );
+    }
   } else {
     lines.push("- Active sprint: none");
   }
@@ -92,12 +97,19 @@ function formatProjectSection(
 }
 
 function formatMappingSection(mapping: JiraMappingSlice, tracking: string): string[] {
+  const scopeNote =
+    tracking === "sprint"
+      ? "All delivery metrics and QA assess use active sprint scope (sprint = {id}), not full project backlog."
+      : tracking === "fixVersion"
+        ? "Release metrics use fix version scope (fixVersion = \"name\")."
+        : "";
   return [
     "### Toolchain mapping (for JQL presets)",
     `- Blocked status: ${mapping.blockedStatusName}`,
     `- Bug issue type: ${mapping.bugIssueType}`,
     `- Done status category: ${mapping.doneStatusCategory}`,
     `- Release tracking: ${tracking}`,
+    ...(scopeNote ? [`- Scope: ${scopeNote}`] : []),
     "",
     "### JQL query tool (`aidos_query_jira_jql`)",
     "- Presets: `open_bugs`, `blocked`, `open`, `done` (use mapping above)",

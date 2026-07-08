@@ -15,7 +15,7 @@ async function main() {
     include: {
       releases: true,
       integrations: true,
-      deliveryWorkflow: true,
+      profile: true,
     },
   });
   if (!org) throw new Error("connexus org not found");
@@ -77,17 +77,16 @@ async function main() {
   }
 
   console.log("\n=== TOOLCHAIN MAPPING ===");
-  if (org.deliveryWorkflow?.toolchainMappingJson) {
-    const m = parseToolchainMapping(org.deliveryWorkflow.toolchainMappingJson);
+  if (org.profile?.toolchainMappingJson) {
+    const m = parseToolchainMapping(org.profile.toolchainMappingJson);
     console.log(
       JSON.stringify(
         {
           methodology: m.jira?.methodology,
           releaseTracking: m.jira?.releaseTracking,
-          projectKeys: m.jira?.projectKeys,
           doneStatusNames: m.jira?.doneStatusNames,
           blockedStatusName: m.jira?.blockedStatusName,
-          calibrationComplete: m.inferredFrom?.calibrationComplete,
+          calibrationComplete: Boolean(m.inferredFrom?.jiraCalibratedAt),
         },
         null,
         2,

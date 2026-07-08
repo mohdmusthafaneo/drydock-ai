@@ -132,7 +132,7 @@ async function main() {
       storyPointFieldId = sp?.id;
       report.storyPointField = sp ? { id: sp.id, name: sp.name } : null;
     } catch (e) {
-      report.errors.push(`Field discovery failed: ${e instanceof Error ? e.message : String(e)}`);
+      (report.errors as string[]).push(`Field discovery failed: ${e instanceof Error ? e.message : String(e)}`);
     }
   } else {
     report.storyPointField = meta.jiraSchemaSnapshot?.suggestions?.storyPointField;

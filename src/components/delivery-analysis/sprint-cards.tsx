@@ -55,6 +55,23 @@ export function SprintCards({ sprints, siteUrl }: Props) {
                     </span>
                     <span className="tabular-nums font-medium">{sprint.pct}%</span>
                   </div>
+                  {sprint.storyPoints && sprint.storyPoints.committed > 0 && (
+                    <div className="mb-1 flex justify-between text-xs text-muted">
+                      <span>Story points</span>
+                      <span className="tabular-nums">
+                        {sprint.storyPoints.done}/{sprint.storyPoints.committed} SP (
+                        {Math.round(
+                          (sprint.storyPoints.done / sprint.storyPoints.committed) * 100,
+                        )}
+                        %)
+                      </span>
+                    </div>
+                  )}
+                  {sprint.daysOverdue != null && sprint.daysOverdue > 0 && (
+                    <p className="mb-1 text-xs font-medium text-warning">
+                      {sprint.daysOverdue} day{sprint.daysOverdue === 1 ? "" : "s"} past end date
+                    </p>
+                  )}
                   <div className="h-2 overflow-hidden rounded-full bg-metric-track">
                     <div
                       className={cn(

@@ -8,6 +8,13 @@ import type { ObservabilityAnalysisSnapshot } from "@/lib/observability-analysis
 import type { DeliveryAnalysisSnapshot } from "@/lib/delivery-analysis/types";
 import type { CodeAnalysisSnapshot } from "@/lib/code-analysis/types";
 import type { PortfolioHygieneSummary } from "@/lib/jira-hygiene";
+import type { ToolchainMapping } from "@/lib/toolchain-mapping";
+
+export type JiraConnectionState = {
+  connected: boolean;
+  projectKeysSelected: boolean;
+  hasSnapshot: boolean;
+};
 
 export type HealthScoreInput = {
   stats: {
@@ -29,6 +36,7 @@ export type HealthScoreInput = {
     governanceRiskScore: number | null;
     assessedAt: Date | null;
     assessmentSummary?: string | null;
+    metadataJson?: string | null;
   } | null;
   deliverySnapshot?: DeliveryAnalysisSnapshot | null;
   codeSnapshot?: CodeAnalysisSnapshot | null;
@@ -38,6 +46,8 @@ export type HealthScoreInput = {
   jiraHygiene?: PortfolioHygieneSummary | null;
   jiraCalibrationPending?: boolean;
   jiraCalibrationMessage?: string;
+  jiraConnection?: JiraConnectionState;
+  mapping?: ToolchainMapping | null;
 };
 
 const DIMENSION_WEIGHTS: Record<HealthDimensionId, number> = {
@@ -156,7 +166,7 @@ function computeMomentumDimension(input: HealthScoreInput): HealthDimension | nu
   const { deliverySnapshot, jiraHygiene } = input;
   if (!deliverySnapshot?.kpis) return null;
 
-  const { healthScore, blocked, overdue, sprintCompletionPct, resolvedLast7d } =
+  const { healthScore, blocked, overdue, sprintCompletionPct, resolvedLast7d, scopeLabel, scopeMode } =
     deliverySnapshot.kpis;
 
   let score = healthScore;
@@ -164,16 +174,22 @@ function computeMomentumDimension(input: HealthScoreInput): HealthDimension | nu
   if (overdue > 0) score -= Math.min(15, overdue * 3);
   if (sprintCompletionPct != null && sprintCompletionPct < 50) {
     score -= 10;
+  } else if (sprintCompletionPct != null && sprintCompletionPct >= 70) {
+    score += 5;
   }
 
   if (jiraHygiene?.degradesTrust) {
     score = Math.min(score, 70);
   }
 
+  const scopePrefix = scopeLabel
+    ? `${scopeMode === "sprint" ? "Sprint" : "Fix version"} ${scopeLabel}: `
+    : "";
+
   const resolvedLine =
     resolvedLast7d != null && resolvedLast7d > 0
       ? `${resolvedLast7d} tickets closed in the last seven days`
-      : `${deliverySnapshot.kpis.openWork} open work items in Jira`;
+      : `${scopePrefix}${deliverySnapshot.kpis.openWork} open work items in scope`;
 
   const blockerLine =
     blocked > 0 ? `; ${blocked} blocked` : overdue > 0 ? `; ${overdue} overdue` : "";
@@ -242,8 +258,13 @@ export function computeDeliveryHealthScore(input: HealthScoreInput): DeliveryHea
     computeGovernanceDimension(input),
   ];
 
-  if (!input.deliverySnapshot) dataGaps.push("Jira not connected");
-  if (input.jiraCalibrationPending) {
+  if (!input.jiraConnection?.connected) {
+    dataGaps.push("Jira not connected");
+  } else if (!input.jiraConnection.projectKeysSelected) {
+    dataGaps.push("Jira connected — select projects to analyze");
+  } else if (!input.jiraConnection.hasSnapshot) {
+    dataGaps.push("Jira connected — run sync to load delivery data");
+  } else if (input.jiraCalibrationPending) {
     dataGaps.push(
       input.jiraCalibrationMessage ??
         "Jira workflow calibration in progress — scores use discounted confidence",

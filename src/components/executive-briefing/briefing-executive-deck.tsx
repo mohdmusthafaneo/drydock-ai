@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import type { ExecutiveBriefing } from "@/lib/executive-briefing/types";
 import type { ExecutiveDeck } from "@/lib/executive-briefing/compose-executive-deck";
+import type { JiraConnectionState } from "@/lib/executive-briefing/health-score";
 import { dimensionBandLabel } from "@/lib/executive-briefing/compose-executive-deck";
 import {
   buildDisplayHealthDimensions,
@@ -21,6 +22,7 @@ type Props = {
   briefing: ExecutiveBriefing;
   deck: ExecutiveDeck;
   orgName: string;
+  jiraConnection?: JiraConnectionState;
 };
 
 const TONE_STYLES = {
@@ -44,9 +46,9 @@ function scoreBarClass(score: number): string {
   return SCORE_BAR.at_risk;
 }
 
-export function BriefingExecutiveDeck({ briefing, deck, orgName }: Props) {
+export function BriefingExecutiveDeck({ briefing, deck, orgName, jiraConnection }: Props) {
   const { health } = briefing;
-  const displayDimensions = buildDisplayHealthDimensions(health.dimensions);
+  const displayDimensions = buildDisplayHealthDimensions(health.dimensions, jiraConnection);
   const hasPortfolio = deck.portfolio.length > 0;
   const hasBlindSpots = deck.blindSpots.length > 0;
 
@@ -129,7 +131,7 @@ export function BriefingExecutiveDeck({ briefing, deck, orgName }: Props) {
                           {dim.summary}
                         </p>
                         <span className="mt-4 inline-flex items-center gap-1 text-[14px] font-medium text-ink group-hover:text-rust">
-                          Set up
+                          {dim.actionLabel ?? "Set up"}
                           <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.5} />
                         </span>
                       </Link>

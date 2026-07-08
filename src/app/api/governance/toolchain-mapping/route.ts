@@ -8,6 +8,7 @@ import { parseIntegrationMeta } from "@/lib/integration-meta";
 import {
   inferToolchainMapping,
   parseToolchainMapping,
+  resolveEffectiveToolchainMapping,
   type ToolchainMapping,
 } from "@/lib/toolchain-mapping";
 import { listCalibrationProfiles } from "@/lib/jira-calibration/persist";
@@ -63,7 +64,8 @@ export async function GET() {
 
   const inferred = inferToolchainMapping({ profile, integrations });
   const saved = parseToolchainMapping(profile?.toolchainMappingJson);
-  const mapping: ToolchainMapping = {
+  const effective = await resolveEffectiveToolchainMapping(session.organizationId);
+  const mapping: ToolchainMapping = effective ?? {
     ...inferred,
     jira: saved.jira ?? inferred.jira,
     github: saved.github ?? inferred.github,

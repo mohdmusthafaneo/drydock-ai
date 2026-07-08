@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { invalidateExecutiveBriefingSnapshot } from "@/lib/executive-briefing/invalidate-snapshot";
 import { buildJiraOAuthMeta } from "@/lib/jira-api";
 import { mergeJiraMeta, parseJiraMeta, type JiraIntegrationMeta } from "@/lib/jira-meta";
 import {
@@ -154,6 +155,8 @@ export async function completeJiraOAuthConnection(
       });
     }
   });
+
+  invalidateExecutiveBriefingSnapshot(input.organizationId);
 
   return {
     meta,

@@ -221,7 +221,7 @@ function inferJiraMethodology(
     methodology,
     boardType,
     usesSprints: methodology === "scrum" || hasActiveSprint,
-    releaseTracking: "fixVersion",
+    releaseTracking: hasActiveSprint || methodology === "scrum" ? "sprint" : "fixVersion",
     blockedStatusName: "Blocked",
     bugIssueType: "Bug",
     doneStatusCategory: "Done",

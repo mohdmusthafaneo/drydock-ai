@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSession } from "@/lib/session";
-import { requirePermission } from "@/lib/rbac";
+import { hasPermission, requirePermission } from "@/lib/rbac";
 import {
   fetchOrgJiraProjects,
   MAX_JIRA_SYNC_PROJECTS,
   saveOrgJiraProjectKeys,
 } from "@/lib/jira-project-selection";
+import { invalidateExecutiveBriefingSnapshot } from "@/lib/executive-briefing/invalidate-snapshot";
+import { syncJiraIntegration } from "@/lib/jira-sync";
 import {
   JiraApiError,
   recordJiraIntegrationFailure,
@@ -22,9 +24,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  try {
-    requirePermission(session, "integrations", "manage_integrations");
-  } catch {
+  if (!hasPermission(session, "integrations", "view")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -64,7 +64,29 @@ export async function PUT(request: Request) {
       userId: session.userId,
       projectKeys: body.projectKeys,
     });
-    return NextResponse.json({ ok: true, projectKeys: result.projectKeys });
+
+    invalidateExecutiveBriefingSnapshot(session.organizationId);
+
+    try {
+      const syncResult = await syncJiraIntegration({
+        organizationId: session.organizationId,
+        userId: session.userId,
+        projectKeys: result.projectKeys,
+      });
+      return NextResponse.json({
+        ok: true,
+        projectKeys: result.projectKeys,
+        syncedAt: syncResult.syncedAt,
+        syncSummary: syncResult.summary,
+      });
+    } catch (syncErr) {
+      const syncError = await recordJiraIntegrationFailure(session.organizationId, syncErr);
+      return NextResponse.json({
+        ok: true,
+        projectKeys: result.projectKeys,
+        syncError,
+      });
+    }
   } catch (e) {
     if (e instanceof z.ZodError) {
       return NextResponse.json({ error: "Invalid request body" }, { status: 400 });

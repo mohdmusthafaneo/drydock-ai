@@ -13,6 +13,9 @@ import type { DeliveryAnalysisSnapshot } from "@/lib/delivery-analysis/types";
 import type { CodeAnalysisSnapshot } from "@/lib/code-analysis/types";
 import type { ComplianceFindingSummary } from "@/lib/compliance/types";
 import type { PredictionSummary } from "@/lib/problem-prediction/types";
+import type { DeliveryAnalysisSprintRow } from "@/lib/delivery-analysis/types";
+import type { ToolchainMapping } from "@/lib/toolchain-mapping";
+import { isOnboardingDemoRelease } from "@/lib/release-source";
 
 export type ComposeBriefingInput = HealthScoreInput & {
   orgName: string;
@@ -175,11 +178,59 @@ function buildOnboardingHeadline(input: ComposeBriefingInput): HeadlineSegment[]
   ];
 }
 
+function usesSprintTracking(input: ComposeBriefingInput): boolean {
+  return (input.mapping?.jira?.releaseTracking ?? "fixVersion") === "sprint";
+}
+
+function primarySprint(input: ComposeBriefingInput): DeliveryAnalysisSprintRow | null {
+  return input.deliverySnapshot?.sprints?.[0] ?? null;
+}
+
+function isSprintOverdue(sprint: DeliveryAnalysisSprintRow): boolean {
+  if (!sprint.endDate) return false;
+  const end = new Date(sprint.endDate);
+  return !Number.isNaN(end.getTime()) && end < new Date();
+}
+
+function buildSprintHeadline(
+  input: ComposeBriefingInput,
+  sprint: DeliveryAnalysisSprintRow,
+  health: ExecutiveBriefing["health"],
+): HeadlineSegment[] {
+  const overdue = isSprintOverdue(sprint);
+  const segments: HeadlineSegment[] = [
+    { kind: "text", text: `${input.orgName} ` },
+    { kind: "emphasis", text: sprint.name },
+    { kind: "text", text: " — " },
+    { kind: "emphasis", text: `${sprint.pct}%` },
+    { kind: "text", text: " complete" },
+  ];
+
+  if (overdue) {
+    segments.push({ kind: "text", text: ", delivery at risk" });
+  } else if (health.visible && health.band) {
+    segments.push({ kind: "text", text: `, delivery ${bandPhrase(health.band)}` });
+  }
+
+  segments.push({ kind: "text", text: "." });
+  return segments;
+}
+
 function buildProductionHeadline(
   input: ComposeBriefingInput,
   health: ExecutiveBriefing["health"],
 ): HeadlineSegment[] {
-  const release = input.latestRelease;
+  if (usesSprintTracking(input)) {
+    const sprint = primarySprint(input);
+    if (sprint) {
+      return buildSprintHeadline(input, sprint, health);
+    }
+  }
+
+  const release =
+    input.latestRelease && !isOnboardingDemoRelease(input.latestRelease)
+      ? input.latestRelease
+      : null;
 
   if (input.stats.pendingApprovals > 0) {
     const n = input.stats.pendingApprovals;
@@ -350,7 +401,11 @@ function buildHighlights(
   health: ExecutiveBriefing["health"],
 ): BriefingHighlight[] {
   const highlights: BriefingHighlight[] = [];
-  const release = input.latestRelease;
+  const sprint = usesSprintTracking(input) ? primarySprint(input) : null;
+  const release =
+    !sprint && input.latestRelease && !isOnboardingDemoRelease(input.latestRelease)
+      ? input.latestRelease
+      : null;
 
   if (health.visible && health.overall != null && health.bandLabel) {
     highlights.push({
@@ -378,6 +433,15 @@ function buildHighlights(
       subtext: release.name,
       href: `/releases/${release.id}`,
       tone: release.readinessScore >= 75 ? "good" : release.readinessScore >= 50 ? "attention" : "risk",
+    });
+  } else if (sprint) {
+    highlights.push({
+      id: "readiness",
+      label: "Sprint complete",
+      value: `${sprint.pct}%`,
+      subtext: sprint.name,
+      href: sprint.jiraUrl ?? "/delivery-analysis",
+      tone: sprint.pct >= 70 ? "good" : sprint.pct >= 50 ? "attention" : "risk",
     });
   }
 
@@ -702,9 +766,37 @@ function finalizeBriefingClaims(claims: BriefingClaim[]): BriefingClaim[] {
 
 function buildClaims(input: ComposeBriefingInput, health: ExecutiveBriefing["health"]): BriefingClaim[] {
   const claims: BriefingClaim[] = [];
-  const release = input.latestRelease;
+  const sprint = usesSprintTracking(input) ? primarySprint(input) : null;
+  const release =
+    !sprint && input.latestRelease && !isOnboardingDemoRelease(input.latestRelease)
+      ? input.latestRelease
+      : null;
 
-  if (release) {
+  if (sprint) {
+    const overdue = isSprintOverdue(sprint);
+    const verdict: BriefingClaimVerdict = overdue
+      ? "risk"
+      : sprint.pct >= 70
+        ? "good"
+        : sprint.pct >= 50
+          ? "attention"
+          : "risk";
+    const verdictLabel = overdue ? "Overdue" : sprint.pct >= 70 ? "On track" : "Needs attention";
+    const context = overdue
+      ? `Active sprint past end date · ${sprint.done}/${sprint.committed} done`
+      : `${sprint.done}/${sprint.committed} issues complete in ${sprint.projectKey}`;
+
+    claims.push({
+      id: "release",
+      headline: sprint.name,
+      metric: `${sprint.pct}%`,
+      metricLabel: "Sprint complete",
+      verdict,
+      verdictLabel,
+      context: capitalizeFirst(context),
+      href: sprint.jiraUrl ?? "/delivery-analysis",
+    });
+  } else if (release) {
     const readiness = release.readinessScore;
     const risk = release.governanceRiskScore;
     const { verdict, verdictLabel } = releaseVerdict(release.status, readiness, risk);

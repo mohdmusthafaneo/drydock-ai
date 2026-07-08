@@ -5,6 +5,7 @@ import { analyzeCalibrationSample } from "@/lib/jira-calibration/analyze";
 import { fetchJiraCalibrationSample } from "@/lib/jira-calibration/fetch-sample";
 import {
   observationsToDeterministicProfile,
+  persistCalibratedToolchainMapping,
   upsertCalibrationProfile,
 } from "@/lib/jira-calibration/persist";
 
@@ -150,6 +151,14 @@ export async function runJiraCalibrationForProject(input: {
       llmRationale,
       confidence: profileResult.confidence,
       source,
+    });
+
+    await persistCalibratedToolchainMapping({
+      organizationId,
+      profile: profileResult,
+      projectKey,
+      calibratedAt: new Date(),
+      confidence: profileResult.confidence,
     });
 
     await prisma.activityEvent.create({

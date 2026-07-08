@@ -373,11 +373,25 @@ export function assessPortfolioJiraHygiene(
 
 export function summarizePortfolioHygiene(
   hygiene: PortfolioJiraHygiene | null | undefined,
+  projectKey?: string | null,
 ): PortfolioHygieneSummary | null {
   if (!hygiene) return null;
 
-  const allFindings = Object.entries(hygiene.byProject).flatMap(([projectKey, r]) =>
-    r.findings.map((f) => ({ ...f, projectKey })),
+  const projectResult = projectKey ? hygiene.byProject[projectKey] : undefined;
+  const portfolioScore = projectResult?.score ?? hygiene.portfolioScore;
+  const degradesTrust = projectResult?.degradesTrust ?? hygiene.degradesTrust;
+
+  const findingsSource = projectKey
+    ? projectResult
+      ? [{ projectKey, findings: projectResult.findings }]
+      : []
+    : Object.entries(hygiene.byProject).map(([key, r]) => ({
+        projectKey: key,
+        findings: r.findings,
+      }));
+
+  const allFindings = findingsSource.flatMap(({ projectKey: pk, findings }) =>
+    findings.map((f) => ({ ...f, projectKey: pk })),
   );
   const severityRank = { critical: 0, warning: 1, info: 2 };
   const topFindings = [...allFindings]
@@ -385,11 +399,14 @@ export function summarizePortfolioHygiene(
     .slice(0, 3);
 
   return {
-    portfolioScore: hygiene.portfolioScore,
-    degradesTrust: hygiene.degradesTrust,
-    worstProject: hygiene.worstProject
-      ? { key: hygiene.worstProject.key, name: hygiene.worstProject.name }
-      : undefined,
+    portfolioScore,
+    degradesTrust,
+    worstProject:
+      projectKey && projectResult
+        ? { key: projectKey, name: projectKey }
+        : hygiene.worstProject
+          ? { key: hygiene.worstProject.key, name: hygiene.worstProject.name }
+          : undefined,
     topFindings,
   };
 }

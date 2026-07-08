@@ -4,6 +4,13 @@ import {
   parseJiraMeta,
   type JiraDeliverySnapshot,
 } from "@/lib/jira-meta";
+import {
+  resolveReleaseScope,
+  scopedMetricsFromSnapshot,
+  scopeToJiraVersionMatch,
+  type ReleaseScope,
+} from "@/lib/release-scope";
+import { sprintDaysOverdue } from "@/lib/jira-sprint-metrics";
 import type { ToolchainMapping } from "@/lib/toolchain-mapping";
 
 export type JiraDeliverySignal = {
@@ -34,6 +41,8 @@ export type JiraDeliveryHealth = {
   signals: JiraDeliverySignal[];
   gaps: JiraDeliveryGap[];
   matchedVersion?: JiraVersionMatch;
+  releaseScope?: ReleaseScope;
+  scopeLabel?: string;
   snapshotSyncedAt: string;
   scopedProject?: { key: string; name: string };
 };
@@ -52,7 +61,23 @@ function matchReleaseToSprint(
   releaseName: string,
   version: string | null | undefined,
   snapshot: JiraDeliverySnapshot,
+  jiraSprintId?: number | null,
 ): JiraVersionMatch | undefined {
+  if (jiraSprintId != null) {
+    for (const project of snapshot.projects) {
+      const sprint = project.activeSprint;
+      if (sprint?.id === jiraSprintId) {
+        return {
+          projectKey: project.key,
+          projectName: project.name,
+          versionId: String(sprint.id),
+          versionName: sprint.name,
+          matchedOn: "sprint",
+        };
+      }
+    }
+  }
+
   const candidates = [releaseName.trim(), version?.trim()].filter(Boolean) as string[];
 
   for (const project of snapshot.projects) {
@@ -86,6 +111,7 @@ export function matchReleaseToFixVersion(
   snapshot: JiraDeliverySnapshot,
   mapping?: ToolchainMapping["jira"],
   jiraFixVersionOverride?: string | null,
+  jiraSprintId?: number | null,
 ): JiraVersionMatch | undefined {
   if (jiraFixVersionOverride?.trim()) {
     const target = jiraFixVersionOverride.trim();
@@ -111,7 +137,7 @@ export function matchReleaseToFixVersion(
   const tracking = mapping?.releaseTracking ?? "fixVersion";
 
   if (tracking === "sprint") {
-    return matchReleaseToSprint(releaseName, version, snapshot);
+    return matchReleaseToSprint(releaseName, version, snapshot, jiraSprintId);
   }
 
   if (tracking === "labels" || tracking === "none") {
@@ -226,6 +252,115 @@ function computeHealthScore(
 function daysUntil(isoDate: string): number {
   const end = new Date(isoDate).getTime();
   return (end - Date.now()) / 86400000;
+}
+
+function daysOverdue(isoDate: string): number {
+  return sprintDaysOverdue(isoDate);
+}
+
+function emitSprintSignals(
+  projects: ProjectScope[],
+  signals: JiraDeliverySignal[],
+  gaps: JiraDeliveryGap[],
+): void {
+  for (const p of projects) {
+    const sprint = p.activeSprint;
+    if (!sprint || sprint.committed == null || sprint.committed <= 0) continue;
+
+    const done = sprint.done ?? 0;
+    const pct = Math.round((done / sprint.committed) * 100);
+    let severity: JiraDeliverySignal["severity"] =
+      pct < 40 ? "critical" : pct < 60 ? "warning" : "info";
+
+    const overdueDays =
+      sprint.daysOverdue ??
+      (sprint.state === "active" && sprint.endDate
+        ? daysOverdue(sprint.endDate)
+        : 0);
+
+    if (overdueDays > 0 && sprint.state === "active") {
+      signals.push({
+        id: `sprint-overdue-${p.key}`,
+        category: "sprint",
+        label: "Sprint overdue",
+        value: `${sprint.name} overdue by ${overdueDays} day${overdueDays === 1 ? "" : "s"}`,
+        severity: overdueDays >= 5 ? "critical" : "warning",
+      });
+      gaps.push({
+        area: "Sprint",
+        gap: `${p.key} sprint "${sprint.name}" is ${overdueDays} days past end date`,
+        priority: overdueDays >= 5 ? "high" : "medium",
+      });
+      if (pct < 60) severity = "critical";
+    }
+
+    if (sprint.endDate && pct < 50 && daysUntil(sprint.endDate) < 3 && overdueDays === 0) {
+      severity = "critical";
+      gaps.push({
+        area: "Sprint",
+        gap: `${p.key} sprint "${sprint.name}" below 50% with under 3 days left`,
+        priority: "high",
+      });
+    } else if (pct < 50) {
+      gaps.push({
+        area: "Sprint",
+        gap: `${p.key} sprint "${sprint.name}" below 50% completion (${pct}%)`,
+        priority: pct < 30 ? "high" : "medium",
+      });
+    }
+
+    const qaCount = sprint.qaPipelineCount ?? p.qaPipelineCount ?? 0;
+    if (qaCount > 0) {
+      signals.push({
+        id: `qa-pipeline-${p.key}`,
+        category: "quality",
+        label: "QA pipeline",
+        value: `${qaCount} issue${qaCount === 1 ? "" : "s"} in testing / review`,
+        severity:
+          qaCount >= 10 ? "critical" : qaCount >= 5 ? "warning" : "info",
+      });
+      if (qaCount >= 5) {
+        gaps.push({
+          area: "Quality",
+          gap: `${qaCount} sprint issue${qaCount === 1 ? "" : "s"} waiting in QA pipeline`,
+          priority: qaCount >= 10 ? "high" : "medium",
+        });
+      }
+    }
+
+    const topAssignee = p.assigneeWorkload?.[0];
+    if (topAssignee && topAssignee.openCount >= 3) {
+      const pctLoad = Math.round(
+        (topAssignee.openCount / Math.max(1, sprint.committed - done)) * 100,
+      );
+      signals.push({
+        id: `assignee-load-${p.key}`,
+        category: "sprint",
+        label: "Assignee load",
+        value: `${topAssignee.assignee} — ${topAssignee.openCount} open sprint issue${topAssignee.openCount === 1 ? "" : "s"}${pctLoad > 0 ? ` (${pctLoad}%)` : ""}`,
+        severity:
+          topAssignee.openCount >= 7
+            ? "critical"
+            : topAssignee.openCount >= 5
+              ? "warning"
+              : "info",
+      });
+    }
+
+    const sp = sprint.storyPoints;
+    const spLabel =
+      sp && sp.committed > 0
+        ? ` · ${sp.done}/${sp.committed} SP (${Math.round((sp.done / sp.committed) * 100)}%)`
+        : "";
+
+    signals.push({
+      id: `sprint-${p.key}`,
+      category: "sprint",
+      label: "Active sprint",
+      value: `${p.key} · ${sprint.name}: ${done}/${sprint.committed} done (${pct}%)${spLabel}`,
+      severity,
+    });
+  }
 }
 
 function scopedProjects(
@@ -393,38 +528,7 @@ export function analyzePortfolioDeliveryHealth(input: {
     }
   }
 
-  for (const p of projects) {
-    const sprint = p.activeSprint;
-    if (!sprint || sprint.committed == null || sprint.committed <= 0) continue;
-
-    const done = sprint.done ?? 0;
-    const pct = Math.round((done / sprint.committed) * 100);
-    let severity: JiraDeliverySignal["severity"] =
-      pct < 40 ? "critical" : pct < 60 ? "warning" : "info";
-
-    if (sprint.endDate && pct < 50 && daysUntil(sprint.endDate) < 3) {
-      severity = "critical";
-      gaps.push({
-        area: "Sprint",
-        gap: `${p.key} sprint "${sprint.name}" below 50% with under 3 days left`,
-        priority: "high",
-      });
-    } else if (pct < 50) {
-      gaps.push({
-        area: "Sprint",
-        gap: `${p.key} sprint "${sprint.name}" below 50% completion (${pct}%)`,
-        priority: pct < 30 ? "high" : "medium",
-      });
-    }
-
-    signals.push({
-      id: `sprint-${p.key}`,
-      category: "sprint",
-      label: "Active sprint",
-      value: `${p.key} · ${sprint.name}: ${done}/${sprint.committed} done (${pct}%)`,
-      severity,
-    });
-  }
+  emitSprintSignals(projects, signals, gaps);
 
   const syncAgeHours =
     (Date.now() - new Date(input.snapshot.syncedAt).getTime()) / 3600000;
@@ -500,28 +604,59 @@ export function analyzeJiraDeliveryHealth(input: {
   releaseName: string;
   version?: string | null;
   jiraFixVersion?: string | null;
+  jiraSprintId?: number | null;
   mapping?: ToolchainMapping["jira"];
 }): JiraDeliveryHealth {
   const labels = mappingLabels(input.mapping);
-  const matchedVersion = matchReleaseToFixVersion(
-    input.releaseName,
-    input.version,
-    input.snapshot,
-    input.mapping,
-    input.jiraFixVersion,
-  );
-  const scopedProject = pickProjectScope(input.snapshot, matchedVersion);
-  const metrics = scopedProject
+  const releaseScope = resolveReleaseScope({
+    snapshot: input.snapshot,
+    releaseTracking: input.mapping?.releaseTracking,
+    jiraSprintId: input.jiraSprintId,
+    jiraFixVersion: input.jiraFixVersion,
+    releaseName: input.releaseName,
+    version: input.version,
+    projectKey: input.jiraSprintId != null
+      ? input.snapshot.projects.find((p) => p.activeSprint?.id === input.jiraSprintId)?.key
+      : undefined,
+  });
+
+  const matchedVersion = releaseScope
     ? {
-        openIssues: scopedProject.openIssues,
-        blockedCount: scopedProject.blockedCount,
-        overdueCount: scopedProject.overdueCount,
-        reopenedCount: scopedProject.reopenedCount ?? 0,
-        spilloverCount: scopedProject.spilloverCount ?? 0,
-        bugsOpen: scopedProject.bugsOpen,
-        unassignedCount: scopedProject.unassignedCount,
+        ...scopeToJiraVersionMatch(releaseScope),
+        projectName:
+          input.snapshot.projects.find((p) => p.key === releaseScope.projectKey)?.name ??
+          releaseScope.projectKey,
+        matchedOn: releaseScope.mode === "sprint" ? ("sprint" as const) : ("version" as const),
       }
-    : aggregateMetrics(input.snapshot.projects);
+    : matchReleaseToFixVersion(
+        input.releaseName,
+        input.version,
+        input.snapshot,
+        input.mapping,
+        input.jiraFixVersion,
+        input.jiraSprintId,
+      );
+
+  const scopedProject = pickProjectScope(input.snapshot, matchedVersion);
+  const scopeLabel = releaseScope?.mode === "sprint"
+    ? `sprint ${releaseScope.sprintName}`
+    : releaseScope?.mode === "fixVersion"
+      ? `fix version ${releaseScope.versionName}`
+      : undefined;
+
+  const metrics = releaseScope
+    ? scopedMetricsFromSnapshot(releaseScope, input.snapshot)
+    : scopedProject
+      ? {
+          openIssues: scopedProject.openIssues,
+          blockedCount: scopedProject.blockedCount,
+          overdueCount: scopedProject.overdueCount,
+          reopenedCount: scopedProject.reopenedCount ?? 0,
+          spilloverCount: scopedProject.spilloverCount ?? 0,
+          bugsOpen: scopedProject.bugsOpen,
+          unassignedCount: scopedProject.unassignedCount,
+        }
+      : aggregateMetrics(input.snapshot.projects);
 
   const matchedFixVersion =
     matchedVersion && scopedProject
@@ -636,20 +771,11 @@ export function analyzeJiraDeliveryHealth(input: {
     }
   }
 
-  const sprint = scopedProject?.activeSprint;
-  if (sprint && sprint.committed != null && sprint.committed > 0) {
-    const done = sprint.done ?? 0;
-    const pct = Math.round((done / sprint.committed) * 100);
-    signals.push({
-      id: "jira-sprint",
-      category: "sprint",
-      label: "Active sprint",
-      value: `${sprint.name}: ${done}/${sprint.committed} done (${pct}%)`,
-      severity: pct < 40 ? "critical" : pct < 60 ? "warning" : "info",
-    });
-  }
-
   const gaps: JiraDeliveryGap[] = [];
+
+  if (scopedProject?.activeSprint) {
+    emitSprintSignals([scopedProject], signals, gaps);
+  }
 
   const tracking = input.mapping?.releaseTracking ?? "fixVersion";
   if (!matchedVersion && input.snapshot.projects.length > 0 && tracking !== "none") {
@@ -669,7 +795,9 @@ export function analyzeJiraDeliveryHealth(input: {
   if (metrics.blockedCount > 0) {
     gaps.push({
       area: "Delivery",
-      gap: `${metrics.blockedCount} issue${metrics.blockedCount === 1 ? "" : "s"} in status ${labels.blocked}`,
+      gap: scopeLabel
+        ? `${metrics.blockedCount} blocked issue${metrics.blockedCount === 1 ? "" : "s"} in ${scopeLabel}`
+        : `${metrics.blockedCount} issue${metrics.blockedCount === 1 ? "" : "s"} in status ${labels.blocked}`,
       priority: metrics.blockedCount >= 3 ? "high" : "medium",
     });
   }
@@ -677,7 +805,9 @@ export function analyzeJiraDeliveryHealth(input: {
   if (metrics.overdueCount > 0) {
     gaps.push({
       area: "Schedule",
-      gap: `${metrics.overdueCount} overdue issue${metrics.overdueCount === 1 ? "" : "s"} in Jira`,
+      gap: scopeLabel
+        ? `${metrics.overdueCount} overdue issue${metrics.overdueCount === 1 ? "" : "s"} in ${scopeLabel}`
+        : `${metrics.overdueCount} overdue issue${metrics.overdueCount === 1 ? "" : "s"} in Jira`,
       priority: metrics.overdueCount >= 5 ? "high" : "medium",
     });
   }
@@ -685,7 +815,9 @@ export function analyzeJiraDeliveryHealth(input: {
   if (metrics.bugsOpen >= 5) {
     gaps.push({
       area: "Quality",
-      gap: `${metrics.bugsOpen} open ${labels.bug}s in Jira scope`,
+      gap: scopeLabel
+        ? `${metrics.bugsOpen} open ${labels.bug}s in ${scopeLabel}`
+        : `${metrics.bugsOpen} open ${labels.bug}s in Jira scope`,
       priority: metrics.bugsOpen >= 10 ? "high" : "medium",
     });
   }
@@ -725,18 +857,6 @@ export function analyzeJiraDeliveryHealth(input: {
     });
   }
 
-  if (sprint && sprint.committed != null && sprint.committed > 0) {
-    const done = sprint.done ?? 0;
-    const pct = done / sprint.committed;
-    if (pct < 0.5) {
-      gaps.push({
-        area: "Sprint",
-        gap: `Sprint "${sprint.name}" below 50% completion (${Math.round(pct * 100)}%)`,
-        priority: pct < 0.3 ? "high" : "medium",
-      });
-    }
-  }
-
   const score = computeHealthScore(signals, gaps);
 
   return {
@@ -744,6 +864,12 @@ export function analyzeJiraDeliveryHealth(input: {
     signals,
     gaps,
     matchedVersion,
+    releaseScope: releaseScope ?? undefined,
+    scopeLabel: releaseScope
+      ? releaseScope.mode === "sprint"
+        ? releaseScope.sprintName
+        : releaseScope.versionName
+      : undefined,
     snapshotSyncedAt: input.snapshot.syncedAt,
     scopedProject: scopedProject
       ? { key: scopedProject.key, name: scopedProject.name }
@@ -756,6 +882,7 @@ export function resolveJiraAssessContext(input: {
   releaseName: string;
   version?: string | null;
   jiraFixVersion?: string | null;
+  jiraSprintId?: number | null;
   mapping?: ToolchainMapping["jira"];
 }): JiraAssessContext {
   const jira = input.integrations.find(
@@ -779,6 +906,7 @@ export function resolveJiraAssessContext(input: {
       releaseName: input.releaseName,
       version: input.version,
       jiraFixVersion: input.jiraFixVersion,
+      jiraSprintId: input.jiraSprintId,
       mapping: input.mapping,
     }),
   };

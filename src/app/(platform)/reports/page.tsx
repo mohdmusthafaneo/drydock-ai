@@ -16,12 +16,15 @@ export default async function ReportsPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const { briefing, charts, ctx, orgName } = await loadExecutiveBriefing(session.organizationId);
+  const { briefing, charts, ctx, orgName, deliverySnapshot, effectiveMapping } =
+    await loadExecutiveBriefing(session.organizationId);
   if (!ctx.dna) redirect("/governance/setup");
 
   const deck = composeExecutiveDeck({
     briefing,
     ctx,
+    deliverySnapshot,
+    mapping: effectiveMapping,
     hasDelivery: charts.delivery != null,
     hasEngineering: charts.engineering != null,
     hasObservability: charts.stability != null,

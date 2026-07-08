@@ -206,15 +206,19 @@ export async function POST(request: Request) {
         dnaResult.autonomyMode,
       );
 
-      await tx.release.create({
-        data: {
-          organizationId: session.organizationId,
-          name: "Platform onboarding release",
-          version: "1.0.0-rc1",
-          environment: "STAGING",
-          status: "DETECTED",
-        },
-      });
+      const usesScrum = body.workflows.includes("scrum");
+      if (!usesScrum) {
+        await tx.release.create({
+          data: {
+            organizationId: session.organizationId,
+            name: "Platform onboarding release",
+            version: "1.0.0-rc1",
+            environment: "STAGING",
+            status: "DETECTED",
+            metadataJson: JSON.stringify({ source: "onboarding_demo" }),
+          },
+        });
+      }
     });
 
     const redirect = await getLandingPathForOrganization(session.organizationId);

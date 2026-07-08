@@ -543,9 +543,7 @@ export function ToolchainMappingForm({
                               ...m.jira!,
                               releaseTracking: e.target.value as
                                 | "fixVersion"
-                                | "sprint"
-                                | "labels"
-                                | "none",
+                                | "sprint",
                             },
                           }))
                         }
@@ -553,8 +551,6 @@ export function ToolchainMappingForm({
                       >
                         <option value="fixVersion">Fix versions</option>
                         <option value="sprint">Sprint milestones</option>
-                        <option value="labels">Labels</option>
-                        <option value="none">Not tracked in Jira</option>
                       </select>
                     </Field>
                   </div>

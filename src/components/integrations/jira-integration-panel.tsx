@@ -28,6 +28,8 @@ export function JiraIntegrationPanel({
   selectedProjectKeys,
   deliverySnapshot,
   availableSitesCount,
+  initialProjects,
+  initialProjectLoadError,
   canManage,
   appUrlConfigured,
 }: {
@@ -44,6 +46,9 @@ export function JiraIntegrationPanel({
   selectedProjectKeys?: string[];
   deliverySnapshot?: JiraDeliverySnapshot;
   availableSitesCount?: number;
+  /** Server-prefetched project list — avoids empty picker on first paint */
+  initialProjects?: JiraProjectOption[];
+  initialProjectLoadError?: string;
   canManage: boolean;
   appUrlConfigured: boolean;
 }) {
@@ -52,40 +57,72 @@ export function JiraIntegrationPanel({
   const [saving, setSaving] = useState(false);
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [projects, setProjects] = useState<JiraProjectOption[]>([]);
+  const [projectLoadError, setProjectLoadError] = useState<string | null>(null);
+  const [projects, setProjects] = useState<JiraProjectOption[]>(initialProjects ?? []);
   const [pickedKeys, setPickedKeys] = useState<string[]>(selectedProjectKeys ?? []);
+  const [savedKeysLocal, setSavedKeysLocal] = useState<string[]>(selectedProjectKeys ?? []);
   const [maxProjects, setMaxProjects] = useState(10);
 
-  const savedKeys = selectedProjectKeys ?? [];
+  const savedKeys = savedKeysLocal.length > 0 ? savedKeysLocal : (selectedProjectKeys ?? []);
   const hasSelection = savedKeys.length > 0;
   const showConnectionIssue =
     connectionStatus === "error" || Boolean(lastError && isJiraReconnectMessage(lastError));
 
   const loadProjects = useCallback(async () => {
-    if (!connected || !canManage) return;
+    if (!connected) return;
     setLoadingProjects(true);
+    setProjectLoadError(null);
     try {
       const res = await fetch("/api/integrations/jira/projects", {
         credentials: "same-origin",
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to load projects");
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        projects?: JiraProjectOption[];
+        selectedKeys?: string[];
+        maxProjects?: number;
+      };
+      if (!res.ok) {
+        throw new Error(data.error || `Failed to load projects (${res.status})`);
+      }
       setProjects(data.projects ?? []);
       setPickedKeys(data.selectedKeys ?? []);
+      if (data.selectedKeys?.length) {
+        setSavedKeysLocal(data.selectedKeys);
+      }
       if (data.maxProjects) setMaxProjects(data.maxProjects);
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : "Failed to load projects");
+      const err = e instanceof Error ? e.message : "Failed to load projects";
+      setProjectLoadError(err);
+      setMessage(err);
     } finally {
       setLoadingProjects(false);
     }
-  }, [connected, canManage]);
+  }, [connected]);
 
   useEffect(() => {
-    void loadProjects();
-  }, [loadProjects]);
+    if (initialProjectLoadError) {
+      setProjectLoadError(initialProjectLoadError);
+    }
+  }, [initialProjectLoadError]);
+
+  useEffect(() => {
+    if (initialProjects?.length) {
+      setProjects(initialProjects);
+    }
+  }, [initialProjects]);
+
+  useEffect(() => {
+    if (canManage) {
+      void loadProjects();
+    }
+  }, [canManage, loadProjects]);
 
   useEffect(() => {
     setPickedKeys(selectedProjectKeys ?? []);
+    if (selectedProjectKeys?.length) {
+      setSavedKeysLocal(selectedProjectKeys);
+    }
   }, [selectedProjectKeys]);
 
   function toggleProject(key: string) {
@@ -115,9 +152,22 @@ export function JiraIntegrationPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ projectKeys: pickedKeys }),
       });
-      const data = await res.json();
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        projectKeys?: string[];
+        syncSummary?: string;
+        syncError?: string;
+      };
       if (!res.ok) throw new Error(data.error || "Failed to save selection");
-      setMessage(`Saved ${data.projectKeys.length} project(s) for sync`);
+      const keys = data.projectKeys ?? pickedKeys;
+      setSavedKeysLocal(keys);
+      if (data.syncSummary) {
+        setMessage(`Saved and synced: ${data.syncSummary}`);
+      } else if (data.syncError) {
+        setMessage(`Saved ${keys.length} project(s), but sync failed: ${data.syncError}`);
+      } else {
+        setMessage(`Saved ${keys.length} project(s) for sync`);
+      }
       router.refresh();
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "Failed to save selection");
@@ -283,9 +333,21 @@ export function JiraIntegrationPanel({
           <>
             {loadingProjects ? (
               <p className="text-xs text-muted">Loading projects from Jira…</p>
+            ) : projectLoadError ? (
+              <div className="space-y-2">
+                <p className="text-xs text-warning-soft">{projectLoadError}</p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => void loadProjects()}
+                >
+                  Retry loading projects
+                </Button>
+              </div>
             ) : projects.length === 0 ? (
               <p className="text-xs text-muted">
-                No projects found on this site, or unable to load the list.
+                No projects found on this site.
               </p>
             ) : (
               <ul className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-border bg-base/50 p-2">

@@ -5,12 +5,17 @@ import {
   buildOpenJql,
   buildPortfolioSpilloverJql,
   buildReopenedJql,
+  buildReleaseScopeJql,
+  buildScopedBlockedJql,
+  buildScopedOpenJql,
+  buildScopedOverdueJql,
   buildSpilloverJql,
   buildStaleOpenJql,
   buildUnknownWorkflowStatusJql,
   jqlQuoteLiteral,
   type JiraMappingSlice,
 } from "@/lib/jira-jql";
+import type { ReleaseScope } from "@/lib/release-scope";
 import {
   resolveJiraMappingForProject,
   type ToolchainMapping,
@@ -20,6 +25,14 @@ export type JiraLinkContext = {
   siteUrl: string;
   mapping: ToolchainMapping;
   projectKeys: string[];
+  /** When set, KPI and signal links use sprint/fix-version scope instead of project backlog. */
+  releaseScope?: {
+    mode: "sprint" | "fixVersion";
+    scopeLabel?: string;
+    projectKey?: string;
+    sprintId?: number;
+    versionName?: string;
+  };
 };
 
 export type SignalLinkExtras = {
@@ -109,10 +122,48 @@ export function buildSprintJql(sprintId: number): string {
   return `sprint = ${sprintId}`;
 }
 
+function resolveReleaseScopeFromContext(ctx: JiraLinkContext): ReleaseScope | null {
+  const rs = ctx.releaseScope;
+  if (!rs?.projectKey) return null;
+  if (rs.mode === "sprint" && rs.sprintId != null) {
+    return {
+      mode: "sprint",
+      projectKey: rs.projectKey,
+      sprintId: rs.sprintId,
+      sprintName: rs.scopeLabel ?? `Sprint ${rs.sprintId}`,
+    };
+  }
+  if (rs.mode === "fixVersion" && rs.versionName) {
+    return {
+      mode: "fixVersion",
+      projectKey: rs.projectKey,
+      versionId: rs.versionName,
+      versionName: rs.versionName,
+    };
+  }
+  return null;
+}
+
 export function jqlForKpi(kpi: KpiLinkKey, ctx: JiraLinkContext): string | null {
+  const scope = resolveReleaseScopeFromContext(ctx);
+  const mapping = resolveMappingSlice(ctx, scope?.projectKey ?? ctx.projectKeys[0]);
+  if (!mapping) return null;
+
+  if (scope) {
+    switch (kpi) {
+      case "openWork":
+        return buildScopedOpenJql(scope, mapping);
+      case "blocked":
+        return buildScopedBlockedJql(scope, mapping);
+      case "overdue":
+        return buildScopedOverdueJql(scope, mapping);
+      default:
+        return null;
+    }
+  }
+
   const base = baseJqlForScope(ctx);
-  const mapping = resolveMappingSlice(ctx);
-  if (!base || !mapping) return null;
+  if (!base) return null;
 
   switch (kpi) {
     case "openWork":
@@ -137,12 +188,18 @@ export function jqlForSignal(
   if (!base || !mapping) return null;
 
   if (signalId === "portfolio-blocked" || signalId === "jira-blocked") {
+    const scope = resolveReleaseScopeFromContext(ctx);
+    if (scope) return buildScopedBlockedJql(scope, mapping);
     return buildBlockedJql(base, mapping);
   }
   if (signalId === "overdue-cluster" || signalId === "jira-overdue") {
+    const scope = resolveReleaseScopeFromContext(ctx);
+    if (scope) return buildScopedOverdueJql(scope, mapping);
     return buildOverdueJql(base, mapping);
   }
   if (signalId === "bug-backlog" || signalId === "jira-bugs") {
+    const scope = resolveReleaseScopeFromContext(ctx);
+    if (scope) return buildBugJql(buildReleaseScopeJql(scope), mapping);
     return buildBugJql(base, mapping);
   }
   if (

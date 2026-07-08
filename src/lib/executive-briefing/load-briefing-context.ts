@@ -12,6 +12,11 @@ import { loadPredictionSummary } from "@/lib/problem-prediction/load-predictions
 import { getJiraCalibrationGate } from "@/lib/jira-calibration/status";
 import { isPrometheusTrulyConnected, parsePrometheusMeta } from "@/lib/prometheus-meta";
 import { isGrafanaTrulyConnected, parseGrafanaMeta } from "@/lib/grafana-meta";
+import { parseJiraMeta } from "@/lib/jira-meta";
+import { resolveEffectiveToolchainMapping } from "@/lib/toolchain-mapping";
+import { filterPortfolioReleases } from "@/lib/release-source";
+import type { JiraConnectionState } from "@/lib/executive-briefing/health-score";
+import type { ToolchainMapping } from "@/lib/toolchain-mapping";
 import type { ObservabilityAnalysisSnapshot } from "@/lib/observability-analysis/types";
 import {
   isAssessDataStale,
@@ -99,7 +104,9 @@ function buildBriefingCharts(input: {
   codeSnapshot: ReturnType<typeof snapshotForFilters> | null;
   observabilitySnapshot: ObservabilityAnalysisSnapshot | null;
   observabilityIsDemo: boolean;
-  releases: Awaited<ReturnType<typeof getOrganizationContext>>["releases"];
+  releases: ReturnType<typeof filterPortfolioReleases<
+    Awaited<ReturnType<typeof getOrganizationContext>>["releases"][number]
+  >>;
   recommendations: Awaited<ReturnType<typeof getOrganizationContext>>["recommendations"];
   approvals: Awaited<ReturnType<typeof getOrganizationContext>>["approvals"];
   integrations: Awaited<ReturnType<typeof getOrganizationContext>>["integrations"];
@@ -189,9 +196,12 @@ export async function loadExecutiveBriefing(
   charts: BriefingCharts;
   ctx: Awaited<ReturnType<typeof getOrganizationContext>>;
   orgName: string;
+  deliverySnapshot: ReturnType<typeof deliveryAnalysisForFilters> | null;
+  effectiveMapping: ToolchainMapping | null;
+  jiraConnection: JiraConnectionState;
 }> {
   const applyLlmSnapshot = options?.applyLlmSnapshot ?? true;
-  const [ctx, org, jiraStored, githubIntegration, complianceSummary, predictionSummary, calibrationGate] =
+  const [ctx, org, jiraStored, githubIntegration, complianceSummary, predictionSummary, calibrationGate, effectiveMapping] =
     await Promise.all([
     getOrganizationContext(organizationId),
     prisma.organization.findUnique({
@@ -220,7 +230,16 @@ export async function loadExecutiveBriefing(
       lastEvaluatedAt: null,
     })),
     getJiraCalibrationGate(organizationId),
+    resolveEffectiveToolchainMapping(organizationId),
   ]);
+
+  const jiraIntegration = ctx.integrations.find((i) => i.provider === "JIRA");
+  const jiraMeta = jiraIntegration ? parseJiraMeta(jiraIntegration.metadataJson) : null;
+  const jiraConnection: JiraConnectionState = {
+    connected: jiraIntegration?.status === "CONNECTED",
+    projectKeysSelected: (jiraMeta?.projectKeys?.length ?? 0) > 0,
+    hasSnapshot: Boolean(jiraMeta?.deliverySnapshot?.syncedAt),
+  };
 
   const deliverySnapshot = jiraStored
     ? deliveryAnalysisForFilters(jiraStored, DEFAULT_DELIVERY_FILTERS, {
@@ -242,8 +261,9 @@ export async function loadExecutiveBriefing(
   const { snapshot: observabilitySnapshot, isDemo: observabilityIsDemo, syncedAt: obsSyncedAt } =
     resolveObservabilitySnapshot(ctx.integrations);
 
-  const latestRelease = ctx.releases[0] ?? null;
-  const assessedReleases = ctx.releases.filter((r) => r.assessedAt);
+  const portfolioReleases = filterPortfolioReleases(ctx.releases);
+  const latestRelease = portfolioReleases[0] ?? null;
+  const assessedReleases = portfolioReleases.filter((r) => r.assessedAt);
   const { count: activeAuthors, topAuthors } = countActiveAuthors(codeSnapshot);
 
   const deterministic = composeExecutiveBriefing({
@@ -258,6 +278,7 @@ export async function loadExecutiveBriefing(
           governanceRiskScore: latestRelease.governanceRiskScore,
           assessedAt: latestRelease.assessedAt,
           assessmentSummary: latestRelease.assessmentSummary,
+          metadataJson: latestRelease.metadataJson,
         }
       : null,
     hasAssessedRelease: assessedReleases.length > 0,
@@ -269,6 +290,8 @@ export async function loadExecutiveBriefing(
     jiraHygiene: jiraHygieneSummary,
     jiraCalibrationPending: !calibrationGate.calibrated && calibrationGate.status !== "not_applicable",
     jiraCalibrationMessage: calibrationGate.message,
+    jiraConnection,
+    mapping: effectiveMapping,
     connectedTools: ctx.stats.connectedTools,
     activeAuthors: codeSnapshot ? activeAuthors : undefined,
     topAuthors: codeSnapshot ? topAuthors : undefined,
@@ -296,7 +319,7 @@ export async function loadExecutiveBriefing(
     codeSnapshot,
     observabilitySnapshot,
     observabilityIsDemo,
-    releases: ctx.releases,
+    releases: portfolioReleases,
     recommendations: ctx.recommendations,
     approvals: ctx.approvals,
     integrations: ctx.integrations,
@@ -307,5 +330,8 @@ export async function loadExecutiveBriefing(
     charts,
     ctx,
     orgName: org?.name ?? "Your organization",
+    deliverySnapshot,
+    effectiveMapping,
+    jiraConnection,
   };
 }

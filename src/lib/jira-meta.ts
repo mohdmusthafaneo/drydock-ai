@@ -11,6 +11,19 @@ export type JiraStatusBreakdown = {
   todo: number;
   inProgress: number;
   done: number;
+  /** Per-status-name counts for active sprint scope (P2.5). */
+  byName?: Record<string, number>;
+};
+
+export type JiraSprintStoryPoints = {
+  committed: number;
+  done: number;
+  unestimatedIssues: number;
+};
+
+export type JiraAssigneeWorkload = {
+  assignee: string;
+  openCount: number;
 };
 
 /** Stored in metadataJson after PR2 sync */
@@ -44,6 +57,10 @@ export type JiraDeliverySnapshot = {
     resolvedLast7d?: number;
     /** To Do / In Progress / Done category counts (P2b). */
     statusBreakdown?: JiraStatusBreakdown;
+    /** Open sprint issues in QA pipeline statuses (P2.3). */
+    qaPipelineCount?: number;
+    /** Top assignees by open sprint issue count (P2.7). */
+    assigneeWorkload?: JiraAssigneeWorkload[];
     versions: Array<{
       id: string;
       name: string;
@@ -62,6 +79,28 @@ export type JiraDeliverySnapshot = {
       endDate?: string;
       committed?: number;
       done?: number;
+      /** Open (not-done) issues in sprint scope. */
+      openIssues?: number;
+      /** Sprint-scoped blocked count. */
+      blockedCount?: number;
+      /** Sprint-scoped overdue count. */
+      overdueCount?: number;
+      /** Sprint-scoped open bugs. */
+      bugsOpen?: number;
+      /** Sprint-scoped reopened count. */
+      reopenedCount?: number;
+      /** Sprint-scoped spillover count. */
+      spilloverCount?: number;
+      /** Sprint-scoped unassigned open issues. */
+      unassignedCount?: number;
+      /** Per-status-name counts within sprint (P2.5). */
+      statusByName?: Record<string, number>;
+      /** Story point completion within sprint (P2.6). */
+      storyPoints?: JiraSprintStoryPoints;
+      /** Open issues in QA pipeline statuses (P2.3). */
+      qaPipelineCount?: number;
+      /** Days past end date when sprint is still active (P2.2). */
+      daysOverdue?: number;
     };
   }>;
 };
