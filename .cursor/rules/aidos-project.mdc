@@ -10,7 +10,7 @@ alwaysApply: true
 - **Product**: Governance and operational intelligence layer for AI-native delivery (human-governed; not an AI coding IDE).
 - **MVP loop**: Discovery → Delivery DNA → Recommendations → Approvals.
 - **Autonomy**: Recommend-only in MVP; no automated execution without approval.
-- **Stack**: Next.js 16, React 19, TypeScript, Tailwind v4, Prisma 7 + SQLite.
+- **Stack**: Next.js 16, React 19, TypeScript, Tailwind v4, Prisma 7 + PostgreSQL.
 - **Tenancy**: All data scoped by `organizationId` from session.
 - **Build**: Run `npm run build` before marking work complete.
 

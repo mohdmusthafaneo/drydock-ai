@@ -2,11 +2,14 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 import { appUrl } from "@/lib/app-url";
+
 const COOKIE_NAME = "aidos_session";
 const publicPaths = [
   "/",
   "/login",
   "/signup",
+  "/healthz",
+  "/readyz",
   "/api/auth/login",
   "/api/auth/signup",
   "/api/auth/logout",
@@ -43,7 +46,17 @@ export async function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-pathname", pathname);
 
+  const correlationId =
+    request.headers.get("x-correlation-id")?.trim() || crypto.randomUUID();
+  requestHeaders.set("x-correlation-id", correlationId);
+
   if (pathname === "/") {
+    return NextResponse.next({
+      request: { headers: requestHeaders },
+    });
+  }
+
+  if (pathname === "/healthz" || pathname === "/readyz") {
     return NextResponse.next({
       request: { headers: requestHeaders },
     });
