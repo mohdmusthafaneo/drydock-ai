@@ -2,7 +2,7 @@
 
 **Plan:** [`architecture-migration-plan.md`](./architecture-migration-plan.md)  
 **Last updated:** 2026-07-10  
-**Current focus:** Phase 2 — unify async & fan-out refresh
+**Current focus:** Phase 2 complete — Phase 3 next
 
 > Update this file when a phase/sub-phase ships. Keep task wording aligned with the main plan; use checkboxes only here.
 
@@ -16,7 +16,7 @@
 | **1a** | Mastra → Postgres | **Done** | PR [#2](https://github.com/Suralal001/AIDOS/pull/2) |
 | **1b** | Drop Mastra file volumes | **Done** | PR [#3](https://github.com/Suralal001/AIDOS/pull/3) |
 | **1c** | pg-boss + agent wakeup bridge | **Done** | PR [#4](https://github.com/Suralal001/AIDOS/pull/4) |
-| **2** | All cron → pg-boss, fan-out refresh | Not started | — |
+| **2** | All cron → pg-boss, fan-out refresh | **Done** | PRs #5–#8 (stacked) |
 | **3** | jsonb, tenant-safe client, internal health | Not started | — |
 | **4** | AI/ML platform (pgvector, Python service) | Not started | — |
 | **5** | TimescaleDB, Valkey, horizontal scale | Not started | — |
@@ -77,16 +77,16 @@
 
 ## Phase 2 — Unify async & fan-out refresh
 
-- [ ] Migrate all `runScheduled*` crons onto pg-boss; retire `scripts/cron-loop.ts`
-- [ ] Fan-out: `refresh.fanout` → per-org `refresh.org` jobs
-- [ ] Shared HTTP client (`src/lib/http/client.ts`)
-- [ ] `ProviderCredentials` contract (§2.1) with advisory-lock refresh
+- [x] Migrate all `runScheduled*` crons onto pg-boss; retire `scripts/cron-loop.ts`
+- [x] Fan-out: `refresh.fanout` → per-org `refresh.org` jobs
+- [x] Shared HTTP client (`src/lib/http/client.ts`)
+- [x] `ProviderCredentials` contract (§2.1) with advisory-lock refresh
 
 **Exit criteria**
 
-- [ ] One slow org cannot block others
-- [ ] Centralized 429/backoff handling
-- [ ] Durable, observable scheduler for all integration syncs
+- [x] One slow org cannot block others
+- [x] Centralized 429/backoff handling
+- [x] Durable, observable scheduler for all integration syncs
 
 ---
 
@@ -119,5 +119,6 @@
 
 ## Notes
 
-- **Jira / GitHub / Prometheus sync** still use HTTP cron routes until Phase 2. Only `grafana.sync` is on pg-boss today (Phase 1c reference job).
+- **Scheduled jobs** run on pg-boss via `AIDOS_PROCESS_ROLE=worker`. HTTP `POST /api/cron/*` routes enqueue jobs for manual/external triggers.
+- **Integration refresh** uses `refresh.fanout` → `refresh.org` (Jira, Grafana, Prometheus) every 15 min by default.
 - **Locked decisions (D1–D11)** live in the main plan — not tracked here.
