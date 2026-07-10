@@ -49,7 +49,7 @@ export async function receiveWebhook(input: {
 
     await markIntegrationSync(input.organizationId, input.provider);
 
-    await prisma.webhookEvent.update({
+    await prisma.webhookEvent.updateMany({
       where: { id: webhook.id },
       data: { status: "PROCESSED", processedAt: new Date() },
     });
@@ -73,7 +73,7 @@ export async function receiveWebhook(input: {
     return { webhookId: webhook.id, status: "PROCESSED" as const, action };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Processing failed";
-    await prisma.webhookEvent.update({
+    await prisma.webhookEvent.updateMany({
       where: { id: webhook.id },
       data: {
         status: "FAILED",

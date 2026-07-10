@@ -188,8 +188,9 @@ enum DeploymentHealth {
   FAILED
 }
 
+/// Timescale hypertable (partition: recordedAt). Composite PK required by Timescale.
 model TelemetryMetric {
-  id             String       @id @default(cuid())
+  id             String       @default(cuid())
   organizationId String
   releaseId      String?
   source         MetricSource
@@ -202,12 +203,14 @@ model TelemetryMetric {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   release      Release?     @relation(fields: [releaseId], references: [id], onDelete: SetNull)
 
+  @@id([id, recordedAt])
   @@index([organizationId, recordedAt])
   @@index([releaseId])
 }
 
+/// Timescale hypertable (partition: occurredAt). Composite PK required by Timescale.
 model TelemetryEvent {
-  id             String             @id @default(cuid())
+  id             String             @default(cuid())
   organizationId String
   eventType      TelemetryEventType
   source         String
@@ -224,13 +227,15 @@ model TelemetryEvent {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   release      Release?     @relation(fields: [releaseId], references: [id], onDelete: SetNull)
 
+  @@id([id, occurredAt])
   @@index([organizationId, occurredAt])
   @@index([eventType])
   @@index([correlationId])
 }
 
+/// Timescale hypertable (partition: receivedAt). Prefer updateMany by id (no single-column unique).
 model WebhookEvent {
-  id             String              @id @default(cuid())
+  id             String              @default(cuid())
   organizationId String
   provider       IntegrationProvider
   eventType      String
@@ -243,6 +248,7 @@ model WebhookEvent {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
+  @@id([id, receivedAt])
   @@index([organizationId, receivedAt])
   @@index([status])
 }
@@ -347,8 +353,9 @@ model ProblemPrediction {
   @@index([organizationId, domain])
 }
 
+/// Timescale hypertable (partition: deployedAt). Composite PK required by Timescale.
 model DeploymentEvent {
-  id                  String           @id @default(cuid())
+  id                  String           @default(cuid())
   organizationId      String
   releaseId           String?
   environment         ReleaseEnvironment @default(STAGING)
@@ -365,7 +372,8 @@ model DeploymentEvent {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   release      Release?     @relation(fields: [releaseId], references: [id], onDelete: SetNull)
 
-  @@index([organizationId])
+  @@id([id, deployedAt])
+  @@index([organizationId, deployedAt])
 }
 
 enum WorkflowExecutionStatus {
@@ -556,8 +564,9 @@ model AgentWakeupRequest {
   @@unique([organizationId, idempotencyKey])
 }
 
+/// Timescale hypertable (partition: startedAt). Prefer updateMany by id (no single-column unique).
 model AgentHeartbeatRun {
-  id                  String                  @id @default(cuid())
+  id                  String                  @default(cuid())
   organizationId      String
   agentId             String
   wakeupRequestId     String
@@ -579,6 +588,7 @@ model AgentHeartbeatRun {
   agent         AgentRegistry      @relation(fields: [agentId], references: [id], onDelete: Cascade)
   wakeupRequest AgentWakeupRequest @relation(fields: [wakeupRequestId], references: [id], onDelete: Cascade)
 
+  @@id([id, startedAt])
   @@index([organizationId, startedAt])
   @@index([agentId, startedAt])
 }
@@ -901,8 +911,9 @@ model Approval {
   @@index([organizationId, type])
 }
 
+/// Timescale hypertable (partition: createdAt). Composite PK required by Timescale.
 model AuditLog {
-  id             String   @id @default(cuid())
+  id             String   @default(cuid())
   organizationId String
   userId         String?
   action         String
@@ -913,10 +924,14 @@ model AuditLog {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   user         User?        @relation(fields: [userId], references: [id])
+
+  @@id([id, createdAt])
+  @@index([organizationId, createdAt])
 }
 
+/// Timescale hypertable (partition: createdAt). Composite PK required by Timescale.
 model ActivityEvent {
-  id             String   @id @default(cuid())
+  id             String   @default(cuid())
   organizationId String
   type           String
   title          String
@@ -925,6 +940,9 @@ model ActivityEvent {
   createdAt      DateTime @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@id([id, createdAt])
+  @@index([organizationId, createdAt])
 }
 
 /// One GitHub code-analysis ingest per org (manual Sync now).
@@ -1106,8 +1124,9 @@ model AgentChatMessage {
   @@index([organizationId, threadId])
 }
 
+/// Timescale hypertable (partition: createdAt). Composite PK required by Timescale.
 model AgentChatStreamChunk {
-  id             String                   @id @default(cuid())
+  id             String                   @default(cuid())
   organizationId String
   threadId       String
   runId          String
@@ -1119,6 +1138,7 @@ model AgentChatStreamChunk {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
+  @@id([id, createdAt])
   @@index([threadId, runId, sequence])
   @@index([threadId, createdAt])
 }

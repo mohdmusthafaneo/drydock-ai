@@ -191,7 +191,7 @@ async function executeHeartbeatRun(wakeupId: string): Promise<boolean> {
         : "failed";
 
   await prisma.$transaction(async (tx) => {
-    await tx.agentHeartbeatRun.update({
+    await tx.agentHeartbeatRun.updateMany({
       where: { id: run.id },
       data: {
         status: runStatus,
@@ -308,7 +308,7 @@ export async function recoverStuckRuns(
       });
 
       if (run) {
-        await tx.agentHeartbeatRun.update({
+        await tx.agentHeartbeatRun.updateMany({
           where: { id: run.id },
           data: {
             status: "timed_out",

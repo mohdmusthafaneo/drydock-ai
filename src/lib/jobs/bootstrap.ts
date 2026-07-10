@@ -13,6 +13,10 @@ import {
   ensureEvidenceSchedule,
   registerEvidenceWorkers,
 } from "./evidence-jobs";
+import {
+  ensureRetentionSchedule,
+  registerRetentionWorkers,
+} from "./retention-jobs";
 import { refreshFanoutJobs } from "./refresh-fanout-job";
 import { parseWorkerQueues, workerServesRole } from "./worker-queues";
 
@@ -34,6 +38,7 @@ export async function bootstrapJobInfrastructure(
     await refreshFanoutJobs.ensureSchedule(boss);
     await ensureAllDomainFanoutSchedules(boss);
     await ensureEvidenceSchedule(boss);
+    await ensureRetentionSchedule(boss);
     log.info("web role: pg-boss schedules registered");
     return;
   }
@@ -61,6 +66,11 @@ export async function bootstrapJobInfrastructure(
     await registerEvidenceWorkers(boss);
   }
 
+  if (workerServesRole(queues, "retention")) {
+    await registerRetentionWorkers(boss);
+    await ensureRetentionSchedule(boss);
+  }
+
   // When serving "all", refresh/enrich schedules are already ensured above.
   // Dedicated role pools still need schedules on a process that owns them —
   // web also registers schedules so cron fires even if only an `ml` worker runs.
@@ -68,6 +78,7 @@ export async function bootstrapJobInfrastructure(
     await refreshFanoutJobs.ensureSchedule(boss);
     await ensureAllDomainFanoutSchedules(boss);
     await ensureEvidenceSchedule(boss);
+    await ensureRetentionSchedule(boss);
   }
 
   log.info("worker role: pg-boss work handlers registered");
