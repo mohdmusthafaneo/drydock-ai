@@ -1,7 +1,8 @@
-import { prisma } from "@/lib/prisma";
 import { syncGrafanaIntegration } from "@/lib/grafana-sync";
 import { isGrafanaTrulyConnected, parseGrafanaMeta } from "@/lib/grafana-meta";
 import { GrafanaApiError, formatGrafanaSyncError } from "@/lib/grafana-api";
+import { resolveOrgActorUserId } from "@/lib/integration-scheduled-utils";
+import { prisma } from "@/lib/prisma";
 
 const SYNC_INTERVAL_MS = 15 * 60 * 1000;
 
@@ -15,22 +16,6 @@ export type ScheduledGrafanaSyncOrgResult = {
   openAlerts?: number;
   error?: string;
 };
-
-async function resolveOrgActorUserId(organizationId: string): Promise<string | null> {
-  const admin = await prisma.user.findFirst({
-    where: { organizationId, status: "ACTIVE", role: "ORG_ADMIN" },
-    select: { id: true },
-    orderBy: { createdAt: "asc" },
-  });
-  if (admin) return admin.id;
-
-  const anyUser = await prisma.user.findFirst({
-    where: { organizationId, status: "ACTIVE" },
-    select: { id: true },
-    orderBy: { createdAt: "asc" },
-  });
-  return anyUser?.id ?? null;
-}
 
 export async function runScheduledGrafanaSync(input?: {
   organizationId?: string;
