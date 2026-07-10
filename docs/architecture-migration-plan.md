@@ -1,6 +1,7 @@
 # AIDOS — Architecture Migration Plan (Final)
 
-**Status:** Approved direction · **Date:** 2026-07-09
+**Status:** Approved direction · **Date:** 2026-07-09  
+**Progress tracker:** [`architecture-migration-tracker.md`](./architecture-migration-tracker.md)  
 **Companion doc:** [`AIDOS-SCALING-ARCHITECTURE.md`](./AIDOS-SCALING-ARCHITECTURE.md) (analysis & rationale)
 **This doc:** the concrete, decision-locked, phased execution plan.
 
@@ -97,7 +98,7 @@ This design needs **no Valkey** even at multi-replica scale because the advisory
 
 ## 4. Phased execution
 
-Each phase is independently shippable, flag-gated where behavior changes, and reversible. **Validate on local compose before updating Coolify** (D11).
+Each phase is independently shippable, flag-gated where behavior changes, and reversible. **Validate on local compose before updating Coolify** (D11). **Checkbox progress:** [`architecture-migration-tracker.md`](./architecture-migration-tracker.md).
 
 ### Phase 0 — Foundations (no behavior change)
 
@@ -267,6 +268,7 @@ Still one web + one worker through Phases 1–4; horizontal scale (replicas + Va
 
 ## 9. Related documents
 
+- [`architecture-migration-tracker.md`](./architecture-migration-tracker.md) — phase completion checklist (update when shipping).
 - [`AIDOS-SCALING-ARCHITECTURE.md`](./AIDOS-SCALING-ARCHITECTURE.md) — full analysis, gap register (G1–G12), and rationale behind these decisions.
 - [`sprint-ticket-commit-evidence.md`](./sprint-ticket-commit-evidence.md) — the first Phase-4 AI/ML feature.
 - [`coolify-deploy.md`](./coolify-deploy.md) — deploy topology (updated in Phase 1b).
