@@ -18,7 +18,7 @@
 | **1c** | pg-boss + agent wakeup bridge | **Done** | PR [#4](https://github.com/Suralal001/AIDOS/pull/4) |
 | **2** | All cron → pg-boss, fan-out refresh | **Done** | PRs #5–#8 (stacked) |
 | **3** | jsonb, tenant-safe client, internal health | **Done** | PRs [#9](https://github.com/Suralal001/AIDOS/pull/9)–[#11](https://github.com/Suralal001/AIDOS/pull/11) (stacked) |
-| **4** | AI/ML platform (pgvector, Python service) | **Done** | PRs (stacked: pgvector → ml-service → ml-worker → evidence → cost-governor) |
+| **4** | AI/ML platform (pgvector, Python service) | **Done** | PRs [#12](https://github.com/Suralal001/AIDOS/pull/12)–[#16](https://github.com/Suralal001/AIDOS/pull/16) (stacked) |
 | **5** | TimescaleDB, Valkey, horizontal scale | Not started | — |
 
 **Phase 1 overall:** code complete on `dev`. Local compose smoke (`docker compose up`) recommended before Coolify cutover (D11).
