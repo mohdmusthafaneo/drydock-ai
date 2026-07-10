@@ -1,10 +1,11 @@
-import { prisma } from "@/lib/prisma";
+import { forOrg } from "@/lib/prisma";
 import { computeCompletedStepIds } from "@/lib/enterprise-workflow";
 import { hasObservabilitySynced } from "@/lib/observability-connectivity";
 import { isJiraCalibrationComplete } from "@/lib/jira-calibration/status";
 import { rollupAgentTokens } from "@/lib/agent-control-plane/token-rollup";
 
 export async function getOrganizationContext(organizationId: string) {
+  const db = forOrg(organizationId);
   const [
     org,
     profile,
@@ -26,19 +27,21 @@ export async function getOrganizationContext(organizationId: string) {
     governancePolicy,
     agentTokenRollup,
   ] = await Promise.all([
-    prisma.organization.findUnique({ where: { id: organizationId } }),
-    prisma.organizationProfile.findUnique({ where: { organizationId } }),
-    prisma.deliveryDNA.findUnique({ where: { organizationId } }),
-    prisma.integration.findMany({
+    // Organization is the tenant root — query by id on the scoped client is fine
+    // (Organization is not in TENANT_MODELS, so forOrg does not rewrite it).
+    db.organization.findUnique({ where: { id: organizationId } }),
+    db.organizationProfile.findUnique({ where: { organizationId } }),
+    db.deliveryDNA.findUnique({ where: { organizationId } }),
+    db.integration.findMany({
       where: { organizationId },
       orderBy: { provider: "asc" },
     }),
-    prisma.recommendation.findMany({
+    db.recommendation.findMany({
       where: { organizationId },
       orderBy: { createdAt: "desc" },
       include: { release: true },
     }),
-    prisma.approval.findMany({
+    db.approval.findMany({
       where: { organizationId },
       include: {
         recommendation: { include: { release: true } },
@@ -46,60 +49,60 @@ export async function getOrganizationContext(organizationId: string) {
       },
       orderBy: { createdAt: "desc" },
     }),
-    prisma.activityEvent.findMany({
+    db.activityEvent.findMany({
       where: { organizationId },
       orderBy: { createdAt: "desc" },
       take: 12,
     }),
-    prisma.release.findMany({
+    db.release.findMany({
       where: { organizationId },
       orderBy: { createdAt: "desc" },
     }),
-    prisma.deliveryWorkflow.findUnique({ where: { organizationId } }),
-    prisma.agentRegistry.findMany({
+    db.deliveryWorkflow.findUnique({ where: { organizationId } }),
+    db.agentRegistry.findMany({
       where: { organizationId },
       orderBy: { agentType: "asc" },
     }),
-    prisma.agentHeartbeatRun.findMany({
+    db.agentHeartbeatRun.findMany({
       where: { organizationId },
       orderBy: { startedAt: "desc" },
       take: 8,
       include: { agent: { select: { id: true, displayName: true } } },
     }),
-    prisma.incident.findMany({
+    db.incident.findMany({
       where: { organizationId },
       orderBy: { detectedAt: "desc" },
       take: 20,
       include: { release: true },
     }),
-    prisma.auditLog.findMany({
+    db.auditLog.findMany({
       where: { organizationId },
       orderBy: { createdAt: "desc" },
       take: 50,
       include: { user: true },
     }),
-    prisma.telemetryMetric.findMany({
+    db.telemetryMetric.findMany({
       where: { organizationId },
       orderBy: { recordedAt: "desc" },
       take: 48,
     }),
-    prisma.deploymentEvent.findMany({
+    db.deploymentEvent.findMany({
       where: { organizationId },
       orderBy: { deployedAt: "desc" },
       take: 10,
       include: { release: true },
     }),
-    prisma.telemetryEvent.findMany({
+    db.telemetryEvent.findMany({
       where: { organizationId },
       orderBy: { occurredAt: "desc" },
       take: 24,
     }),
-    prisma.webhookEvent.findMany({
+    db.webhookEvent.findMany({
       where: { organizationId },
       orderBy: { receivedAt: "desc" },
       take: 12,
     }),
-    prisma.governancePolicy.findUnique({ where: { organizationId } }),
+    db.governancePolicy.findUnique({ where: { organizationId } }),
     rollupAgentTokens(organizationId, 30),
   ]);
 

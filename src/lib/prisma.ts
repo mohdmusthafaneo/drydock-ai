@@ -1,9 +1,10 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
 import { PrismaClient } from "@/generated/prisma/client";
+import { createTenantExtension } from "@/lib/prisma-tenant";
 
 /** Bump when schema changes so dev hot-reload picks up a fresh client. */
-const PRISMA_SCHEMA_VERSION = 12;
+const PRISMA_SCHEMA_VERSION = 13;
 
 /** Delegates that must exist on a valid client (guards stale dev cache). */
 const REQUIRED_DELEGATES = [
@@ -75,7 +76,7 @@ function coerceJsonWriteArgs(args: unknown): unknown {
 /** Create Prisma client with pg adapter for PostgreSQL */
 function createPrismaClient(): PrismaClient {
   const connectionString = process.env.DATABASE_URL;
-  
+
   if (!connectionString) {
     throw new Error("DATABASE_URL environment variable is required");
   }
@@ -122,7 +123,7 @@ function getPrismaClient(): PrismaClient {
 /** Lazy proxy that defers client creation until first property access */
 function createLazyPrismaClient(): PrismaClient {
   let client: PrismaClient | null = null;
-  
+
   return new Proxy({} as PrismaClient, {
     get(_target, prop) {
       if (!client) {
@@ -136,4 +137,23 @@ function createLazyPrismaClient(): PrismaClient {
 // Use lazy initialization - client is created on first use, not at module load time
 // This allows Next.js build to pass without requiring DATABASE_URL at build time
 const lazyPrisma = createLazyPrismaClient();
+
+/**
+ * Unscoped Prisma client (system / cross-tenant). Prefer `forOrg()` in
+ * request paths; use `asSystem()` explicitly in cron/fan-out/worker code.
+ */
 export const prisma = lazyPrisma;
+
+/** Explicit escape hatch for cross-tenant jobs (cron fan-out, recoveries). */
+export function asSystem(): PrismaClient {
+  return getPrismaClient();
+}
+
+/**
+ * Tenant-scoped client: auto-injects `organizationId` on tenant-owned models.
+ * Use for session-authenticated and agent-authenticated request paths.
+ */
+export function forOrg(organizationId: string): PrismaClient {
+  const base = getPrismaClient();
+  return base.$extends(createTenantExtension(organizationId)) as unknown as PrismaClient;
+}

@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { asSystem } from "@/lib/prisma";
 import { runScheduledGrafanaSync } from "@/lib/grafana-scheduled-sync";
 import { runScheduledJiraSync } from "@/lib/jira-scheduled-sync";
 import { createLogger } from "@/lib/logger";
@@ -18,7 +18,7 @@ export type RefreshOrgJobData = {
 };
 
 async function listRefreshTargets(): Promise<RefreshOrgJobData[]> {
-  const integrations = await prisma.integration.findMany({
+  const integrations = await asSystem().integration.findMany({
     where: {
       provider: { in: [...REFRESH_PROVIDERS] },
       status: "CONNECTED",
