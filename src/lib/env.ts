@@ -35,8 +35,6 @@ const envSchema = z.object({
   ANTHROPIC_MODEL: z.string().optional(),
 
   MASTRA_PG_SCHEMA: z.string().min(1).optional(),
-  MASTRA_STORAGE_URL: z.string().optional(),
-  MASTRA_OBSERVABILITY_PATH: z.string().optional(),
   MASTRA_DISCOVERY_DNA_LLM_ENABLED: optionalBoolean,
   MASTRA_MVP_ACCELERATOR_LLM_ENABLED: optionalBoolean,
   MASTRA_AGENT_THREAD_INGRESS_ENABLED: optionalBoolean,
