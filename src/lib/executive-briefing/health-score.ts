@@ -36,7 +36,7 @@ export type HealthScoreInput = {
     governanceRiskScore: number | null;
     assessedAt: Date | null;
     assessmentSummary?: string | null;
-    metadataJson?: string | null;
+    metadataJson?: unknown;
   } | null;
   deliverySnapshot?: DeliveryAnalysisSnapshot | null;
   codeSnapshot?: CodeAnalysisSnapshot | null;

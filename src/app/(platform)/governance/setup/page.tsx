@@ -3,6 +3,7 @@ import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { DiscoveryWizard } from "@/components/discovery/discovery-wizard";
 import { PageHeader } from "@/components/layout/page-header";
+import { readJsonField } from "@/lib/json-field";
 
 export type DiscoveryFormInitial = {
   industryType: string;
@@ -27,8 +28,8 @@ function profileToInitial(
     governanceLevel: profile.governanceLevel,
     complianceType: profile.complianceType ?? "none",
     deploymentStrategy: profile.deploymentStrategy ?? "continuous",
-    tools: JSON.parse(profile.toolsJson || "[]") as string[],
-    workflows: JSON.parse(profile.workflowsJson || "[]") as string[],
+    tools: readJsonField(profile.toolsJson, []) as string[],
+    workflows: readJsonField(profile.workflowsJson, []) as string[],
   };
 }
 

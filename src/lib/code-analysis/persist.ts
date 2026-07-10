@@ -1,5 +1,6 @@
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { readJsonField } from "@/lib/json-field";
 import type {
   CodeAnalysisCommit,
   CodeAnalysisPullRequest,
@@ -22,20 +23,16 @@ function sinceDate(days: number): Date {
   return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 }
 
-function parseStringArrayJson(json: string): string[] {
-  try {
-    return JSON.parse(json) as string[];
-  } catch {
-    return [];
-  }
+function parseStringArrayJson(json: unknown): string[] {
+  const parsed = readJsonField<unknown>(json, []);
+  return Array.isArray(parsed) ? (parsed as string[]) : [];
 }
 
-function parseFilesJson(json: string): CodeAnalysisPullRequest["files"] {
-  try {
-    return JSON.parse(json) as NonNullable<CodeAnalysisPullRequest["files"]>;
-  } catch {
-    return [];
-  }
+function parseFilesJson(json: unknown): CodeAnalysisPullRequest["files"] {
+  const parsed = readJsonField<unknown>(json, []);
+  return Array.isArray(parsed)
+    ? (parsed as NonNullable<CodeAnalysisPullRequest["files"]>)
+    : [];
 }
 
 function rowToCommit(row: {
@@ -49,8 +46,8 @@ function rowToCommit(row: {
   deletions: number;
   attribution: string;
   confidence: number;
-  signalsJson: string;
-  jiraKeysJson: string;
+  signalsJson: unknown;
+  jiraKeysJson: unknown;
   branch: string | null;
   completionScore: number | null;
   completionRationale: string | null;
@@ -87,16 +84,16 @@ function rowToPullRequest(row: {
   attribution: string;
   confidence: number;
   reviewCount: number;
-  reviewersJson: string;
-  filesJson: string;
-  toolsJson: string;
-  jiraKeysJson: string;
+  reviewersJson: unknown;
+  filesJson: unknown;
+  toolsJson: unknown;
+  jiraKeysJson: unknown;
   diffExcerpt: string | null;
   completionScore: number | null;
   completionRationale: string | null;
   riskScore: number | null;
   riskLevel: string | null;
-  qualityFlagsJson: string;
+  qualityFlagsJson: unknown;
 }): CodeAnalysisPullRequest {
   return {
     id: row.externalId,
@@ -161,11 +158,7 @@ async function loadStoredCodeAnalysisFromDbInner(
 
   let repos: string[] = [];
   if (latestRun) {
-    try {
-      repos = JSON.parse(latestRun.repoFullNamesJson) as string[];
-    } catch {
-      repos = [];
-    }
+    repos = parseStringArrayJson(latestRun.repoFullNamesJson);
   }
 
   if (repos.length === 0) {

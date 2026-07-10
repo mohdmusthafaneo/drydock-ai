@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
+import { readJsonField } from "@/lib/json-field";
 import {
   readInstructionsBundleForAgent,
   writeInstructionsFiles,
@@ -46,12 +47,10 @@ export async function GET(_request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "Agent not found" }, { status: 404 });
   }
 
-  let adapterConfig: Record<string, unknown> = {};
-  try {
-    adapterConfig = JSON.parse(agent.adapterConfigJson) as Record<string, unknown>;
-  } catch {
-    adapterConfig = {};
-  }
+  const adapterConfig = readJsonField<Record<string, unknown>>(
+    agent.adapterConfigJson,
+    {},
+  );
 
   try {
     const bundle = await readInstructionsBundleForAgent(session.organizationId, agent);

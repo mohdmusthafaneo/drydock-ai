@@ -1,13 +1,10 @@
 import type { AgentWakeupSource } from "@/generated/prisma/client";
+import { readJsonField } from "@/lib/json-field";
 import { resolveAidosApiBaseUrl } from "../llm/config";
 import type { AdapterExecutionContext } from "../types";
 
-function parsePayload(json: string): Record<string, unknown> {
-  try {
-    return JSON.parse(json) as Record<string, unknown>;
-  } catch {
-    return {};
-  }
+function parsePayload(json: unknown): Record<string, unknown> {
+  return readJsonField<Record<string, unknown>>(json, {});
 }
 
 /** Shared wake payload for http/process adapters (Paperclip-style env + JSON body). */

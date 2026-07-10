@@ -1,23 +1,21 @@
+import { readJsonField } from "@/lib/json-field";
+
 /** Release rows seeded at discovery or synced from Jira carry `metadataJson.source`. */
 export type ReleaseSourceMeta = {
   source?: "onboarding_demo" | "jira_sync" | "jira_fixversion_sync" | string;
   projectKey?: string;
 };
 
-export function parseReleaseMetadata(json: string | null | undefined): ReleaseSourceMeta {
-  try {
-    const parsed = JSON.parse(json || "{}") as ReleaseSourceMeta;
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return {};
-  }
+export function parseReleaseMetadata(json: unknown): ReleaseSourceMeta {
+  const parsed = readJsonField<ReleaseSourceMeta>(json, {});
+  return parsed && typeof parsed === "object" ? parsed : {};
 }
 
 const LEGACY_ONBOARDING_RELEASE_NAME = "Platform onboarding release";
 
 export function isOnboardingDemoRelease(release: {
   name: string;
-  metadataJson?: string | null;
+  metadataJson?: unknown;
 }): boolean {
   const meta = parseReleaseMetadata(release.metadataJson);
   if (meta.source === "onboarding_demo") return true;
@@ -27,7 +25,7 @@ export function isOnboardingDemoRelease(release: {
 
 /** Exclude demo releases and collapse duplicate name+version rows (newest first). */
 export function filterPortfolioReleases<
-  T extends { name: string; version?: string | null; metadataJson?: string | null; createdAt?: Date },
+  T extends { name: string; version?: string | null; metadataJson?: unknown; createdAt?: Date },
 >(releases: T[]): T[] {
   const filtered = releases.filter((r) => !isOnboardingDemoRelease(r));
   const seen = new Set<string>();

@@ -1,4 +1,5 @@
-import type { GovernancePolicy } from "@/generated/prisma/client";
+import type { Prisma } from "@/generated/prisma/client";
+import { asJsonInput, readJsonField } from "@/lib/json-field";
 
 export type DeploymentThresholds = {
   minReadinessScore?: number;
@@ -46,13 +47,9 @@ export const SYSTEM_DEFAULT_POLICY: GovernancePolicyConfig = {
   },
 };
 
-function safeParseJson<T>(json: string | null | undefined): T | undefined {
-  try {
-    const parsed = JSON.parse(json || "{}") as T;
-    return parsed && typeof parsed === "object" ? parsed : undefined;
-  } catch {
-    return undefined;
-  }
+function safeParseJson<T>(json: unknown): T | undefined {
+  const parsed = readJsonField<T | null>(json, null);
+  return parsed && typeof parsed === "object" ? parsed : undefined;
 }
 
 export function mergePolicyConfig(
@@ -80,7 +77,16 @@ export function mergePolicyConfig(
 }
 
 export function parseGovernancePolicy(
-  row: GovernancePolicy | null | undefined,
+  row:
+    | {
+        deploymentThresholds?: unknown;
+        releaseRulesJson?: unknown;
+        approvalRequirements?: unknown;
+        escalationChainsJson?: unknown;
+        projectOverridesJson?: unknown;
+      }
+    | null
+    | undefined,
 ): GovernancePolicyDocument {
   if (!row) return {};
 
@@ -114,17 +120,16 @@ export function resolveGovernancePolicyForProject(
 
 export function serializeGovernancePolicyBaseline(
   config: GovernancePolicyConfig,
-): Pick<
-  GovernancePolicy,
-  | "deploymentThresholds"
-  | "releaseRulesJson"
-  | "approvalRequirements"
-  | "escalationChainsJson"
-> {
+): {
+  deploymentThresholds: Prisma.InputJsonValue;
+  releaseRulesJson: Prisma.InputJsonValue;
+  approvalRequirements: Prisma.InputJsonValue;
+  escalationChainsJson: Prisma.InputJsonValue;
+} {
   return {
-    deploymentThresholds: JSON.stringify(config.deploymentThresholds ?? {}),
-    releaseRulesJson: JSON.stringify(config.releaseRules ?? {}),
-    approvalRequirements: JSON.stringify(config.approvalRequirements ?? {}),
-    escalationChainsJson: JSON.stringify(config.escalationChains ?? {}),
+    deploymentThresholds: asJsonInput(config.deploymentThresholds ?? {}),
+    releaseRulesJson: asJsonInput(config.releaseRules ?? {}),
+    approvalRequirements: asJsonInput(config.approvalRequirements ?? {}),
+    escalationChainsJson: asJsonInput(config.escalationChains ?? {}),
   };
 }

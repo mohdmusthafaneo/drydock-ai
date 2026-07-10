@@ -6,6 +6,7 @@
  */
 import "dotenv/config";
 import { prisma } from "@/lib/prisma";
+import { readJsonField } from "@/lib/json-field";
 
 type StubRow = {
   organizationId: string;
@@ -31,12 +32,7 @@ async function main() {
   const stubs: StubRow[] = [];
 
   for (const integration of integrations) {
-    let mode: string | undefined;
-    try {
-      mode = (JSON.parse(integration.metadataJson) as { mode?: string }).mode;
-    } catch {
-      mode = undefined;
-    }
+    const mode = readJsonField<{ mode?: string }>(integration.metadataJson, {}).mode;
 
     if (mode !== "observability-stub") continue;
 

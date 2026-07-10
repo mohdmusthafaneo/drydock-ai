@@ -1,6 +1,7 @@
 import { getMastra } from "@/mastra";
 import { prisma } from "@/lib/prisma";
 import { fetchJiraIssueTexts } from "@/lib/code-analysis/jira-issue-fetch";
+import { readJsonField } from "@/lib/json-field";
 import {
   computeCompositeRisk,
   fallbackCompletionScore,
@@ -49,11 +50,7 @@ export async function enrichCodeAnalysisForOrg(
   const allKeys = [
     ...new Set(
       pending.flatMap((row) => {
-        try {
-          return JSON.parse(row.jiraKeysJson) as string[];
-        } catch {
-          return [];
-        }
+        return readJsonField<string[]>(row.jiraKeysJson, []);
       }),
     ),
   ];
@@ -74,7 +71,7 @@ export async function enrichCodeAnalysisForOrg(
   for (const row of pending) {
     let jiraKeys: string[] = [];
     try {
-      jiraKeys = JSON.parse(row.jiraKeysJson) as string[];
+      jiraKeys = readJsonField<string[]>(row.jiraKeysJson, []);
     } catch {
       jiraKeys = [];
     }
@@ -143,11 +140,11 @@ export async function enrichCodeAnalysisForOrg(
       attribution: row.attribution as "human_only" | "ai_assisted" | "ai_generated" | "unknown",
       confidence: row.confidence,
       reviewCount: row.reviewCount,
-      reviewers: JSON.parse(row.reviewersJson || "[]") as string[],
-      files: JSON.parse(row.filesJson || "[]") as NonNullable<
+      reviewers: readJsonField(row.reviewersJson, []) as string[],
+      files: readJsonField(row.filesJson, []) as NonNullable<
         CodeAnalysisPullRequest["files"]
       >,
-      tools: JSON.parse(row.toolsJson || "[]") as string[],
+      tools: readJsonField(row.toolsJson, []) as string[],
       jiraKeys,
       diffExcerpt: diffExcerpt || undefined,
       completionScore,

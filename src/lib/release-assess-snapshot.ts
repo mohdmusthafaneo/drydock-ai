@@ -1,3 +1,4 @@
+import { readJsonField } from "@/lib/json-field";
 import type { Integration } from "@/generated/prisma/client";
 import type { GitHubAssessContext } from "@/lib/github-assess-context";
 import { parseIntegrationMeta } from "@/lib/integration-meta";
@@ -82,24 +83,24 @@ export function buildAssessmentSnapshot(input: {
   };
 }
 
-export function parseAssessmentSnapshot(raw: string | null | undefined): AssessmentSnapshot | null {
-  if (!raw?.trim() || raw === "{}") return null;
-  try {
-    return JSON.parse(raw) as AssessmentSnapshot;
-  } catch {
-    return null;
-  }
+export function parseAssessmentSnapshot(raw: unknown): AssessmentSnapshot | null {
+  if (raw == null) return null;
+  if (typeof raw === "string" && (!raw.trim() || raw === "{}")) return null;
+  const parsed = readJsonField<AssessmentSnapshot | null>(raw, null);
+  return parsed && typeof parsed === "object" && "assessedAt" in parsed
+    ? parsed
+    : null;
 }
 
 export function parsePostDeployComparison(
-  raw: string | null | undefined,
+  raw: unknown,
 ): PostDeployComparison | null {
-  if (!raw?.trim() || raw === "{}") return null;
-  try {
-    return JSON.parse(raw) as PostDeployComparison;
-  } catch {
-    return null;
-  }
+  if (raw == null) return null;
+  if (typeof raw === "string" && (!raw.trim() || raw === "{}")) return null;
+  const parsed = readJsonField<PostDeployComparison | null>(raw, null);
+  return parsed && typeof parsed === "object" && "comparedAt" in parsed
+    ? parsed
+    : null;
 }
 
 function metricValue(collected: CollectedTelemetry, key: string): number {

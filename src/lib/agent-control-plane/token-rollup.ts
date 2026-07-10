@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { readJsonField } from "@/lib/json-field";
 
 export type AgentTokenRollup = {
   runCount: number;
@@ -8,20 +9,12 @@ export type AgentTokenRollup = {
   periodDays: number;
 };
 
-function parseTokenUsage(json: string): {
+function parseTokenUsage(json: unknown): {
   inputTokens?: number;
   outputTokens?: number;
   mode?: string;
 } {
-  try {
-    return JSON.parse(json) as {
-      inputTokens?: number;
-      outputTokens?: number;
-      mode?: string;
-    };
-  } catch {
-    return {};
-  }
+  return readJsonField(json, {});
 }
 
 /** Aggregate LLM token usage for an org over a rolling window. */

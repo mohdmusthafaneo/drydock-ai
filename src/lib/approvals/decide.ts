@@ -1,5 +1,6 @@
 import type { UserRole } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { readJsonField } from "@/lib/json-field";
 import { canApproveRequiredRole } from "@/lib/permissions";
 import {
   enqueueThreadApprovalWakeup,
@@ -306,22 +307,18 @@ export async function decideApproval(
   return { ok: true };
 }
 
-function parseActionPayload(payloadJson: string): {
+function parseActionPayload(payloadJson: unknown): {
   action?: string;
   requiredRole?: UserRole;
 } {
-  try {
-    const parsed = JSON.parse(payloadJson) as Record<string, unknown>;
-    return {
-      action: typeof parsed.action === "string" ? parsed.action : undefined,
-      requiredRole:
-        typeof parsed.requiredRole === "string"
-          ? (parsed.requiredRole as UserRole)
-          : undefined,
-    };
-  } catch {
-    return {};
-  }
+  const parsed = readJsonField<Record<string, unknown>>(payloadJson, {});
+  return {
+    action: typeof parsed.action === "string" ? parsed.action : undefined,
+    requiredRole:
+      typeof parsed.requiredRole === "string"
+        ? (parsed.requiredRole as UserRole)
+        : undefined,
+  };
 }
 
 async function enqueueThreadApprovalFollowUp(input: {

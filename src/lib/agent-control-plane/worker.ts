@@ -3,6 +3,7 @@ import type { AgentWakeupSource } from "@/generated/prisma/client";
 import { runHttpAdapter } from "./adapters/http";
 import { runMastraAdapter } from "./adapters/mastra";
 import { runProcessAdapter } from "./adapters/process";
+import { asJsonInput, readJsonField } from "@/lib/json-field";
 import {
   createEphemeralRunApiKey,
   revokeEphemeralRunApiKey,
@@ -123,7 +124,7 @@ async function executeHeartbeatRun(wakeupId: string): Promise<boolean> {
         status: "running",
         source: wakeup.source,
         reason: wakeup.reason,
-        contextSnapshotJson: wakeup.payloadJson,
+        contextSnapshotJson: asJsonInput(wakeup.payloadJson ?? {}),
         startedAt,
       },
     });
@@ -247,13 +248,7 @@ async function executeHeartbeatRun(wakeupId: string): Promise<boolean> {
     });
   });
 
-  const chatPayload = (() => {
-    try {
-      return JSON.parse(wakeup.payloadJson) as { threadId?: string };
-    } catch {
-      return {};
-    }
-  })();
+  const chatPayload = readJsonField<{ threadId?: string }>(wakeup.payloadJson, {});
 
   if (
     wakeup.source === "chat" ||

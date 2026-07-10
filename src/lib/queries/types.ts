@@ -169,7 +169,7 @@ export type AgentThreadDetailResponse = {
         type: ApprovalType;
         title: string | null;
         decision: ApprovalDecision | null;
-        payloadJson: string;
+        payloadJson: unknown;
         recommendation: { title: string; requiredRole: string | null } | null;
       } | null;
     }>;

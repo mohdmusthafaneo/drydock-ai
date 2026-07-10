@@ -1,4 +1,5 @@
 import { prisma } from "../src/lib/prisma";
+import { readJsonField } from "@/lib/json-field";
 
 async function main() {
   const agents = await prisma.agentRegistry.findMany({ orderBy: { createdAt: "asc" } });
@@ -22,12 +23,7 @@ async function main() {
   });
   console.log("\n=== PENDING APPROVALS ===");
   for (const ap of pending) {
-    let payload: Record<string, unknown> = {};
-    try {
-      payload = JSON.parse(ap.payloadJson) as Record<string, unknown>;
-    } catch {
-      /* ignore */
-    }
+    const payload = readJsonField<Record<string, unknown>>(ap.payloadJson, {});
     const bundle = payload.instructionsBundle as
       | { files?: Record<string, string> }
       | undefined;
@@ -51,12 +47,7 @@ async function main() {
   });
   console.log("\n=== DECIDED HIRE APPROVALS ===");
   for (const ap of decided) {
-    let payload: Record<string, unknown> = {};
-    try {
-      payload = JSON.parse(ap.payloadJson) as Record<string, unknown>;
-    } catch {
-      /* ignore */
-    }
+    const payload = readJsonField<Record<string, unknown>>(ap.payloadJson, {});
     console.log(
       JSON.stringify({
         id: ap.id,

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { readJsonField } from "@/lib/json-field";
 import { parseIntegrationMeta } from "@/lib/integration-meta";
 import { parseOwnerRepo, getPullRequest } from "@/lib/github-api";
 import { resolveGitHubTokenForIntegration } from "@/lib/github-token";
@@ -26,28 +27,19 @@ export type IncidentCodeLinkView = {
   };
 };
 
-function parsePeopleJson(json: string): string[] {
-  try {
-    return JSON.parse(json) as string[];
-  } catch {
-    return [];
-  }
+function parsePeopleJson(json: unknown): string[] {
+  const parsed = readJsonField<unknown>(json, []);
+  return Array.isArray(parsed) ? (parsed as string[]) : [];
 }
 
-function parseReviewersJson(json: string): string[] {
-  try {
-    return JSON.parse(json) as string[];
-  } catch {
-    return [];
-  }
+function parseReviewersJson(json: unknown): string[] {
+  const parsed = readJsonField<unknown>(json, []);
+  return Array.isArray(parsed) ? (parsed as string[]) : [];
 }
 
-function parseJiraKeysJson(json: string): string[] {
-  try {
-    return JSON.parse(json) as string[];
-  } catch {
-    return [];
-  }
+function parseJiraKeysJson(json: unknown): string[] {
+  const parsed = readJsonField<unknown>(json, []);
+  return Array.isArray(parsed) ? (parsed as string[]) : [];
 }
 
 function rollupPeople(
@@ -128,7 +120,7 @@ function mapStoredLinks(
     commitSha: string | null;
     confidence: number;
     reason: string;
-    peopleJson: string;
+    peopleJson: unknown;
   }>,
   prByExternalId: Map<
     string,
@@ -138,7 +130,7 @@ function mapStoredLinks(
       url: string;
       repo: string;
       author: string;
-      reviewersJson: string;
+      reviewersJson: unknown;
       mergedAt: Date;
       attribution: string;
     }
@@ -214,7 +206,7 @@ export async function correlateIncidentCodeChanges(input: {
 
   let services: string[] = [];
   try {
-    services = JSON.parse(incident.affectedServicesJson || "[]") as string[];
+    services = readJsonField(incident.affectedServicesJson, []) as string[];
   } catch {
     services = [];
   }

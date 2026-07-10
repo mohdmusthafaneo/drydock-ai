@@ -6,6 +6,7 @@ import { hasPermission } from "@/lib/rbac";
 import { Badge } from "@/components/ui/badge";
 import { AgentRuntimePanel } from "@/components/agents/agent-runtime-panel";
 import { AgentInstructionsEditor } from "@/components/agents/agent-instructions-editor";
+import { readJsonField } from "@/lib/json-field";
 import {
   agentStatusVariant,
   displayAgentStatus,
@@ -48,11 +49,7 @@ export default async function AgentDetailPage({ params }: PageProps) {
   const runtimeConfig = resolveRuntimeConfig(agent);
 
   let adapterConfig: InstructionsAdapterConfig | null = null;
-  try {
-    adapterConfig = JSON.parse(agent.adapterConfigJson) as InstructionsAdapterConfig;
-  } catch {
-    adapterConfig = null;
-  }
+  adapterConfig = readJsonField<InstructionsAdapterConfig | null>(agent.adapterConfigJson, null);
 
   const heartbeat = runtimeConfig.heartbeat;
 

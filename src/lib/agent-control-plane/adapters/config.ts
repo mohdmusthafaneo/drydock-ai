@@ -1,3 +1,5 @@
+import { readJsonField } from "@/lib/json-field";
+
 export type HttpAdapterConfig = {
   url: string;
   method?: string;
@@ -14,15 +16,11 @@ export type ProcessAdapterConfig = {
   timeoutSec?: number;
 };
 
-function parseObject(json: string): Record<string, unknown> {
-  try {
-    return JSON.parse(json) as Record<string, unknown>;
-  } catch {
-    return {};
-  }
+function parseObject(json: unknown): Record<string, unknown> {
+  return readJsonField<Record<string, unknown>>(json, {});
 }
 
-export function parseHttpAdapterConfig(adapterConfigJson: string): HttpAdapterConfig {
+export function parseHttpAdapterConfig(adapterConfigJson: unknown): HttpAdapterConfig {
   const parsed = parseObject(adapterConfigJson);
   const url = typeof parsed.url === "string" ? parsed.url.trim() : "";
   if (!url) {
@@ -47,7 +45,7 @@ export function parseHttpAdapterConfig(adapterConfigJson: string): HttpAdapterCo
   };
 }
 
-export function parseProcessAdapterConfig(adapterConfigJson: string): ProcessAdapterConfig {
+export function parseProcessAdapterConfig(adapterConfigJson: unknown): ProcessAdapterConfig {
   const parsed = parseObject(adapterConfigJson);
   const command = typeof parsed.command === "string" ? parsed.command.trim() : "";
   if (!command) {

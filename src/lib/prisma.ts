@@ -3,7 +3,7 @@ import pg from "pg";
 import { PrismaClient } from "@/generated/prisma/client";
 
 /** Bump when schema changes so dev hot-reload picks up a fresh client. */
-const PRISMA_SCHEMA_VERSION = 11;
+const PRISMA_SCHEMA_VERSION = 12;
 
 /** Delegates that must exist on a valid client (guards stale dev cache). */
 const REQUIRED_DELEGATES = [
@@ -25,6 +25,53 @@ const globalForPrisma = globalThis as unknown as {
   prismaSchemaVersion?: number;
 };
 
+const JSON_COERCED_WRITE_OPERATIONS = new Set([
+  "create",
+  "update",
+  "upsert",
+  "createMany",
+  "updateMany",
+]);
+
+function parseJsonLikeString(value: string): unknown {
+  const trimmed = value.trim();
+  if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) return value;
+
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return value;
+  }
+}
+
+function coerceJsonLikeStrings(value: unknown): unknown {
+  if (typeof value === "string") return parseJsonLikeString(value);
+  if (Array.isArray(value)) return value.map(coerceJsonLikeStrings);
+  if (!value || typeof value !== "object") return value;
+
+  return Object.fromEntries(
+    Object.entries(value).map(([key, nestedValue]) => [
+      key,
+      coerceJsonLikeStrings(nestedValue),
+    ]),
+  );
+}
+
+function coerceJsonWriteArgs(args: unknown): unknown {
+  if (!args || typeof args !== "object") return args;
+
+  const record = args as Record<string, unknown>;
+  return {
+    ...record,
+    data:
+      "data" in record ? coerceJsonLikeStrings(record.data) : record.data,
+    create:
+      "create" in record ? coerceJsonLikeStrings(record.create) : record.create,
+    update:
+      "update" in record ? coerceJsonLikeStrings(record.update) : record.update,
+  };
+}
+
 /** Create Prisma client with pg adapter for PostgreSQL */
 function createPrismaClient(): PrismaClient {
   const connectionString = process.env.DATABASE_URL;
@@ -35,7 +82,19 @@ function createPrismaClient(): PrismaClient {
 
   const pool = new pg.Pool({ connectionString });
   const adapter = new PrismaPg(pool);
-  return new PrismaClient({ adapter });
+  const client = new PrismaClient({ adapter }).$extends({
+    query: {
+      $allModels: {
+        async $allOperations({ operation, args, query }) {
+          const coercedArgs = JSON_COERCED_WRITE_OPERATIONS.has(operation)
+            ? coerceJsonWriteArgs(args)
+            : args;
+          return query(coercedArgs as typeof args);
+        },
+      },
+    },
+  });
+  return client as unknown as PrismaClient;
 }
 
 function isStaleClient(client: PrismaClient): boolean {

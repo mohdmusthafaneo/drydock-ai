@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { readJsonField } from "@/lib/json-field";
 
 export type ThreadTokenRollup = {
   runCount: number;
@@ -7,29 +8,17 @@ export type ThreadTokenRollup = {
   outputTokens: number;
 };
 
-function parseTokenUsage(json: string): {
+function parseTokenUsage(json: unknown): {
   inputTokens?: number;
   outputTokens?: number;
   mode?: string;
 } {
-  try {
-    return JSON.parse(json) as {
-      inputTokens?: number;
-      outputTokens?: number;
-      mode?: string;
-    };
-  } catch {
-    return {};
-  }
+  return readJsonField(json, {});
 }
 
-function extractThreadIdFromSnapshot(json: string): string | null {
-  try {
-    const parsed = JSON.parse(json) as { threadId?: unknown };
-    return typeof parsed.threadId === "string" ? parsed.threadId : null;
-  } catch {
-    return null;
-  }
+function extractThreadIdFromSnapshot(json: unknown): string | null {
+  const parsed = readJsonField<{ threadId?: unknown }>(json, {});
+  return typeof parsed.threadId === "string" ? parsed.threadId : null;
 }
 
 /** Sum LLM token usage across all heartbeat runs tied to an agent chat thread. */
@@ -41,7 +30,9 @@ export async function rollupThreadTokenUsage(
     prisma.agentHeartbeatRun.findMany({
       where: {
         organizationId,
-        contextSnapshotJson: { contains: `"threadId":"${threadId}"` },
+        contextSnapshotJson: {
+          string_contains: `"threadId":"${threadId}"`,
+        },
       },
       select: {
         id: true,
@@ -58,7 +49,7 @@ export async function rollupThreadTokenUsage(
   ]);
 
   const matchedRunIds = new Set<string>();
-  const runs: Array<{ status: string; tokenUsageJson: string }> = [];
+  const runs: Array<{ status: string; tokenUsageJson: unknown }> = [];
 
   for (const run of candidateRuns) {
     if (extractThreadIdFromSnapshot(run.contextSnapshotJson) === threadId) {

@@ -47,7 +47,7 @@ const MAX_COMMITS_PER_REPO = 50;
 const MAX_PRS_PER_REPO = 25;
 
 export function getStoredCodeAnalysisSnapshot(
-  metadataJson: string,
+  metadataJson: unknown,
 ): StoredCodeAnalysis | null {
   const meta = parseIntegrationMeta(metadataJson);
   if (!meta.codeAnalysisSnapshot) return null;
@@ -57,11 +57,11 @@ export function getStoredCodeAnalysisSnapshot(
 /** Prefer Prisma history (90d); fall back to integration metadata snapshot. */
 export async function resolveStoredCodeAnalysis(
   organizationId: string,
-  metadataJson?: string,
+  metadataJson?: unknown,
 ): Promise<StoredCodeAnalysis | null> {
   const fromDb = await loadStoredCodeAnalysisFromDb(organizationId);
   if (fromDb) return fromDb;
-  if (metadataJson) return getStoredCodeAnalysisSnapshot(metadataJson);
+  if (metadataJson != null) return getStoredCodeAnalysisSnapshot(metadataJson);
   return null;
 }
 

@@ -13,16 +13,13 @@ import {
   resolveChatRoutingMode,
 } from "@/mastra/workflows/wake-message";
 import { createChatStreamSession } from "@/lib/agent-chat/stream";
+import { readJsonField } from "@/lib/json-field";
 import { parsePermissions } from "../agent-auth";
 import { assertAnthropicConfigured, resolveAnthropicConfig } from "../llm/config";
 import type { AdapterExecutionContext, AdapterExecutionResult } from "../types";
 
-function parsePayload(json: string): Record<string, unknown> {
-  try {
-    return JSON.parse(json) as Record<string, unknown>;
-  } catch {
-    return {};
-  }
+function parsePayload(json: unknown): Record<string, unknown> {
+  return readJsonField<Record<string, unknown>>(json, {});
 }
 
 type WorkflowRunOutput = {

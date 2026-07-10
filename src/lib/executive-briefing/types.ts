@@ -108,10 +108,10 @@ export type BriefingCharts = {
     riskLevel: string | null;
     primaryRecommendation: string | null;
     assessmentSummary?: string | null;
-    qaSignalsJson: string;
-    testGapsJson: string;
-    telemetryJson: string;
-    postDeployComparisonJson: string | null;
+    qaSignalsJson: unknown;
+    testGapsJson: unknown;
+    telemetryJson: unknown;
+    postDeployComparisonJson: unknown;
     assessedAt: string | null;
     pendingApprovalCount: number;
     pendingApprovalRoles: string[];

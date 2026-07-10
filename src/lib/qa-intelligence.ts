@@ -6,6 +6,7 @@ import type { JiraAssessContext } from "@/lib/jira-delivery-health";
 import { isJiraOAuthConnected } from "@/lib/jira-meta";
 import type { MetricsAssessContext } from "@/lib/observability-metrics/types";
 import { applyHygieneScoreDiscount } from "@/lib/jira-hygiene";
+import { readJsonField } from "@/lib/json-field";
 import {
   hasLiveObservability,
   resolveMetricsAssessContext,
@@ -277,7 +278,7 @@ export function assessQAIntelligence(input: {
   jiraHygiene?: { degradesTrust: boolean; portfolioScore: number } | null;
 }): QAAssessment {
   const tools = input.profile
-    ? (JSON.parse(input.profile.toolsJson || "[]") as string[])
+    ? (readJsonField(input.profile.toolsJson, []) as string[])
     : [];
   const connected = input.integrations.filter((i) => i.status === "CONNECTED");
   const github = input.github;

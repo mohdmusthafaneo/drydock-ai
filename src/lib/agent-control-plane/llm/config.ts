@@ -1,3 +1,5 @@
+import { readJsonField } from "@/lib/json-field";
+
 export type AnthropicConfig = {
   apiKey: string;
   baseUrl: string;
@@ -8,14 +10,9 @@ const DEFAULT_ANTHROPIC_BASE_URL = "https://api.minimax.io/anthropic";
 const DEFAULT_MODEL = "MiniMax-M3";
 
 export function resolveAnthropicConfig(
-  adapterConfigJson: string,
+  adapterConfigJson: unknown,
 ): AnthropicConfig {
-  let parsed: Record<string, unknown> = {};
-  try {
-    parsed = JSON.parse(adapterConfigJson) as Record<string, unknown>;
-  } catch {
-    parsed = {};
-  }
+  const parsed = readJsonField<Record<string, unknown>>(adapterConfigJson, {});
 
   const envModel = process.env.ANTHROPIC_MODEL?.trim();
   const configModel =

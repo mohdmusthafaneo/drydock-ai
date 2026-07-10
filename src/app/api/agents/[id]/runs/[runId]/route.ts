@@ -1,15 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
+import { readJsonField } from "@/lib/json-field";
 
 type RouteParams = { params: Promise<{ id: string; runId: string }> };
 
-function parseJson<T>(raw: string, fallback: T): T {
-  try {
-    return JSON.parse(raw) as T;
-  } catch {
-    return fallback;
-  }
+function parseJson<T>(raw: unknown, fallback: T): T {
+  return readJsonField(raw, fallback);
 }
 
 export async function GET(_request: Request, { params }: RouteParams) {

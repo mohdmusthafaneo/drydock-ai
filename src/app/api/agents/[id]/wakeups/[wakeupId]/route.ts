@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+import { readJsonField } from "@/lib/json-field";
 
 type RouteParams = { params: Promise<{ id: string; wakeupId: string }> };
 
@@ -41,11 +42,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
   } = {};
 
   if (run) {
-    try {
-      tokenUsage = JSON.parse(run.tokenUsageJson) as typeof tokenUsage;
-    } catch {
-      tokenUsage = {};
-    }
+    tokenUsage = readJsonField(run.tokenUsageJson, {});
   }
 
   return NextResponse.json({

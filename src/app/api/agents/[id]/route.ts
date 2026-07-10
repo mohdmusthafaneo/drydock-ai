@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
+import { readJsonField } from "@/lib/json-field";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -46,7 +47,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
       lastHeartbeatAt: agent.lastHeartbeatAt,
       lastActiveAt: agent.lastActiveAt,
       adapterType: agent.adapterType,
-      runtimeConfig: JSON.parse(agent.runtimeConfigJson),
+      runtimeConfig: readJsonField(agent.runtimeConfigJson, {}),
       pendingWakeups: agent._count.wakeupRequests,
       reportsTo: agent.reportsTo,
     },

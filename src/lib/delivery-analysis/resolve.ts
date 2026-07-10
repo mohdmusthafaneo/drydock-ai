@@ -77,7 +77,7 @@ export function deliveryAnalysisForFilters(
 }
 
 export function deliveryAnalysisFromMetadata(
-  metadataJson: string,
+  metadataJson: unknown,
   filters: DeliveryAnalysisFilters,
   mapping?: ToolchainMapping,
   jiraHygiene?: PortfolioJiraHygiene,

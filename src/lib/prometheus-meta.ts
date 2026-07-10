@@ -1,4 +1,5 @@
 import type { Integration } from "@/generated/prisma/client";
+import { readJsonField } from "@/lib/json-field";
 import type { PrometheusServiceScope } from "@/lib/observability-analysis/types";
 import type { MetricsProvenance } from "@/lib/observability-metrics/types";
 
@@ -24,12 +25,8 @@ export type PrometheusIntegrationMeta = {
   connectedBy?: string;
 };
 
-export function parsePrometheusMeta(metadataJson: string): PrometheusIntegrationMeta {
-  try {
-    return JSON.parse(metadataJson) as PrometheusIntegrationMeta;
-  } catch {
-    return {};
-  }
+export function parsePrometheusMeta(metadataJson: unknown): PrometheusIntegrationMeta {
+  return readJsonField<PrometheusIntegrationMeta>(metadataJson, {});
 }
 
 export function mergePrometheusMeta(
@@ -40,7 +37,7 @@ export function mergePrometheusMeta(
 }
 
 export function isPrometheusTrulyConnected(
-  integration: { status: string; metadataJson: string } | undefined,
+  integration: { status: string; metadataJson: unknown } | undefined,
 ): boolean {
   if (!integration || integration.status !== "CONNECTED") return false;
   const meta = parsePrometheusMeta(integration.metadataJson);

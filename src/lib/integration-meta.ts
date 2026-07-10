@@ -1,3 +1,6 @@
+import type { StoredCodeAnalysis } from "@/lib/code-analysis/types";
+import { readJsonField } from "@/lib/json-field";
+
 export type GitHubWorkflowRunSummary = {
   name: string;
   conclusion: "success" | "failure" | "cancelled" | null;
@@ -15,8 +18,6 @@ export type GitHubRepoSummary = {
   commonPrLabels?: string[];
   recentWorkflowRuns?: GitHubWorkflowRunSummary[];
 };
-
-import type { StoredCodeAnalysis } from "@/lib/code-analysis/types";
 
 export type GitHubIntegrationMeta = {
   /** "oauth" | "app" | "dual" — how this integration was connected */
@@ -61,12 +62,8 @@ export type GitHubIntegrationMeta = {
   };
 };
 
-export function parseIntegrationMeta(metadataJson: string): GitHubIntegrationMeta {
-  try {
-    return JSON.parse(metadataJson) as GitHubIntegrationMeta;
-  } catch {
-    return {};
-  }
+export function parseIntegrationMeta(metadataJson: unknown): GitHubIntegrationMeta {
+  return readJsonField<GitHubIntegrationMeta>(metadataJson, {});
 }
 
 export function mergeGitHubMeta(

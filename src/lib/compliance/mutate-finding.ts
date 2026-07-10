@@ -1,24 +1,21 @@
 import { prisma } from "@/lib/prisma";
+import { readJsonField } from "@/lib/json-field";
 import { invalidateExecutiveBriefingSnapshot } from "@/lib/executive-briefing/invalidate-snapshot";
 import { rowToComplianceFindingView } from "@/lib/compliance/load-findings";
 import type { ComplianceFindingView } from "@/lib/compliance/types";
 
 export type ComplianceFindingAction = "resolve" | "dismiss" | "acknowledge";
 
-function parseDetailJson(json: string): Record<string, unknown> {
-  try {
-    return JSON.parse(json) as Record<string, unknown>;
-  } catch {
-    return {};
-  }
+function parseDetailJson(json: unknown): Record<string, unknown> {
+  return readJsonField<Record<string, unknown>>(json, {});
 }
 
-export function isDismissedFinding(detailJson: string): boolean {
+export function isDismissedFinding(detailJson: unknown): boolean {
   const detail = parseDetailJson(detailJson);
   return detail.manualAction === "dismiss";
 }
 
-export function isAcknowledgedFinding(detailJson: string): boolean {
+export function isAcknowledgedFinding(detailJson: unknown): boolean {
   const detail = parseDetailJson(detailJson);
   return typeof detail.acknowledgedAt === "string";
 }
