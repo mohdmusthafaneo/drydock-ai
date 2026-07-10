@@ -6,6 +6,11 @@ import { JOB_NAMES } from "./constants";
 
 const log = createLogger({ component: "jobs/grafana-sync" });
 
+/**
+ * Phase 1c reference scheduled job — proves pg-boss schedule/work/retry/DLQ.
+ * Jira sync (`/api/cron/jira/sync`), GitHub sync (on-demand via Integrations),
+ * and other crons remain on the legacy HTTP path until Phase 2.
+ */
 /** Every 15 minutes — matches runScheduledGrafanaSync internal throttle. */
 const GRAFANA_SYNC_CRON = "*/15 * * * *";
 
