@@ -30,6 +30,8 @@ const envSchema = z.object({
   RETENTION_ENSURE_INTERVAL_SEC: z.coerce.number().int().positive().optional(),
   /** Valkey/Redis URL for shared cache across web replicas (Phase 5). */
   VALKEY_URL: z.string().url().optional(),
+  /** Optional Postgres read replica for analytics (falls back to DATABASE_URL). */
+  DATABASE_URL_REPLICA: z.string().min(1).optional(),
 
   AGENT_WORKER_ENABLED: optionalBoolean,
   AGENT_WORKER_POKE_ON_ENQUEUE: optionalBoolean,

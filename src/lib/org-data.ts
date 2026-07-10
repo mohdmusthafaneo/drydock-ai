@@ -1,11 +1,11 @@
-import { forOrg } from "@/lib/prisma";
+import { forOrgRead } from "@/lib/prisma";
 import { computeCompletedStepIds } from "@/lib/enterprise-workflow";
 import { hasObservabilitySynced } from "@/lib/observability-connectivity";
 import { isJiraCalibrationComplete } from "@/lib/jira-calibration/status";
 import { rollupAgentTokens } from "@/lib/agent-control-plane/token-rollup";
 
 export async function getOrganizationContext(organizationId: string) {
-  const db = forOrg(organizationId);
+  const db = forOrgRead(organizationId);
   const [
     org,
     profile,
