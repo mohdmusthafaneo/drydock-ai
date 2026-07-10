@@ -13,6 +13,9 @@ export const JOB_NAMES = {
   refreshOrg: "refresh.org",
   agentWakeup: "agent.wakeup",
   agentTimerScan: "agent.timer-scan",
+  mlEmbed: "ml.embed",
+  mlCodeQuality: "ml.codeQuality",
+  evidenceRecompute: "evidence.recompute",
 } as const;
 
 /** Integration providers handled by refresh.fanout → refresh.org (Phase 2). */

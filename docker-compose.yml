@@ -55,6 +55,7 @@ services:
       AGENT_WORKER_INTERVAL_SEC: "30"
       AGENT_INSTRUCTIONS_ROOT: "/data/agent-instructions"
       ML_INFERENCE_URL: "http://ml-inference:8080"
+      WORKER_QUEUES: "all"
       NODE_ENV: "production"
     volumes:
       - agent_instructions:/data/agent-instructions
