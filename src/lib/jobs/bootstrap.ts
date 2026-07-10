@@ -9,6 +9,10 @@ import {
   registerAllDomainFanoutWorkers,
 } from "./domain-fanout-jobs";
 import { registerMlWorkers } from "./ml-jobs";
+import {
+  ensureEvidenceSchedule,
+  registerEvidenceWorkers,
+} from "./evidence-jobs";
 import { refreshFanoutJobs } from "./refresh-fanout-job";
 import { parseWorkerQueues, workerServesRole } from "./worker-queues";
 
@@ -29,6 +33,7 @@ export async function bootstrapJobInfrastructure(
   if (role === "web") {
     await refreshFanoutJobs.ensureSchedule(boss);
     await ensureAllDomainFanoutSchedules(boss);
+    await ensureEvidenceSchedule(boss);
     log.info("web role: pg-boss schedules registered");
     return;
   }
@@ -53,6 +58,7 @@ export async function bootstrapJobInfrastructure(
 
   if (workerServesRole(queues, "ml")) {
     await registerMlWorkers(boss);
+    await registerEvidenceWorkers(boss);
   }
 
   // When serving "all", refresh/enrich schedules are already ensured above.
@@ -61,6 +67,7 @@ export async function bootstrapJobInfrastructure(
   if (queues.has("all")) {
     await refreshFanoutJobs.ensureSchedule(boss);
     await ensureAllDomainFanoutSchedules(boss);
+    await ensureEvidenceSchedule(boss);
   }
 
   log.info("worker role: pg-boss work handlers registered");
