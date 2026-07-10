@@ -2,7 +2,7 @@
 
 **Plan:** [`architecture-migration-plan.md`](./architecture-migration-plan.md)  
 **Last updated:** 2026-07-10  
-**Current focus:** Phase 2 complete — Phase 3 next
+**Current focus:** Phase 3 complete — Phase 4 next
 
 > Update this file when a phase/sub-phase ships. Keep task wording aligned with the main plan; use checkboxes only here.
 
@@ -17,7 +17,7 @@
 | **1b** | Drop Mastra file volumes | **Done** | PR [#3](https://github.com/Suralal001/AIDOS/pull/3) |
 | **1c** | pg-boss + agent wakeup bridge | **Done** | PR [#4](https://github.com/Suralal001/AIDOS/pull/4) |
 | **2** | All cron → pg-boss, fan-out refresh | **Done** | PRs #5–#8 (stacked) |
-| **3** | jsonb, tenant-safe client, internal health | Not started | — |
+| **3** | jsonb, tenant-safe client, internal health | **Done** | PRs (stacked) |
 | **4** | AI/ML platform (pgvector, Python service) | Not started | — |
 | **5** | TimescaleDB, Valkey, horizontal scale | Not started | — |
 
@@ -92,9 +92,15 @@
 
 ## Phase 3 — Data hygiene & tenant safety
 
-- [ ] `String` JSON → `jsonb` (column-by-column + backfill)
-- [ ] Tenant-safe Prisma `$extends` + `asSystem()` escape hatch
-- [ ] `GET /api/internal/health` (queue depths, stuck runs, staleness)
+- [x] `String` JSON → `jsonb` (column-by-column + dual-read shim)
+- [x] Tenant-safe Prisma `$extends` (`forOrg`) + `asSystem()` escape hatch
+- [x] `GET /api/internal/health` (queue depths, stuck runs, staleness)
+
+**Exit criteria**
+
+- [x] JSON is queryable (Postgres `jsonb`)
+- [x] Tenant scoping is structural via `forOrg()`
+- [x] Operators have `/api/internal/health` (Bearer `PLATFORM_WORKER_SECRET`)
 
 ---
 
