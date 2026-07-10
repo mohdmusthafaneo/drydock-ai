@@ -16,8 +16,8 @@ export { createMastraInstance } from "./server";
 export type { CreateMastraOptions } from "./server";
 export { resolveMastraModelConfig } from "./config/models";
 export {
-  resolveMastraObservabilityPath,
-  resolveMastraStorageUrl,
+  resolveMastraPgSchema,
+  resolveMastraPostgresConnectionString,
 } from "./config/storage";
 export {
   aidosAgents,

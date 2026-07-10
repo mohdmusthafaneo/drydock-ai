@@ -4,8 +4,7 @@ const nextConfig: NextConfig = {
   output: "standalone",
   serverExternalPackages: [
     "@mastra/core",
-    "@mastra/duckdb",
-    "@mastra/libsql",
+    "@mastra/pg",
     "@mastra/loggers",
     "@mastra/memory",
     "@mastra/observability",
