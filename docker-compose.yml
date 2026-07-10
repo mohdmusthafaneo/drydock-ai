@@ -47,6 +47,7 @@ services:
     container_name: aidos-worker
     environment:
       AIDOS_PROCESS_ROLE: worker
+      DATABASE_URL: "postgresql://aidos:aidos_dev_password@postgres:5432/aidos?schema=public"
       AIDOS_API_URL: "http://web:3000"
       PLATFORM_WORKER_SECRET: "dev-worker-secret"
       AGENT_WORKER_ENABLED: "true"
@@ -56,6 +57,8 @@ services:
     volumes:
       - agent_instructions:/data/agent-instructions
     depends_on:
+      postgres:
+        condition: service_healthy
       web:
         condition: service_started
     restart: unless-stopped

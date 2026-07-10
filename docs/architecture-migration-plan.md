@@ -138,8 +138,7 @@ Each phase is independently shippable, flag-gated where behavior changes, and re
 | Add dependency | `npm i pg-boss`; start it against `DATABASE_URL` in its own `pgboss` schema. |
 | Boss singleton | `src/lib/jobs/boss.ts` — lazy singleton, `start()` on first use (mirrors the Prisma lazy pattern). |
 | Reference job | Port **one** scheduled job end-to-end first: `grafana.sync` → `boss.schedule(...)` + `boss.work(...)`. Validate retries/DLQ/observability. |
-| Agent-wakeup bridge | Keep `enqueueWakeup()` + `AgentWakeupRequest` as source-of-truth/audit. Additionally `boss.send('agent.wakeup', { wakeupId }, { singletonKey: 'wakeup:'+id, priority })`. Worker's `boss.work('agent.wakeup', { teamSize: AGENT_WORKER_CONCURRENCY }, …)` is the **only** place that transitions the row. Replace `worker-poke.ts` HTTP fire-and-forget with `boss.send`. Timer wakeups → `boss.schedule`. |
-| Keep as fallback | Leave the old `drainWakeupQueue` behind a flag until the bridge is proven; `recoverStuckRuns` stays as a safety net. |
+| Agent-wakeup bridge | Keep `enqueueWakeup()` + `AgentWakeupRequest` as source-of-truth/audit. Additionally `boss.send('agent.wakeup', { wakeupId }, { singletonKey: 'wakeup:'+id, priority })`. Worker's `boss.work('agent.wakeup', { teamSize: AGENT_WORKER_CONCURRENCY }, …)` is the **only** place that transitions the row. Replace `worker-poke.ts` HTTP fire-and-forget with `boss.send`. Timer wakeups → `boss.schedule`. Deprecate `POST /api/cron/agents/worker` HTTP drain (410). `recoverStuckRuns` stays as a safety net inside `drainWakeupQueue`. |
 
 **Exit:** two processes can run agent work concurrently with **zero duplicate runs**; `/data/mastra` retired; Grafana sync runs on pg-boss with visible retries. **Proven on `docker-compose up` before Coolify cutover.**
 

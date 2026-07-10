@@ -30,9 +30,9 @@ export default async function AgentsManagementPage() {
       {canManageAgents && (
         <p className="text-xs text-graphite">
           Invoke queues a wakeup (async). Drain the queue with{" "}
-          <code className="text-ash">npm run worker:agents</code> in dev or{" "}
-          <code className="text-ash">POST /api/cron/agents/worker</code>{" "}
-          (Bearer PLATFORM_WORKER_SECRET) every 30–60s in production.
+          <code className="text-ash">npm run worker:agents</code> in dev or run
+          the worker service (<code className="text-ash">AIDOS_PROCESS_ROLE=worker</code>)
+          in production.
         </p>
       )}
     </div>

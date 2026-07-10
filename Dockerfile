@@ -69,12 +69,14 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 # Agent control plane runtime assets (LLM skills + instruction templates)
 COPY --from=builder --chown=nextjs:nodejs /app/skills ./skills
 COPY --from=builder --chown=nextjs:nodejs /app/src/lib/agent-control-plane/onboarding-assets ./src/lib/agent-control-plane/onboarding-assets
-COPY --from=builder --chown=nextjs:nodejs /app/scripts/agent-worker-loop.mjs ./scripts/agent-worker-loop.mjs
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/agent-worker-loop.ts ./scripts/agent-worker-loop.ts
+COPY --from=builder --chown=nextjs:nodejs /app/tsconfig.json ./tsconfig.json
+COPY --from=builder --chown=nextjs:nodejs /app/src ./src
 
 COPY --chmod=755 docker/entrypoint.sh /app/docker/entrypoint.sh
 
-# Writable agent instructions + Mastra storage (Coolify volume mount targets)
-RUN mkdir -p /data/agent-instructions /data/mastra && chown -R nextjs:nodejs /data
+# Writable agent instructions volume mount target
+RUN mkdir -p /data/agent-instructions && chown -R nextjs:nodejs /data
 
 # Expose the port
 EXPOSE 3000

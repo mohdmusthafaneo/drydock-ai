@@ -32,13 +32,13 @@ case "$ROLE" in
     ;;
 
   worker)
-    if [ -z "$PLATFORM_WORKER_SECRET" ]; then
-      echo "ERROR: PLATFORM_WORKER_SECRET is not set (required for worker role)."
+    if [ -z "$DATABASE_URL" ]; then
+      echo "ERROR: DATABASE_URL is required for worker role (pg-boss job consumers)."
       exit 1
     fi
 
-    echo "Starting agent worker loop (role=worker)..."
-    exec su-exec nextjs node /app/scripts/agent-worker-loop.mjs
+    echo "Starting agent worker (role=worker, pg-boss)..."
+    exec su-exec nextjs npx tsx /app/scripts/agent-worker-loop.ts
     ;;
 
   *)

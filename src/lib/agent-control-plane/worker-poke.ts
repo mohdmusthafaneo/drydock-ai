@@ -1,4 +1,4 @@
-import { resolveAidosApiBaseUrl } from "./llm/config";
+import { sendAgentWakeupJob } from "@/lib/jobs/agent-wakeup-job";
 
 export type TriggerWakeupProcessingInput = {
   organizationId: string;
@@ -10,40 +10,29 @@ export type TriggerWakeupProcessingInput = {
 function pokeEnabled(): boolean {
   if (process.env.AGENT_WORKER_ENABLED === "false") return false;
   if (process.env.AGENT_WORKER_POKE_ON_ENQUEUE === "false") return false;
-  return Boolean(process.env.PLATFORM_WORKER_SECRET?.trim());
+  return true;
 }
 
 /**
- * Fire-and-forget POST to the platform worker endpoint so queued wakeups
- * are processed without waiting for the next cron tick.
+ * Fire-and-forget dispatch so queued wakeups are processed without waiting
+ * for the next timer scan. Dispatches via pg-boss.
  */
 export function pokeAgentWorker(input: {
   organizationId?: string;
   wakeupId?: string;
-  limit?: number;
 }): void {
   if (!pokeEnabled()) return;
+  if (!input.wakeupId) return;
 
-  const secret = process.env.PLATFORM_WORKER_SECRET!.trim();
-  const baseUrl = resolveAidosApiBaseUrl();
-
-  void fetch(`${baseUrl}/api/cron/agents/worker`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${secret}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      organizationId: input.organizationId,
-      wakeupId: input.wakeupId,
-      limit: input.limit,
-    }),
+  void sendAgentWakeupJob({
+    wakeupId: input.wakeupId,
+    organizationId: input.organizationId,
   }).catch(() => undefined);
 }
 
 /**
  * Trigger wakeup processing after enqueue. Delegation uses inline processing
- * when immediate=true; all other sources poke the worker endpoint.
+ * when immediate=true; all other sources dispatch a pg-boss job.
  */
 export async function triggerWakeupProcessing(
   input: TriggerWakeupProcessingInput,
@@ -59,6 +48,5 @@ export async function triggerWakeupProcessing(
   pokeAgentWorker({
     organizationId: input.organizationId,
     wakeupId: input.wakeupId,
-    limit: 1,
   });
 }
