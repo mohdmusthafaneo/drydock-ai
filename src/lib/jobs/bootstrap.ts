@@ -8,7 +8,9 @@ import {
   ensureAllDomainFanoutSchedules,
   registerAllDomainFanoutWorkers,
 } from "./domain-fanout-jobs";
+import { registerMlWorkers } from "./ml-jobs";
 import { refreshFanoutJobs } from "./refresh-fanout-job";
+import { parseWorkerQueues, workerServesRole } from "./worker-queues";
 
 const log = createLogger({ component: "jobs/bootstrap" });
 
@@ -17,6 +19,7 @@ export type ProcessRole = "web" | "worker";
 /**
  * Start pg-boss and register role-appropriate schedules/workers.
  * Web: boss started for send() + cron schedules. Worker: work handlers.
+ * Worker queue subsets are selected via WORKER_QUEUES (default: all).
  */
 export async function bootstrapJobInfrastructure(
   role: ProcessRole,
@@ -30,12 +33,36 @@ export async function bootstrapJobInfrastructure(
     return;
   }
 
-  await registerAgentWakeupWorker(boss);
-  await registerAgentTimerScanWorker(boss);
-  await refreshFanoutJobs.registerWorker(boss);
-  await registerAllDomainFanoutWorkers(boss);
-  await refreshFanoutJobs.ensureSchedule(boss);
-  await ensureAllDomainFanoutSchedules(boss);
+  const queues = parseWorkerQueues();
+  log.info({ queues: [...queues] }, "worker queue roles");
+
+  if (workerServesRole(queues, "agents")) {
+    await registerAgentWakeupWorker(boss);
+    await registerAgentTimerScanWorker(boss);
+  }
+
+  if (workerServesRole(queues, "refresh")) {
+    await refreshFanoutJobs.registerWorker(boss);
+    await refreshFanoutJobs.ensureSchedule(boss);
+  }
+
+  if (workerServesRole(queues, "enrich")) {
+    await registerAllDomainFanoutWorkers(boss);
+    await ensureAllDomainFanoutSchedules(boss);
+  }
+
+  if (workerServesRole(queues, "ml")) {
+    await registerMlWorkers(boss);
+  }
+
+  // When serving "all", refresh/enrich schedules are already ensured above.
+  // Dedicated role pools still need schedules on a process that owns them —
+  // web also registers schedules so cron fires even if only an `ml` worker runs.
+  if (queues.has("all")) {
+    await refreshFanoutJobs.ensureSchedule(boss);
+    await ensureAllDomainFanoutSchedules(boss);
+  }
+
   log.info("worker role: pg-boss work handlers registered");
 }
 
