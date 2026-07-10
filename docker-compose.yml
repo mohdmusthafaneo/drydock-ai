@@ -31,13 +31,10 @@ services:
       PLATFORM_WORKER_SECRET: "dev-worker-secret"
       AGENT_WORKER_ENABLED: "true"
       AGENT_INSTRUCTIONS_ROOT: "/data/agent-instructions"
-      MASTRA_STORAGE_URL: "file:/data/mastra/store.db"
-      MASTRA_OBSERVABILITY_PATH: "/data/mastra/observability.duckdb"
       NODE_ENV: "production"
       NEXT_TELEMETRY_DISABLED: "1"
     volumes:
       - agent_instructions:/data/agent-instructions
-      - mastra_data:/data/mastra
     depends_on:
       postgres:
         condition: service_healthy
@@ -55,12 +52,9 @@ services:
       AGENT_WORKER_ENABLED: "true"
       AGENT_WORKER_INTERVAL_SEC: "30"
       AGENT_INSTRUCTIONS_ROOT: "/data/agent-instructions"
-      MASTRA_STORAGE_URL: "file:/data/mastra/store.db"
-      MASTRA_OBSERVABILITY_PATH: "/data/mastra/observability.duckdb"
       NODE_ENV: "production"
     volumes:
       - agent_instructions:/data/agent-instructions
-      - mastra_data:/data/mastra
     depends_on:
       web:
         condition: service_started
@@ -69,4 +63,3 @@ services:
 volumes:
   postgres_data:
   agent_instructions:
-  mastra_data:
