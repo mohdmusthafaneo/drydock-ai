@@ -1,6 +1,6 @@
 import type { PgBoss } from "pg-boss";
 
-import { prisma } from "@/lib/prisma";
+import { asSystem } from "@/lib/prisma";
 import { enrichCodeAnalysisForOrg } from "@/lib/code-analysis/enrich";
 import { isCodeAnalysisEnrichEnabled } from "@/lib/code-analysis/enrich-config";
 import { evaluateCompliance } from "@/lib/compliance/evaluate";
@@ -15,7 +15,7 @@ import { createOrgFanoutJobs } from "./org-fanout";
 const log = createLogger({ component: "jobs/domain-fanout" });
 
 async function listOrgIdsFromCodeAnalysisRuns(): Promise<string[]> {
-  const rows = await prisma.codeAnalysisRun.findMany({
+  const rows = await asSystem().codeAnalysisRun.findMany({
     distinct: ["organizationId"],
     select: { organizationId: true },
     orderBy: { organizationId: "asc" },
@@ -24,29 +24,30 @@ async function listOrgIdsFromCodeAnalysisRuns(): Promise<string[]> {
 }
 
 async function listOrgIdsForPredictionEval(): Promise<string[]> {
+  const db = asSystem();
   const [delivery, code, compliance, telemetry, deploy, incident] =
     await Promise.all([
-      prisma.deliveryAnalysisSnapshot.findMany({
+      db.deliveryAnalysisSnapshot.findMany({
         distinct: ["organizationId"],
         select: { organizationId: true },
       }),
-      prisma.codeAnalysisRun.findMany({
+      db.codeAnalysisRun.findMany({
         distinct: ["organizationId"],
         select: { organizationId: true },
       }),
-      prisma.complianceFinding.findMany({
+      db.complianceFinding.findMany({
         distinct: ["organizationId"],
         select: { organizationId: true },
       }),
-      prisma.telemetryMetric.findMany({
+      db.telemetryMetric.findMany({
         distinct: ["organizationId"],
         select: { organizationId: true },
       }),
-      prisma.deploymentEvent.findMany({
+      db.deploymentEvent.findMany({
         distinct: ["organizationId"],
         select: { organizationId: true },
       }),
-      prisma.incident.findMany({
+      db.incident.findMany({
         distinct: ["organizationId"],
         select: { organizationId: true },
       }),
@@ -65,7 +66,7 @@ async function listOrgIdsForPredictionEval(): Promise<string[]> {
 }
 
 async function listJiraCalibrationOrgIds(): Promise<string[]> {
-  const integrations = await prisma.integration.findMany({
+  const integrations = await asSystem().integration.findMany({
     where: { provider: "JIRA", status: "CONNECTED" },
     select: { organizationId: true, metadataJson: true },
     orderBy: { organizationId: "asc" },
@@ -120,7 +121,7 @@ export const executiveBriefingEnrichFanout = createOrgFanoutJobs({
   cronEnvKey: "EXECUTIVE_BRIEFING_ENRICH_INTERVAL_SEC",
   singletonPrefix: "executive-briefing-enrich",
   listOrganizationIds: async () => {
-    const rows = await prisma.deliveryDNA.findMany({
+    const rows = await asSystem().deliveryDNA.findMany({
       select: { organizationId: true },
       orderBy: { organizationId: "asc" },
     });
