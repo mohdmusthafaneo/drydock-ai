@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { syncJiraIntegration } from "@/lib/jira-sync";
 import { parseJiraMeta } from "@/lib/jira-meta";
 import { JiraApiError, recordJiraIntegrationFailure } from "@/lib/jira-api";
+import { resolveOrgActorUserId } from "@/lib/integration-scheduled-utils";
 
 export type ScheduledJiraSyncOrgResult = {
   organizationId: string;
@@ -12,22 +13,6 @@ export type ScheduledJiraSyncOrgResult = {
   projectCount?: number;
   error?: string;
 };
-
-async function resolveOrgActorUserId(organizationId: string): Promise<string | null> {
-  const admin = await prisma.user.findFirst({
-    where: { organizationId, status: "ACTIVE", role: "ORG_ADMIN" },
-    select: { id: true },
-    orderBy: { createdAt: "asc" },
-  });
-  if (admin) return admin.id;
-
-  const anyUser = await prisma.user.findFirst({
-    where: { organizationId, status: "ACTIVE" },
-    select: { id: true },
-    orderBy: { createdAt: "asc" },
-  });
-  return anyUser?.id ?? null;
-}
 
 export async function runScheduledJiraSync(input?: {
   organizationId?: string;

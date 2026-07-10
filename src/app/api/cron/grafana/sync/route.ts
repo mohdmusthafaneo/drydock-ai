@@ -1,8 +1,12 @@
 import { createCronEnqueueRoute } from "@/lib/jobs/cron-route";
-import { grafanaSyncJob } from "@/lib/jobs/domain-scheduled-jobs";
+import { enqueueIntegrationRefresh } from "@/lib/jobs/refresh-fanout-job";
 import { JOB_NAMES } from "@/lib/jobs/constants";
 
 export const POST = createCronEnqueueRoute({
   jobName: JOB_NAMES.grafanaSync,
-  enqueue: (input) => grafanaSyncJob.sendJob(input),
+  enqueue: (input) =>
+    enqueueIntegrationRefresh({
+      provider: "GRAFANA",
+      organizationId: input.organizationId,
+    }),
 });

@@ -1,8 +1,13 @@
 import { createCronEnqueueRoute } from "@/lib/jobs/cron-route";
-import { jiraCalibrateJob } from "@/lib/jobs/domain-scheduled-jobs";
+import { jiraCalibrateFanout } from "@/lib/jobs/domain-fanout-jobs";
 import { JOB_NAMES } from "@/lib/jobs/constants";
 
 export const POST = createCronEnqueueRoute({
   jobName: JOB_NAMES.jiraCalibrate,
-  enqueue: (input) => jiraCalibrateJob.sendJob(input),
+  enqueue: async (input) => {
+    if (input.organizationId) {
+      return jiraCalibrateFanout.sendOrgJob(input.organizationId);
+    }
+    return jiraCalibrateFanout.sendFanoutJob();
+  },
 });

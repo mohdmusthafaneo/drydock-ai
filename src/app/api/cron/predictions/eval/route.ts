@@ -1,8 +1,13 @@
 import { createCronEnqueueRoute } from "@/lib/jobs/cron-route";
-import { predictionsEvalJob } from "@/lib/jobs/domain-scheduled-jobs";
+import { predictionsEvalFanout } from "@/lib/jobs/domain-fanout-jobs";
 import { JOB_NAMES } from "@/lib/jobs/constants";
 
 export const POST = createCronEnqueueRoute({
   jobName: JOB_NAMES.predictionsEval,
-  enqueue: (input) => predictionsEvalJob.sendJob(input),
+  enqueue: async (input) => {
+    if (input.organizationId) {
+      return predictionsEvalFanout.sendOrgJob(input.organizationId);
+    }
+    return predictionsEvalFanout.sendFanoutJob();
+  },
 });

@@ -5,9 +5,10 @@ import {
   registerAgentWakeupWorker,
 } from "./agent-wakeup-job";
 import {
-  ensureAllDomainSchedules,
-  registerAllDomainWorkers,
-} from "./domain-scheduled-jobs";
+  ensureAllDomainFanoutSchedules,
+  registerAllDomainFanoutWorkers,
+} from "./domain-fanout-jobs";
+import { refreshFanoutJobs } from "./refresh-fanout-job";
 
 const log = createLogger({ component: "jobs/bootstrap" });
 
@@ -23,15 +24,18 @@ export async function bootstrapJobInfrastructure(
   const boss = await getBoss();
 
   if (role === "web") {
-    await ensureAllDomainSchedules(boss);
+    await refreshFanoutJobs.ensureSchedule(boss);
+    await ensureAllDomainFanoutSchedules(boss);
     log.info("web role: pg-boss schedules registered");
     return;
   }
 
   await registerAgentWakeupWorker(boss);
   await registerAgentTimerScanWorker(boss);
-  await registerAllDomainWorkers(boss);
-  await ensureAllDomainSchedules(boss);
+  await refreshFanoutJobs.registerWorker(boss);
+  await registerAllDomainFanoutWorkers(boss);
+  await refreshFanoutJobs.ensureSchedule(boss);
+  await ensureAllDomainFanoutSchedules(boss);
   log.info("worker role: pg-boss work handlers registered");
 }
 
