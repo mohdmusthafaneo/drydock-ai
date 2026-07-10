@@ -13,13 +13,16 @@ const log = createLogger({ component: "jobs/grafana-sync" });
  */
 /** Every 15 minutes — matches runScheduledGrafanaSync internal throttle. */
 const GRAFANA_SYNC_CRON = "*/15 * * * *";
+const GRAFANA_SYNC_DLQ = `${JOB_NAMES.grafanaSync}.dlq`;
 
 async function ensureGrafanaSyncQueue(boss: PgBoss): Promise<void> {
+  // pg-boss validates deadLetter queue exists before createQueue on the primary queue.
+  await boss.createQueue(GRAFANA_SYNC_DLQ);
   await boss.createQueue(JOB_NAMES.grafanaSync, {
     retryLimit: 3,
     retryDelay: 60,
     retryBackoff: true,
-    deadLetter: `${JOB_NAMES.grafanaSync}.dlq`,
+    deadLetter: GRAFANA_SYNC_DLQ,
   });
 }
 
