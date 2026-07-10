@@ -259,7 +259,7 @@ Hired agents share the specialist agent template; **dynamic `AGENTS.md` content*
 | M4.2 | Update `docs/ai-agents-workflow.md` and `docs/agent-heartbeat-protocol.md` | **Done** |
 | M4.3 | Architect review: tenancy, audit trail completeness, approval bypass check | **Done** — [review](./reviews/2026-06-15-mastra-m4-governance-review.md) |
 | M4.4 | Load test: 10 concurrent chat wakeups; verify storage growth and worker drain | **Done** — `npm run load-test:chat-wakeups` |
-| M4.5 | Coolify deploy doc: shared volume for Mastra DB, worker + web both mount `/data/mastra` | **Done** — [coolify-deploy.md](./coolify-deploy.md) |
+| M4.5 | Deploy docs: shared volume for Mastra DB, worker + web both mount `/data/mastra` | **Superseded** — Mastra now uses Postgres (`@mastra/pg`); Coolify deploy doc removed |
 
 ---
 

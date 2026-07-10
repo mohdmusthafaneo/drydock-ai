@@ -23,7 +23,7 @@
 | D8 | **TimescaleDB** (Postgres extension) for high-volume telemetry tables. | Partitioning, compression, retention — still "just Postgres." |
 | D9 | Credential handling differs per provider: **GitHub** mint-and-cache; **GitLab/Bitbucket** rotating-refresh with **single-flight via Postgres advisory lock**. | Verified provider behavior (see §2); avoids refresh-token invalidation races without Valkey. |
 | D10 | **Valkey** is deferred until the web tier runs **>1 replica** (shared cache, SSE fan-out, cross-replica locks). | Not required at current scale. |
-| D11 | **Local-first validation** — prove each phase on `docker-compose` (web + worker + Postgres) before Coolify-specific steps. | Same image and env model as production; if it works locally, Coolify is mostly volume mounts + env paste. |
+| D11 | **Local-first validation** — prove each phase with the same Docker images + env model used in production (`Dockerfile` web/worker roles + Postgres). | Same image and env model as production; no platform-specific deploy coupling. |
 
 ---
 
@@ -81,24 +81,24 @@ This design needs **no Valkey** even at multi-replica scale because the advisory
 
 **Phase 4+ (scale, when triggers hit):** add web replicas + Valkey, split worker roles into dedicated pools, add the Python ML service, add Timescale/observability stack. See §4 and §8.
 
-### 3.1 Local-first validation (Coolify follows)
+### 3.1 Local-first validation
 
-**Default execution order:** implement and prove on **local Docker Compose** first; treat Coolify as a mirror of that topology, not the primary dev loop.
+**Default execution order:** implement and prove locally with Docker images + Postgres first; production is the same image/env model.
 
-| Local (do first) | Coolify (after local exit) |
-|------------------|----------------------------|
-| `docker-compose.yml` — `postgres` + `web` + `worker` (+ `ml-inference` in Phase 4) | Same image, same env vars, persistent volumes for `/data/agent-instructions` only |
-| `npm run dev` + worker script for fast iteration on app code | Deploy checklist in `coolify-deploy.md` |
-| `DATABASE_URL` on **both** web and worker once pg-boss lands | Paste env into both Coolify services |
-| Delete local `.data/mastra/*`; drop Mastra volume mounts in compose | Remove `/data/mastra` volume from Coolify services |
+| Local (do first) | Production |
+|------------------|------------|
+| Root `Dockerfile` — web + worker roles (`AIDOS_PROCESS_ROLE`) + `services/ml-inference` | Same images, same env vars, persistent volume for `/data/agent-instructions` only |
+| `npm run dev` + worker script for fast iteration on app code | Run containers with the published GHCR tags |
+| `DATABASE_URL` on **both** web and worker once pg-boss lands | Same env on both process roles |
+| Delete local `.data/mastra/*`; no Mastra file volumes in the image | No `/data/mastra` volume |
 
-**Phase exit criteria apply locally first.** A phase is not done until web + worker + Postgres behave correctly under compose (or dev + worker against local Postgres). Doc updates to `coolify-deploy.md` and production volume changes ship in the same PR as the code, but **after** the compose path is green — not instead of it.
+**Phase exit criteria apply locally first.** A phase is not done until web + worker + Postgres behave correctly with the Docker images (or `npm run dev` + worker against local Postgres).
 
 ---
 
 ## 4. Phased execution
 
-Each phase is independently shippable, flag-gated where behavior changes, and reversible. **Validate on local compose before updating Coolify** (D11). **Checkbox progress:** [`architecture-migration-tracker.md`](./architecture-migration-tracker.md).
+Each phase is independently shippable, flag-gated where behavior changes, and reversible. **Validate locally with Docker images first** (D11). **Checkbox progress:** [`architecture-migration-tracker.md`](./architecture-migration-tracker.md).
 
 ### Phase 0 — Foundations (no behavior change)
 
@@ -109,7 +109,7 @@ Each phase is independently shippable, flag-gated where behavior changes, and re
 | Health endpoints | `GET /healthz` (liveness, no deps) and `GET /readyz` (checks DB + migrations). |
 | Fix stale rule | Update `.cursor/rules/aidos-project.mdc` "SQLite" → PostgreSQL. |
 
-**Exit:** structured logs + health endpoints; env validated at startup. Verified locally via compose (`curl localhost:3000/healthz`, `/readyz`).
+**Exit:** structured logs + health endpoints; env validated at startup. Verified locally (`curl localhost:3000/healthz`, `/readyz`).
 
 ### Phase 1 — Unblock scale (highest leverage)
 
@@ -128,9 +128,8 @@ Each phase is independently shippable, flag-gated where behavior changes, and re
 
 | Task | Detail |
 |------|--------|
-| `docker-compose.yml` | Remove `mastra_data` volume + both mounts; remove `MASTRA_STORAGE_URL` / `MASTRA_OBSERVABILITY_PATH`. |
+| Docker image / entrypoint | Remove Mastra file volumes + mounts; remove `MASTRA_STORAGE_URL` / `MASTRA_OBSERVABILITY_PATH`. |
 | `docker/entrypoint.sh` | Remove `fix_mastra_volume_permissions` and its calls. |
-| `docs/coolify-deploy.md` | Remove the `/data/mastra` section; update env table. |
 
 **1c. Introduce pg-boss + bridge the agent queue (removes the atomic-claim race)**
 
@@ -141,7 +140,7 @@ Each phase is independently shippable, flag-gated where behavior changes, and re
 | Reference job | Port **one** scheduled job end-to-end first: `grafana.sync` → `boss.schedule(...)` + `boss.work(...)`. Validate retries/DLQ/observability. |
 | Agent-wakeup bridge | Keep `enqueueWakeup()` + `AgentWakeupRequest` as source-of-truth/audit. Additionally `boss.send('agent.wakeup', { wakeupId }, { singletonKey: 'wakeup:'+id, priority })`. Worker's `boss.work('agent.wakeup', { teamSize: AGENT_WORKER_CONCURRENCY }, …)` is the **only** place that transitions the row. Replace `worker-poke.ts` HTTP fire-and-forget with `boss.send`. Timer wakeups → `boss.schedule`. Deprecate `POST /api/cron/agents/worker` HTTP drain (410). `recoverStuckRuns` stays as a safety net inside `drainWakeupQueue`. |
 
-**Exit:** two processes can run agent work concurrently with **zero duplicate runs**; `/data/mastra` retired; Grafana sync runs on pg-boss with visible retries. **Proven on `docker-compose up` before Coolify cutover.**
+**Exit:** two processes can run agent work concurrently with **zero duplicate runs**; `/data/mastra` retired; Grafana sync runs on pg-boss with visible retries. **Proven with Docker images + Postgres before production cutover.**
 
 > Note: Phase 1 still deploys as **one web + one worker** (D4). The point of 1a/1c is to make horizontal scale *possible and safe*, so later phases can add replicas without a rewrite.
 
@@ -231,8 +230,7 @@ Node "ml" worker:  fetch inputs (Prisma) ─▶ POST http://ml-service/embed
 | `src/lib/jobs/boss.ts` (new) | pg-boss lazy singleton. |
 | `src/lib/agent-control-plane/worker-poke.ts` | Replace HTTP poke with `boss.send('agent.wakeup', …)`. |
 | `src/lib/agent-control-plane/worker.ts` | Add `boss.work('agent.wakeup')` handler that wraps `executeHeartbeatRun`; keep old drain behind a flag. |
-| `docker-compose.yml`, `docker/entrypoint.sh` | Remove `mastra_data` volume + chown; keep `agent_instructions` (still used). |
-| `docs/coolify-deploy.md` | Update volumes + env tables. |
+| `Dockerfile`, `docker/entrypoint.sh` | Remove Mastra file volumes + chown; keep `agent_instructions` (still used). |
 | `src/app/healthz`, `src/app/readyz` (new) | Liveness/readiness. |
 | `src/lib/env.ts`, `src/lib/logger.ts` (new) | Env validation + structured logging. |
 
@@ -271,5 +269,5 @@ Still one web + one worker through Phases 1–4; horizontal scale (replicas + Va
 - [`architecture-migration-tracker.md`](./architecture-migration-tracker.md) — phase completion checklist (update when shipping).
 - [`AIDOS-SCALING-ARCHITECTURE.md`](./AIDOS-SCALING-ARCHITECTURE.md) — full analysis, gap register (G1–G12), and rationale behind these decisions.
 - [`sprint-ticket-commit-evidence.md`](./sprint-ticket-commit-evidence.md) — the first Phase-4 AI/ML feature.
-- [`coolify-deploy.md`](./coolify-deploy.md) — deploy topology (updated in Phase 1b).
 - `AGENTS.md` — Mastra registration + "verify the installed API" rule (applies to the `@mastra/pg` swap).
+- `.github/workflows/docker.yml` — builds app + ML inference images to GHCR.

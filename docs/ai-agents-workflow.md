@@ -4,7 +4,6 @@
 **Audience:** Engineering (backend, frontend, architect)  
 **References:**
 - [Mastra migration plan](./migration-plan.md) — Phase M0–M4 (Mastra adapter cutover complete)
-- [Coolify deploy](./coolify-deploy.md) — shared Mastra volume for web + worker
 - [Paperclip minimal agent control plane](file:///Users/musthafa/warehouse/paperclip/doc/minimal-agent-control-plane-guide.md)
 - Paperclip runtime patterns: `skills/paperclip/`, `skills/paperclip-create-agent/`, `server/src/services/agent-instructions.ts`, `packages/adapter-utils/`
 

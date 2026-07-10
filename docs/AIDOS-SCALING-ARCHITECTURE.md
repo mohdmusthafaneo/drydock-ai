@@ -76,11 +76,11 @@ Pages and APIs read from Postgres and from cached sync snapshots kept in `Integr
 | # | Gap | Evidence | Impact at scale |
 |---|-----|----------|-----------------|
 | **G1** | **No atomic job claim.** `executeHeartbeatRun` reads `status === "queued"` then updates in a later transaction. Two workers can grab the same wakeup. | `worker.ts:84-130` | Duplicate agent runs, double LLM spend, double side-effects. **Only safe with exactly one worker** — a hard horizontal-scaling ceiling. |
-| **G2** | **Mastra storage is file-based** (LibSQL + DuckDB) on a shared volume, read/written by web *and* worker. | `docker-compose.yml:34-63`, `coolify-deploy.md:99` | File-lock contention; cannot run >1 worker or >1 web replica reliably. The deploy doc already flags this as an open risk. |
-| **G3** | **No unified scheduler.** Cron cadence lives in a dev-only Node script (`scripts/cron-loop.ts`) and/or external Coolify cron. No retries, backoff, dead-letter, or visibility for domain jobs. | `scripts/cron-loop.ts` | Missed/duplicated runs, silent failures, no operational insight. |
+| **G2** | **Mastra storage is file-based** (LibSQL + DuckDB) on a shared volume, read/written by web *and* worker. | Historical: shared Mastra file volume on web + worker | File-lock contention; cannot run >1 worker or >1 web replica reliably. *(Addressed in Phase 1 via `@mastra/pg`.)* |
+| **G3** | **No unified scheduler.** Cron cadence lives in a dev-only Node script (`scripts/cron-loop.ts`) and/or external host cron. No retries, backoff, dead-letter, or visibility for domain jobs. | `scripts/cron-loop.ts` | Missed/duplicated runs, silent failures, no operational insight. |
 | **G4** | **Cron handlers iterate all orgs sequentially in one request.** One slow org (or a 30s serverless-style limit) starves the rest; no per-org isolation, no concurrency, no backpressure. | `runScheduled*` in `code-analysis/`, `compliance/`, `predictions/`, `jira-*` | Refresh latency grows linearly with tenant count. |
 | **G5** | **In-memory caches** (GitHub installation tokens, prompt cache) are per-process. | `github-app-auth.ts:13`, `prompt-cache.ts` | Break/duplicate work as soon as web runs >1 replica. |
-| **G6** | **No health/readiness endpoint** for the app itself; deploy doc references `GET /` as the health check. | `coolify-deploy.md:113` | No liveness vs readiness distinction; no dependency (DB/queue/Mastra) checks; poor autoscaling/orchestration signals. |
+| **G6** | **No health/readiness endpoint** for the app itself; deploy historically used `GET /` as the health check. | Pre-Phase-0 deploy health check | No liveness vs readiness distinction; no dependency (DB/queue/Mastra) checks; poor autoscaling/orchestration signals. |
 | **G7** | **JSON stored as `String`**, not native `jsonb`, across ~30 columns (`metadataJson`, `payloadJson`, `snapshotJson`, `normalizedJson`…). | `schema.prisma` throughout | Can't index/query inside JSON; every read pays parse cost; no partial updates. |
 | **G8** | **High-volume tables have no partitioning/retention** (`TelemetryEvent`, `TelemetryMetric`, `AgentChatStreamChunk`, `AgentHeartbeatRun`, `WebhookEvent`, `ActivityEvent`, `AuditLog`). | `schema.prisma` | Unbounded growth → slow queries, expensive storage, painful vacuums. |
 | **G9** | **Tenant isolation is manual** per query; no middleware/`$extends` safety net. | `org-data.ts`, every route | One missing `where organizationId` = cross-tenant leak. Risk scales with surface area. |
@@ -437,6 +437,6 @@ Refactors from §6 (god-files, one-offs cleanup) are woven through phases where 
 
 - [`sprint-ticket-commit-evidence.md`](./sprint-ticket-commit-evidence.md) — the first AI/ML feature this platform must host; §5.3 here supersedes its infra open-questions (pgvector, job scheduling).
 - [`AIDOS-ENTERPRISE-ROADMAP.md`](./AIDOS-ENTERPRISE-ROADMAP.md) — this proposal is the concrete, cost-first realization of the roadmap's "Recommended technology stack" (it swaps FastAPI/Temporal/Redis-by-default for a Postgres-first path with documented graduation thresholds).
-- [`coolify-deploy.md`](./coolify-deploy.md) — current deploy topology; §5.5 + §8 here evolve it.
 - [`AIDOS-USP.md`](./AIDOS-USP.md) — governance/human-in-the-loop invariants preserved throughout.
 - `AGENTS.md` — Mastra registration rules; unchanged (agents/workflows/tools still register in `src/mastra/index.ts`).
+- `.github/workflows/docker.yml` — builds app + ML inference images to GHCR.

@@ -154,7 +154,7 @@ Invoke from UI **queues** a wakeup and polls until the worker completes it. In d
 | `AGENT_WORKER_INTERVAL_SEC` | Dev loop interval for `npm run worker:agents` (default 15) |
 | `AGENT_DEFAULT_HEARTBEAT_SEC` | Super Agent timer (default 900) |
 
-**Production (Coolify):** Mount shared `/data/mastra` on web + worker. See [coolify-deploy.md](./coolify-deploy.md).
+**Production:** Mount shared `/data/agent-instructions` on web + worker containers. Mastra state lives in Postgres (`@mastra/pg`), not a file volume.
 
 **Load test:** `npm run load-test:chat-wakeups` — enqueues concurrent chat wakeups and verifies worker drain.
 

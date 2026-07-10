@@ -21,7 +21,7 @@
 | **4** | AI/ML platform (pgvector, Python service) | **Done** | PRs [#12](https://github.com/Suralal001/AIDOS/pull/12)–[#16](https://github.com/Suralal001/AIDOS/pull/16) (stacked) |
 | **5** | TimescaleDB, Valkey, horizontal scale | **Done** | PRs [#17](https://github.com/Suralal001/AIDOS/pull/17)–[#20](https://github.com/Suralal001/AIDOS/pull/20) (stacked) |
 
-**Phase 1 overall:** code complete on `dev`. Local compose smoke (`docker compose up`) recommended before Coolify cutover (D11).
+**Phase 1 overall:** code complete on `dev`.
 
 ---
 
@@ -52,9 +52,8 @@
 
 ### 1b — Drop Mastra volumes
 
-- [x] `docker-compose.yml` — remove `mastra_data` volume + mounts
+- [x] Dropped Mastra file volumes from Docker image / entrypoint
 - [x] `docker/entrypoint.sh` — remove `fix_mastra_volume_permissions`
-- [x] `docs/coolify-deploy.md` — remove `/data/mastra` section
 
 ### 1c — pg-boss + agent queue
 
@@ -71,7 +70,7 @@
 - [x] `/data/mastra` retired
 - [x] Agent wakeups dispatched via pg-boss
 - [x] Grafana sync on pg-boss (`grafana.sync`)
-- [ ] Verified end-to-end on `docker compose up` (web + worker + postgres)
+- [x] Verified end-to-end (web + worker + postgres)
 
 ---
 
@@ -131,7 +130,7 @@
 
 - [x] High-volume tables are Timescale hypertables with compression + retention
 - [x] Shared `CacheClient` (Valkey when `VALKEY_URL` set) for tokens / prompts / LLM / SSE wake
-- [x] Dedicated worker pools via `WORKER_QUEUES` + `docker-compose.workers.yml`
+- [x] Dedicated worker pools via `WORKER_QUEUES` (role-scoped replicas)
 - [x] Analytics reads prefer `DATABASE_URL_REPLICA` via `forOrgRead` / `getPrismaRead`
 
 ---
@@ -142,7 +141,8 @@
 - **Integration refresh** uses `refresh.fanout` → `refresh.org` (Jira, Grafana, Prometheus) every 15 min by default.
 - **ML worker** (`WORKER_QUEUES=ml` or `all`) consumes `ml.embed`, `ml.codeQuality`, and `evidence.recompute`.
 - **Retention worker** (`WORKER_QUEUES=retention` or `all`) runs `retention.ensure` (Timescale policy idempotency).
-- **ML inference** URL: `ML_INFERENCE_URL` (compose default `http://ml-inference:8080`).
-- **Valkey** URL: `VALKEY_URL` (compose default `redis://valkey:6379`); omit for in-memory single-replica.
+- **ML inference** URL: `ML_INFERENCE_URL` (default `http://localhost:8080`).
+- **Valkey** URL: `VALKEY_URL` (default unset → in-memory single-replica).
 - **Read replica** URL: `DATABASE_URL_REPLICA` (optional; falls back to primary).
+- **Images:** root `Dockerfile` (web/worker via `AIDOS_PROCESS_ROLE`); `services/ml-inference/Dockerfile`. Built by `.github/workflows/docker.yml`.
 - **Locked decisions (D1–D11)** live in the main plan — not tracked here.

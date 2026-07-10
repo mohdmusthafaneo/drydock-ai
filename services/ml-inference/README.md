@@ -22,10 +22,11 @@ pip install -r requirements.txt
 uvicorn app.main:app --host 0.0.0.0 --port 8080
 ```
 
-Or via compose (from repo root):
+Or via Docker (from repo root):
 
 ```bash
-docker compose up ml-inference
+docker build -t aidos-ml-inference:local ./services/ml-inference
+docker run --rm -p 8080:8080 aidos-ml-inference:local
 ```
 
 Node workers call this at `ML_INFERENCE_URL` (default `http://localhost:8080`).

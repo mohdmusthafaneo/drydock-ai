@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-15  
 **Scope:** Tenancy, audit trail completeness, approval bypass (M4.3)  
-**References:** [migration-plan.md](./migration-plan.md) · [coolify-deploy.md](./coolify-deploy.md)
+**References:** [migration-plan.md](./migration-plan.md)
 
 ## Summary
 
@@ -73,7 +73,7 @@ Phase M4 governance review of the Mastra migration (M0–M3 complete). Mastra to
 | Item | Status |
 |------|--------|
 | Adapter migration (`internal`/`llm` → `mastra`) | Required — run `scripts/migrate-adapter-type-mastra.ts --apply` |
-| Shared Mastra DB volume (web + worker) | Required — see [coolify-deploy.md](./coolify-deploy.md) |
+| Shared Mastra DB volume (web + worker) | Superseded — Mastra uses Postgres (`@mastra/pg`); no file volume |
 | M4 load test (`npm run load-test:chat-wakeups`) | Required on staging |
 | `createApproval: false` agent path | Recommended before enterprise tenants |
 | Mastra storage tenant isolation | Recommended — trace data co-mingled, not a functional bypass |

@@ -1,21 +1,10 @@
-name: Build and Push Docker Image
+name: Build and Push Docker Images
 
 on:
-  # push:
-  #   branches:
-  #     - main
-  #     - dev
-  # pull_request:
-  #   branches:
-  #     - main
-  #     - dev
+  push:
+    branches:
+      - dev
   workflow_dispatch:
-    inputs:
-      skip_deploy:
-        description: 'Skip Coolify deployment'
-        required: false
-        default: 'false'
-        type: boolean
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -24,15 +13,13 @@ concurrency:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  COOLIFY_DEPLOY_URL: http://15.207.73.151:8000/api/v1/deploy
-  COOLIFY_WEB_UUID: udfrj0xlzaref1gdcwd5uk0e
-  COOLIFY_WORKER_UUID: szep1ovhu4ph36a4s0h9yzhx
+  ML_IMAGE_NAME: ${{ github.repository }}/ml-inference
 
 jobs:
   # ------------------------------------------------------------
-  # Job 1: Build and push Docker image to ghcr.io
+  # App image (web + worker via AIDOS_PROCESS_ROLE)
   # ------------------------------------------------------------
-  build-and-push:
+  build-app:
     runs-on: ubuntu-24.04-arm
     permissions:
       contents: read
@@ -52,6 +39,7 @@ jobs:
           version: latest
 
       - name: Log in to Container Registry
+        if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -69,93 +57,79 @@ jobs:
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build and push Docker image
+      - name: Build and push app image
         id: build
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: ./Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=app
+          cache-to: type=gha,mode=max,scope=app
           provenance: true
           sbom: true
 
       - name: Image digest
-        run: "echo 'Digest: ${{ steps.build.outputs.digest }}'"
         if: github.event_name != 'pull_request'
+        run: "echo 'Digest: ${{ steps.build.outputs.digest }}'"
 
   # ------------------------------------------------------------
-  # Job 2a: Trigger Coolify web deployment
-  # Job 2b: Trigger Coolify worker deployment (runs in parallel)
+  # ML inference sidecar (Python FastAPI)
   # ------------------------------------------------------------
-  deploy-web:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    if: |
-      github.event_name != 'pull_request' &&
-      github.event.inputs.skip_deploy != 'true'
+  build-ml-inference:
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+      packages: write
 
     outputs:
-      deployment_uuid: ${{ steps.deploy.outputs.deployment_uuid }}
+      image-tags: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
 
     steps:
-      - name: Trigger Coolify Web Deployment
-        id: deploy
-        run: |
-          echo "Triggering Coolify web deployment..."
-          echo "Image tags: ${{ needs.build-and-push.outputs.image-tags }}"
-          echo "Force deploying: true"
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-          response=$(curl -s -X POST "${{ env.COOLIFY_DEPLOY_URL }}?uuid=${{ env.COOLIFY_WEB_UUID }}&force=true" \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.COOLIFY_DEPLOY_API_KEY }}")
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          version: latest
 
-          echo "Response: $response"
+      - name: Log in to Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-          deployment_uuid=$(echo "$response" | grep -o '"deployment_uuid":"[^"]*"' | cut -d'"' -f4)
-          echo "deployment_uuid=$deployment_uuid" >> $GITHUB_OUTPUT
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.ML_IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
 
-          if echo "$response" | grep -q "deployment_uuid"; then
-            echo "✅ Coolify web deployment triggered successfully"
-            echo "Deployment UUID: $deployment_uuid"
-          else
-            echo "❌ Failed to trigger Coolify web deployment"
-            exit 1
-          fi
+      - name: Build and push ML inference image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ./services/ml-inference
+          file: ./services/ml-inference/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=ml-inference
+          cache-to: type=gha,mode=max,scope=ml-inference
+          provenance: true
+          sbom: true
 
-  deploy-worker:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    if: |
-      github.event_name != 'pull_request' &&
-      github.event.inputs.skip_deploy != 'true'
-
-    outputs:
-      deployment_uuid: ${{ steps.deploy.outputs.deployment_uuid }}
-
-    steps:
-      - name: Trigger Coolify Worker Deployment
-        id: deploy
-        run: |
-          echo "Triggering Coolify worker deployment..."
-          echo "Image tags: ${{ needs.build-and-push.outputs.image-tags }}"
-          echo "Force deploying: false"
-
-          response=$(curl -s -X POST "${{ env.COOLIFY_DEPLOY_URL }}?uuid=${{ env.COOLIFY_WORKER_UUID }}&force=false" \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.COOLIFY_DEPLOY_API_KEY }}")
-
-          echo "Response: $response"
-
-          deployment_uuid=$(echo "$response" | grep -o '"deployment_uuid":"[^"]*"' | cut -d'"' -f4)
-          echo "deployment_uuid=$deployment_uuid" >> $GITHUB_OUTPUT
-
-          if echo "$response" | grep -q "deployment_uuid"; then
-            echo "✅ Coolify worker deployment triggered successfully"
-            echo "Deployment UUID: $deployment_uuid"
-          else
-            echo "❌ Failed to trigger Coolify worker deployment"
-            exit 1
-          fi
+      - name: Image digest
+        if: github.event_name != 'pull_request'
+        run: "echo 'Digest: ${{ steps.build.outputs.digest }}'"

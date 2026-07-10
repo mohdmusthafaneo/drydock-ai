@@ -4,7 +4,7 @@ set -e
 ROLE="${AIDOS_PROCESS_ROLE:-web}"
 INSTRUCTIONS_ROOT="${AGENT_INSTRUCTIONS_ROOT:-/data/agent-instructions}"
 
-# Coolify/host volumes mount as root — ensure nextjs (uid 1001) can write agent bundles.
+# Host volumes often mount as root — ensure nextjs (uid 1001) can write agent bundles.
 fix_instructions_volume_permissions() {
   mkdir -p "$INSTRUCTIONS_ROOT"
   chown -R nextjs:nodejs "$INSTRUCTIONS_ROOT"
