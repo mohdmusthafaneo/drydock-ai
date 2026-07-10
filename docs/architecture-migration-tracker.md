@@ -17,7 +17,7 @@
 | **1b** | Drop Mastra file volumes | **Done** | PR [#3](https://github.com/Suralal001/AIDOS/pull/3) |
 | **1c** | pg-boss + agent wakeup bridge | **Done** | PR [#4](https://github.com/Suralal001/AIDOS/pull/4) |
 | **2** | All cron → pg-boss, fan-out refresh | **Done** | PRs #5–#8 (stacked) |
-| **3** | jsonb, tenant-safe client, internal health | **Done** | PRs (stacked) |
+| **3** | jsonb, tenant-safe client, internal health | **Done** | PRs [#9](https://github.com/Suralal001/AIDOS/pull/9)–[#11](https://github.com/Suralal001/AIDOS/pull/11) (stacked) |
 | **4** | AI/ML platform (pgvector, Python service) | Not started | — |
 | **5** | TimescaleDB, Valkey, horizontal scale | Not started | — |
 
