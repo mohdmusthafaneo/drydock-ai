@@ -117,7 +117,10 @@ Use Coolify's internal service hostname for `AIDOS_API_URL` (the Docker network 
 
 ## Local Docker Compose reference
 
-See `docker-compose.yml` for a minimal web + worker + Postgres setup. Production Coolify config mirrors the volume and env patterns documented here.
+See `docker-compose.yml` for web + worker + Postgres (pgvector) + optional `ml-inference`.
+
+Phase 4 adds the Python ML sidecar (`services/ml-inference`) on port 8080. Set
+`ML_INFERENCE_URL=http://ml-inference:8080` on the worker when enabling embed/score jobs.
 
 ---
 

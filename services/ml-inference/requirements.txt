@@ -1,0 +1,7 @@
+fastapi==0.115.12
+uvicorn[standard]==0.34.2
+pydantic==2.11.3
+numpy==2.2.4
+sentence-transformers==4.1.0
+# Pin the default embedding model at install time via Hugging Face cache;
+# runtime loads sentence-transformers/all-MiniLM-L6-v2 (384-dim).
