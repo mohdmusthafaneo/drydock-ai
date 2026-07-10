@@ -49,3 +49,4 @@ next-env.d.ts
 
 # managed agent instruction bundles (Phase 5.1)
 .data/
+.env.docker

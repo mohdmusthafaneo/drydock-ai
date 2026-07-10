@@ -16,4 +16,12 @@ if (!process.env.DATABASE_URL?.trim()) {
 }
 
 console.log("Agent worker: pg-boss mode");
-await runJobWorkerProcess();
+
+async function main(): Promise<void> {
+  await runJobWorkerProcess();
+}
+
+main().catch((err) => {
+  console.error("Agent worker failed:", err);
+  process.exit(1);
+});
