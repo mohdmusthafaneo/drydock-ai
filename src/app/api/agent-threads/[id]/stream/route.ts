@@ -7,14 +7,11 @@ import {
   purgeStaleStreamChunks,
   sseHeartbeatIntervalMs,
 } from "@/lib/agent-chat/stream";
+import { waitForAgentChatWake } from "@/lib/cache/sse-fanout";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
 const POLL_MS = 500;
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 export async function GET(request: Request, { params }: RouteParams) {
   const session = await getSession();
@@ -101,7 +98,7 @@ export async function GET(request: Request, { params }: RouteParams) {
             }
           }
 
-          await sleep(POLL_MS);
+          await waitForAgentChatWake(threadId, POLL_MS, request.signal);
         }
       } catch {
         close();

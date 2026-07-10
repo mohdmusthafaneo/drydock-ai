@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getCacheClient } from "@/lib/cache";
 import { getInstallationToken, GithubAppError } from "@/lib/github-app-auth";
 import { parseIntegrationMeta } from "@/lib/integration-meta";
 
@@ -9,14 +10,25 @@ type CachedOrgGitHubToken = {
   expiresAt: number;
 };
 
-const orgTokenCache = new Map<string, CachedOrgGitHubToken>();
+function orgCacheKey(organizationId: string): string {
+  return `github:org-token:${organizationId}`;
+}
 
 export async function getGitHubCredentialToken(
   organizationId: string,
 ): Promise<string> {
-  const cached = orgTokenCache.get(organizationId);
-  if (cached && cached.expiresAt > Date.now()) {
-    return cached.token;
+  const cache = getCacheClient();
+  const key = orgCacheKey(organizationId);
+  const raw = await cache.get(key);
+  if (raw) {
+    try {
+      const cached = JSON.parse(raw) as CachedOrgGitHubToken;
+      if (cached.expiresAt > Date.now() && cached.token) {
+        return cached.token;
+      }
+    } catch {
+      // fall through
+    }
   }
 
   const integration = await prisma.integration.findUnique({
@@ -38,10 +50,14 @@ export async function getGitHubCredentialToken(
 
   try {
     const token = await getInstallationToken(meta.installationId);
-    orgTokenCache.set(organizationId, {
-      token,
-      expiresAt: Date.now() + 55 * 60 * 1000 - INSTALL_TOKEN_REFRESH_BUFFER_MS,
-    });
+    const expiresAt =
+      Date.now() + 55 * 60 * 1000 - INSTALL_TOKEN_REFRESH_BUFFER_MS;
+    const ttlSec = Math.max(60, Math.floor((expiresAt - Date.now()) / 1000));
+    await cache.set(
+      key,
+      JSON.stringify({ token, expiresAt } satisfies CachedOrgGitHubToken),
+      ttlSec,
+    );
     return token;
   } catch (e) {
     if (e instanceof GithubAppError) {

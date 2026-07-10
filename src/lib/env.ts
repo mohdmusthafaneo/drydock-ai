@@ -28,6 +28,8 @@ const envSchema = z.object({
   ML_INFERENCE_URL: z.string().url().optional(),
   /** Interval (seconds) for retention.ensure schedule; default daily 04:00 UTC. */
   RETENTION_ENSURE_INTERVAL_SEC: z.coerce.number().int().positive().optional(),
+  /** Valkey/Redis URL for shared cache across web replicas (Phase 5). */
+  VALKEY_URL: z.string().url().optional(),
 
   AGENT_WORKER_ENABLED: optionalBoolean,
   AGENT_WORKER_POKE_ON_ENQUEUE: optionalBoolean,

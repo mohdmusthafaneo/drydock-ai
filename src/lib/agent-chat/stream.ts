@@ -1,6 +1,7 @@
 import type { AgentChatStreamChunkKind } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { readJsonField } from "@/lib/json-field";
+import { publishAgentChatWake } from "@/lib/cache/sse-fanout";
 import type { ReasoningJson, StreamChunkSsePayload } from "./types";
 import { buildReasoningJson } from "./types";
 
@@ -150,6 +151,7 @@ export class ChatStreamSession {
         payloadJson: JSON.stringify(payload),
       },
     });
+    await publishAgentChatWake(this.threadId).catch(() => undefined);
     return chunk.id;
   }
 }
