@@ -22,10 +22,12 @@ const envSchema = z.object({
   PLATFORM_WORKER_SECRET: z.string().optional(),
   AIDOS_PROCESS_ROLE: z.enum(["web", "worker"]).default("web"),
   AIDOS_API_URL: z.string().url().optional(),
-  /** Comma-separated worker queue roles: all | agents | refresh | enrich | ml */
+  /** Comma-separated worker queue roles: all | agents | refresh | enrich | ml | retention */
   WORKER_QUEUES: z.string().optional(),
   /** Base URL for the Python ML inference sidecar (Phase 4). */
   ML_INFERENCE_URL: z.string().url().optional(),
+  /** Interval (seconds) for retention.ensure schedule; default daily 04:00 UTC. */
+  RETENTION_ENSURE_INTERVAL_SEC: z.coerce.number().int().positive().optional(),
 
   AGENT_WORKER_ENABLED: optionalBoolean,
   AGENT_WORKER_POKE_ON_ENQUEUE: optionalBoolean,

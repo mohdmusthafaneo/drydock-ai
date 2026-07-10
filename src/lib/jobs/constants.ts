@@ -16,6 +16,7 @@ export const JOB_NAMES = {
   mlEmbed: "ml.embed",
   mlCodeQuality: "ml.codeQuality",
   evidenceRecompute: "evidence.recompute",
+  retentionEnsure: "retention.ensure",
 } as const;
 
 /** Integration providers handled by refresh.fanout → refresh.org (Phase 2). */

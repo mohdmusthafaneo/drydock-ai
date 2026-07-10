@@ -1,7 +1,8 @@
 services:
   postgres:
-    # pgvector image (Postgres 16 + vector extension) — required for Phase 4 embeddings
-    image: pgvector/pgvector:pg16
+    # TimescaleDB HA (Postgres 16) includes Timescale + pgvector — Phase 4/5
+    # Fresh volume required when switching from pgvector/pgvector:pg16.
+    image: timescale/timescaledb-ha:pg16
     container_name: aidos-postgres
     environment:
       POSTGRES_USER: aidos
