@@ -21,9 +21,9 @@ This document covers split **web + worker** deployment on Coolify with a shared 
          └──────────────────┬───────────────────────────┘
                             │
               ┌─────────────┴─────────────┐
-              │  PostgreSQL (Coolify DB)   │
+              │  PostgreSQL + pgvector     │
               │  Prisma (public) + Mastra  │
-              │  (mastra schema)           │
+              │  (mastra) + embeddings     │
               └───────────────────────────┘
                             │
          ┌──────────────────┴──────────────────┐
@@ -47,7 +47,7 @@ Set these on **both** web and worker services unless noted.
 
 | Variable | Web | Worker | Notes |
 |----------|-----|--------|-------|
-| `DATABASE_URL` | ✓ | ✓ | Postgres; Prisma (`public`) + Mastra (`mastra`) + pg-boss (`pgboss`) schemas |
+| `DATABASE_URL` | ✓ | ✓ | Postgres + pgvector; Prisma (`public`) + Mastra (`mastra`) + pg-boss (`pgboss`) schemas |
 | `AUTH_SECRET` | ✓ | — | Session signing |
 | `PLATFORM_WORKER_SECRET` | ✓ | — | Web cron routes (Jira/Grafana sync, etc.) |
 | `AIDOS_PROCESS_ROLE` | `web` | `worker` | |
