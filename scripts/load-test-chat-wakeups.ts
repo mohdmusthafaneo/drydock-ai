@@ -15,13 +15,15 @@
  *   - ANTHROPIC_API_KEY (unless --enqueue-only)
  */
 import "dotenv/config";
-import { statSync } from "node:fs";
-import { resolve } from "node:path";
+import { Pool } from "pg";
 
 import { createAgentChatThread } from "@/lib/agent-chat/threads";
 import { drainWakeupQueue } from "@/lib/agent-control-plane/worker";
 import { prisma } from "@/lib/prisma";
-import { resolveMastraObservabilityPath, resolveMastraStorageUrl } from "@/mastra/config/storage";
+import {
+  resolveMastraPgSchema,
+  resolveMastraPostgresConnectionString,
+} from "@/mastra/config/storage";
 
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -37,26 +39,23 @@ function parseArgs() {
   };
 }
 
-function storageSizeBytes(): { storageBytes: number; observabilityBytes: number } {
-  let storageBytes = 0;
-  let observabilityBytes = 0;
-
-  const storageUrl = resolveMastraStorageUrl();
-  if (storageUrl.startsWith("file:")) {
-    try {
-      storageBytes = statSync(resolve(storageUrl.slice("file:".length))).size;
-    } catch {
-      storageBytes = 0;
-    }
-  }
+async function mastraStorageBytes(): Promise<number> {
+  const pool = new Pool({ connectionString: resolveMastraPostgresConnectionString() });
+  const schema = resolveMastraPgSchema();
 
   try {
-    observabilityBytes = statSync(resolveMastraObservabilityPath()).size;
+    const result = await pool.query<{ bytes: string }>(
+      `SELECT COALESCE(SUM(pg_total_relation_size(quote_ident(schemaname) || '.' || quote_ident(tablename))), 0) AS bytes
+       FROM pg_tables
+       WHERE schemaname = $1`,
+      [schema],
+    );
+    return Number(result.rows[0]?.bytes ?? 0);
   } catch {
-    observabilityBytes = 0;
+    return 0;
+  } finally {
+    await pool.end().catch(() => undefined);
   }
-
-  return { storageBytes, observabilityBytes };
 }
 
 async function resolveTestOrg(orgIdArg: string) {
@@ -94,14 +93,12 @@ async function main() {
     throw new Error(`No active user in org ${organizationId}`);
   }
 
-  const storageBefore = storageSizeBytes();
+  const storageBefore = await mastraStorageBytes();
   const startedAt = Date.now();
 
   console.log(`Load test: ${concurrency} concurrent chat wakeups`);
   console.log(`  org=${organizationId} user=${user.id}`);
-  console.log(
-    `  mastra storage=${storageBefore.storageBytes}B observability=${storageBefore.observabilityBytes}B`,
-  );
+  console.log(`  mastra postgres storage=${storageBefore}B`);
 
   const enqueueStarted = Date.now();
   const results = await Promise.all(
@@ -167,7 +164,7 @@ async function main() {
     where: { organizationId, status: "queued", source: "chat" },
   });
 
-  const storageAfter = storageSizeBytes();
+  const storageAfter = await mastraStorageBytes();
   const elapsedMs = Date.now() - startedAt;
 
   console.log("\n=== Results ===");
@@ -176,10 +173,7 @@ async function main() {
   console.log(`  wakeups processed: ${totalProcessed} (ok=${totalSucceeded} fail=${totalFailed})`);
   console.log(`  queued remaining: ${remaining}`);
   console.log(
-    `  mastra storage: ${storageBefore.storageBytes} → ${storageAfter.storageBytes} B (+${storageAfter.storageBytes - storageBefore.storageBytes})`,
-  );
-  console.log(
-    `  observability: ${storageBefore.observabilityBytes} → ${storageAfter.observabilityBytes} B (+${storageAfter.observabilityBytes - storageBefore.observabilityBytes})`,
+    `  mastra postgres storage: ${storageBefore} → ${storageAfter} B (+${storageAfter - storageBefore})`,
   );
 
   if (remaining > 0) {

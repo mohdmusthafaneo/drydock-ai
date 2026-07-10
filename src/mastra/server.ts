@@ -1,7 +1,5 @@
 import { Mastra } from "@mastra/core/mastra";
-import { MastraCompositeStore } from "@mastra/core/storage";
-import { DuckDBStore } from "@mastra/duckdb";
-import { LibSQLStore } from "@mastra/libsql";
+import { PostgresStore } from "@mastra/pg";
 import { PinoLogger } from "@mastra/loggers";
 import {
   MastraPlatformExporter,
@@ -11,9 +9,8 @@ import {
 } from "@mastra/observability";
 
 import {
-  ensureMastraStorageDirs,
-  resolveMastraObservabilityPath,
-  resolveMastraStorageUrl,
+  resolveMastraPgSchema,
+  resolveMastraPostgresConnectionString,
 } from "./config/storage";
 import { aidosAgents } from "./agents";
 import { productIntelligenceAgent } from "./agents/product-intelligence";
@@ -34,12 +31,6 @@ export type CreateMastraOptions = {
 };
 
 export function createMastraInstance(options: CreateMastraOptions = {}): Mastra {
-  ensureMastraStorageDirs();
-
-  const observabilityStore = new DuckDBStore({
-    path: resolveMastraObservabilityPath(),
-  });
-
   const workflows: Record<
     string,
     | typeof noopWorkflow
@@ -74,15 +65,10 @@ export function createMastraInstance(options: CreateMastraOptions = {}): Mastra 
   return new Mastra({
     workflows,
     agents,
-    storage: new MastraCompositeStore({
-      id: "composite-storage",
-      default: new LibSQLStore({
-        id: "mastra-storage",
-        url: resolveMastraStorageUrl(),
-      }),
-      domains: {
-        observability: observabilityStore.observability,
-      },
+    storage: new PostgresStore({
+      id: "mastra-storage",
+      connectionString: resolveMastraPostgresConnectionString(),
+      schemaName: resolveMastraPgSchema(),
     }),
     logger: new PinoLogger({
       name: "Mastra",
