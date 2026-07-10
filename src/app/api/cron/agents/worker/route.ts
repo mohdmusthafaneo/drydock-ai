@@ -1,33 +1,17 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import {
   platformWorkerNotConfigured,
   verifyPlatformWorkerRequest,
 } from "@/lib/platform-worker-auth";
-import { drainWakeupQueue } from "@/lib/agent-control-plane/worker";
-import {
-  isLegacyAgentDrainEnabled,
-  isPgBossEnabled,
-} from "@/lib/jobs/boss";
 import {
   createLogger,
   resolveCorrelationId,
   runWithCorrelationId,
 } from "@/lib/logger";
 
-const bodySchema = z
-  .object({
-    organizationId: z.string().min(1).optional(),
-    wakeupId: z.string().min(1).optional(),
-    limit: z.number().int().min(1).max(20).optional(),
-  })
-  .optional();
-
 /**
- * Platform worker endpoint for external schedulers (cron every 30–60s).
- * Also invoked immediately after enqueueWakeup for event-driven dispatch.
- * Auth: `Authorization: Bearer $PLATFORM_WORKER_SECRET`
- * Body (optional): `{ "organizationId": "...", "wakeupId": "...", "limit": 1 }`
+ * @deprecated Agent wakeups are drained by the pg-boss worker process
+ * (`AIDOS_PROCESS_ROLE=worker` or `npm run worker:agents`), not HTTP polling.
  */
 export async function POST(request: Request) {
   const correlationId = resolveCorrelationId(request);
@@ -46,53 +30,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (process.env.AGENT_WORKER_ENABLED === "false") {
-      log.debug("agent worker disabled");
-      return NextResponse.json({ ok: true, disabled: true });
-    }
+    log.warn("deprecated agent worker HTTP drain — use pg-boss worker process");
 
-    if (isPgBossEnabled() && !isLegacyAgentDrainEnabled()) {
-      log.debug("agent worker drain skipped — pg-boss handles wakeups");
-      return NextResponse.json({
-        ok: true,
-        pgBoss: true,
-        wakeupsProcessed: 0,
-        runsSucceeded: 0,
-        runsFailed: 0,
-        timersEnqueued: 0,
-        errors: [],
-      });
-    }
-
-    let organizationId: string | undefined;
-    let wakeupId: string | undefined;
-    let limit: number | undefined;
-    try {
-      const raw = await request.json().catch(() => undefined);
-      const parsed = bodySchema.parse(raw);
-      organizationId = parsed?.organizationId;
-      wakeupId = parsed?.wakeupId;
-      limit = parsed?.limit;
-    } catch {
-      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
-    }
-
-    const result = await drainWakeupQueue(organizationId, {
-      wakeupId,
-      limit,
-    });
-
-    log.info(
+    return NextResponse.json(
       {
-        organizationId,
-        wakeupId,
-        wakeupsProcessed: result.wakeupsProcessed,
-        runsSucceeded: result.runsSucceeded,
-        runsFailed: result.runsFailed,
+        error:
+          "Agent wakeup drain moved to pg-boss. Run the worker process (AIDOS_PROCESS_ROLE=worker or npm run worker:agents).",
+        deprecated: true,
       },
-      "agent wakeup drain complete",
+      { status: 410 },
     );
-
-    return NextResponse.json({ ok: true, ...result });
   });
 }

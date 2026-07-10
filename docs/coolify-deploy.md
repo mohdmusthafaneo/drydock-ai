@@ -37,7 +37,7 @@ Both containers use the same Docker image (`Dockerfile`). The entrypoint (`docke
 | Role | Behavior |
 |------|----------|
 | `web` | `prisma migrate deploy` → `node server.js` |
-| `worker` | `npx tsx scripts/agent-worker-loop.ts` (pg-boss consumers when `DATABASE_URL` set) |
+| `worker` | `npx tsx scripts/agent-worker-loop.ts` (pg-boss consumers; requires `DATABASE_URL`) |
 
 ---
 
@@ -49,7 +49,7 @@ Set these on **both** web and worker services unless noted.
 |----------|-----|--------|-------|
 | `DATABASE_URL` | ✓ | ✓ | Postgres; Prisma (`public`) + Mastra (`mastra`) + pg-boss (`pgboss`) schemas |
 | `AUTH_SECRET` | ✓ | — | Session signing |
-| `PLATFORM_WORKER_SECRET` | ✓ | ✓ | Must match on both services |
+| `PLATFORM_WORKER_SECRET` | ✓ | — | Web cron routes (Jira/Grafana sync, etc.) |
 | `AIDOS_PROCESS_ROLE` | `web` | `worker` | |
 | `AIDOS_API_URL` | — | ✓ | Internal URL of web service, e.g. `http://aidos-web:3000` |
 | `NEXT_PUBLIC_APP_URL` | ✓ | — | Public app URL (no trailing slash) |
@@ -60,8 +60,6 @@ Set these on **both** web and worker services unless noted.
 | `MASTRA_PG_SCHEMA` | ✓ | ✓ | Optional; default `mastra` |
 | `PG_BOSS_ENABLED` | ✓ | ✓ | Default on when `DATABASE_URL` is set; set `false` to disable |
 | `AGENT_WORKER_ENABLED` | ✓ | ✓ | `true` |
-| `AGENT_WORKER_LEGACY_DRAIN` | ✓ | ✓ | Optional; HTTP drain fallback when `true` |
-| `AGENT_WORKER_INTERVAL_SEC` | — | ✓ | Default `30` in production |
 
 ---
 

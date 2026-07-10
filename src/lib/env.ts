@@ -30,7 +30,6 @@ const envSchema = z.object({
   AGENT_DEFAULT_HEARTBEAT_SEC: z.coerce.number().int().positive().optional(),
   AGENT_INSTRUCTIONS_ROOT: z.string().min(1).optional(),
   PG_BOSS_ENABLED: optionalBoolean,
-  AGENT_WORKER_LEGACY_DRAIN: optionalBoolean,
 
   ANTHROPIC_BASE_URL: z.string().url().optional(),
   ANTHROPIC_API_KEY: z.string().optional(),

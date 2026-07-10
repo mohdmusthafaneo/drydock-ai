@@ -13,10 +13,6 @@ export function isPgBossEnabled(): boolean {
   return Boolean(process.env.DATABASE_URL?.trim());
 }
 
-export function isLegacyAgentDrainEnabled(): boolean {
-  return process.env.AGENT_WORKER_LEGACY_DRAIN === "true";
-}
-
 function resolveConnectionString(): string {
   const connectionString = process.env.DATABASE_URL?.trim();
   if (!connectionString) {

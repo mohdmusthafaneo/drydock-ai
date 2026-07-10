@@ -32,16 +32,12 @@ case "$ROLE" in
     ;;
 
   worker)
-    if [ -z "$PLATFORM_WORKER_SECRET" ] && [ -z "$DATABASE_URL" ]; then
-      echo "ERROR: DATABASE_URL or PLATFORM_WORKER_SECRET is required for worker role."
+    if [ -z "$DATABASE_URL" ]; then
+      echo "ERROR: DATABASE_URL is required for worker role (pg-boss job consumers)."
       exit 1
     fi
 
-    if [ -z "$PLATFORM_WORKER_SECRET" ]; then
-      echo "WARN: PLATFORM_WORKER_SECRET is not set — legacy HTTP worker fallback unavailable."
-    fi
-
-    echo "Starting agent worker (role=worker)..."
+    echo "Starting agent worker (role=worker, pg-boss)..."
     exec su-exec nextjs npx tsx /app/scripts/agent-worker-loop.ts
     ;;
 
