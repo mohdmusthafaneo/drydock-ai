@@ -9,6 +9,8 @@ import {
   isBriefingEnrichEnabled,
   serializeHeadlineJson,
 } from "@/lib/executive-briefing/snapshot-utils";
+import { runMeteredLlmCall } from "@/lib/llm/cost-governor";
+import { isLlmFeatureEnabled } from "@/lib/llm/feature-flags";
 
 export type EnrichExecutiveBriefingResult =
   | { status: "enriched"; generatedAt: string; expiresAt: string }
@@ -48,6 +50,10 @@ export async function enrichExecutiveBriefingForOrg(
     return { status: "skipped", reason: "enrich_disabled" };
   }
 
+  if (!isLlmFeatureEnabled("executive_briefing")) {
+    return { status: "skipped", reason: "llm_feature_disabled" };
+  }
+
   const dna = await prisma.deliveryDNA.findUnique({
     where: { organizationId },
     select: { id: true },
@@ -81,45 +87,67 @@ export async function enrichExecutiveBriefingForOrg(
   const factsJson = buildFactsJson(briefing, orgName, jiraHygieneFacts);
 
   try {
-    const mastra = await getMastra();
-    const workflow = mastra.getWorkflow("executiveBriefingEnrichWorkflow");
-    const run = await workflow.createRun();
-    const workflowResult = await run.start({
-      inputData: {
-        orgName,
-        deterministicHeadline: briefing.headline,
-        narrative: briefing.narrative,
-        health: {
-          overall: briefing.health.overall,
-          band: briefing.health.band,
-          bandLabel: briefing.health.bandLabel,
-          dataGaps: briefing.health.dataGaps,
-        },
-        claims: briefing.claims.map((claim) => ({
-          id: claim.id,
-          headline: claim.headline,
-          verdict: claim.verdict,
-          verdictLabel: claim.verdictLabel,
-          context: claim.context,
-          metric: claim.metric,
-        })),
-        highlights: briefing.highlights.map((highlight) => ({
-          id: highlight.id,
-          value: highlight.value,
-        })),
-        freshness: briefing.freshness,
-        factsJson,
+    const metered = await runMeteredLlmCall({
+      organizationId,
+      feature: "executive_briefing",
+      cacheKeyParts: { factsHash },
+      estimatedPromptTokens: 2000,
+      modelTier: "default",
+      execute: async () => {
+        const mastra = await getMastra();
+        const workflow = mastra.getWorkflow("executiveBriefingEnrichWorkflow");
+        const run = await workflow.createRun();
+        const workflowResult = await run.start({
+          inputData: {
+            orgName,
+            deterministicHeadline: briefing.headline,
+            narrative: briefing.narrative,
+            health: {
+              overall: briefing.health.overall,
+              band: briefing.health.band,
+              bandLabel: briefing.health.bandLabel,
+              dataGaps: briefing.health.dataGaps,
+            },
+            claims: briefing.claims.map((claim) => ({
+              id: claim.id,
+              headline: claim.headline,
+              verdict: claim.verdict,
+              verdictLabel: claim.verdictLabel,
+              context: claim.context,
+              metric: claim.metric,
+            })),
+            highlights: briefing.highlights.map((highlight) => ({
+              id: highlight.id,
+              value: highlight.value,
+            })),
+            freshness: briefing.freshness,
+            factsJson,
+          },
+        });
+
+        if (workflowResult.status !== "success") {
+          throw new Error(`workflow_${workflowResult.status}`);
+        }
+
+        return {
+          result: workflowResult.result,
+          promptTokens: 2000,
+          completionTokens: 500,
+        };
       },
     });
 
-    if (workflowResult.status !== "success") {
+    if (metered.status === "skipped") {
       return {
-        status: "failed",
-        error: `workflow_${workflowResult.status}`,
+        status: "skipped",
+        reason:
+          metered.reason === "budget_exceeded"
+            ? "llm_budget_exceeded"
+            : "llm_feature_disabled",
       };
     }
 
-    const output = workflowResult.result;
+    const output = metered.result;
     if (!output.enriched) {
       return { status: "skipped", reason: "llm_passthrough" };
     }
@@ -159,6 +187,8 @@ export async function enrichExecutiveBriefingForOrg(
           source: "llm_enriched",
           generatedAt: generatedAt.toISOString(),
           expiresAt: expiresAt.toISOString(),
+          meteredCached: metered.cached,
+          meteredModel: metered.model,
         }),
       },
     });

@@ -1,6 +1,6 @@
-import { createHash } from "node:crypto";
 import { z } from "zod";
 import { readJsonField } from "@/lib/json-field";
+import { contentHash } from "@/lib/llm/content-hash";
 
 import type { ExecutiveBriefing } from "@/lib/executive-briefing/types";
 import {
@@ -52,7 +52,7 @@ export function computeBriefingFactsHash(briefing: ExecutiveBriefing): string {
     deterministicNarrative: briefing.narrative,
   };
 
-  return createHash("sha256").update(JSON.stringify(payload)).digest("hex");
+  return contentHash(payload);
 }
 
 export function getBriefingEnrichIntervalSec(): number {

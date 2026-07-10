@@ -38,6 +38,13 @@ const envSchema = z.object({
   ANTHROPIC_API_KEY: z.string().optional(),
   ANTHROPIC_MODEL: z.string().optional(),
 
+  /** Global LLM kill-switch (`true` disables all metered features). */
+  LLM_KILL_SWITCH: optionalBoolean,
+  LLM_ORG_DAILY_TOKEN_BUDGET: z.coerce.number().int().positive().optional(),
+  LLM_MODEL_DEFAULT: z.string().optional(),
+  LLM_MODEL_CHEAP: z.string().optional(),
+  LLM_CACHE_TTL_SEC: z.coerce.number().int().positive().optional(),
+
   MASTRA_PG_SCHEMA: z.string().min(1).optional(),
   MASTRA_DISCOVERY_DNA_LLM_ENABLED: optionalBoolean,
   MASTRA_MVP_ACCELERATOR_LLM_ENABLED: optionalBoolean,

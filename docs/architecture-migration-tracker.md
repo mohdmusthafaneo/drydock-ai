@@ -2,7 +2,7 @@
 
 **Plan:** [`architecture-migration-plan.md`](./architecture-migration-plan.md)  
 **Last updated:** 2026-07-10  
-**Current focus:** Phase 3 complete — Phase 4 next
+**Current focus:** Phase 4 complete — Phase 5 trigger-gated
 
 > Update this file when a phase/sub-phase ships. Keep task wording aligned with the main plan; use checkboxes only here.
 
@@ -18,7 +18,7 @@
 | **1c** | pg-boss + agent wakeup bridge | **Done** | PR [#4](https://github.com/Suralal001/AIDOS/pull/4) |
 | **2** | All cron → pg-boss, fan-out refresh | **Done** | PRs #5–#8 (stacked) |
 | **3** | jsonb, tenant-safe client, internal health | **Done** | PRs [#9](https://github.com/Suralal001/AIDOS/pull/9)–[#11](https://github.com/Suralal001/AIDOS/pull/11) (stacked) |
-| **4** | AI/ML platform (pgvector, Python service) | Not started | — |
+| **4** | AI/ML platform (pgvector, Python service) | **Done** | PRs [#12](https://github.com/Suralal001/AIDOS/pull/12)–[#16](https://github.com/Suralal001/AIDOS/pull/16) (stacked) |
 | **5** | TimescaleDB, Valkey, horizontal scale | Not started | — |
 
 **Phase 1 overall:** code complete on `dev`. Local compose smoke (`docker compose up`) recommended before Coolify cutover (D11).
@@ -106,11 +106,17 @@
 
 ## Phase 4 — AI/ML platform
 
-- [ ] pgvector + `Embedding` model
-- [ ] Python inference service (`/embed`, `/score`)
-- [ ] Node `ml` worker role
-- [ ] Evidence feature (`evidence.recompute`)
-- [ ] LLM cost governor
+- [x] pgvector + `Embedding` model
+- [x] Python inference service (`/embed`, `/score`)
+- [x] Node `ml` worker role
+- [x] Evidence feature (`evidence.recompute`)
+- [x] LLM cost governor
+
+**Exit criteria**
+
+- [x] Sprint Evidence runs as scheduled `evidence.recompute` jobs (snapshots → embeddings → EvidenceLink)
+- [x] Embedding compute is a swappable Python sidecar behind `EmbeddingService`
+- [x] Background LLM calls are metered (budget + hash-cache + kill-switch)
 
 ---
 
@@ -127,4 +133,6 @@
 
 - **Scheduled jobs** run on pg-boss via `AIDOS_PROCESS_ROLE=worker`. HTTP `POST /api/cron/*` routes enqueue jobs for manual/external triggers.
 - **Integration refresh** uses `refresh.fanout` → `refresh.org` (Jira, Grafana, Prometheus) every 15 min by default.
+- **ML worker** (`WORKER_QUEUES=ml` or `all`) consumes `ml.embed`, `ml.codeQuality`, and `evidence.recompute`.
+- **ML inference** URL: `ML_INFERENCE_URL` (compose default `http://ml-inference:8080`).
 - **Locked decisions (D1–D11)** live in the main plan — not tracked here.
