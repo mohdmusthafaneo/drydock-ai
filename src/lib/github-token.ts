@@ -1,5 +1,5 @@
 import type { Integration } from "@/generated/prisma/client";
-import { getInstallationToken, GithubAppError } from "@/lib/github-app-auth";
+import { providerCredentials } from "@/lib/integrations/provider-credentials";
 import { parseIntegrationMeta } from "@/lib/integration-meta";
 
 /**
@@ -17,21 +17,7 @@ export async function resolveGitHubTokenForIntegration(
     );
   }
 
-  try {
-    return await getInstallationToken(meta.installationId);
-  } catch (e) {
-    if (e instanceof GithubAppError) {
-      if (e.message.includes("GITHUB_APP_ID") || e.message.includes("PRIVATE_KEY")) {
-        throw new Error(
-          "GitHub App credentials missing — set GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY in .env",
-        );
-      }
-      throw new Error(
-        `GitHub App token failed (${e.status ?? "unknown"}): ${e.message}. Reinstall the app from Integrations.`,
-      );
-    }
-    throw e;
-  }
+  return providerCredentials.getAccessToken(integration.organizationId, "GITHUB");
 }
 
 export function usesGitHubApp(integration: Integration): boolean {

@@ -13,6 +13,8 @@ import {
 import type { Integration } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { httpFetch, HttpResponseError } from "@/lib/http/client";
+import { getJiraAccessToken, getJiraRefreshToken } from "@/lib/jira-tokens";
+import { providerCredentials } from "@/lib/integrations/provider-credentials";
 import {
   isJiraReconnectError,
   JIRA_RECONNECT_MESSAGE,
@@ -106,25 +108,7 @@ function parseJiraErrorBody(raw: string): string {
   return raw.length > 200 ? `${raw.slice(0, 200)}…` : raw;
 }
 
-export function getJiraAccessToken(integration: Integration): string | null {
-  const meta = parseJiraMeta(integration.metadataJson);
-  if (!meta.accessTokenEnc) return null;
-  try {
-    return decryptToken(meta.accessTokenEnc);
-  } catch {
-    return null;
-  }
-}
-
-export function getJiraRefreshToken(integration: Integration): string | null {
-  const meta = parseJiraMeta(integration.metadataJson);
-  if (!meta.refreshTokenEnc) return null;
-  try {
-    return decryptToken(meta.refreshTokenEnc);
-  } catch {
-    return null;
-  }
-}
+export { getJiraAccessToken, getJiraRefreshToken } from "@/lib/jira-tokens";
 
 function siteFromResource(resource: AtlassianAccessibleResource): JiraSiteSummary {
   return {
@@ -315,7 +299,7 @@ export type JiraSprintSummary = {
   endDate?: string;
 };
 
-/** Resolve access token, refreshing and returning metadata patch on 401. */
+/** Resolve access token via ProviderCredentials; returns cloudId from integration metadata. */
 export async function resolveJiraAccessToken(integration: Integration): Promise<{
   accessToken: string;
   cloudId: string;
@@ -326,41 +310,12 @@ export async function resolveJiraAccessToken(integration: Integration): Promise<
     throw new Error("Missing cloudId in integration metadata");
   }
 
-  let accessToken = getJiraAccessToken(integration);
-  if (!accessToken) {
-    throw new Error("Jira token missing — reconnect via OAuth");
-  }
+  const accessToken = await providerCredentials.getAccessToken(
+    integration.organizationId,
+    "JIRA",
+  );
 
-  try {
-    await jiraFetch(accessToken, meta.cloudId, "/rest/api/3/myself", undefined, integration.organizationId);
-    return { accessToken, cloudId: meta.cloudId };
-  } catch (err) {
-    if (!(err instanceof JiraApiError) || err.status !== 401) throw err;
-
-    const refreshToken = getJiraRefreshToken(integration);
-    if (!refreshToken) {
-      throw new Error("Jira access token expired — reconnect via OAuth");
-    }
-
-    const refreshed = await refreshJiraAccessToken(refreshToken);
-    await jiraFetch(
-      refreshed.accessToken,
-      meta.cloudId,
-      "/rest/api/3/myself",
-      undefined,
-      integration.organizationId,
-    );
-    return {
-      accessToken: refreshed.accessToken,
-      cloudId: meta.cloudId,
-      metaPatch: {
-        accessTokenEnc: encryptToken(refreshed.accessToken),
-        refreshTokenEnc: refreshed.refreshToken
-          ? encryptToken(refreshed.refreshToken)
-          : meta.refreshTokenEnc,
-      },
-    };
-  }
+  return { accessToken, cloudId: meta.cloudId };
 }
 
 export async function listJiraProjects(
