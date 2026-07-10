@@ -12,6 +12,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { readJsonField } from "@/lib/json-field";
 
 export type QACockpitProps = {
   orgReadinessIndex: number;
@@ -34,7 +35,7 @@ export function QACockpit({
 }: QACockpitProps) {
   const assessed = releases.filter((r) => r.assessedAt);
   const pendingDecisions = releases.filter((r) => r.status === "PENDING_APPROVAL");
-  const allGaps = assessed.flatMap((r) => JSON.parse(r.testGapsJson || "[]") as TestGap[]);
+  const allGaps = assessed.flatMap((r) => readJsonField(r.testGapsJson, []) as TestGap[]);
   const gapRollup = aggregateGapsByArea(allGaps);
   const observabilitySynced = hasObservabilitySynced(integrations);
 
@@ -224,9 +225,9 @@ export function QACockpit({
         <div className="space-y-4">
           <h2 className="text-[22px] font-medium tracking-[-0.2px] text-ink">Assessed releases</h2>
           {assessed.map((release) => {
-            const qaSignals = JSON.parse(release.qaSignalsJson || "[]") as QASignal[];
-            const testGaps = JSON.parse(release.testGapsJson || "[]") as TestGap[];
-            const telemetry = JSON.parse(release.telemetryJson || "{}") as TelemetrySnapshot;
+            const qaSignals = readJsonField(release.qaSignalsJson, []) as QASignal[];
+            const testGaps = readJsonField(release.testGapsJson, []) as TestGap[];
+            const telemetry = readJsonField(release.telemetryJson, {}) as TelemetrySnapshot;
             const sourceFreshness = resolveAssessSourceFreshness(integrations);
             const pendingCount = pendingApprovalReleaseIds.has(release.id) ? 1 : 0;
 

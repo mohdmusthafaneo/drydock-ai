@@ -9,6 +9,7 @@
 import "dotenv/config";
 import { prisma } from "@/lib/prisma";
 import { DEFAULT_AGENT_DEFINITIONS } from "@/lib/agents";
+import { stringifyJsonField } from "@/lib/json-field";
 import {
   defaultRuntimeConfigForAgentType,
   serializeRuntimeConfig,
@@ -46,7 +47,7 @@ async function main() {
       const needsUpdate =
         superAgent.adapterType !== "mastra" ||
         superAgent.displayName !== SUPER_AGENT.displayName ||
-        !superAgent.permissionsJson.includes("canCreateAgents");
+        !stringifyJsonField(superAgent.permissionsJson).includes("canCreateAgents");
 
       if (needsUpdate) {
         console.log(`[${org.name}] Super Agent only — will update config`);

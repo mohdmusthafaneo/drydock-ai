@@ -130,12 +130,8 @@ export async function POST(request: Request) {
     });
 
     const document = parseGovernancePolicy({
-      id: "",
-      organizationId: session.organizationId,
       ...serialized,
       projectOverridesJson,
-      createdAt: new Date(),
-      updatedAt: new Date(),
     });
 
     return NextResponse.json({

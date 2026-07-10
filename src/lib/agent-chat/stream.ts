@@ -1,5 +1,6 @@
 import type { AgentChatStreamChunkKind } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { readJsonField } from "@/lib/json-field";
 import type { ReasoningJson, StreamChunkSsePayload } from "./types";
 import { buildReasoningJson } from "./types";
 
@@ -203,16 +204,11 @@ export function formatChunkForSse(
     runId: string;
     messageId: string | null;
     kind: AgentChatStreamChunkKind;
-    payloadJson: string;
+    payloadJson: unknown;
   },
   agentId: string,
 ): StreamChunkSsePayload {
-  let payload: Record<string, unknown> = {};
-  try {
-    payload = JSON.parse(chunk.payloadJson) as Record<string, unknown>;
-  } catch {
-    payload = {};
-  }
+  const payload = readJsonField<Record<string, unknown>>(chunk.payloadJson, {});
 
   return {
     runId: chunk.runId,

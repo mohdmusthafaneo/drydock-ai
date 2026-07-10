@@ -1,6 +1,7 @@
 import path from "node:path";
 
 import { parsePermissions } from "@/lib/agent-control-plane/agent-auth";
+import { readJsonField } from "@/lib/json-field";
 import {
   readInstructionsBundleForAgent,
   type InstructionsBundle,
@@ -18,17 +19,13 @@ export type AgentInstructionAgent = {
   id: string;
   agentType: string;
   role?: string | null;
-  adapterConfigJson: string;
-  permissionsJson: string;
+  adapterConfigJson: unknown;
+  permissionsJson: unknown;
 };
 
-function parseDesiredSkills(adapterConfigJson: string): string[] {
-  try {
-    const parsed = JSON.parse(adapterConfigJson) as { desiredSkills?: string[] };
-    return parsed.desiredSkills ?? ["aidos"];
-  } catch {
-    return ["aidos"];
-  }
+function parseDesiredSkills(adapterConfigJson: unknown): string[] {
+  const parsed = readJsonField<{ desiredSkills?: string[] }>(adapterConfigJson, {});
+  return parsed.desiredSkills ?? ["aidos"];
 }
 
 async function loadDomainSkill(skillName: string): Promise<string | null> {
@@ -43,7 +40,7 @@ async function loadDomainSkill(skillName: string): Promise<string | null> {
 }
 
 export async function loadDomainSkills(
-  adapterConfigJson: string,
+  adapterConfigJson: unknown,
 ): Promise<string> {
   const names = parseDesiredSkills(adapterConfigJson).filter(
     (name) => name !== "aidos" && name !== "aidos-create-agent",

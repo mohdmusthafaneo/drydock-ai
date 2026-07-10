@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { IncidentRemediationForm } from "@/components/incidents/incident-remediation-form";
 import { IncidentRelatedChanges } from "@/components/incidents/incident-related-changes";
 import { loadIncidentCodeLinks } from "@/lib/incident-code-correlation";
+import { readJsonField } from "@/lib/json-field";
 
 const DEVOPS_ROLES = new Set(["ORG_ADMIN", "DEVOPS_LEAD", "ENGINEERING_MANAGER", "DELIVERY_MANAGER"]);
 
@@ -32,7 +33,7 @@ export default async function IncidentDetailPage({
     incidentId: incident.id,
   });
 
-  const services = JSON.parse(incident.affectedServicesJson || "[]") as string[];
+  const services = readJsonField(incident.affectedServicesJson, []) as string[];
   const canRemediate = DEVOPS_ROLES.has(session.role);
 
   return (

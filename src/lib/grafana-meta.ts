@@ -1,4 +1,5 @@
 import type { Integration } from "@/generated/prisma/client";
+import { readJsonField } from "@/lib/json-field";
 import type { PrometheusServiceScope } from "@/lib/observability-analysis/types";
 import type { ObservabilityAnalysisSnapshot } from "@/lib/observability-analysis/types";
 import type { MetricsProvenance } from "@/lib/observability-metrics/types";
@@ -83,12 +84,8 @@ export type GrafanaIntegrationMeta = {
   connectedBy?: string;
 };
 
-export function parseGrafanaMeta(metadataJson: string): GrafanaIntegrationMeta {
-  try {
-    return JSON.parse(metadataJson) as GrafanaIntegrationMeta;
-  } catch {
-    return {};
-  }
+export function parseGrafanaMeta(metadataJson: unknown): GrafanaIntegrationMeta {
+  return readJsonField<GrafanaIntegrationMeta>(metadataJson, {});
 }
 
 export function mergeGrafanaMeta(
@@ -99,7 +96,7 @@ export function mergeGrafanaMeta(
 }
 
 export function isGrafanaTrulyConnected(
-  integration: { status: string; metadataJson: string } | undefined,
+  integration: { status: string; metadataJson: unknown } | undefined,
 ): boolean {
   if (!integration || integration.status !== "CONNECTED") return false;
   const meta = parseGrafanaMeta(integration.metadataJson);

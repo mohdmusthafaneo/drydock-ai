@@ -12,6 +12,7 @@
     "lint": "eslint",
     "test:agent-chat": "tsx --test src/lib/agent-chat/context.test.ts",
     "test:env": "tsx --test src/lib/env.test.ts",
+    "test:json-field": "tsx --test src/lib/json-field.test.ts",
     "test:mastra": "tsx --test src/mastra/tools/aidos/toolsets.test.ts src/mastra/tools/aidos/tools.test.ts src/lib/mastra-feature-flags.test.ts",
     "load-test:chat-wakeups": "tsx scripts/load-test-chat-wakeups.ts",
     "mastra:studio": "mastra dev -d src/mastra/examples",

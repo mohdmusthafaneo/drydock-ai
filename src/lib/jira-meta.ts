@@ -1,4 +1,5 @@
 import type { Integration } from "@/generated/prisma/client";
+import { readJsonField } from "@/lib/json-field";
 
 export type JiraSiteSummary = {
   cloudId: string;
@@ -171,12 +172,8 @@ export type JiraIntegrationMeta = {
   jiraHygiene?: import("@/lib/jira-hygiene").JiraHygieneSnapshot;
 };
 
-export function parseJiraMeta(metadataJson: string): Partial<JiraIntegrationMeta> {
-  try {
-    return JSON.parse(metadataJson) as Partial<JiraIntegrationMeta>;
-  } catch {
-    return {};
-  }
+export function parseJiraMeta(metadataJson: unknown): Partial<JiraIntegrationMeta> {
+  return readJsonField<Partial<JiraIntegrationMeta>>(metadataJson, {});
 }
 
 export function mergeJiraMeta(

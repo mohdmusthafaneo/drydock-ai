@@ -1,3 +1,5 @@
+import { readJsonField } from "@/lib/json-field";
+
 export type ApprovalChatContext = {
   threadId?: string;
   messageId?: string;
@@ -14,17 +16,13 @@ export function mergeApprovalPayload(
 }
 
 export function parseApprovalChatContext(
-  payloadJson: string,
+  payloadJson: unknown,
 ): ApprovalChatContext | null {
-  try {
-    const parsed = JSON.parse(payloadJson) as Record<string, unknown>;
-    const threadId =
-      typeof parsed.threadId === "string" ? parsed.threadId : undefined;
-    const messageId =
-      typeof parsed.messageId === "string" ? parsed.messageId : undefined;
-    if (!threadId && !messageId) return null;
-    return { threadId, messageId };
-  } catch {
-    return null;
-  }
+  const parsed = readJsonField<Record<string, unknown>>(payloadJson, {});
+  const threadId =
+    typeof parsed.threadId === "string" ? parsed.threadId : undefined;
+  const messageId =
+    typeof parsed.messageId === "string" ? parsed.messageId : undefined;
+  if (!threadId && !messageId) return null;
+  return { threadId, messageId };
 }

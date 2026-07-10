@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { AgentType, Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { readJsonField } from "@/lib/json-field";
 import {
   buildInstructionsAdapterConfig,
   writeInstructionsFiles,
@@ -87,12 +88,9 @@ export function defaultDesiredSkillsForRole(role: HireRole): string[] {
   return DEFAULT_DOMAIN_SKILLS[role] ?? ["aidos"];
 }
 
-export function parseHirePayload(json: string): AgentHirePayload | null {
-  try {
-    return JSON.parse(json) as AgentHirePayload;
-  } catch {
-    return null;
-  }
+export function parseHirePayload(json: unknown): AgentHirePayload | null {
+  const parsed = readJsonField<AgentHirePayload | null>(json, null);
+  return parsed && typeof parsed === "object" ? parsed : null;
 }
 
 async function normalizeHireBody(body: z.infer<typeof hireRequestSchema>) {
@@ -141,13 +139,16 @@ export async function createAgentHireRequest(input: {
     return { ok: false as const, error: "reportsToAgentId not found" };
   }
 
-  const pendingHire = await prisma.approval.findFirst({
+  const pendingHires = await prisma.approval.findMany({
     where: {
       organizationId: input.organizationId,
       type: "AGENT_HIRE",
       decision: null,
-      payloadJson: { contains: `"role":"${body.role}"` },
     },
+  });
+  const pendingHire = pendingHires.find((row) => {
+    const payload = parseHirePayload(row.payloadJson);
+    return payload?.role === body.role;
   });
   if (pendingHire) {
     const payload = parseHirePayload(pendingHire.payloadJson);

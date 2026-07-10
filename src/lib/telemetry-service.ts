@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { readJsonField } from "@/lib/json-field";
 import {
   collectOperationalTelemetry,
   correlateIncidentFromTelemetry,
@@ -192,7 +193,7 @@ export async function ingestTelemetryForOrganization(input: {
     where: { organizationId: input.organizationId },
   });
   if (workflow) {
-    const steps = JSON.parse(workflow.stepsCompletedJson || "[]") as string[];
+    const steps = readJsonField(workflow.stepsCompletedJson, []) as string[];
     if (!steps.includes("monitoring")) {
       await prisma.deliveryWorkflow.update({
         where: { organizationId: input.organizationId },

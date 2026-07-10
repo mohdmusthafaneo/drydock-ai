@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { readJsonField } from "@/lib/json-field";
 import type {
   ComplianceFindingSeverity,
   ComplianceFindingStatus,
@@ -6,12 +7,8 @@ import type {
   ComplianceTargetType,
 } from "@/lib/compliance/types";
 
-function parseDetailJson(json: string): Record<string, unknown> {
-  try {
-    return JSON.parse(json) as Record<string, unknown>;
-  } catch {
-    return {};
-  }
+function parseDetailJson(json: unknown): Record<string, unknown> {
+  return readJsonField<Record<string, unknown>>(json, {});
 }
 
 export function rowToComplianceFindingView(row: {
@@ -23,7 +20,7 @@ export function rowToComplianceFindingView(row: {
   targetExternalId: string;
   projectKey: string | null;
   title: string;
-  detailJson: string;
+  detailJson: unknown;
   entityLabel: string | null;
   entityUrl: string | null;
   repo: string | null;

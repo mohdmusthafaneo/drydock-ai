@@ -9,13 +9,14 @@ import { MarkdownContent } from "@/components/ui/markdown-content";
 import { invalidateThreadDetail } from "@/lib/queries/invalidate";
 import { parseHirePayload } from "@/lib/agent-control-plane/hire-payload";
 import type { ApprovalDecision, ApprovalType } from "@/generated/prisma/client";
+import { readJsonField } from "@/lib/json-field";
 
 export type ThreadApprovalSnapshot = {
   id: string;
   type: ApprovalType;
   title: string | null;
   decision: ApprovalDecision | null;
-  payloadJson: string;
+  payloadJson: unknown;
   recommendation: { title: string; requiredRole: string | null } | null;
 };
 
@@ -56,12 +57,8 @@ export function resolveApprovalRequiredRole(
     return approval.recommendation.requiredRole;
   }
   if (approval.type === "AGENT_ACTION") {
-    try {
-      const parsed = JSON.parse(approval.payloadJson) as { requiredRole?: string };
-      return parsed.requiredRole ?? null;
-    } catch {
-      return null;
-    }
+    const parsed = readJsonField<{ requiredRole?: string }>(approval.payloadJson, {});
+    return parsed.requiredRole ?? null;
   }
   if (approval.type === "AGENT_HIRE") return "ORG_ADMIN";
   return null;

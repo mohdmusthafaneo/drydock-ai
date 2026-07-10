@@ -4,6 +4,7 @@ import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import type { QASignal, TestGap } from "@/lib/qa-intelligence";
 import type { TelemetrySnapshot } from "@/lib/release-governance";
+import { readJsonField } from "@/lib/json-field";
 import {
   isAssessDataStale,
   parsePostDeployComparison,
@@ -50,9 +51,9 @@ export default async function ReleaseDetailPage({
 
   if (!release) notFound();
 
-  const qaSignals = JSON.parse(release.qaSignalsJson || "[]") as QASignal[];
-  const testGaps = JSON.parse(release.testGapsJson || "[]") as TestGap[];
-  const telemetry = JSON.parse(release.telemetryJson || "{}") as TelemetrySnapshot;
+  const qaSignals = readJsonField(release.qaSignalsJson, []) as QASignal[];
+  const testGaps = readJsonField(release.testGapsJson, []) as TestGap[];
+  const telemetry = readJsonField(release.telemetryJson, {}) as TelemetrySnapshot;
   const postDeployComparison = parsePostDeployComparison(release.postDeployComparisonJson);
   const sourceFreshness = resolveAssessSourceFreshness(integrations);
   const staleData =

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { getOrganizationContext } from "@/lib/org-data";
 import { prisma } from "@/lib/prisma";
+import { readJsonField } from "@/lib/json-field";
 import {
   approvalLevelLabel,
   autonomyModeLabel,
@@ -63,9 +64,9 @@ export default async function GovernancePage() {
 
   const dna = ctx.dna;
   const profile = ctx.profile;
-  const escalation = JSON.parse(dna.escalationMatrix || "{}") as Record<string, string>;
-  const tools = profile ? (JSON.parse(profile.toolsJson || "[]") as string[]) : [];
-  const workflows = profile ? (JSON.parse(profile.workflowsJson || "[]") as string[]) : [];
+  const escalation = readJsonField(dna.escalationMatrix, {}) as Record<string, string>;
+  const tools = profile ? (readJsonField(profile.toolsJson, []) as string[]) : [];
+  const workflows = profile ? (readJsonField(profile.workflowsJson, []) as string[]) : [];
   const orgName = org?.name ?? "Your organization";
 
   const dnaOverview = buildGovernanceDnaOverview(dna, orgName);

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { readJsonField } from "@/lib/json-field";
 import type { ChatWakeupPayload } from "./types";
 
 /** Fallback: mirror run summary when agent did not call aidos_post_thread_message (idempotent by runId). */
@@ -6,7 +7,7 @@ export async function postChatRunReplyIfNeeded(input: {
   organizationId: string;
   agentId: string;
   runId: string;
-  wakeupPayloadJson: string;
+  wakeupPayloadJson: unknown;
   summary?: string;
   error?: string;
 }): Promise<void> {
@@ -44,10 +45,6 @@ export async function postChatRunReplyIfNeeded(input: {
   });
 }
 
-function parsePayload(json: string): ChatWakeupPayload & Record<string, unknown> {
-  try {
-    return JSON.parse(json) as ChatWakeupPayload & Record<string, unknown>;
-  } catch {
-    return {} as ChatWakeupPayload & Record<string, unknown>;
-  }
+function parsePayload(json: unknown): ChatWakeupPayload & Record<string, unknown> {
+  return readJsonField<ChatWakeupPayload & Record<string, unknown>>(json, {} as ChatWakeupPayload & Record<string, unknown>);
 }

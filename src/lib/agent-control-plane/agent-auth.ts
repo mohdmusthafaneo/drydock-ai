@@ -1,6 +1,7 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import type { AgentRegistry } from "@/generated/prisma/client";
+import { readJsonField } from "@/lib/json-field";
 import { parseRuntimeConfig } from "./runtime-config";
 import type { AgentPermissions } from "./types";
 
@@ -36,13 +37,9 @@ export function generateAgentApiKey(): string {
   return `aidos_agent_${bytes.slice(0, 43)}`;
 }
 
-export function parsePermissions(json: string): AgentPermissions {
-  try {
-    const parsed = JSON.parse(json) as Partial<AgentPermissions>;
-    return { canCreateAgents: parsed.canCreateAgents ?? false };
-  } catch {
-    return { canCreateAgents: false };
-  }
+export function parsePermissions(json: unknown): AgentPermissions {
+  const parsed = readJsonField<Partial<AgentPermissions>>(json, {});
+  return { canCreateAgents: parsed.canCreateAgents ?? false };
 }
 
 /** Validates `Authorization: Bearer <agent_api_key>`. */

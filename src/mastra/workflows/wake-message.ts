@@ -1,4 +1,5 @@
 import { buildChatContextMarkdown } from "@/lib/agent-chat/context";
+import { readJsonField } from "@/lib/json-field";
 import type { AgentWakeupSource } from "@/generated/prisma/client";
 
 export type WakeMessageInput = {
@@ -7,20 +8,16 @@ export type WakeMessageInput = {
   runId: string;
   source: AgentWakeupSource;
   reason: string;
-  payloadJson: string;
+  payloadJson: unknown;
 };
 
-function parsePayload(json: string): Record<string, unknown> {
-  try {
-    return JSON.parse(json) as Record<string, unknown>;
-  } catch {
-    return {};
-  }
+function parsePayload(json: unknown): Record<string, unknown> {
+  return readJsonField<Record<string, unknown>>(json, {});
 }
 
 export function isChatStreamingRun(input: {
   source: AgentWakeupSource;
-  payloadJson: string;
+  payloadJson: unknown;
 }): string | undefined {
   const payload = parsePayload(input.payloadJson);
   const threadId =
@@ -33,7 +30,7 @@ export function isChatStreamingRun(input: {
 
 export function isChatWakeup(input: {
   source: AgentWakeupSource;
-  payloadJson: string;
+  payloadJson: unknown;
 }): boolean {
   return Boolean(isChatStreamingRun(input));
 }

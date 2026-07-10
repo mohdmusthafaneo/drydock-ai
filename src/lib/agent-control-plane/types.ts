@@ -39,7 +39,7 @@ export type AdapterExecutionContext = {
     id: string;
     source: AgentWakeupSource;
     reason: string;
-    payloadJson: string;
+    payloadJson: unknown;
   };
   organizationId: string;
 };

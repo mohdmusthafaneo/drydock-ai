@@ -1,5 +1,7 @@
 /** Aggregate-only calibration types — no raw issue persistence. */
 
+import { readJsonField } from "@/lib/json-field";
+
 export type StatusTransition = {
   from?: string;
   to: string;
@@ -90,25 +92,17 @@ export type JiraCalibrationProfileRow = {
   confidence: string | null;
   source: string;
   calibratedAt: string | null;
-  observedJson: string;
-  profileJson: string;
+  observedJson: unknown;
+  profileJson: unknown;
   llmRationale: string | null;
 };
 
-export function parseCalibrationObservations(json: string): CalibrationObservations | null {
-  try {
-    const parsed = JSON.parse(json) as CalibrationObservations;
-    return parsed?.analyzedAt ? parsed : null;
-  } catch {
-    return null;
-  }
+export function parseCalibrationObservations(json: unknown): CalibrationObservations | null {
+  const parsed = readJsonField<CalibrationObservations | null>(json, null);
+  return parsed?.analyzedAt ? parsed : null;
 }
 
-export function parseCalibratedWorkflowProfile(json: string): CalibratedWorkflowProfile | null {
-  try {
-    const parsed = JSON.parse(json) as CalibratedWorkflowProfile;
-    return parsed?.doneStatusNames ? parsed : null;
-  } catch {
-    return null;
-  }
+export function parseCalibratedWorkflowProfile(json: unknown): CalibratedWorkflowProfile | null {
+  const parsed = readJsonField<CalibratedWorkflowProfile | null>(json, null);
+  return parsed?.doneStatusNames ? parsed : null;
 }

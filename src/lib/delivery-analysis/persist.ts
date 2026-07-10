@@ -1,5 +1,6 @@
 import { Prisma } from "@/generated/prisma/client";
 import { computeDeliveryAnalysisFromJira } from "@/lib/delivery-analysis/compute-snapshot";
+import { readJsonField } from "@/lib/json-field";
 import type {
   DeliveryAnalysisFilters,
   DeliveryAnalysisKpis,
@@ -57,12 +58,9 @@ function rangeToDays(range: TimeRange): number {
   return 90;
 }
 
-function parseSnapshotJson(json: string): DeliveryAnalysisSnapshot | null {
-  try {
-    return JSON.parse(json) as DeliveryAnalysisSnapshot;
-  } catch {
-    return null;
-  }
+function parseSnapshotJson(json: unknown): DeliveryAnalysisSnapshot | null {
+  const parsed = readJsonField<DeliveryAnalysisSnapshot | null>(json, null);
+  return parsed && typeof parsed === "object" ? parsed : null;
 }
 
 export function scopedKpisFromSnapshot(
@@ -93,7 +91,7 @@ export function scopedKpisFromSnapshot(
 
 export function trendPointFromRow(
   syncedAt: Date,
-  snapshotJson: string,
+  snapshotJson: unknown,
   projectKey: string | null,
 ): DeliveryAnalysisTrendPoint | null {
   const snapshot = parseSnapshotJson(snapshotJson);
@@ -130,7 +128,7 @@ export async function loadDeliveryAnalysisHistory(
 ): Promise<
   Array<{
     syncedAt: Date;
-    snapshotJson: string;
+    snapshotJson: unknown;
     healthScore: number;
     openWork: number;
   }>
@@ -149,7 +147,7 @@ async function loadDeliveryAnalysisHistoryInner(
 ): Promise<
   Array<{
     syncedAt: Date;
-    snapshotJson: string;
+    snapshotJson: unknown;
     healthScore: number;
     openWork: number;
   }>
@@ -174,7 +172,7 @@ async function loadDeliveryAnalysisHistoryInner(
 }
 
 export function buildTrendFromHistory(
-  rows: Array<{ syncedAt: Date; snapshotJson: string }>,
+  rows: Array<{ syncedAt: Date; snapshotJson: unknown }>,
   projectKey: string | null,
 ): DeliveryAnalysisTrendPoint[] {
   const points: DeliveryAnalysisTrendPoint[] = [];
@@ -186,7 +184,7 @@ export function buildTrendFromHistory(
 }
 
 export function priorKpisFromHistory(
-  rows: Array<{ syncedAt: Date; snapshotJson: string }>,
+  rows: Array<{ syncedAt: Date; snapshotJson: unknown }>,
   projectKey: string | null,
 ): Pick<DeliveryAnalysisKpis, "healthScore" | "openWork" | "blocked" | "overdue"> | null {
   if (rows.length < 2) return null;

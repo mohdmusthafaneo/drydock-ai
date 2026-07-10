@@ -1,4 +1,5 @@
 import type { AgentRegistry, AgentType } from "@/generated/prisma/client";
+import { readJsonField, stringifyJsonField } from "@/lib/json-field";
 import type { AgentHeartbeatConfig, AgentRuntimeConfig } from "./types";
 
 const DEFAULT_HEARTBEAT_SEC = Number(
@@ -49,27 +50,23 @@ export function defaultRuntimeConfigForAgentType(
   return { heartbeat };
 }
 
-export function parseRuntimeConfig(json: string): AgentRuntimeConfig {
-  try {
-    const parsed = JSON.parse(json) as Partial<AgentRuntimeConfig>;
-    return {
-      heartbeat: {
-        ...DEFAULT_HEARTBEAT,
-        ...(parsed.heartbeat ?? {}),
-      },
-    };
-  } catch {
-    return { heartbeat: { ...DEFAULT_HEARTBEAT } };
-  }
+export function parseRuntimeConfig(json: unknown): AgentRuntimeConfig {
+  const parsed = readJsonField<Partial<AgentRuntimeConfig>>(json, {});
+  return {
+    heartbeat: {
+      ...DEFAULT_HEARTBEAT,
+      ...(parsed.heartbeat ?? {}),
+    },
+  };
 }
 
 /** Resolve config from DB row, falling back to per-type defaults when unset. */
 export function resolveRuntimeConfig(agent: Pick<AgentRegistry, "runtimeConfigJson" | "agentType">): AgentRuntimeConfig {
-  const trimmed = agent.runtimeConfigJson?.trim();
+  const trimmed = stringifyJsonField(agent.runtimeConfigJson ?? {}).trim();
   if (!trimmed || trimmed === "{}" || trimmed === "null") {
     return defaultRuntimeConfigForAgentType(agent.agentType);
   }
-  return parseRuntimeConfig(trimmed);
+  return parseRuntimeConfig(agent.runtimeConfigJson);
 }
 
 export function serializeRuntimeConfig(config: AgentRuntimeConfig): string {

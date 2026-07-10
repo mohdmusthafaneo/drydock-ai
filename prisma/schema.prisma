@@ -173,7 +173,7 @@ model TelemetryMetric {
   metricKey      String
   value          Float
   unit           String?
-  labelsJson     String       @default("{}")
+  labelsJson     Json         @default("{}")
   recordedAt     DateTime     @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -193,8 +193,8 @@ model TelemetryEvent {
   service        String?
   releaseId      String?
   correlationId  String?
-  normalizedJson String             @default("{}")
-  payloadJson    String             @default("{}")
+  normalizedJson Json               @default("{}")
+  payloadJson    Json               @default("{}")
   occurredAt     DateTime
   ingestedAt     DateTime           @default(now())
 
@@ -212,7 +212,7 @@ model WebhookEvent {
   provider       IntegrationProvider
   eventType      String
   status         WebhookEventStatus  @default(RECEIVED)
-  payloadJson    String
+  payloadJson    Json
   retryCount     Int                 @default(0)
   lastError      String?
   processedAt    DateTime?
@@ -243,11 +243,11 @@ model OrgInvitation {
 model GovernancePolicy {
   id                    String   @id @default(cuid())
   organizationId        String   @unique
-  deploymentThresholds  String   @default("{}")
-  releaseRulesJson      String   @default("{}")
-  approvalRequirements  String   @default("{}")
-  escalationChainsJson  String   @default("{}")
-  projectOverridesJson  String   @default("{}")
+  deploymentThresholds  Json     @default("{}")
+  releaseRulesJson      Json     @default("{}")
+  approvalRequirements  Json     @default("{}")
+  escalationChainsJson  Json     @default("{}")
+  projectOverridesJson  Json     @default("{}")
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
@@ -261,7 +261,7 @@ model ComplianceRuleState {
   ruleKey        String
   projectKey     String?
   enabled        Boolean  @default(true)
-  thresholdsJson String   @default("{}")
+  thresholdsJson Json     @default("{}")
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -283,7 +283,7 @@ model ComplianceFinding {
   targetExternalId String
   projectKey       String?
   title            String
-  detailJson       String   @default("{}")
+  detailJson       Json     @default("{}")
   entityLabel      String?
   entityUrl        String?
   repo             String?
@@ -310,7 +310,7 @@ model ProblemPrediction {
   confidence     Float
   status         String   @default("open")
   rationale      String
-  signalsJson    String   @default("{}")
+  signalsJson    Json     @default("{}")
   projectKey     String?
   firstSeenAt    DateTime @default(now())
   lastSeenAt     DateTime @default(now())
@@ -450,7 +450,7 @@ model DeliveryWorkflow {
   workflowType             String                    @default("enterprise-governed")
   executionStatus          WorkflowExecutionStatus   @default(NOT_CONFIGURED)
   currentStepId            String?
-  stepsCompletedJson       String                    @default("[]")
+  stepsCompletedJson       Json                      @default("[]")
   configuredAt             DateTime?
   agentTeamInitializedAt   DateTime?
   createdAt                DateTime                  @default(now())
@@ -471,9 +471,9 @@ model AgentRegistry {
   autonomyMode       AutonomyMode @default(RECOMMEND)
   reportsToAgentId   String?
   adapterType        String       @default("mastra")
-  adapterConfigJson  String       @default("{}")
-  runtimeConfigJson  String       @default("{}")
-  permissionsJson    String       @default("{}")
+  adapterConfigJson  Json         @default("{}")
+  runtimeConfigJson  Json         @default("{}")
+  permissionsJson    Json         @default("{}")
   lastHeartbeatAt    DateTime?
   lastActiveAt       DateTime?
   createdByAgentId   String?
@@ -516,7 +516,7 @@ model AgentWakeupRequest {
   source          AgentWakeupSource
   reason          String
   status          AgentWakeupStatus @default(queued)
-  payloadJson     String            @default("{}")
+  payloadJson     Json              @default("{}")
   idempotencyKey  String?
   coalescedCount  Int               @default(0)
   requestedAt     DateTime          @default(now())
@@ -541,7 +541,7 @@ model AgentHeartbeatRun {
   status              AgentHeartbeatRunStatus @default(running)
   source              AgentWakeupSource
   reason              String
-  contextSnapshotJson String                  @default("{}")
+  contextSnapshotJson Json                    @default("{}")
   startedAt           DateTime                @default(now())
   finishedAt          DateTime?
   exitCode            Int?
@@ -549,8 +549,8 @@ model AgentHeartbeatRun {
   summary             String?
   mastraRunId         String?
   mastraTraceId       String?
-  tokenUsageJson      String                  @default("{}")
-  logsJson            String                  @default("[]")
+  tokenUsageJson      Json                    @default("{}")
+  logsJson            Json                    @default("[]")
 
   organization  Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   agent         AgentRegistry      @relation(fields: [agentId], references: [id], onDelete: Cascade)
@@ -568,7 +568,7 @@ model Incident {
   source               MetricSource?
   title                String
   description          String?
-  affectedServicesJson String         @default("[]")
+  affectedServicesJson Json           @default("[]")
   severityScore        Int            @default(50)
   status               IncidentStatus @default(OPEN)
   remediationNotes     String?
@@ -593,7 +593,7 @@ model IncidentCodeLink {
   commitSha             String?
   confidence            Float    @default(0.5)
   reason                String
-  peopleJson            String   @default("[]")
+  peopleJson            Json     @default("[]")
   createdAt             DateTime @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -639,20 +639,20 @@ model Release {
   jiraFixVersion       String?
   jiraSprintId         Int?
   serviceScope         String?
-  metadataJson         String              @default("{}")
+  metadataJson         Json                @default("{}")
   environment          ReleaseEnvironment  @default(STAGING)
   status               ReleaseStatus       @default(DETECTED)
   governanceRiskScore  Float?
   readinessScore       Float?
   riskLevel            ReleaseRiskLevel?
   primaryRecommendation PrimaryRecommendation?
-  qaSignalsJson        String              @default("[]")
-  telemetryJson        String              @default("{}")
-  testGapsJson         String              @default("[]")
+  qaSignalsJson        Json                @default("[]")
+  telemetryJson        Json                @default("{}")
+  testGapsJson         Json                @default("[]")
   regressionNotes      String?
   assessmentSummary    String?
-  assessmentSnapshotJson String            @default("{}")
-  postDeployComparisonJson String          @default("{}")
+  assessmentSnapshotJson Json              @default("{}")
+  postDeployComparisonJson Json            @default("{}")
   detectedAt           DateTime            @default(now())
   assessedAt           DateTime?
   deployedAt           DateTime?
@@ -700,11 +700,11 @@ model AcceleratorProject {
   status                AcceleratorStatus @default(DRAFT)
   prdMarkdown           String?
   architectureMarkdown  String?
-  featuresJson          String            @default("[]")
-  jiraEpicsJson         String            @default("[]")
+  featuresJson          Json              @default("[]")
+  jiraEpicsJson         Json              @default("[]")
   qaPlanMarkdown        String?
   deploymentPlanMarkdown String?
-  roadmapJson           String            @default("[]")
+  roadmapJson           Json              @default("[]")
   createdById           String?
   approvedAt            DateTime?
   createdAt             DateTime          @default(now())
@@ -747,9 +747,9 @@ model OrganizationProfile {
   governanceLevel  Int      @default(2)
   complianceType   String?
   deploymentStrategy String?
-  toolsJson        String   @default("[]")
-  workflowsJson    String   @default("[]")
-  toolchainMappingJson String @default("{}")
+  toolsJson        Json     @default("[]")
+  workflowsJson    Json     @default("[]")
+  toolchainMappingJson Json @default("{}")
   toolchainMappingConfirmedAt DateTime?
   completedAt      DateTime?
   createdAt        DateTime @default(now())
@@ -764,8 +764,8 @@ model JiraCalibrationProfile {
   projectKey     String
   status         String    @default("pending")
   windowDays     Int       @default(90)
-  observedJson   String    @default("{}")
-  profileJson    String    @default("{}")
+  observedJson   Json      @default("{}")
+  profileJson    Json      @default("{}")
   llmRationale   String?
   confidence     String?
   source         String    @default("deterministic")
@@ -788,7 +788,7 @@ model DeliveryDNA {
   autonomyMode      AutonomyMode @default(RECOMMEND)
   autonomyLevel     Int          @default(1)
   governanceScore   Int
-  escalationMatrix  String       @default("{}")
+  escalationMatrix  Json         @default("{}")
   observabilityStrategy String?
   summary           String?
   createdAt         DateTime     @default(now())
@@ -803,7 +803,7 @@ model Integration {
   provider          IntegrationProvider
   status            IntegrationStatus   @default(PENDING)
   displayName       String?
-  metadataJson      String              @default("{}")
+  metadataJson      Json                @default("{}")
   connectedAt       DateTime?
   lastSyncAt        DateTime?
   lastHealthCheckAt DateTime?
@@ -844,7 +844,7 @@ model Recommendation {
   rationale      String
   impact         RecommendationImpact @default(MEDIUM)
   confidence     Float
-  affectedSystems String              @default("[]")
+  affectedSystems Json                @default("[]")
   requiredRole   UserRole?
   status         RecommendationStatus @default(PENDING)
   createdAt      DateTime             @default(now())
@@ -861,7 +861,7 @@ model Approval {
   type               ApprovalType      @default(RECOMMENDATION)
   recommendationId   String?
   title              String?
-  payloadJson        String            @default("{}")
+  payloadJson        Json              @default("{}")
   requestedByAgentId String?
   approverId         String?
   decision           ApprovalDecision?
@@ -885,7 +885,7 @@ model AuditLog {
   action         String
   entityType     String
   entityId       String?
-  metadataJson   String   @default("{}")
+  metadataJson   Json     @default("{}")
   createdAt      DateTime @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -898,7 +898,7 @@ model ActivityEvent {
   type           String
   title          String
   description    String?
-  metadataJson   String   @default("{}")
+  metadataJson   Json     @default("{}")
   createdAt      DateTime @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -909,7 +909,7 @@ model CodeAnalysisRun {
   id                String   @id @default(cuid())
   organizationId    String
   integrationId     String
-  repoFullNamesJson String   @default("[]")
+  repoFullNamesJson Json     @default("[]")
   commitCount       Int      @default(0)
   prCount           Int      @default(0)
   summary           String?
@@ -934,8 +934,8 @@ model CodeAnalysisCommit {
   deletions      Int      @default(0)
   attribution    String
   confidence     Int      @default(0)
-  signalsJson    String   @default("[]")
-  jiraKeysJson   String   @default("[]")
+  signalsJson    Json     @default("[]")
+  jiraKeysJson   Json     @default("[]")
   branch         String?
   completionScore Int?
   completionRationale String?
@@ -963,16 +963,16 @@ model CodeAnalysisPullRequest {
   attribution    String
   confidence     Int      @default(0)
   reviewCount    Int      @default(0)
-  reviewersJson  String   @default("[]")
-  filesJson      String   @default("[]")
-  toolsJson      String   @default("[]")
-  jiraKeysJson   String   @default("[]")
+  reviewersJson  Json     @default("[]")
+  filesJson      Json     @default("[]")
+  toolsJson      Json     @default("[]")
+  jiraKeysJson   Json     @default("[]")
   diffExcerpt    String?
   completionScore Int?
   completionRationale String?
   riskScore      Int?
   riskLevel      String?
-  qualityFlagsJson String @default("[]")
+  qualityFlagsJson Json   @default("[]")
   lastSeenAt     DateTime @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -991,8 +991,8 @@ model DeliveryAnalysisSnapshot {
   blocked         Int      @default(0)
   overdue         Int      @default(0)
   bugsOpen        Int      @default(0)
-  projectKeysJson String   @default("[]")
-  snapshotJson    String
+  projectKeysJson Json     @default("[]")
+  snapshotJson    Json
   syncedAt        DateTime @default(now())
   createdAt       DateTime @default(now())
 
@@ -1004,7 +1004,7 @@ model DeliveryAnalysisSnapshot {
 model ExecutiveBriefingSnapshot {
   id             String   @id @default(cuid())
   organizationId String   @unique
-  headlineJson   String
+  headlineJson   Json
   narrative      String
   source         String   @default("llm_enriched")
   factsHash      String?
@@ -1065,7 +1065,7 @@ model AgentChatMessage {
   threadId        String
   kind            AgentChatMessageKind
   contentMarkdown String               @default("")
-  reasoningJson   String               @default("{}")
+  reasoningJson   Json                 @default("{}")
   authorUserId    String?
   authorAgentId   String?
   targetAgentId   String?
@@ -1091,7 +1091,7 @@ model AgentChatStreamChunk {
   messageId      String?
   sequence       Int
   kind           AgentChatStreamChunkKind
-  payloadJson    String                   @default("{}")
+  payloadJson    Json                     @default("{}")
   createdAt      DateTime                 @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import type { AcceleratorFeature, JiraEpic, RoadmapPhase } from "@/lib/mvp-accelerator";
 import { Badge } from "@/components/ui/badge";
 import { ArtifactPanel } from "@/components/accelerator/artifact-panel";
+import { readJsonField } from "@/lib/json-field";
 import {
   FeaturesTable,
   JiraEpicsList,
@@ -31,9 +32,9 @@ export default async function AcceleratorProjectPage({
 
   if (!project) notFound();
 
-  const features = JSON.parse(project.featuresJson || "[]") as AcceleratorFeature[];
-  const jiraEpics = JSON.parse(project.jiraEpicsJson || "[]") as JiraEpic[];
-  const roadmap = JSON.parse(project.roadmapJson || "[]") as RoadmapPhase[];
+  const features = readJsonField(project.featuresJson, []) as AcceleratorFeature[];
+  const jiraEpics = readJsonField(project.jiraEpicsJson, []) as JiraEpic[];
+  const roadmap = readJsonField(project.roadmapJson, []) as RoadmapPhase[];
 
   const hasPackage = Boolean(project.prdMarkdown);
   const canApprove = project.status === "PENDING_APPROVAL";

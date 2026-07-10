@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { readJsonField } from "@/lib/json-field";
 
 const WORKFLOW_RUN_EVENT = "accelerator.workflow.run";
 
@@ -37,16 +38,9 @@ export async function findAcceleratorWorkflowRun(
   });
 
   for (const event of events) {
-    try {
-      const meta = JSON.parse(event.metadataJson ?? "{}") as {
-        projectId?: string;
-        runId?: string;
-      };
-      if (meta.projectId === projectId && meta.runId) {
-        return meta.runId;
-      }
-    } catch {
-      continue;
+    const meta = readJsonField<{ projectId?: string; runId?: string }>(event.metadataJson, {});
+    if (meta.projectId === projectId && meta.runId) {
+      return meta.runId;
     }
   }
 

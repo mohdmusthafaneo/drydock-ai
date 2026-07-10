@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
+import { readJsonField } from "@/lib/json-field";
 
 import type { ExecutiveBriefing } from "@/lib/executive-briefing/types";
 import {
@@ -19,10 +20,10 @@ export function countBriefingWords(text: string): number {
 }
 
 export function parseHeadlineJson(
-  headlineJson: string,
+  headlineJson: unknown,
 ): ExecutiveBriefing["headline"] | null {
   try {
-    const parsed = headlineSchema.safeParse(JSON.parse(headlineJson));
+    const parsed = headlineSchema.safeParse(readJsonField(headlineJson, null));
     return parsed.success ? parsed.data : null;
   } catch {
     return null;
@@ -63,7 +64,7 @@ export function getBriefingEnrichIntervalSec(): number {
 export function mergeExecutiveBriefingSnapshot(
   deterministic: ExecutiveBriefing,
   snapshot: {
-    headlineJson: string;
+    headlineJson: unknown;
     narrative: string;
     expiresAt: Date;
     generatedAt: Date;

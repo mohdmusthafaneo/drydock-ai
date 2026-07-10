@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { readJsonField } from "@/lib/json-field";
 import type {
   PredictionDomain,
   PredictionHorizon,
@@ -8,12 +9,8 @@ import type {
   PredictionView,
 } from "@/lib/problem-prediction/types";
 
-function parseSignalsJson(json: string): Record<string, unknown> {
-  try {
-    return JSON.parse(json) as Record<string, unknown>;
-  } catch {
-    return {};
-  }
+function parseSignalsJson(json: unknown): Record<string, unknown> {
+  return readJsonField<Record<string, unknown>>(json, {});
 }
 
 function rowToView(row: {
@@ -25,7 +22,7 @@ function rowToView(row: {
   confidence: number;
   status: string;
   rationale: string;
-  signalsJson: string;
+  signalsJson: unknown;
   projectKey: string | null;
   firstSeenAt: Date;
   lastSeenAt: Date;

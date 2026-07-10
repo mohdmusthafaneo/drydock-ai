@@ -22,6 +22,7 @@ import {
   parseGovernancePolicy,
   resolveGovernancePolicyForProject,
 } from "@/lib/governance/policy";
+import { readJsonField } from "@/lib/json-field";
 
 const REASSESSABLE_STATUSES = new Set(["DETECTED", "ASSESSED", "PENDING_APPROVAL", "BLOCKED"]);
 
@@ -240,13 +241,14 @@ export async function POST(
       data: { status: "ACTIVE", lastActiveAt: new Date() },
     });
 
-    const completed = JSON.parse(
+    const completed = readJsonField<string[]>(
       (
         await tx.deliveryWorkflow.findUnique({
           where: { organizationId: session.organizationId },
         })
-      )?.stepsCompletedJson || "[]",
-    ) as string[];
+      )?.stepsCompletedJson,
+      [],
+    );
     const nextSteps = [
       ...new Set([...completed, "correlation", "recommendations", "telemetry"]),
     ];

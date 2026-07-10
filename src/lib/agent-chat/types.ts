@@ -38,16 +38,14 @@ export type StreamChunkSsePayload = {
   error?: string;
 };
 
-export function parseReasoningJson(json: string): ReasoningJson {
-  try {
-    const parsed = JSON.parse(json) as Partial<ReasoningJson>;
-    return {
-      thinking: parsed.thinking ?? "",
-      tools: Array.isArray(parsed.tools) ? parsed.tools : [],
-    };
-  } catch {
-    return { thinking: "", tools: [] };
-  }
+import { readJsonField } from "@/lib/json-field";
+
+export function parseReasoningJson(json: unknown): ReasoningJson {
+  const parsed = readJsonField<Partial<ReasoningJson>>(json, {});
+  return {
+    thinking: parsed.thinking ?? "",
+    tools: Array.isArray(parsed.tools) ? parsed.tools : [],
+  };
 }
 
 export function buildReasoningJson(state: {
@@ -90,7 +88,7 @@ export type AgentChatThreadDetail = AgentChatThread & {
       type: string;
       title: string | null;
       decision: string | null;
-      payloadJson: string;
+      payloadJson: unknown;
       recommendation: { title: string; requiredRole: string | null } | null;
     } | null;
   })[];

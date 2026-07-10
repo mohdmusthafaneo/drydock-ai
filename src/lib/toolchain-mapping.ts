@@ -1,6 +1,7 @@
 import type { Integration, OrganizationProfile } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { parseIntegrationMeta } from "@/lib/integration-meta";
+import { readJsonField } from "@/lib/json-field";
 import {
   isJiraOAuthConnected,
   parseJiraMeta,
@@ -85,13 +86,9 @@ export function applyJiraSchemaSuggestions(
   };
 }
 
-export function parseToolchainMapping(json: string | null | undefined): ToolchainMapping {
-  try {
-    const parsed = JSON.parse(json || "{}") as ToolchainMapping;
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return {};
-  }
+export function parseToolchainMapping(json: unknown): ToolchainMapping {
+  const parsed = readJsonField<ToolchainMapping>(json, {});
+  return parsed && typeof parsed === "object" ? parsed : {};
 }
 
 export async function resolveConfirmedToolchainMapping(
@@ -267,7 +264,7 @@ export function inferToolchainMapping(input: {
   integrations: Integration[];
 }): ToolchainMapping {
   const discoveryWorkflows = input.profile
-    ? (JSON.parse(input.profile.workflowsJson || "[]") as string[])
+    ? readJsonField<string[]>(input.profile.workflowsJson, [])
     : [];
 
   const mapping: ToolchainMapping = {

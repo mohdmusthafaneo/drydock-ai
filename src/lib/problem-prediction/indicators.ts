@@ -1,4 +1,5 @@
 import type { StoredCodeAnalysis } from "@/lib/code-analysis/types";
+import { readJsonField } from "@/lib/json-field";
 import { scopedKpisFromSnapshot } from "@/lib/delivery-analysis/persist";
 import type { DeliveryAnalysisSnapshot } from "@/lib/delivery-analysis/types";
 import {
@@ -21,7 +22,7 @@ export type PredictionContext = {
     syncedAt: Date;
     healthScore: number;
     openWork: number;
-    snapshotJson: string;
+    snapshotJson: unknown;
   }>;
   codeAnalysis: StoredCodeAnalysis | null;
   complianceFindings: Array<{
@@ -59,12 +60,9 @@ function buildKey(indicatorKey: string, scope: string): string {
   return `${indicatorKey}:${scope}`;
 }
 
-function parseSnapshot(json: string): DeliveryAnalysisSnapshot | null {
-  try {
-    return JSON.parse(json) as DeliveryAnalysisSnapshot;
-  } catch {
-    return null;
-  }
+function parseSnapshot(json: unknown): DeliveryAnalysisSnapshot | null {
+  const parsed = readJsonField<DeliveryAnalysisSnapshot | null>(json, null);
+  return parsed && typeof parsed === "object" ? parsed : null;
 }
 
 function horizonFromSlope(

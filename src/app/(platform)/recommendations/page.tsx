@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSession } from "@/lib/session";
 import { getOrganizationContext } from "@/lib/org-data";
+import { readJsonField } from "@/lib/json-field";
 import {
   buildRecommendationsSummaryHighlights,
   sortRecommendationsByUrgency,
@@ -63,7 +64,7 @@ export default async function RecommendationsCenterPage() {
           </Card>
         ) : (
           sorted.map((rec) => {
-            const systems = JSON.parse(rec.affectedSystems || "[]") as string[];
+            const systems = readJsonField(rec.affectedSystems, []) as string[];
             return (
               <RecommendationCard
                 key={rec.id}
