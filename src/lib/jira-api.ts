@@ -12,6 +12,7 @@ import {
 } from "@/lib/jira-meta";
 import type { Integration } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { httpFetch, HttpResponseError } from "@/lib/http/client";
 import {
   isJiraReconnectError,
   JIRA_RECONNECT_MESSAGE,
@@ -256,17 +257,27 @@ async function jiraFetch<T>(
   cloudId: string,
   path: string,
   init?: RequestInit,
+  organizationId?: string,
 ): Promise<T> {
   const url = path.startsWith("http") ? path : `${JIRA_API}/${cloudId}${path}`;
-  const res = await fetch(url, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      Accept: "application/json",
-      ...(init?.headers ?? {}),
-    },
-    next: { revalidate: 0 },
-  });
+  let res: Response;
+  try {
+    res = await httpFetch({
+      url,
+      method: init?.method ?? "GET",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: "application/json",
+        ...(init?.headers ?? {}),
+      },
+      body: init?.body ?? undefined,
+      scope: { provider: "jira", organizationId },
+    });
+  } catch (err) {
+    const status = err instanceof HttpResponseError ? err.status : 502;
+    const text = err instanceof HttpResponseError ? err.bodyText ?? err.message : String(err);
+    throw new JiraApiError(text || `Jira API error (${status})`, status);
+  }
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
@@ -321,7 +332,7 @@ export async function resolveJiraAccessToken(integration: Integration): Promise<
   }
 
   try {
-    await jiraFetch(accessToken, meta.cloudId, "/rest/api/3/myself");
+    await jiraFetch(accessToken, meta.cloudId, "/rest/api/3/myself", undefined, integration.organizationId);
     return { accessToken, cloudId: meta.cloudId };
   } catch (err) {
     if (!(err instanceof JiraApiError) || err.status !== 401) throw err;
@@ -332,7 +343,13 @@ export async function resolveJiraAccessToken(integration: Integration): Promise<
     }
 
     const refreshed = await refreshJiraAccessToken(refreshToken);
-    await jiraFetch(refreshed.accessToken, meta.cloudId, "/rest/api/3/myself");
+    await jiraFetch(
+      refreshed.accessToken,
+      meta.cloudId,
+      "/rest/api/3/myself",
+      undefined,
+      integration.organizationId,
+    );
     return {
       accessToken: refreshed.accessToken,
       cloudId: meta.cloudId,

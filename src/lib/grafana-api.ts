@@ -1,5 +1,6 @@
 import type { Integration } from "@/generated/prisma/client";
 import { decryptToken } from "@/lib/token-crypto";
+import { httpFetch, HttpResponseError } from "@/lib/http/client";
 import { parseGrafanaMeta, type GrafanaAuthType } from "@/lib/grafana-meta";
 
 export class GrafanaApiError extends Error {
@@ -74,10 +75,12 @@ async function grafanaFetch(
   path: string,
   auth: GrafanaAuth,
   init?: RequestInit,
+  organizationId?: string,
 ): Promise<Response> {
   const url = `${grafanaUrl}${path}`;
   try {
-    return await fetch(url, {
+    return await httpFetch({
+      url,
       method: init?.method ?? "GET",
       headers: {
         Accept: "application/json",
@@ -85,12 +88,13 @@ async function grafanaFetch(
         ...authHeaders(auth),
         ...(init?.headers ?? {}),
       },
-      body: init?.body,
-      signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+      body: init?.body ?? undefined,
+      timeoutMs: PROBE_TIMEOUT_MS,
+      scope: { provider: "grafana", organizationId },
     });
   } catch (err) {
     const message =
-      err instanceof Error && err.name === "TimeoutError"
+      err instanceof HttpResponseError && err.message.includes("timed out")
         ? "Grafana probe timed out — check URL and network access"
         : "Unable to reach Grafana — check URL and network access";
     throw new GrafanaApiError(message, 502);

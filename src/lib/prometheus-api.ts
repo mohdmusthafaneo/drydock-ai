@@ -1,5 +1,6 @@
 import type { Integration } from "@/generated/prisma/client";
 import { decryptToken } from "@/lib/token-crypto";
+import { httpFetch, HttpResponseError } from "@/lib/http/client";
 import {
   parsePrometheusMeta,
   type PrometheusAuthType,
@@ -132,21 +133,24 @@ async function prometheusFetch(
   prometheusUrl: string,
   path: string,
   auth: PrometheusAuth,
+  organizationId?: string,
 ): Promise<PrometheusApiResponse> {
   const url = `${prometheusUrl}${path}`;
   let response: Response;
   try {
-    response = await fetch(url, {
+    response = await httpFetch({
+      url,
       method: "GET",
       headers: {
         Accept: "application/json",
         ...authHeaders(auth),
       },
-      signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+      timeoutMs: PROBE_TIMEOUT_MS,
+      scope: { provider: "prometheus", organizationId },
     });
   } catch (err) {
     const message =
-      err instanceof Error && err.name === "TimeoutError"
+      err instanceof HttpResponseError && err.message.includes("timed out")
         ? "Prometheus probe timed out — check URL and network access"
         : "Unable to reach Prometheus — check URL and network access";
     throw new PrometheusApiError(message, 502);

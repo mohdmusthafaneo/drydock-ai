@@ -1,6 +1,7 @@
 import { decryptToken, encryptToken } from "@/lib/token-crypto";
 import { parseIntegrationMeta, type GitHubIntegrationMeta } from "@/lib/integration-meta";
 import type { Integration } from "@/generated/prisma/client";
+import { httpFetch, HttpResponseError } from "@/lib/http/client";
 
 const GITHUB_API = "https://api.github.com";
 
@@ -23,15 +24,27 @@ export function getGitHubAccessToken(integration: Integration): string | null {
   }
 }
 
-async function githubFetch<T>(accessToken: string, path: string): Promise<T> {
-  const res = await fetch(`${GITHUB_API}${path}`, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      Accept: "application/vnd.github+json",
-      "X-GitHub-Api-Version": "2022-11-28",
-    },
-    next: { revalidate: 0 },
-  });
+async function githubFetch<T>(
+  accessToken: string,
+  path: string,
+  scope?: { organizationId?: string },
+): Promise<T> {
+  let res: Response;
+  try {
+    res = await httpFetch({
+      url: `${GITHUB_API}${path}`,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+      scope: { provider: "github", organizationId: scope?.organizationId },
+    });
+  } catch (err) {
+    const status = err instanceof HttpResponseError ? err.status : 502;
+    const text = err instanceof HttpResponseError ? err.bodyText ?? err.message : String(err);
+    throw new GitHubApiError(text || "GitHub API request failed", status);
+  }
 
   if (!res.ok) {
     const text = await res.text();
