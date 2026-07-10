@@ -42,6 +42,11 @@ export const TENANT_MODELS = new Set([
   "AgentChatParticipant",
   "AgentChatMessage",
   "AgentChatStreamChunk",
+  "Embedding",
+  "TicketSnapshot",
+  "CommitSnapshot",
+  "EvidenceLink",
+  "EvidenceReview",
 ]);
 
 const READ_OPS = new Set([

@@ -150,6 +150,29 @@ model Organization {
   agentChatStreamChunks    AgentChatStreamChunk[]
   executiveBriefingSnapshots ExecutiveBriefingSnapshot[]
   jiraCalibrationProfiles JiraCalibrationProfile[]
+  embeddings              Embedding[]
+  ticketSnapshots         TicketSnapshot[]
+  commitSnapshots         CommitSnapshot[]
+  evidenceLinks           EvidenceLink[]
+  evidenceReviews         EvidenceReview[]
+}
+
+enum EmbeddingRefType {
+  commit
+  ticket
+}
+
+enum EvidenceTier {
+  direct
+  strong
+  moderate
+  reviewable
+  low
+}
+
+enum EvidenceReviewDecision {
+  confirmed
+  rejected
 }
 
 enum MetricSource {
@@ -1098,4 +1121,120 @@ model AgentChatStreamChunk {
 
   @@index([threadId, runId, sequence])
   @@index([threadId, createdAt])
+}
+
+/// 384-dim embedding row. The `vector` column is pgvector; read/write via raw SQL
+/// helpers in `src/lib/ml/vector-store.ts` (Prisma Unsupported).
+model Embedding {
+  id             String           @id @default(cuid())
+  organizationId String
+  refType        EmbeddingRefType
+  refId          String
+  modelName      String
+  dim            Int              @default(384)
+  /// pgvector column — not readable via Prisma client; use vector-store helpers.
+  vector         Unsupported("vector(384)")
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, refType, refId, modelName])
+  @@index([organizationId, refType])
+}
+
+/// Snapshot of a Jira ticket at evidence-compute time.
+model TicketSnapshot {
+  id              String    @id @default(cuid())
+  organizationId  String
+  jiraKey         String
+  projectKey      String
+  sprintId        String?
+  summary         String?
+  descriptionText String?
+  assigneeName    String?
+  reporterName    String?
+  status          String?
+  issueType       String?
+  priority        String?
+  labelsJson      Json      @default("[]")
+  storyPoints     Float?
+  ticketCreatedAt DateTime?
+  ticketUpdatedAt DateTime?
+  resolvedAt      DateTime?
+  capturedAt      DateTime  @default(now())
+
+  organization  Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  evidenceLinks EvidenceLink[]
+
+  @@unique([organizationId, jiraKey, sprintId])
+  @@index([organizationId, sprintId])
+  @@index([organizationId, jiraKey])
+}
+
+/// Snapshot of a git commit at evidence-compute time.
+model CommitSnapshot {
+  id             String    @id @default(cuid())
+  organizationId String
+  sha            String
+  repoFullName   String
+  primaryBranch  String
+  authorName     String?
+  authorEmail    String?
+  commitDate     DateTime?
+  subject        String?
+  body           String?
+  filesTouchedJson Json    @default("[]")
+  funcSignaturesJson Json  @default("[]")
+  hunkSnippet    String?
+  capturedAt     DateTime  @default(now())
+
+  organization  Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  evidenceLinks EvidenceLink[]
+
+  @@unique([organizationId, repoFullName, sha])
+  @@index([organizationId, repoFullName])
+  @@index([organizationId, commitDate])
+}
+
+/// Candidate ticket↔commit evidence link with per-signal scores.
+model EvidenceLink {
+  id               String       @id @default(cuid())
+  organizationId   String
+  ticketSnapshotId String
+  commitSnapshotId String
+  sprintId         String?
+  tier             EvidenceTier
+  authorScore      Float
+  dateScore        Float
+  keywordScore     Float
+  codeSimScore     Float        @default(0)
+  compositeScore   Float
+  signalPattern    String
+  computedAt       DateTime     @default(now())
+
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  ticketSnapshot TicketSnapshot  @relation(fields: [ticketSnapshotId], references: [id], onDelete: Cascade)
+  commitSnapshot CommitSnapshot  @relation(fields: [commitSnapshotId], references: [id], onDelete: Cascade)
+  review         EvidenceReview?
+
+  @@unique([ticketSnapshotId, commitSnapshotId])
+  @@index([organizationId, sprintId])
+  @@index([ticketSnapshotId])
+}
+
+/// Human accept/reject of an evidence candidate.
+model EvidenceReview {
+  id             String                  @id @default(cuid())
+  organizationId String
+  evidenceLinkId String                  @unique
+  reviewerId     String
+  decision       EvidenceReviewDecision
+  note           String?
+  reviewedAt     DateTime                @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  evidenceLink EvidenceLink @relation(fields: [evidenceLinkId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
 }
