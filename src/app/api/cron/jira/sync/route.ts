@@ -1,47 +1,8 @@
-import { NextResponse } from "next/server";
-import { z } from "zod";
-import { runScheduledJiraSync } from "@/lib/jira-scheduled-sync";
-import {
-  platformWorkerNotConfigured,
-  verifyPlatformWorkerRequest,
-} from "@/lib/platform-worker-auth";
+import { createCronEnqueueRoute } from "@/lib/jobs/cron-route";
+import { jiraSyncJob } from "@/lib/jobs/domain-scheduled-jobs";
+import { JOB_NAMES } from "@/lib/jobs/constants";
 
-const bodySchema = z
-  .object({
-    organizationId: z.string().min(1).optional(),
-  })
-  .optional();
-
-/**
- * Platform worker endpoint for external schedulers (Coolify cron, etc.).
- * Auth: `Authorization: Bearer $PLATFORM_WORKER_SECRET`
- * Body (optional): `{ "organizationId": "..." }` — omit to sync all connected orgs.
- */
-export async function POST(request: Request) {
-  if (platformWorkerNotConfigured()) {
-    return NextResponse.json(
-      { error: "Platform worker is not configured (set PLATFORM_WORKER_SECRET)" },
-      { status: 503 },
-    );
-  }
-
-  if (!verifyPlatformWorkerRequest(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  let organizationId: string | undefined;
-  try {
-    const raw = await request.json().catch(() => undefined);
-    const parsed = bodySchema.parse(raw);
-    organizationId = parsed?.organizationId;
-  } catch {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
-  }
-
-  const result = await runScheduledJiraSync({ organizationId });
-
-  return NextResponse.json({
-    ok: true,
-    ...result,
-  });
-}
+export const POST = createCronEnqueueRoute({
+  jobName: JOB_NAMES.jiraSync,
+  enqueue: (input) => jiraSyncJob.sendJob(input),
+});
