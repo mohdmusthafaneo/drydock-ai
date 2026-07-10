@@ -28,7 +28,9 @@ const REQUIRED_DELEGATES = [
 
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;
+  prismaRead?: PrismaClient;
   prismaSchemaVersion?: number;
+  prismaReadUrl?: string;
 };
 
 const JSON_COERCED_WRITE_OPERATIONS = new Set([
@@ -79,13 +81,7 @@ function coerceJsonWriteArgs(args: unknown): unknown {
 }
 
 /** Create Prisma client with pg adapter for PostgreSQL */
-function createPrismaClient(): PrismaClient {
-  const connectionString = process.env.DATABASE_URL;
-
-  if (!connectionString) {
-    throw new Error("DATABASE_URL environment variable is required");
-  }
-
+function createPrismaClient(connectionString: string): PrismaClient {
   const pool = new pg.Pool({ connectionString });
   const adapter = new PrismaPg(pool);
   const client = new PrismaClient({ adapter }).$extends({
@@ -108,7 +104,15 @@ function isStaleClient(client: PrismaClient): boolean {
   return REQUIRED_DELEGATES.some((key) => record[key] === undefined);
 }
 
-/** Get or create Prisma client - uses lazy initialization to avoid build-time errors */
+function requireDatabaseUrl(): string {
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error("DATABASE_URL environment variable is required");
+  }
+  return connectionString;
+}
+
+/** Get or create primary Prisma client - lazy to avoid build-time errors */
 function getPrismaClient(): PrismaClient {
   const cached = globalForPrisma.prisma;
   if (
@@ -119,10 +123,47 @@ function getPrismaClient(): PrismaClient {
     return cached;
   }
 
-  const client = createPrismaClient();
+  const client = createPrismaClient(requireDatabaseUrl());
   globalForPrisma.prisma = client;
   globalForPrisma.prismaSchemaVersion = PRISMA_SCHEMA_VERSION;
   return client;
+}
+
+function resolveReplicaUrl(): string | undefined {
+  return (
+    process.env.DATABASE_URL_REPLICA?.trim() ||
+    undefined
+  );
+}
+
+/**
+ * Read-preferring client: uses DATABASE_URL_REPLICA when set, else primary.
+ * For analytics / dashboard reads that tolerate replica lag.
+ */
+export function getPrismaRead(): PrismaClient {
+  const replicaUrl = resolveReplicaUrl();
+  if (!replicaUrl) {
+    return getPrismaClient();
+  }
+
+  if (
+    globalForPrisma.prismaRead &&
+    globalForPrisma.prismaReadUrl === replicaUrl &&
+    globalForPrisma.prismaSchemaVersion === PRISMA_SCHEMA_VERSION &&
+    !isStaleClient(globalForPrisma.prismaRead)
+  ) {
+    return globalForPrisma.prismaRead;
+  }
+
+  const client = createPrismaClient(replicaUrl);
+  globalForPrisma.prismaRead = client;
+  globalForPrisma.prismaReadUrl = replicaUrl;
+  return client;
+}
+
+/** True when analytics reads will hit a dedicated replica URL. */
+export function isReadReplicaConfigured(): boolean {
+  return Boolean(resolveReplicaUrl());
 }
 
 /** Lazy proxy that defers client creation until first property access */
@@ -160,5 +201,14 @@ export function asSystem(): PrismaClient {
  */
 export function forOrg(organizationId: string): PrismaClient {
   const base = getPrismaClient();
+  return base.$extends(createTenantExtension(organizationId)) as unknown as PrismaClient;
+}
+
+/**
+ * Tenant-scoped read client (replica when DATABASE_URL_REPLICA is set).
+ * Use for dashboard / analytics paths that do not write.
+ */
+export function forOrgRead(organizationId: string): PrismaClient {
+  const base = getPrismaRead();
   return base.$extends(createTenantExtension(organizationId)) as unknown as PrismaClient;
 }

@@ -1,4 +1,5 @@
-import { asSystem } from "@/lib/prisma";
+import { asSystem, isReadReplicaConfigured } from "@/lib/prisma";
+import { getCacheBackend } from "@/lib/cache";
 import { getBoss } from "@/lib/jobs/boss";
 import { JOB_NAMES } from "@/lib/jobs/constants";
 import { resolveRuntimeConfig } from "@/lib/agent-control-plane/runtime-config";
@@ -37,6 +38,10 @@ export type IntegrationStaleness = {
 export type InternalHealthReport = {
   ok: boolean;
   checkedAt: string;
+  scale: {
+    cacheBackend: "memory" | "valkey";
+    readReplica: boolean;
+  };
   queues: QueueHealth[];
   schedules: ScheduleHealth[];
   stuckRuns: {
@@ -190,6 +195,10 @@ export async function getInternalHealth(): Promise<InternalHealthReport> {
   return {
     ok,
     checkedAt: new Date().toISOString(),
+    scale: {
+      cacheBackend: getCacheBackend(),
+      readReplica: isReadReplicaConfigured(),
+    },
     queues,
     schedules,
     stuckRuns: { count: stuckCount },

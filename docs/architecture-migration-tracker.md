@@ -2,7 +2,7 @@
 
 **Plan:** [`architecture-migration-plan.md`](./architecture-migration-plan.md)  
 **Last updated:** 2026-07-10  
-**Current focus:** Phase 4 complete — Phase 5 trigger-gated
+**Current focus:** Phase 5 complete — architecture migration plan finished
 
 > Update this file when a phase/sub-phase ships. Keep task wording aligned with the main plan; use checkboxes only here.
 
@@ -19,7 +19,7 @@
 | **2** | All cron → pg-boss, fan-out refresh | **Done** | PRs #5–#8 (stacked) |
 | **3** | jsonb, tenant-safe client, internal health | **Done** | PRs [#9](https://github.com/Suralal001/AIDOS/pull/9)–[#11](https://github.com/Suralal001/AIDOS/pull/11) (stacked) |
 | **4** | AI/ML platform (pgvector, Python service) | **Done** | PRs [#12](https://github.com/Suralal001/AIDOS/pull/12)–[#16](https://github.com/Suralal001/AIDOS/pull/16) (stacked) |
-| **5** | TimescaleDB, Valkey, horizontal scale | Not started | — |
+| **5** | TimescaleDB, Valkey, horizontal scale | **Done** | PRs [#17](https://github.com/Suralal001/AIDOS/pull/17)–[#20](https://github.com/Suralal001/AIDOS/pull/20) (stacked) |
 
 **Phase 1 overall:** code complete on `dev`. Local compose smoke (`docker compose up`) recommended before Coolify cutover (D11).
 
@@ -122,10 +122,17 @@
 
 ## Phase 5 — Volume & horizontal scale (trigger-gated)
 
-- [ ] TimescaleDB on telemetry tables
-- [ ] Web >1 replica + Valkey
-- [ ] Split worker pools (`WORKER_QUEUES`)
-- [ ] Read replica for analytics
+- [x] TimescaleDB on telemetry tables
+- [x] Web >1 replica + Valkey
+- [x] Split worker pools (`WORKER_QUEUES`)
+- [x] Read replica for analytics
+
+**Exit criteria**
+
+- [x] High-volume tables are Timescale hypertables with compression + retention
+- [x] Shared `CacheClient` (Valkey when `VALKEY_URL` set) for tokens / prompts / LLM / SSE wake
+- [x] Dedicated worker pools via `WORKER_QUEUES` + `docker-compose.workers.yml`
+- [x] Analytics reads prefer `DATABASE_URL_REPLICA` via `forOrgRead` / `getPrismaRead`
 
 ---
 
@@ -134,5 +141,8 @@
 - **Scheduled jobs** run on pg-boss via `AIDOS_PROCESS_ROLE=worker`. HTTP `POST /api/cron/*` routes enqueue jobs for manual/external triggers.
 - **Integration refresh** uses `refresh.fanout` → `refresh.org` (Jira, Grafana, Prometheus) every 15 min by default.
 - **ML worker** (`WORKER_QUEUES=ml` or `all`) consumes `ml.embed`, `ml.codeQuality`, and `evidence.recompute`.
+- **Retention worker** (`WORKER_QUEUES=retention` or `all`) runs `retention.ensure` (Timescale policy idempotency).
 - **ML inference** URL: `ML_INFERENCE_URL` (compose default `http://ml-inference:8080`).
+- **Valkey** URL: `VALKEY_URL` (compose default `redis://valkey:6379`); omit for in-memory single-replica.
+- **Read replica** URL: `DATABASE_URL_REPLICA` (optional; falls back to primary).
 - **Locked decisions (D1–D11)** live in the main plan — not tracked here.
