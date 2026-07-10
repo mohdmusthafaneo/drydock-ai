@@ -5,9 +5,9 @@ import {
   registerAgentWakeupWorker,
 } from "./agent-wakeup-job";
 import {
-  ensureGrafanaSyncSchedule,
-  registerGrafanaSyncWorker,
-} from "./grafana-sync-job";
+  ensureAllDomainSchedules,
+  registerAllDomainWorkers,
+} from "./domain-scheduled-jobs";
 
 const log = createLogger({ component: "jobs/bootstrap" });
 
@@ -23,15 +23,15 @@ export async function bootstrapJobInfrastructure(
   const boss = await getBoss();
 
   if (role === "web") {
-    await ensureGrafanaSyncSchedule(boss);
+    await ensureAllDomainSchedules(boss);
     log.info("web role: pg-boss schedules registered");
     return;
   }
 
   await registerAgentWakeupWorker(boss);
   await registerAgentTimerScanWorker(boss);
-  await registerGrafanaSyncWorker(boss);
-  await ensureGrafanaSyncSchedule(boss);
+  await registerAllDomainWorkers(boss);
+  await ensureAllDomainSchedules(boss);
   log.info("worker role: pg-boss work handlers registered");
 }
 
