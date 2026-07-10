@@ -1,4 +1,6 @@
 import { resolveAidosApiBaseUrl } from "./llm/config";
+import { isLegacyAgentDrainEnabled, isPgBossEnabled } from "@/lib/jobs/boss";
+import { sendAgentWakeupJob } from "@/lib/jobs/agent-wakeup-job";
 
 export type TriggerWakeupProcessingInput = {
   organizationId: string;
@@ -10,12 +12,13 @@ export type TriggerWakeupProcessingInput = {
 function pokeEnabled(): boolean {
   if (process.env.AGENT_WORKER_ENABLED === "false") return false;
   if (process.env.AGENT_WORKER_POKE_ON_ENQUEUE === "false") return false;
+  if (isPgBossEnabled() && !isLegacyAgentDrainEnabled()) return true;
   return Boolean(process.env.PLATFORM_WORKER_SECRET?.trim());
 }
 
 /**
- * Fire-and-forget POST to the platform worker endpoint so queued wakeups
- * are processed without waiting for the next cron tick.
+ * Fire-and-forget dispatch so queued wakeups are processed without waiting
+ * for the next cron tick. Uses pg-boss when enabled, else HTTP poke.
  */
 export function pokeAgentWorker(input: {
   organizationId?: string;
@@ -23,6 +26,15 @@ export function pokeAgentWorker(input: {
   limit?: number;
 }): void {
   if (!pokeEnabled()) return;
+
+  if (isPgBossEnabled() && !isLegacyAgentDrainEnabled()) {
+    if (!input.wakeupId) return;
+    void sendAgentWakeupJob({
+      wakeupId: input.wakeupId,
+      organizationId: input.organizationId,
+    }).catch(() => undefined);
+    return;
+  }
 
   const secret = process.env.PLATFORM_WORKER_SECRET!.trim();
   const baseUrl = resolveAidosApiBaseUrl();
@@ -43,7 +55,7 @@ export function pokeAgentWorker(input: {
 
 /**
  * Trigger wakeup processing after enqueue. Delegation uses inline processing
- * when immediate=true; all other sources poke the worker endpoint.
+ * when immediate=true; all other sources poke the worker (pg-boss or HTTP).
  */
 export async function triggerWakeupProcessing(
   input: TriggerWakeupProcessingInput,

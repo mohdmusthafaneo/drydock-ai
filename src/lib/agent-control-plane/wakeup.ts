@@ -3,6 +3,8 @@ import type { AgentWakeupSource } from "@/generated/prisma/client";
 import { logAgentActivity, logAgentAudit } from "./audit";
 import { resolveRuntimeConfig } from "./runtime-config";
 import { triggerWakeupProcessing } from "./worker-poke";
+import { sendAgentWakeupJob } from "@/lib/jobs/agent-wakeup-job";
+import { isPgBossEnabled } from "@/lib/jobs/boss";
 import {
   NON_RUNNABLE_STATUSES,
   WAKEUP_SOURCE_PRIORITY,
@@ -110,7 +112,13 @@ export async function enqueueWakeup(input: EnqueueWakeupInput) {
     return created;
   });
 
-  if (source !== "timer") {
+  if (isPgBossEnabled()) {
+    void sendAgentWakeupJob({
+      wakeupId: wakeup.id,
+      organizationId,
+      source,
+    });
+  } else if (source !== "timer") {
     void triggerWakeupProcessing({
       organizationId,
       wakeupId: wakeup.id,

@@ -32,13 +32,17 @@ case "$ROLE" in
     ;;
 
   worker)
-    if [ -z "$PLATFORM_WORKER_SECRET" ]; then
-      echo "ERROR: PLATFORM_WORKER_SECRET is not set (required for worker role)."
+    if [ -z "$PLATFORM_WORKER_SECRET" ] && [ -z "$DATABASE_URL" ]; then
+      echo "ERROR: DATABASE_URL or PLATFORM_WORKER_SECRET is required for worker role."
       exit 1
     fi
 
-    echo "Starting agent worker loop (role=worker)..."
-    exec su-exec nextjs node /app/scripts/agent-worker-loop.mjs
+    if [ -z "$PLATFORM_WORKER_SECRET" ]; then
+      echo "WARN: PLATFORM_WORKER_SECRET is not set — legacy HTTP worker fallback unavailable."
+    fi
+
+    echo "Starting agent worker (role=worker)..."
+    exec su-exec nextjs npx tsx /app/scripts/agent-worker-loop.ts
     ;;
 
   *)

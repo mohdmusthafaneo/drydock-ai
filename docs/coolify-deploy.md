@@ -37,7 +37,7 @@ Both containers use the same Docker image (`Dockerfile`). The entrypoint (`docke
 | Role | Behavior |
 |------|----------|
 | `web` | `prisma migrate deploy` → `node server.js` |
-| `worker` | `node scripts/agent-worker-loop.mjs` (polls worker API) |
+| `worker` | `npx tsx scripts/agent-worker-loop.ts` (pg-boss consumers when `DATABASE_URL` set) |
 
 ---
 
@@ -47,7 +47,7 @@ Set these on **both** web and worker services unless noted.
 
 | Variable | Web | Worker | Notes |
 |----------|-----|--------|-------|
-| `DATABASE_URL` | ✓ | ✓* | Postgres; Mastra uses `mastra` schema. *Required on worker once pg-boss lands (Phase 1c). |
+| `DATABASE_URL` | ✓ | ✓ | Postgres; Prisma (`public`) + Mastra (`mastra`) + pg-boss (`pgboss`) schemas |
 | `AUTH_SECRET` | ✓ | — | Session signing |
 | `PLATFORM_WORKER_SECRET` | ✓ | ✓ | Must match on both services |
 | `AIDOS_PROCESS_ROLE` | `web` | `worker` | |
@@ -58,7 +58,9 @@ Set these on **both** web and worker services unless noted.
 | `ANTHROPIC_MODEL` | ✓ | ✓ | e.g. `MiniMax-M3` |
 | `AGENT_INSTRUCTIONS_ROOT` | ✓ | ✓ | `/data/agent-instructions` |
 | `MASTRA_PG_SCHEMA` | ✓ | ✓ | Optional; default `mastra` |
+| `PG_BOSS_ENABLED` | ✓ | ✓ | Default on when `DATABASE_URL` is set; set `false` to disable |
 | `AGENT_WORKER_ENABLED` | ✓ | ✓ | `true` |
+| `AGENT_WORKER_LEGACY_DRAIN` | ✓ | ✓ | Optional; HTTP drain fallback when `true` |
 | `AGENT_WORKER_INTERVAL_SEC` | — | ✓ | Default `30` in production |
 
 ---

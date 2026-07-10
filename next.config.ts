@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
     "@mastra/schema-compat",
     "@mastra/server",
     "mastra",
+    "pg-boss",
   ],
   async rewrites() {
     return [

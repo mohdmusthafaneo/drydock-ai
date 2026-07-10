@@ -6,6 +6,10 @@ import {
 } from "@/lib/platform-worker-auth";
 import { drainWakeupQueue } from "@/lib/agent-control-plane/worker";
 import {
+  isLegacyAgentDrainEnabled,
+  isPgBossEnabled,
+} from "@/lib/jobs/boss";
+import {
   createLogger,
   resolveCorrelationId,
   runWithCorrelationId,
@@ -45,6 +49,19 @@ export async function POST(request: Request) {
     if (process.env.AGENT_WORKER_ENABLED === "false") {
       log.debug("agent worker disabled");
       return NextResponse.json({ ok: true, disabled: true });
+    }
+
+    if (isPgBossEnabled() && !isLegacyAgentDrainEnabled()) {
+      log.debug("agent worker drain skipped — pg-boss handles wakeups");
+      return NextResponse.json({
+        ok: true,
+        pgBoss: true,
+        wakeupsProcessed: 0,
+        runsSucceeded: 0,
+        runsFailed: 0,
+        timersEnqueued: 0,
+        errors: [],
+      });
     }
 
     let organizationId: string | undefined;
