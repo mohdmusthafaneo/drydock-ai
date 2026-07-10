@@ -3,7 +3,7 @@ import type { PgBoss } from "pg-boss";
 import type { AgentWakeupSource } from "@/generated/prisma/client";
 import { WAKEUP_SOURCE_PRIORITY } from "@/lib/agent-control-plane/types";
 import { createLogger } from "@/lib/logger";
-import { getBoss, isPgBossEnabled } from "./boss";
+import { getBoss } from "./boss";
 import { JOB_NAMES } from "./constants";
 
 const log = createLogger({ component: "jobs/agent-wakeup" });
@@ -24,8 +24,6 @@ function pgBossPriority(source?: AgentWakeupSource): number {
 export async function sendAgentWakeupJob(
   input: AgentWakeupJobData,
 ): Promise<void> {
-  if (!isPgBossEnabled()) return;
-
   const boss = await getBoss();
   const jobId = await boss.send(
     JOB_NAMES.agentWakeup,

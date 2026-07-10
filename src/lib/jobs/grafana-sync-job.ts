@@ -59,8 +59,7 @@ export async function registerGrafanaSyncWorker(boss: PgBoss): Promise<void> {
 export async function sendGrafanaSyncJob(input?: {
   organizationId?: string;
 }): Promise<void> {
-  const { getBoss, isPgBossEnabled } = await import("./boss");
-  if (!isPgBossEnabled()) return;
+  const { getBoss } = await import("./boss");
 
   const boss = await getBoss();
   await boss.send(JOB_NAMES.grafanaSync, input ?? {}, {

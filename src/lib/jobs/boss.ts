@@ -8,11 +8,6 @@ let bossStartPromise: Promise<PgBoss> | null = null;
 
 const log = createLogger({ component: "pg-boss" });
 
-export function isPgBossEnabled(): boolean {
-  if (process.env.PG_BOSS_ENABLED === "false") return false;
-  return Boolean(process.env.DATABASE_URL?.trim());
-}
-
 function resolveConnectionString(): string {
   const connectionString = process.env.DATABASE_URL?.trim();
   if (!connectionString) {

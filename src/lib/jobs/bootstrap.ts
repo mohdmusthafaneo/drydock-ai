@@ -1,5 +1,5 @@
 import { createLogger } from "@/lib/logger";
-import { getBoss, isPgBossEnabled } from "./boss";
+import { getBoss } from "./boss";
 import {
   registerAgentTimerScanWorker,
   registerAgentWakeupWorker,
@@ -20,11 +20,6 @@ export type ProcessRole = "web" | "worker";
 export async function bootstrapJobInfrastructure(
   role: ProcessRole,
 ): Promise<void> {
-  if (!isPgBossEnabled()) {
-    log.info({ role }, "pg-boss disabled — skipping job bootstrap");
-    return;
-  }
-
   const boss = await getBoss();
 
   if (role === "web") {

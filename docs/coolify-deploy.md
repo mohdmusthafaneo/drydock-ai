@@ -58,7 +58,6 @@ Set these on **both** web and worker services unless noted.
 | `ANTHROPIC_MODEL` | ✓ | ✓ | e.g. `MiniMax-M3` |
 | `AGENT_INSTRUCTIONS_ROOT` | ✓ | ✓ | `/data/agent-instructions` |
 | `MASTRA_PG_SCHEMA` | ✓ | ✓ | Optional; default `mastra` |
-| `PG_BOSS_ENABLED` | ✓ | ✓ | Default on when `DATABASE_URL` is set; set `false` to disable |
 | `AGENT_WORKER_ENABLED` | ✓ | ✓ | `true` |
 
 ---
