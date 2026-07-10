@@ -33,6 +33,7 @@ services:
       PLATFORM_WORKER_SECRET: "dev-worker-secret"
       AGENT_WORKER_ENABLED: "true"
       AGENT_INSTRUCTIONS_ROOT: "/data/agent-instructions"
+      VALKEY_URL: "redis://valkey:6379"
       NODE_ENV: "production"
       NEXT_TELEMETRY_DISABLED: "1"
     volumes:
@@ -40,6 +41,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      valkey:
+        condition: service_started
     restart: unless-stopped
 
   worker:
@@ -57,6 +60,7 @@ services:
       AGENT_INSTRUCTIONS_ROOT: "/data/agent-instructions"
       ML_INFERENCE_URL: "http://ml-inference:8080"
       WORKER_QUEUES: "all"
+      VALKEY_URL: "redis://valkey:6379"
       NODE_ENV: "production"
     volumes:
       - agent_instructions:/data/agent-instructions
@@ -67,6 +71,15 @@ services:
         condition: service_started
       ml-inference:
         condition: service_started
+      valkey:
+        condition: service_started
+    restart: unless-stopped
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    container_name: aidos-valkey
+    ports:
+      - "6379:6379"
     restart: unless-stopped
 
   ml-inference:

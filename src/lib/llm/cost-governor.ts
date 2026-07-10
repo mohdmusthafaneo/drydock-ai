@@ -1,6 +1,7 @@
 import { contentHash } from "./content-hash";
 import { isLlmFeatureEnabled, type LlmFeature } from "./feature-flags";
 import { resolveModelForFeature, type ModelTier } from "./model-routing";
+import { getCacheClient } from "@/lib/cache";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger({ component: "llm/cost-governor" });
@@ -36,8 +37,9 @@ type BudgetEntry = {
   tokens: number;
 };
 
-const responseCache = new Map<string, CacheEntry>();
-const orgBudgets = new Map<string, BudgetEntry>();
+/** In-process fallback when CacheClient is memory (also used by tests via reset). */
+const localResponseCache = new Map<string, CacheEntry>();
+const localOrgBudgets = new Map<string, BudgetEntry>();
 
 function utcDay(d = new Date()): string {
   return d.toISOString().slice(0, 10);
@@ -55,30 +57,47 @@ function dailyTokenBudget(): number {
   return Number.isFinite(n) && n > 0 ? n : 500_000;
 }
 
-function cacheKey(organizationId: string, feature: LlmFeature, hash: string): string {
-  return `${organizationId}:${feature}:${hash}`;
+function responseCacheKey(
+  organizationId: string,
+  feature: LlmFeature,
+  hash: string,
+): string {
+  return `llm:resp:${organizationId}:${feature}:${hash}`;
 }
 
-function getOrgTokens(organizationId: string): number {
+function budgetCacheKey(organizationId: string, day: string): string {
+  return `llm:budget:${organizationId}:${day}`;
+}
+
+async function getOrgTokens(organizationId: string): Promise<number> {
   const day = utcDay();
-  const entry = orgBudgets.get(organizationId);
+  const cache = getCacheClient();
+  const raw = await cache.get(budgetCacheKey(organizationId, day));
+  if (raw) {
+    const n = Number.parseInt(raw, 10);
+    if (Number.isFinite(n)) return n;
+  }
+  const entry = localOrgBudgets.get(organizationId);
   if (!entry || entry.day !== day) return 0;
   return entry.tokens;
 }
 
-function addOrgTokens(organizationId: string, tokens: number): void {
+async function addOrgTokens(
+  organizationId: string,
+  tokens: number,
+): Promise<void> {
   const day = utcDay();
-  const entry = orgBudgets.get(organizationId);
-  if (!entry || entry.day !== day) {
-    orgBudgets.set(organizationId, { day, tokens });
-    return;
-  }
-  entry.tokens += tokens;
+  const current = await getOrgTokens(organizationId);
+  const next = current + tokens;
+  localOrgBudgets.set(organizationId, { day, tokens: next });
+  const cache = getCacheClient();
+  // Expire shortly after UTC day boundary (+1h slack).
+  await cache.set(budgetCacheKey(organizationId, day), String(next), 90_000);
 }
 
 /**
  * Metered LLM entrypoint: kill-switch → budget → content-hash cache → execute.
- * In-process only (Phase 4 / single worker). Multi-replica shared state → Valkey (Phase 5).
+ * Response cache + org budgets use CacheClient (Valkey when VALKEY_URL is set).
  */
 export async function runMeteredLlmCall<T>(
   request: LlmCallRequest<T>,
@@ -92,7 +111,7 @@ export async function runMeteredLlmCall<T>(
   }
 
   const estimated = request.estimatedPromptTokens ?? 0;
-  const used = getOrgTokens(request.organizationId);
+  const used = await getOrgTokens(request.organizationId);
   const budget = dailyTokenBudget();
   if (used + estimated > budget) {
     log.warn(
@@ -109,17 +128,36 @@ export async function runMeteredLlmCall<T>(
   }
 
   const hash = contentHash(request.cacheKeyParts);
-  const key = cacheKey(request.organizationId, request.feature, hash);
-  const cached = responseCache.get(key);
+  const key = responseCacheKey(request.organizationId, request.feature, hash);
+  const cache = getCacheClient();
   const now = Date.now();
-  if (cached && cached.expiresAt > now && cached.hash === hash) {
-    log.debug(
-      { organizationId: request.organizationId, feature: request.feature },
-      "llm cache hit",
-    );
+
+  const rawCached = await cache.get(key);
+  if (rawCached) {
+    try {
+      const cached = JSON.parse(rawCached) as CacheEntry;
+      if (cached.expiresAt > now && cached.hash === hash) {
+        log.debug(
+          { organizationId: request.organizationId, feature: request.feature },
+          "llm cache hit",
+        );
+        return {
+          status: "ok",
+          result: cached.value as T,
+          cached: true,
+          model: "cache",
+        };
+      }
+    } catch {
+      // fall through
+    }
+  }
+
+  const local = localResponseCache.get(key);
+  if (local && local.expiresAt > now && local.hash === hash) {
     return {
       status: "ok",
-      result: cached.value as T,
+      result: local.value as T,
       cached: true,
       model: "cache",
     };
@@ -135,13 +173,15 @@ export async function runMeteredLlmCall<T>(
     (executed.promptTokens ?? 0) +
     (executed.completionTokens ?? 0) +
     (executed.promptTokens || executed.completionTokens ? 0 : estimated || 1);
-  addOrgTokens(request.organizationId, spent);
+  await addOrgTokens(request.organizationId, spent);
 
-  responseCache.set(key, {
+  const entry: CacheEntry = {
     hash,
     value: executed.result,
     expiresAt: now + cacheTtlMs(),
-  });
+  };
+  localResponseCache.set(key, entry);
+  await cache.set(key, JSON.stringify(entry), Math.ceil(cacheTtlMs() / 1000));
 
   log.info(
     {
@@ -150,7 +190,7 @@ export async function runMeteredLlmCall<T>(
       model: routed.model,
       tier: routed.tier,
       spent,
-      usedAfter: getOrgTokens(request.organizationId),
+      usedAfter: await getOrgTokens(request.organizationId),
     },
     "llm call metered",
   );
@@ -165,10 +205,12 @@ export async function runMeteredLlmCall<T>(
 
 /** Test / ops helpers. */
 export function resetLlmGovernorForTests(): void {
-  responseCache.clear();
-  orgBudgets.clear();
+  localResponseCache.clear();
+  localOrgBudgets.clear();
 }
 
-export function getOrgTokenUsageForTests(organizationId: string): number {
+export async function getOrgTokenUsageForTests(
+  organizationId: string,
+): Promise<number> {
   return getOrgTokens(organizationId);
 }

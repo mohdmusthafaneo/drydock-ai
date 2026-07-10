@@ -1,5 +1,6 @@
 import { SignJWT } from "jose";
 import { createPrivateKey, type KeyObject } from "node:crypto";
+import { getCacheClient } from "@/lib/cache";
 import { httpFetch, HttpResponseError } from "@/lib/http/client";
 
 const GITHUB_API = "https://api.github.com";
@@ -10,8 +11,6 @@ type CachedInstallationToken = {
   token: string;
   expiresAt: number;
 };
-
-const installationTokenCache = new Map<number, CachedInstallationToken>();
 
 export class GithubAppError extends Error {
   constructor(
@@ -42,6 +41,10 @@ async function importPrivateKey(pem: string): Promise<KeyObject> {
   return createPrivateKey(pem);
 }
 
+function cacheKey(installationId: number): string {
+  return `github:install-token:${installationId}`;
+}
+
 /** Short-lived JWT to authenticate as the GitHub App. */
 export async function mintAppJWT(): Promise<string> {
   const appId = getAppId();
@@ -56,11 +59,20 @@ export async function mintAppJWT(): Promise<string> {
     .sign(key);
 }
 
-/** Installation access token (cached ~55 min). */
+/** Installation access token (cached ~55 min via CacheClient / Valkey). */
 export async function getInstallationToken(installationId: number): Promise<string> {
-  const cached = installationTokenCache.get(installationId);
-  if (cached && cached.expiresAt > Date.now()) {
-    return cached.token;
+  const cache = getCacheClient();
+  const key = cacheKey(installationId);
+  const raw = await cache.get(key);
+  if (raw) {
+    try {
+      const cached = JSON.parse(raw) as CachedInstallationToken;
+      if (cached.expiresAt > Date.now() && cached.token) {
+        return cached.token;
+      }
+    } catch {
+      // fall through to mint
+    }
   }
 
   const appJwt = await mintAppJWT();
@@ -102,10 +114,12 @@ export async function getInstallationToken(installationId: number): Promise<stri
     ? new Date(data.expires_at).getTime() - 60_000
     : Date.now() + INSTALL_TOKEN_TTL_MS;
 
-  installationTokenCache.set(installationId, {
-    token: data.token,
-    expiresAt,
-  });
+  const ttlSec = Math.max(60, Math.floor((expiresAt - Date.now()) / 1000));
+  await cache.set(
+    key,
+    JSON.stringify({ token: data.token, expiresAt } satisfies CachedInstallationToken),
+    ttlSec,
+  );
 
   return data.token;
 }

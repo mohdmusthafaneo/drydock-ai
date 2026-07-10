@@ -70,7 +70,7 @@ describe("runMeteredLlmCall", () => {
       assert.deepEqual(second.result, { ok: true });
     }
     assert.equal(calls, 1);
-    assert.equal(getOrgTokenUsageForTests("org1"), 15);
+    assert.equal(await getOrgTokenUsageForTests("org1"), 15);
   });
 
   it("skips when budget exceeded", async () => {
