@@ -17,6 +17,28 @@ env:
 
 jobs:
   # ------------------------------------------------------------
+  # Detect whether services/ml-inference changed
+  # ------------------------------------------------------------
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      ml-inference: ${{ steps.filter.outputs.ml-inference }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Filter paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            ml-inference:
+              - 'services/ml-inference/**'
+
+  # ------------------------------------------------------------
   # App image (web + worker via AIDOS_PROCESS_ROLE)
   # ------------------------------------------------------------
   build-app:
@@ -76,9 +98,13 @@ jobs:
         run: "echo 'Digest: ${{ steps.build.outputs.digest }}'"
 
   # ------------------------------------------------------------
-  # ML inference sidecar (Python FastAPI)
+  # ML inference sidecar (Python FastAPI) — only when that service changes
   # ------------------------------------------------------------
   build-ml-inference:
+    needs: changes
+    if: >-
+      needs.changes.outputs.ml-inference == 'true' ||
+      github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04-arm
     permissions:
       contents: read
