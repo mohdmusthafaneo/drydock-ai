@@ -225,6 +225,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, redirect });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Invalid discovery data" }, { status: 400 });
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: "Invalid discovery data" }, { status: 400 });
+    }
+    return NextResponse.json(
+      { error: "Failed to complete discovery" },
+      { status: 500 },
+    );
   }
 }

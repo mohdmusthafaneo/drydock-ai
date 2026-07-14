@@ -4,7 +4,7 @@ import { PrismaClient } from "@/generated/prisma/client";
 import { createTenantExtension } from "@/lib/prisma-tenant";
 
 /** Bump when schema changes so dev hot-reload picks up a fresh client. */
-const PRISMA_SCHEMA_VERSION = 15;
+const PRISMA_SCHEMA_VERSION = 16;
 
 /** Delegates that must exist on a valid client (guards stale dev cache). */
 const REQUIRED_DELEGATES = [
@@ -52,10 +52,17 @@ function parseJsonLikeString(value: string): unknown {
   }
 }
 
+function isPlainObject(value: object): boolean {
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
 function coerceJsonLikeStrings(value: unknown): unknown {
   if (typeof value === "string") return parseJsonLikeString(value);
   if (Array.isArray(value)) return value.map(coerceJsonLikeStrings);
-  if (!value || typeof value !== "object") return value;
+  // Leave Date, Buffer, Decimal, etc. alone — Object.entries(new Date()) === []
+  // which would otherwise turn timestamps into {}.
+  if (!value || typeof value !== "object" || !isPlainObject(value)) return value;
 
   return Object.fromEntries(
     Object.entries(value).map(([key, nestedValue]) => [
