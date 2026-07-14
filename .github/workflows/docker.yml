@@ -14,6 +14,9 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
   ML_IMAGE_NAME: ${{ github.repository }}/ml-inference
+  COOLIFY_DEPLOY_WEB: http://15.207.73.151:8000/api/v1/deploy?uuid=flyriih22w86oqczf9vxkhxc&force=false
+  COOLIFY_DEPLOY_WORKER: http://15.207.73.151:8000/api/v1/deploy?uuid=z66wre1mtrprk7zrkavdu8lj&force=false
+  COOLIFY_DEPLOY_ML: http://15.207.73.151:8000/api/v1/deploy?uuid=ruvpq8tf8wiig39krcgvpk5f&force=false
 
 jobs:
   # ------------------------------------------------------------
@@ -159,3 +162,45 @@ jobs:
       - name: Image digest
         if: github.event_name != 'pull_request'
         run: "echo 'Digest: ${{ steps.build.outputs.digest }}'"
+
+  # ------------------------------------------------------------
+  # Coolify deploys (after respective image builds)
+  # ------------------------------------------------------------
+  deploy-web:
+    needs: build-app
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Coolify web deploy
+        env:
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_DEPLOY_API_KEY }}
+        run: |
+          curl -fsS -X GET \
+            -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
+            -H "Accept: application/json" \
+            "${{ env.COOLIFY_DEPLOY_WEB }}"
+
+  deploy-worker:
+    needs: build-app
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Coolify worker deploy
+        env:
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_DEPLOY_API_KEY }}
+        run: |
+          curl -fsS -X GET \
+            -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
+            -H "Accept: application/json" \
+            "${{ env.COOLIFY_DEPLOY_WORKER }}"
+
+  deploy-ml:
+    needs: build-ml-inference
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Coolify ML deploy
+        env:
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_DEPLOY_API_KEY }}
+        run: |
+          curl -fsS -X GET \
+            -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
+            -H "Accept: application/json" \
+            "${{ env.COOLIFY_DEPLOY_ML }}"
