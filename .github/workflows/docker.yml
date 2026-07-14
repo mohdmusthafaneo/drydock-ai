@@ -20,26 +20,42 @@ env:
 
 jobs:
   # ------------------------------------------------------------
-  # Detect whether services/ml-inference changed
+  # Detect whether services/ml-inference changed in this push to `dev`
+  # (not vs `main` — we don't use that as the comparison base)
   # ------------------------------------------------------------
   changes:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: read
     outputs:
-      ml-inference: ${{ steps.filter.outputs.ml-inference }}
+      ml-inference: ${{ steps.result.outputs.ml-inference }}
     steps:
       - name: Checkout repository
+        if: github.event_name == 'push'
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Filter paths
         id: filter
+        if: github.event_name == 'push'
         uses: dorny/paths-filter@v3
         with:
+          # Only files changed by this push (before → after), including direct pushes to `dev`
+          base: ${{ github.event.before }}
+          ref: ${{ github.sha }}
           filters: |
             ml-inference:
               - 'services/ml-inference/**'
+
+      - name: Resolve ML change output
+        id: result
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "ml-inference=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ml-inference=${{ steps.filter.outputs.ml-inference }}" >> "$GITHUB_OUTPUT"
+          fi
 
   # ------------------------------------------------------------
   # App image (web + worker via AIDOS_PROCESS_ROLE)
