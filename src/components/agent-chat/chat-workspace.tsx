@@ -1,11 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, MessageSquarePlus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useAgentThreadsQuery } from "@/lib/queries/threads";
+import {
+  useAgentThreadQuery,
+  useAgentThreadsQuery,
+} from "@/lib/queries/threads";
+import { plainChatPreview } from "@/lib/agent-chat/preview-text";
 import { Button } from "@/components/ui/button";
 import { ThreadStatusBadge } from "@/components/agent-chat/thread-status-badge";
 import { ThreadDetailPanel } from "@/components/agent-chat/thread-detail-panel";
@@ -14,6 +18,20 @@ import { NewChatComposer } from "@/components/agent-chat/compose-box";
 type ChatWorkspaceProps = {
   threadId?: string;
 };
+
+function useChatAssistantWarmup() {
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetch("/api/agent-chat/warmup", {
+      method: "POST",
+      credentials: "same-origin",
+      signal: controller.signal,
+    }).catch(() => {
+      // Best-effort — chat still works if warmup fails.
+    });
+    return () => controller.abort();
+  }, []);
+}
 
 function ConversationSidebar({
   activeThreadId,
@@ -102,6 +120,11 @@ function SidebarThreadLink({
   archived?: boolean;
   onNavigate?: () => void;
 }) {
+  const cleaned = preview ? plainChatPreview(preview) : "";
+  const showPreview =
+    cleaned &&
+    cleaned.toLowerCase() !== title.trim().toLowerCase();
+
   return (
     <Link
       href={`/agent-threads/${id}`}
@@ -117,8 +140,8 @@ function SidebarThreadLink({
         <p className="truncate text-sm font-medium">{title}</p>
         {archived ? <ThreadStatusBadge status="done" /> : null}
       </div>
-      {preview ? (
-        <p className="mt-0.5 truncate text-xs text-graphite">{preview}</p>
+      {showPreview ? (
+        <p className="mt-0.5 truncate text-xs text-graphite">{cleaned}</p>
       ) : null}
     </Link>
   );
@@ -144,13 +167,15 @@ function NewChatEmpty() {
 }
 
 export function ChatWorkspace({ threadId }: ChatWorkspaceProps) {
+  useChatAssistantWarmup();
   const pathname = usePathname();
   const [historyOpen, setHistoryOpen] = useState(false);
   const isNew = !threadId;
+  const detail = useAgentThreadQuery(threadId ?? "");
   const title = useMemo(() => {
     if (isNew) return "New chat";
-    return "Chat";
-  }, [isNew]);
+    return detail.data?.thread.title?.trim() || "Chat";
+  }, [isNew, detail.data?.thread.title]);
 
   return (
     <div className="absolute inset-0 flex overflow-hidden rounded-none bg-fog pb-[calc(4.25rem+env(safe-area-inset-bottom,0px))] lg:rounded-[20px] lg:border lg:border-border-subtle lg:bg-pure-white lg:pb-0">
@@ -228,7 +253,7 @@ export function ChatWorkspace({ threadId }: ChatWorkspaceProps) {
 
         <div className="min-h-0 flex-1">
           {threadId ? (
-            <ThreadDetailPanel threadId={threadId} />
+            <ThreadDetailPanel key={threadId} threadId={threadId} />
           ) : (
             <NewChatEmpty />
           )}

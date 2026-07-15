@@ -13,6 +13,8 @@ export type ReasoningJson = {
     outputPreview?: string;
     startedAt: string;
     endedAt?: string;
+    toolCallId?: string;
+    isError?: boolean;
   }>;
 };
 
@@ -21,9 +23,27 @@ export type ChatStreamEvent =
   | { type: "message_saved"; messageId: string }
   | { type: "text_delta"; text: string }
   | { type: "thinking"; active: boolean }
-  | { type: "tool_start"; tool: string }
-  | { type: "tool_end"; tool: string }
-  | { type: "done"; messageId: string; text: string }
+  | { type: "thinking_delta"; text: string }
+  | {
+      type: "tool_start";
+      tool: string;
+      input?: Record<string, unknown>;
+      toolCallId: string;
+    }
+  | {
+      type: "tool_end";
+      tool: string;
+      outputPreview?: string;
+      toolCallId: string;
+      isError?: boolean;
+    }
+  | {
+      type: "done";
+      messageId: string;
+      text: string;
+      thinking?: string;
+      tools?: ReasoningJson["tools"];
+    }
   | { type: "error"; error: string };
 
 import { readJsonField } from "@/lib/json-field";

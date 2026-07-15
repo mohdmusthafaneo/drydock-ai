@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { asJsonInput } from "@/lib/json-field";
 import { logChatActivity, logChatAudit } from "./audit";
 
 export type PostAssistantMessageResult =
@@ -36,7 +37,9 @@ export async function postAssistantChatMessage(input: {
         threadId,
         kind: "assistant",
         contentMarkdown: trimmed.slice(0, 8000),
-        ...(reasoningJson ? { reasoningJson } : {}),
+        ...(reasoningJson
+          ? { reasoningJson: asJsonInput(reasoningJson) }
+          : {}),
       },
     });
 

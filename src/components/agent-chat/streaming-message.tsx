@@ -5,27 +5,32 @@ import {
   MessageAvatar,
   MessageContent,
 } from "@/components/prompt-kit/message";
-import { ThinkingBar } from "@/components/prompt-kit/thinking-bar";
-
-function thinkingLabel(activeTool?: string): string {
-  if (!activeTool) return "Thinking";
-  const name = activeTool.replace(/^aidos_/, "").replace(/_/g, " ");
-  return `${name}…`;
-}
+import {
+  ThoughtPanel,
+  type ThoughtToolState,
+} from "@/components/agent-chat/thought-panel";
 
 export function StreamingMessageBubble({
   text,
   thinking,
-  activeTool,
+  thinkingText,
+  tools,
   isStreaming,
 }: {
   text: string;
   thinking?: boolean;
-  activeTool?: string;
+  thinkingText?: string;
+  tools?: ThoughtToolState[];
   isStreaming: boolean;
 }) {
-  const showThinking =
-    thinking || (isStreaming && !text.trim());
+  const hasThought =
+    Boolean(thinkingText?.trim()) ||
+    Boolean(tools && tools.length > 0) ||
+    Boolean(thinking) ||
+    (isStreaming && !text.trim());
+
+  const isThoughtStreaming =
+    Boolean(thinking) || (isStreaming && !text.trim());
 
   return (
     <Message className="items-start">
@@ -36,8 +41,12 @@ export function StreamingMessageBubble({
         className="bg-apricot-wash text-rust"
       />
       <div className="flex min-w-0 flex-1 flex-col gap-2">
-        {showThinking ? (
-          <ThinkingBar text={thinkingLabel(activeTool)} className="py-1" />
+        {hasThought ? (
+          <ThoughtPanel
+            thinkingText={thinkingText}
+            tools={tools}
+            isStreaming={isThoughtStreaming}
+          />
         ) : null}
         {text ? (
           <MessageContent

@@ -77,7 +77,7 @@ function PromptInput({
   }
 
   return (
-    <TooltipProvider>
+    <TooltipProvider delayDuration={400}>
       <PromptInputContext.Provider
         value={{
           isLoading,

@@ -302,3 +302,50 @@ export async function postHumanChatMessage(input: {
     data: { messageId: message.id },
   };
 }
+
+/** Last human message in a thread (for regenerate / orphan retry). */
+export async function getLastHumanChatMessage(input: {
+  organizationId: string;
+  threadId: string;
+}): Promise<
+  | { ok: true; data: { messageId: string; content: string } }
+  | { ok: false; error: string; status?: number }
+> {
+  const thread = await prisma.agentChatThread.findFirst({
+    where: { id: input.threadId, organizationId: input.organizationId },
+    select: { id: true, status: true },
+  });
+
+  if (!thread) {
+    return { ok: false, error: "Thread not found", status: 404 };
+  }
+  if (thread.status === "done") {
+    return {
+      ok: false,
+      error: "Thread is closed — send a message to reopen first",
+      status: 400,
+    };
+  }
+
+  const lastHuman = await prisma.agentChatMessage.findFirst({
+    where: {
+      threadId: input.threadId,
+      organizationId: input.organizationId,
+      kind: "human",
+    },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, contentMarkdown: true },
+  });
+
+  if (!lastHuman?.contentMarkdown.trim()) {
+    return { ok: false, error: "No human message to regenerate from", status: 400 };
+  }
+
+  return {
+    ok: true,
+    data: {
+      messageId: lastHuman.id,
+      content: lastHuman.contentMarkdown.trim(),
+    },
+  };
+}

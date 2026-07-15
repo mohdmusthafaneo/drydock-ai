@@ -9,8 +9,17 @@ import type { AidosRequestContextValues } from "../tools/aidos/context";
 export type AssistantStreamHandlers = {
   onTextDelta?: (text: string) => void | Promise<void>;
   onThinkingDelta?: (text: string) => void | Promise<void>;
-  onToolStart?: (tool: string, input: Record<string, unknown>) => void | Promise<void>;
-  onToolEnd?: (tool: string, outputPreview?: string) => void | Promise<void>;
+  onToolStart?: (
+    tool: string,
+    input: Record<string, unknown>,
+    toolCallId: string,
+  ) => void | Promise<void>;
+  onToolEnd?: (
+    tool: string,
+    outputPreview: string | undefined,
+    toolCallId: string,
+    isError?: boolean,
+  ) => void | Promise<void>;
   onError?: (error: string) => void | Promise<void>;
 };
 
@@ -69,6 +78,8 @@ export async function runAidosAssistant(
 
   const handlers = input.handlers ?? {};
   const toolsets = { aidos: getAidosToolsForAssistant() };
+  const startedToolCalls = new Set<string>();
+  const finishedToolCalls = new Set<string>();
 
   const streamOutput = await agent.stream(
     [{ role: "user" as const, content: input.userMessage }],
@@ -76,6 +87,7 @@ export async function runAidosAssistant(
       instructions: input.systemPrompt ?? AIDOS_ASSISTANT_INSTRUCTIONS,
       requestContext: input.requestContext,
       toolsets,
+      toolChoice: "auto",
       maxSteps: input.maxSteps ?? 25,
     },
   );
@@ -122,36 +134,75 @@ export async function runAidosAssistant(
       if (
         type === "reasoning-delta" ||
         type === "reasoningDelta" ||
-        type === "thinking-delta"
+        type === "thinking-delta" ||
+        type === "reasoning" ||
+        type === "reasoning-start" ||
+        type === "reasoning-end"
       ) {
         const thinking =
           (typeof payload.text === "string" && payload.text) ||
           (typeof payload.delta === "string" && payload.delta) ||
+          (typeof payload.reasoning === "string" && payload.reasoning) ||
+          (typeof chunk.text === "string" && chunk.text) ||
           "";
         if (thinking) await handlers.onThinkingDelta?.(thinking);
         continue;
       }
 
-      if (type === "tool-call" || type === "tool-call-input-streaming-start") {
+      // Fire onToolStart once per tool call. `tool-call` carries the real
+      // arguments; `tool-call-input-streaming-start` only signals intent (often
+      // with empty args), so we only start from chunks that actually name the
+      // call and dedupe strictly by toolCallId.
+      if (type === "tool-call" || type === "tool-call-start") {
         const toolName =
           (typeof payload.toolName === "string" && payload.toolName) ||
           (typeof chunk.toolName === "string" && chunk.toolName) ||
           "tool";
+        const toolCallId =
+          (typeof payload.toolCallId === "string" && payload.toolCallId) ||
+          (typeof chunk.toolCallId === "string" && chunk.toolCallId) ||
+          `${toolName}:${startedToolCalls.size}`;
         const args =
           (payload.args as Record<string, unknown> | undefined) ??
+          (payload.input as Record<string, unknown> | undefined) ??
           (chunk.args as Record<string, unknown> | undefined) ??
           {};
-        await handlers.onToolStart?.(toolName, args);
+        if (startedToolCalls.has(toolCallId)) continue;
+        startedToolCalls.add(toolCallId);
+        await handlers.onToolStart?.(toolName, args, toolCallId);
         continue;
       }
 
-      if (type === "tool-result" || type === "tool-call-result") {
+      if (
+        type === "tool-result" ||
+        type === "tool-call-result" ||
+        type === "tool-call-end" ||
+        type === "tool-error"
+      ) {
         const toolName =
           (typeof payload.toolName === "string" && payload.toolName) ||
           (typeof chunk.toolName === "string" && chunk.toolName) ||
           "tool";
-        const result = payload.result ?? chunk.result;
-        await handlers.onToolEnd?.(toolName, previewValue(result));
+        const toolCallId =
+          (typeof payload.toolCallId === "string" && payload.toolCallId) ||
+          (typeof chunk.toolCallId === "string" && chunk.toolCallId) ||
+          `${toolName}:${finishedToolCalls.size}`;
+        if (finishedToolCalls.has(toolCallId)) continue;
+        finishedToolCalls.add(toolCallId);
+        const isError =
+          type === "tool-error" || payload.error != null || chunk.error != null;
+        const result =
+          payload.result ??
+          payload.output ??
+          chunk.result ??
+          payload.error ??
+          chunk.error;
+        await handlers.onToolEnd?.(
+          toolName,
+          previewValue(result),
+          toolCallId,
+          isError,
+        );
         continue;
       }
 

@@ -9,7 +9,12 @@ import {
 import { cn } from "@/lib/utils";
 import type { AgentChatMessageKind } from "@/generated/prisma/client";
 import { StreamingMessageBubble } from "@/components/agent-chat/streaming-message";
+import {
+  ThoughtPanel,
+  toolsFromReasoningJson,
+} from "@/components/agent-chat/thought-panel";
 import type { StreamingMessageState } from "@/components/agent-chat/use-agent-thread-stream";
+import { parseReasoningJson } from "@/lib/agent-chat/types";
 import {
   ApprovalInlineCard,
   resolveApprovalRequiredRole,
@@ -21,7 +26,7 @@ export type TimelineMessage = {
   id: string;
   kind: AgentChatMessageKind | "agent_reply";
   contentMarkdown: string;
-  reasoningJson?: string;
+  reasoningJson?: unknown;
   createdAt: Date | string;
   authorUser: { id: string; name: string } | null;
   approval?: ThreadApprovalSnapshot | null;
@@ -29,6 +34,16 @@ export type TimelineMessage = {
 
 function isAssistantKind(kind: TimelineMessage["kind"]): boolean {
   return kind === "assistant" || kind === "agent_reply";
+}
+
+function authorInitials(name: string, isHuman: boolean): string {
+  const trimmed = name.trim();
+  if (!trimmed) return isHuman ? "Y" : "A";
+  const parts = trimmed.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return `${parts[0]![0] ?? ""}${parts[1]![0] ?? ""}`.toUpperCase();
+  }
+  return trimmed.slice(0, 1).toUpperCase();
 }
 
 function authorLabel(message: TimelineMessage): string {
@@ -90,6 +105,13 @@ export function MessageBubble({ message, threadId }: MessageBubbleProps) {
   }
 
   const name = authorLabel(message);
+  const reasoning = message.reasoningJson
+    ? parseReasoningJson(message.reasoningJson)
+    : null;
+  const thinkingText = reasoning?.thinking?.trim() ?? "";
+  const tools = reasoning?.tools?.length
+    ? toolsFromReasoningJson(reasoning.tools)
+    : [];
 
   return (
     <Message
@@ -98,7 +120,7 @@ export function MessageBubble({ message, threadId }: MessageBubbleProps) {
       <MessageAvatar
         src=""
         alt={name}
-        fallback={isHuman ? "Y" : "A"}
+        fallback={authorInitials(name, isHuman)}
         className={cn(
           isHuman ? "bg-sky-wash text-chart-blue" : "bg-apricot-wash text-rust",
         )}
@@ -109,6 +131,13 @@ export function MessageBubble({ message, threadId }: MessageBubbleProps) {
           isHuman && "items-end",
         )}
       >
+        {isAssistant && (thinkingText || tools.length > 0) ? (
+          <ThoughtPanel
+            thinkingText={thinkingText}
+            tools={tools}
+            isStreaming={false}
+          />
+        ) : null}
         <MessageContent
           markdown
           className={cn(
@@ -163,7 +192,8 @@ export function MessageTimeline({
           key={stream.messageId}
           text={stream.text}
           thinking={stream.thinking}
-          activeTool={stream.activeTool}
+          thinkingText={stream.thinkingText}
+          tools={stream.tools}
           isStreaming={stream.isStreaming}
         />
       ))}

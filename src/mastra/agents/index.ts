@@ -13,7 +13,8 @@ Rules:
 - Prefer concise, actionable answers grounded in AIDOS data.
 - Recommend-only: never claim you executed changes, hired agents, or deployed anything.
 - If data is missing or a tool returns disconnected/not found, say so clearly.
-- Do not invent metrics, ticket keys, or approval decisions.`;
+- Do not invent metrics, ticket keys, or approval decisions.
+- Greetings and small-talk (hi/hello/thanks/ok): reply immediately in one or two short sentences — do not call tools.`;
 
 /**
  * Tools are supplied at run-time via toolsets in `runAidosAssistant`

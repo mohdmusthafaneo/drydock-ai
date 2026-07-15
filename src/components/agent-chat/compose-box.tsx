@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowUp } from "lucide-react";
+import { ArrowUp, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { invalidateThreadList } from "@/lib/queries/invalidate";
+import { stashPendingMessage } from "@/lib/agent-chat/pending-message";
+import { truncateThreadTitle } from "@/lib/agent-chat/types";
 import {
   PromptInput,
   PromptInputAction,
@@ -26,11 +28,13 @@ export function ComposeBox({
   sending = false,
   error = null,
   onSend,
+  onStop,
 }: {
   isDone?: boolean;
   sending?: boolean;
   error?: string | null;
-  onSend: (content: string) => Promise<void>;
+  onSend: (content: string) => Promise<boolean | void>;
+  onStop?: () => void;
 }) {
   const [content, setContent] = useState("");
 
@@ -64,18 +68,34 @@ export function ComposeBox({
           className="!min-h-[40px] max-h-[160px] flex-1 py-2 text-sm text-ink"
         />
         <PromptInputActions className="shrink-0 pb-0.5">
-          <PromptInputAction tooltip={isDone ? "Send & reopen" : "Send"}>
-            <Button
-              type="button"
-              size="icon"
-              variant="ink"
-              className="h-8 w-8 rounded-full"
-              disabled={sending || !content.trim()}
-              onClick={() => void send()}
-            >
-              <ArrowUp className="h-4 w-4" />
-            </Button>
-          </PromptInputAction>
+          {sending && onStop ? (
+            <PromptInputAction tooltip="Stop">
+              <Button
+                type="button"
+                size="icon"
+                variant="ink"
+                className="h-8 w-8 rounded-full"
+                aria-label="Stop generating"
+                onClick={onStop}
+              >
+                <Square className="h-3 w-3 fill-current" />
+              </Button>
+            </PromptInputAction>
+          ) : (
+            <PromptInputAction tooltip={isDone ? "Send & reopen" : "Send"}>
+              <Button
+                type="button"
+                size="icon"
+                variant="ink"
+                className="h-8 w-8 rounded-full"
+                aria-label={isDone ? "Send and reopen" : "Send"}
+                disabled={sending || !content.trim()}
+                onClick={() => void send()}
+              >
+                <ArrowUp className="h-4 w-4" />
+              </Button>
+            </PromptInputAction>
+          )}
         </PromptInputActions>
       </PromptInput>
       {error && <p className="mt-2 text-sm text-error">{error}</p>}
@@ -105,17 +125,18 @@ export function NewChatComposer({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "same-origin",
-      body: JSON.stringify({ initialMessage: trimmed }),
+      body: JSON.stringify({ title: truncateThreadTitle(trimmed) }),
     });
 
     const data = await res.json();
-    setLoading(false);
 
     if (!res.ok) {
+      setLoading(false);
       setError(data.error || "Failed to start conversation");
       return;
     }
 
+    stashPendingMessage(data.threadId, trimmed);
     await invalidateThreadList(queryClient);
     onCreated?.(data.threadId);
     router.push(`/agent-threads/${data.threadId}`);
@@ -147,6 +168,7 @@ export function NewChatComposer({
         <PromptInputTextarea
           placeholder="Ask AIDOS anything about your delivery operations…"
           className="!min-h-[40px] max-h-[120px] flex-1 py-2 text-sm text-ink"
+          disabled={loading}
         />
         <PromptInputActions className="shrink-0 pb-0.5">
           <PromptInputAction tooltip="Send">
@@ -155,6 +177,7 @@ export function NewChatComposer({
               size="icon"
               variant="ink"
               className="h-8 w-8 rounded-full"
+              aria-label="Send"
               disabled={loading || !content.trim()}
               onClick={() => void create(content)}
             >

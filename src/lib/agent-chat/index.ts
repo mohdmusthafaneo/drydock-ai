@@ -1,6 +1,7 @@
 export {
   createAgentChatThread,
   getAgentChatThread,
+  getLastHumanChatMessage,
   listAgentChatThreads,
   postHumanChatMessage,
 } from "./threads";
@@ -19,6 +20,7 @@ export { postAssistantChatMessage } from "./messages";
 export { emitThreadMessagePostedWebhook } from "./outbound-webhook";
 export { parseReasoningJson, buildReasoningJson } from "./types";
 export type { ReasoningJson, ChatStreamEvent } from "./types";
+export { humanizeToolName } from "./thought-stream";
 export type { CreateThreadInput, CreateThreadResult } from "./threads";
 export {
   DEFAULT_THREAD_LIST_LIMIT,
