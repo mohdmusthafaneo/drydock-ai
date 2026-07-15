@@ -1,10 +1,6 @@
 import { createLogger } from "@/lib/logger";
 import { getBoss } from "./boss";
 import {
-  registerAgentTimerScanWorker,
-  registerAgentWakeupWorker,
-} from "./agent-wakeup-job";
-import {
   ensureAllDomainFanoutSchedules,
   registerAllDomainFanoutWorkers,
 } from "./domain-fanout-jobs";
@@ -45,11 +41,6 @@ export async function bootstrapJobInfrastructure(
 
   const queues = parseWorkerQueues();
   log.info({ queues: [...queues] }, "worker queue roles");
-
-  if (workerServesRole(queues, "agents")) {
-    await registerAgentWakeupWorker(boss);
-    await registerAgentTimerScanWorker(boss);
-  }
 
   if (workerServesRole(queues, "refresh")) {
     await refreshFanoutJobs.registerWorker(boss);

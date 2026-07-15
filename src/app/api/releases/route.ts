@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { enqueueReleaseDetectedWakeups } from "@/lib/agent-control-plane/release-wakeups";
 import { getSession } from "@/lib/session";
 
 const createSchema = z.object({
@@ -73,12 +72,9 @@ export async function POST(request: Request) {
       },
     });
 
-    await enqueueReleaseDetectedWakeups(session.organizationId, release.id);
-
     return NextResponse.json({
       ok: true,
       release,
-      agentWakeupsQueued: true,
     });
   } catch {
     return NextResponse.json({ error: "Invalid release data" }, { status: 400 });

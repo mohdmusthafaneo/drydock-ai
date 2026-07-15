@@ -30,7 +30,6 @@ export default async function DevOpsIntelligencePage() {
 
   const health = buildDeploymentHealthSummary(ctx);
   const highlights = buildDeploymentHealthHighlights(ctx);
-  const devopsAgent = ctx.agents.find((a) => a.agentType === "DEVOPS_INTELLIGENCE");
   const rollbacks = ctx.deploymentEvents.filter((d) => d.rollbackRecommended);
 
   return (
@@ -62,21 +61,6 @@ export default async function DevOpsIntelligencePage() {
       <RevealSection>
         <BriefingHighlights highlights={highlights} />
       </RevealSection>
-
-      {devopsAgent && (
-        <Card className="bg-sky-wash/40">
-          <CardHeader>
-            <CardTitle>{devopsAgent.displayName}</CardTitle>
-            <CardDescription>{devopsAgent.description}</CardDescription>
-          </CardHeader>
-          <CardContent className="text-sm text-secondary">
-            Status <Badge variant="ai">{devopsAgent.status}</Badge> · confidence{" "}
-            <span className="font-medium text-ink">
-              {(devopsAgent.confidenceScore * 100).toFixed(0)}%
-            </span>
-          </CardContent>
-        </Card>
-      )}
 
       <Card>
         <CardHeader>

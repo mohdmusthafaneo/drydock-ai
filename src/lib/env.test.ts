@@ -15,15 +15,15 @@ describe("env", () => {
   });
 
   it("parses optional booleans without coercing unset values", () => {
-    delete process.env.AGENT_WORKER_ENABLED;
+    delete process.env.LLM_KILL_SWITCH;
     const env = getEnv();
-    assert.equal(env.AGENT_WORKER_ENABLED, undefined);
+    assert.equal(env.LLM_KILL_SWITCH, undefined);
   });
 
   it("parses true boolean env values", () => {
-    process.env.AGENT_WORKER_ENABLED = "true";
+    process.env.LLM_KILL_SWITCH = "true";
     const env = getEnv();
-    assert.equal(env.AGENT_WORKER_ENABLED, true);
+    assert.equal(env.LLM_KILL_SWITCH, true);
   });
 
   it("requires DATABASE_URL at runtime validation", () => {

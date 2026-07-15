@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:is(.dark *));
+
 /* Steep — editorial daylight analytics (docs/DESIGN.md) */
 :root {
   --color-ink: #17191c;
@@ -62,6 +64,23 @@
     rgba(0, 0, 0, 0.1) 0px 8px 10px -6px;
   --radius-card: 24px;
 
+  /* prompt-kit / shadcn semantic aliases (mapped onto Steep) */
+  --background: var(--bg-base);
+  --foreground: var(--text-primary);
+  --card: var(--bg-surface);
+  --card-foreground: var(--text-primary);
+  --popover: var(--bg-surface);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--text-primary);
+  --primary-foreground: var(--color-pure-white);
+  --secondary: var(--bg-elevated);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--bg-elevated);
+  --muted-foreground: var(--text-muted);
+  --destructive: var(--error);
+  --destructive-foreground: var(--color-pure-white);
+  --radius: 0.75rem;
+
   color-scheme: light;
 }
 
@@ -76,9 +95,24 @@
   --color-border: var(--border);
   --color-border-subtle: var(--border-subtle);
 
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--text-primary);
+  --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--text-secondary);
+  --color-secondary-foreground: var(--text-primary);
   --color-muted: var(--text-muted);
+  --color-muted-foreground: var(--text-muted);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  /* Steep text tokens (prefer text-ink / text-ash in new UI; keep aliases) */
+  --color-ash: #4c4c4c;
+  --color-graphite: #777b86;
 
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
@@ -110,8 +144,6 @@
   --color-ink: #17191c;
   --color-pure-white: #ffffff;
   --color-fog: #f7f7f8;
-  --color-ash: #4c4c4c;
-  --color-graphite: #777b86;
   --color-dove: #a3a6af;
   --color-rust: #5d2a1a;
   --color-apricot-wash: #fbe1d1;
@@ -123,6 +155,115 @@
   --font-mono: var(--font-mono), ui-monospace, monospace;
 
   --radius-card: 24px;
+
+  /* prompt-kit Loader keyframes (Tailwind v4) */
+  @keyframes typing {
+    0%,
+    100% {
+      transform: translateY(0);
+      opacity: 0.5;
+    }
+    50% {
+      transform: translateY(-2px);
+      opacity: 1;
+    }
+  }
+  @keyframes loading-dots {
+    0%,
+    100% {
+      opacity: 0;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+  @keyframes wave {
+    0%,
+    100% {
+      transform: scaleY(1);
+    }
+    50% {
+      transform: scaleY(0.6);
+    }
+  }
+  @keyframes blink {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0;
+    }
+  }
+  @keyframes text-blink {
+    0%,
+    100% {
+      color: var(--primary);
+    }
+    50% {
+      color: var(--muted-foreground);
+    }
+  }
+  @keyframes bounce-dots {
+    0%,
+    100% {
+      transform: scale(0.8);
+      opacity: 0.5;
+    }
+    50% {
+      transform: scale(1.2);
+      opacity: 1;
+    }
+  }
+  @keyframes thin-pulse {
+    0%,
+    100% {
+      transform: scale(0.95);
+      opacity: 0.8;
+    }
+    50% {
+      transform: scale(1.05);
+      opacity: 0.4;
+    }
+  }
+  @keyframes pulse-dot {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.8;
+    }
+    50% {
+      transform: scale(1.5);
+      opacity: 1;
+    }
+  }
+  @keyframes wave-bars {
+    0%,
+    100% {
+      transform: scaleY(1);
+      opacity: 0.5;
+    }
+    50% {
+      transform: scaleY(0.6);
+      opacity: 1;
+    }
+  }
+  @keyframes shimmer {
+    0% {
+      background-position: 200% 50%;
+    }
+    100% {
+      background-position: -200% 50%;
+    }
+  }
+  @keyframes spinner-fade {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
 }
 
 body {

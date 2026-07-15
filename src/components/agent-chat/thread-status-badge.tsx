@@ -7,11 +7,7 @@ const STATUS_VARIANT: Record<
   "success" | "warning" | "error" | "ai" | "muted" | "accent"
 > = {
   open: "accent",
-  routing: "ai",
-  active: "success",
-  awaiting_human: "warning",
   done: "muted",
-  stalled: "error",
 };
 
 export function ThreadStatusBadge({

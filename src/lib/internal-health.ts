@@ -2,7 +2,6 @@ import { asSystem, isReadReplicaConfigured } from "@/lib/prisma";
 import { getCacheBackend } from "@/lib/cache";
 import { getBoss } from "@/lib/jobs/boss";
 import { JOB_NAMES } from "@/lib/jobs/constants";
-import { resolveRuntimeConfig } from "@/lib/agent-control-plane/runtime-config";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger({ component: "internal-health" });
@@ -98,23 +97,9 @@ async function oldestQueuedAgeSec(queueName: string): Promise<number | null> {
   }
 }
 
-/** Count running wakeups past their agent maxRunDurationSec (read-only; does not recover). */
+/** Agent wakeup runs were removed in the simple chat refactor; always report zero. */
 export async function countStuckRuns(): Promise<number> {
-  const now = Date.now();
-  const running = await asSystem().agentWakeupRequest.findMany({
-    where: { status: "running" },
-    include: { agent: true },
-  });
-
-  let stuck = 0;
-  for (const wakeup of running) {
-    const config = resolveRuntimeConfig(wakeup.agent);
-    const maxSec = config.heartbeat.maxRunDurationSec || 300;
-    const startedAt = wakeup.startedAt ?? wakeup.requestedAt;
-    const elapsedSec = (now - startedAt.getTime()) / 1000;
-    if (elapsedSec >= maxSec) stuck += 1;
-  }
-  return stuck;
+  return 0;
 }
 
 export async function getInternalHealth(): Promise<InternalHealthReport> {

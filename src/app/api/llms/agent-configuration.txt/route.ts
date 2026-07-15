@@ -1,76 +1,31 @@
 import { NextResponse } from "next/server";
 
-const AGENT_CONFIGURATION = `# AIDOS Agent Runtime Configuration (Phase 5.5)
+const AGENT_CONFIGURATION = `# AIDOS Assistant Configuration
 
-External agents (http/process adapters) receive wake context and authenticate
-back to AIDOS using a short-lived API key for the heartbeat run.
+AIDOS uses a single in-process Mastra assistant for operational chat.
+Questions about the organization, Jira/GitHub delivery signals, releases,
+recommendations, approvals, compliance, incidents, and predictions are
+answered with read-only grounding tools.
 
-## Environment variables (process adapter)
+## Chat API (session cookie)
 
-| Variable | Description |
-|----------|-------------|
-| AIDOS_AGENT_ID | Agent registry id |
-| AIDOS_RUN_ID | Heartbeat run id — send as X-Run-Id on mutations |
-| AIDOS_API_KEY | Ephemeral run API key (revoked when run completes) |
-| AIDOS_API_URL | Base URL for agent API routes |
-| AIDOS_ORGANIZATION_ID | Tenant scope |
-| AIDOS_WAKEUP_SOURCE | timer · event · approval · delegation · on_demand |
-| AIDOS_WAKEUP_REASON | Human-readable wake reason |
-| AIDOS_WAKEUP_PAYLOAD | JSON string — event/release/approval context |
+- GET  /api/agent-threads
+- POST /api/agent-threads
+- GET  /api/agent-threads/{id}
+- POST /api/agent-threads/{id}/messages  (streams NDJSON assistant reply)
 
-## HTTP adapter webhook body
+## Assistant tools (read-only)
 
-POST to adapterConfigJson.url with JSON:
+- aidos_get_org_context
+- aidos_list_recommendations / aidos_list_approvals / aidos_list_releases
+- aidos_get_release_readiness
+- aidos_get_jira_context / aidos_query_jira_jql
+- aidos_get_code_analysis / aidos_get_integration_health
+- aidos_list_incidents / aidos_list_compliance_findings / aidos_list_predictions
 
-\`\`\`json
-{
-  "runId": "...",
-  "agentId": "...",
-  "organizationId": "...",
-  "apiUrl": "https://your-aidos.example",
-  "apiKey": "...",
-  "wakeup": { "id": "...", "source": "event", "reason": "...", "payload": {} },
-  "env": { "AIDOS_AGENT_ID": "...", ... }
-}
-\`\`\`
-
-Set adapterConfigJson.async=true to treat HTTP 202 as success (fire-and-forget workers).
-
-## Agent API (authenticated)
-
-All mutations require headers:
-- Authorization: Bearer <AIDOS_API_KEY>
-- X-Run-Id: <AIDOS_RUN_ID>
-
-Core routes:
-- GET  /api/agents/me
-- GET  /api/agents/me/inbox
-- POST /api/agents/me/recommendations
-- POST /api/agents/me/releases/{id}/assess
-- POST /api/agents/me/delegate
-- POST /api/agents/hire (Super Agent only)
-
-See skills/aidos/SKILL.md and skills/aidos/references/api-reference.md for full contract.
-
-## Adapter types
-
-| adapterType | Behavior |
-|-------------|----------|
-| llm | In-process Anthropic Messages API + tool bridge (default) |
-| http | POST wake payload to external webhook URL |
-| process | Spawn shell command with AIDOS_* env vars |
-
-## adapterConfigJson examples
-
-HTTP:
-\`\`\`json
-{ "url": "https://worker.example/hook", "timeoutSec": 120, "async": true }
-\`\`\`
-
-Process:
-\`\`\`json
-{ "command": "node /opt/aidos-agent/run.js", "cwd": "/opt/aidos-agent", "timeoutSec": 300 }
-\`\`\`
+Governance product surfaces (recommendations, approvals, releases) remain
+human-driven outside chat. The assistant does not hire, delegate, or execute
+write tools.
 `;
 
 export async function GET() {

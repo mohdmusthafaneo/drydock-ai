@@ -156,13 +156,6 @@ export async function ingestTelemetryForOrganization(input: {
       }
     }
 
-    await prisma.agentRegistry.updateMany({
-      where: {
-        organizationId: input.organizationId,
-        agentType: { in: ["DEVOPS_INTELLIGENCE", "INCIDENT_CORRELATION"] },
-      },
-      data: { status: "ACTIVE", lastActiveAt: new Date() },
-    });
   }
 
   await prisma.activityEvent.create({

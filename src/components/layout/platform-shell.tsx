@@ -16,6 +16,9 @@ import {
 } from "@/lib/nav-availability";
 import { isMvpOnlyPath } from "@/lib/workspace-mode";
 
+function isChatPath(pathname: string): boolean {
+  return pathname === "/agent-threads" || pathname.startsWith("/agent-threads/");
+}
 export async function PlatformShell({
   session,
   children,
@@ -100,7 +103,7 @@ export async function PlatformShell({
       integrationGates={integrationGates}
       homePath={homePath}
     >
-      <OnboardingBanner steps={steps} />
+      {!isChatPath(pathname) ? <OnboardingBanner steps={steps} /> : null}
       <QueryProvider>{children}</QueryProvider>
     </AppShell>
   );

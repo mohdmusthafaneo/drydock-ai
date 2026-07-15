@@ -19,12 +19,16 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 
 const SIDEBAR_STORAGE_KEY = "aidos-sidebar-collapsed";
 
-const AUTO_COLLAPSE_PATHS = ["/dashboard"];
+const AUTO_COLLAPSE_PATHS = ["/dashboard", "/agent-threads"];
 
 function shouldAutoCollapse(pathname: string): boolean {
   return AUTO_COLLAPSE_PATHS.some(
     (path) => pathname === path || pathname.startsWith(`${path}/`),
   );
+}
+
+function isChatPath(pathname: string): boolean {
+  return pathname === "/agent-threads" || pathname.startsWith("/agent-threads/");
 }
 
 function HeaderTagline({ text }: { text: string }) {
@@ -92,6 +96,7 @@ export function AppShell({
   }
 
   const pageTitle = resolvePageTitleForPath(pathname, "ENTERPRISE", integrationGates);
+  const chatMode = isChatPath(pathname);
 
   return (
     <div className="app-canvas flex h-dvh overflow-hidden bg-base text-primary">
@@ -154,21 +159,36 @@ export function AppShell({
       </aside>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-fog">
-        <header className="z-10 flex shrink-0 items-center justify-between gap-4 px-4 pt-5 pb-2 lg:px-10 lg:pt-8 lg:pb-3">
-          <div className="min-w-0">
-            <p className="truncate font-display text-[22px] leading-tight tracking-[-0.2px] text-ink lg:text-[26px] lg:tracking-[-0.28px]">
-              {pageTitle}
-            </p>
-            <p className="mt-0.5 truncate text-xs text-graphite lg:hidden">{meta.label}</p>
-          </div>
-          <HeaderTagline text={meta.tagline} />
-        </header>
+        {!chatMode ? (
+          <header className="z-10 flex shrink-0 items-center justify-between gap-4 px-4 pt-5 pb-2 lg:px-10 lg:pt-8 lg:pb-3">
+            <div className="min-w-0">
+              <p className="truncate font-display text-[22px] leading-tight tracking-[-0.2px] text-ink lg:text-[26px] lg:tracking-[-0.28px]">
+                {pageTitle}
+              </p>
+              <p className="mt-0.5 truncate text-xs text-graphite lg:hidden">{meta.label}</p>
+            </div>
+            <HeaderTagline text={meta.tagline} />
+          </header>
+        ) : null}
         <main
-          className="min-h-0 w-full flex-1 overflow-y-auto overscroll-contain px-4 pb-24 pt-2 lg:px-10 lg:pb-8 lg:pt-3"
+          className={cn(
+            "min-h-0 w-full flex-1 overscroll-contain",
+            chatMode
+              ? "flex flex-col overflow-hidden px-0 pb-0 pt-0 lg:px-3 lg:pb-3 lg:pt-3"
+              : "overflow-y-auto px-4 pb-24 pt-2 lg:px-10 lg:pb-8 lg:pt-3",
+          )}
           onClick={handleMainInteract}
           onScroll={handleMainInteract}
         >
-          <div className="mx-auto max-w-[1200px]">{children}</div>
+          <div
+            className={cn(
+              chatMode
+                ? "relative flex min-h-0 flex-1 flex-col"
+                : "mx-auto max-w-[1200px]",
+            )}
+          >
+            {children}
+          </div>
         </main>
         <MobileNav integrationGates={integrationGates} userRole={session.role} steep />
       </div>

@@ -15,7 +15,7 @@ describe("parseWorkerQueues", () => {
   });
 
   it("parses comma-separated roles", () => {
-    const roles = parseWorkerQueues("agents,ml");
+    const roles = parseWorkerQueues("ml,enrich");
     assert.equal(roles.has("all"), false);
     assert.equal(workerServesRole(roles, "ml"), true);
     assert.equal(workerServesRole(roles, "refresh"), false);
@@ -24,7 +24,7 @@ describe("parseWorkerQueues", () => {
   it("supports dedicated retention pool", () => {
     const roles = parseWorkerQueues("retention");
     assert.equal(workerServesRole(roles, "retention"), true);
-    assert.equal(workerServesRole(roles, "agents"), false);
+    assert.equal(workerServesRole(roles, "ml"), false);
   });
 
   it("ignores unknown roles and falls back to all when empty", () => {
@@ -34,7 +34,6 @@ describe("parseWorkerQueues", () => {
 
   it("documents known roles", () => {
     assert.deepEqual([...WORKER_QUEUE_ROLES].sort(), [
-      "agents",
       "all",
       "enrich",
       "ml",

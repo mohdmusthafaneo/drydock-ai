@@ -11,8 +11,6 @@ export const JOB_NAMES = {
   predictionsEval: "predictions.eval",
   refreshFanout: "refresh.fanout",
   refreshOrg: "refresh.org",
-  agentWakeup: "agent.wakeup",
-  agentTimerScan: "agent.timer-scan",
   mlEmbed: "ml.embed",
   mlCodeQuality: "ml.codeQuality",
   evidenceRecompute: "evidence.recompute",

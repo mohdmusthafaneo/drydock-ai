@@ -113,7 +113,7 @@ export function buildApprovalsHeroSummary(ctx: Ctx): {
   }
 
   const releaseApprovals = pending.filter(
-    (a) => a.type !== "AGENT_HIRE" && a.recommendation?.releaseId,
+    (a) => a.recommendation?.releaseId,
   );
   const releaseIds = new Set(
     releaseApprovals
@@ -145,17 +145,9 @@ export function buildApprovalsHeroSummary(ctx: Ctx): {
     };
   }
 
-  const agentHires = pending.filter((a) => a.type === "AGENT_HIRE").length;
-  if (agentHires > 0 && agentHires === n) {
-    return {
-      headline: `${n} agent hire${n === 1 ? "" : "s"} awaiting approval`,
-      subcopy: "No new agents are activated without your sign-off.",
-    };
-  }
-
   return {
     headline: `${n} approval${n === 1 ? "" : "s"} awaiting your decision`,
-    subcopy: "Human-governed gate — nothing deploys or activates without approval.",
+    subcopy: "Human-governed gate — nothing deploys without approval.",
   };
 }
 

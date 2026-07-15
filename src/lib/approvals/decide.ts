@@ -2,19 +2,9 @@ import type { UserRole } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { readJsonField } from "@/lib/json-field";
 import { canApproveRequiredRole } from "@/lib/permissions";
-import {
-  enqueueThreadApprovalWakeup,
-  postApprovalResolvedMessage,
-} from "@/lib/agent-chat/approvals";
+import { postApprovalResolvedMessage } from "@/lib/agent-chat/approvals";
 import { parseApprovalChatContext } from "@/lib/approvals/chat-context";
-import { enqueueApprovalFollowUpWakeups } from "@/lib/agent-control-plane/wakeup";
 import { invalidateExecutiveBriefingSnapshot } from "@/lib/executive-briefing/invalidate-snapshot";
-import {
-  activateHiredAgent,
-  enqueueHireFollowUpWakeups,
-  parseHirePayload,
-  rejectHiredAgent,
-} from "@/lib/agent-control-plane/hire";
 
 export type DecideApprovalInput = {
   organizationId: string;
@@ -54,79 +44,7 @@ export async function decideApproval(
     select: { name: true },
   });
 
-  if (approval.type === "AGENT_HIRE") {
-    if (decision === "MODIFIED") {
-      return {
-        ok: false,
-        error: "Agent hire approvals support Approve or Reject only",
-        status: 400,
-      };
-    }
-
-    if (!canApproveRequiredRole(userRole, "ORG_ADMIN")) {
-      return {
-        ok: false,
-        error: "Agent hire requires ORG_ADMIN approval",
-        status: 403,
-      };
-    }
-
-    const payload = parseHirePayload(approval.payloadJson);
-    if (!payload?.agentId) {
-      return { ok: false, error: "Invalid hire payload", status: 400 };
-    }
-
-    await prisma.$transaction(async (tx) => {
-      await tx.approval.update({
-        where: { id: approval.id },
-        data: {
-          approverId: userId,
-          decision,
-          comment,
-          decidedAt: new Date(),
-        },
-      });
-
-      if (decision === "APPROVED") {
-        await activateHiredAgent(tx, organizationId, approval.id, payload);
-      } else {
-        await rejectHiredAgent(tx, organizationId, approval.id, payload, comment);
-      }
-
-      if (chatContext?.threadId) {
-        await postApprovalResolvedMessage({
-          organizationId,
-          threadId: chatContext.threadId,
-          approvalId: approval.id,
-          decision,
-          approverName: approver?.name,
-          tx,
-        });
-      }
-    });
-
-    if (decision === "APPROVED") {
-      await enqueueHireFollowUpWakeups(
-        organizationId,
-        approval.id,
-        payload.agentId,
-        approval.requestedByAgentId,
-      );
-    }
-
-    await enqueueApprovalFollowUpWakeups(organizationId, approval.id, decision);
-    await enqueueThreadApprovalFollowUp({
-      organizationId,
-      approval,
-      decision,
-      chatContext,
-    });
-
-    invalidateExecutiveBriefingSnapshot(organizationId);
-
-    return { ok: true };
-  }
-
+  // Legacy agent-action approvals (no longer created) — still decidable.
   if (approval.type === "AGENT_ACTION") {
     const payload = parseActionPayload(approval.payloadJson);
     const requiredRole = payload.requiredRole;
@@ -170,7 +88,10 @@ export async function decideApproval(
           action: `agent_action.${decision.toLowerCase()}`,
           entityType: "Approval",
           entityId: approval.id,
-          metadataJson: JSON.stringify({ comment, threadId: chatContext?.threadId }),
+          metadataJson: JSON.stringify({
+            comment,
+            threadId: chatContext?.threadId,
+          }),
         },
       });
 
@@ -186,16 +107,7 @@ export async function decideApproval(
       }
     });
 
-    await enqueueApprovalFollowUpWakeups(organizationId, approval.id, decision);
-    await enqueueThreadApprovalFollowUp({
-      organizationId,
-      approval,
-      decision,
-      chatContext,
-    });
-
     invalidateExecutiveBriefingSnapshot(organizationId);
-
     return { ok: true };
   }
 
@@ -203,7 +115,12 @@ export async function decideApproval(
     return { ok: false, error: "Recommendation not found", status: 404 };
   }
 
-  if (!canApproveRequiredRole(userRole, approval.recommendation.requiredRole ?? undefined)) {
+  if (
+    !canApproveRequiredRole(
+      userRole,
+      approval.recommendation.requiredRole ?? undefined,
+    )
+  ) {
     return {
       ok: false,
       error: approval.recommendation.requiredRole
@@ -270,13 +187,21 @@ export async function decideApproval(
 
       const pending = releaseApprovals.filter((a) => !a.decision);
       if (pending.length === 0) {
-        const anyRejected = releaseApprovals.some((a) => a.decision === "REJECTED");
-        const allApproved = releaseApprovals.every((a) => a.decision === "APPROVED");
+        const anyRejected = releaseApprovals.some(
+          (a) => a.decision === "REJECTED",
+        );
+        const allApproved = releaseApprovals.every(
+          (a) => a.decision === "APPROVED",
+        );
 
         await tx.release.update({
           where: { id: releaseId },
           data: {
-            status: anyRejected ? "BLOCKED" : allApproved ? "APPROVED" : "PENDING_APPROVAL",
+            status: anyRejected
+              ? "BLOCKED"
+              : allApproved
+                ? "APPROVED"
+                : "PENDING_APPROVAL",
           },
         });
       }
@@ -294,16 +219,7 @@ export async function decideApproval(
     }
   });
 
-  await enqueueApprovalFollowUpWakeups(organizationId, approval.id, decision);
-  await enqueueThreadApprovalFollowUp({
-    organizationId,
-    approval,
-    decision,
-    chatContext,
-  });
-
   invalidateExecutiveBriefingSnapshot(organizationId);
-
   return { ok: true };
 }
 
@@ -319,27 +235,4 @@ function parseActionPayload(payloadJson: unknown): {
         ? (parsed.requiredRole as UserRole)
         : undefined,
   };
-}
-
-async function enqueueThreadApprovalFollowUp(input: {
-  organizationId: string;
-  approval: {
-    id: string;
-    requestedByAgentId: string | null;
-  };
-  decision: string;
-  chatContext: ReturnType<typeof parseApprovalChatContext>;
-}) {
-  const { organizationId, approval, decision, chatContext } = input;
-
-  if (!chatContext?.threadId || !approval.requestedByAgentId) return;
-
-  await enqueueThreadApprovalWakeup({
-    organizationId,
-    approvalId: approval.id,
-    decision,
-    threadId: chatContext.threadId,
-    triggerMessageId: chatContext.messageId ?? chatContext.threadId,
-    agentId: approval.requestedByAgentId,
-  });
 }

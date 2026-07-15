@@ -3,7 +3,6 @@ import { getEnv } from "@/lib/env";
 /** Queue role groups selectable via WORKER_QUEUES (comma-separated). */
 export const WORKER_QUEUE_ROLES = [
   "all",
-  "agents",
   "refresh",
   "enrich",
   "ml",
@@ -13,7 +12,7 @@ export type WorkerQueueRole = (typeof WORKER_QUEUE_ROLES)[number];
 
 /**
  * Parse WORKER_QUEUES env. Default `all` registers every worker handler.
- * Examples: `ml`, `agents,ml`, `refresh,enrich`.
+ * Examples: `ml`, `refresh,enrich`.
  */
 export function parseWorkerQueues(
   raw: string | undefined = process.env.WORKER_QUEUES,

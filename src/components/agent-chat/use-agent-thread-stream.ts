@@ -1,225 +1,181 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { StreamChunkSsePayload } from "@/lib/agent-chat/types";
+import { useCallback, useRef, useState } from "react";
+import type { ChatStreamEvent } from "@/lib/agent-chat/types";
 
 export type StreamingMessageState = {
   messageId: string;
-  runId: string;
-  agentId: string;
   text: string;
-  thinking: string;
   isStreaming: boolean;
-  tools: Array<{
-    name: string;
-    input: Record<string, unknown>;
-    outputPreview?: string;
-    startedAt: string;
-    endedAt?: string;
-  }>;
+  thinking: boolean;
+  activeTool?: string;
 };
 
 type UseAgentThreadStreamOptions = {
-  enabled?: boolean;
   onMessageFinal?: (messageId: string) => void;
+  onHumanMessageSaved?: (messageId: string) => void;
 };
 
 export function useAgentThreadStream(
   threadId: string,
   options: UseAgentThreadStreamOptions = {},
 ) {
-  const { enabled = true, onMessageFinal } = options;
-  const [streamingByRunId, setStreamingByRunId] = useState<
-    Record<string, StreamingMessageState>
-  >({});
-  const [connected, setConnected] = useState(false);
-  const [disconnected, setDisconnected] = useState(false);
-  const lastEventIdRef = useRef<string | null>(null);
+  const { onMessageFinal, onHumanMessageSaved } = options;
+  const [streaming, setStreaming] = useState<StreamingMessageState | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
   const onMessageFinalRef = useRef(onMessageFinal);
+  const onHumanMessageSavedRef = useRef(onHumanMessageSaved);
   onMessageFinalRef.current = onMessageFinal;
+  onHumanMessageSavedRef.current = onHumanMessageSaved;
 
-  const upsertStreaming = useCallback(
-    (runId: string, updater: (prev: StreamingMessageState | undefined) => StreamingMessageState) => {
-      setStreamingByRunId((prev) => ({
-        ...prev,
-        [runId]: updater(prev[runId]),
-      }));
-    },
-    [],
-  );
-
-  useEffect(() => {
-    if (!enabled || !threadId) return;
-
-    let source: EventSource | null = null;
-    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-    let cancelled = false;
-
-    function connect() {
-      if (cancelled) return;
-
-      const url = `/api/agent-threads/${threadId}/stream`;
-      source = new EventSource(url, { withCredentials: true });
-
-      source.onopen = () => {
-        setConnected(true);
-        setDisconnected(false);
-      };
-
-      source.addEventListener("chunk", (event) => {
-        const messageEvent = event as MessageEvent<string>;
-        if (messageEvent.lastEventId) {
-          lastEventIdRef.current = messageEvent.lastEventId;
-        }
-
-        let payload: StreamChunkSsePayload;
-        try {
-          payload = JSON.parse(messageEvent.data) as StreamChunkSsePayload;
-        } catch {
-          return;
-        }
-
-        const { runId, agentId, messageId, kind } = payload;
-        if (!runId || !agentId) return;
-
-        upsertStreaming(runId, (prev) => {
-          const base: StreamingMessageState = prev ?? {
-            messageId: messageId ?? `pending-${runId}`,
-            runId,
-            agentId,
-            text: "",
-            thinking: "",
-            isStreaming: true,
-            tools: [],
-          };
-
-          if (messageId) base.messageId = messageId;
-
-          switch (kind) {
-            case "text_delta":
-              if (payload.text) base.text += payload.text;
-              break;
-            case "thinking_delta":
-              if (payload.thinking) base.thinking += payload.thinking;
-              break;
-            case "tool_start":
-              if (payload.tool) {
-                base.tools = [
-                  ...base.tools,
-                  {
-                    name: payload.tool,
-                    input: payload.input ?? {},
-                    startedAt: new Date().toISOString(),
-                  },
-                ];
-              }
-              break;
-            case "tool_end":
-              if (payload.tool) {
-                const idx = base.tools.findLastIndex((t) => t.name === payload.tool);
-                if (idx >= 0) {
-                  base.tools[idx] = {
-                    ...base.tools[idx],
-                    outputPreview: payload.outputPreview,
-                    endedAt: new Date().toISOString(),
-                  };
-                }
-              }
-              break;
-            case "run_complete":
-              base.isStreaming = false;
-              break;
-            case "run_error":
-              base.isStreaming = false;
-              if (payload.error && !base.text) {
-                base.text = payload.error;
-              }
-              break;
-          }
-
-          return { ...base };
-        });
-      });
-
-      source.addEventListener("message_final", (event) => {
-        const messageEvent = event as MessageEvent<string>;
-        if (messageEvent.lastEventId) {
-          lastEventIdRef.current = messageEvent.lastEventId;
-        }
-
-        try {
-          const data = JSON.parse(messageEvent.data) as {
-            messageId?: string;
-            runId?: string;
-          };
-          if (data.runId) {
-            upsertStreaming(data.runId, (prev) =>
-              prev
-                ? {
-                    ...prev,
-                    messageId: data.messageId ?? prev.messageId,
-                    isStreaming: false,
-                  }
-                : {
-                    messageId: data.messageId ?? `pending-${data.runId}`,
-                    runId: data.runId!,
-                    agentId: "",
-                    text: "",
-                    thinking: "",
-                    isStreaming: false,
-                    tools: [],
-                  },
-            );
-          }
-          if (data.messageId) {
-            onMessageFinalRef.current?.(data.messageId);
-          }
-        } catch {
-          // ignore
-        }
-      });
-
-      source.onerror = () => {
-        setConnected(false);
-        setDisconnected(true);
-        source?.close();
-        source = null;
-        if (!cancelled) {
-          reconnectTimer = setTimeout(connect, 3000);
-        }
-      };
-    }
-
-    connect();
-
-    return () => {
-      cancelled = true;
-      if (reconnectTimer) clearTimeout(reconnectTimer);
-      source?.close();
-      setConnected(false);
-    };
-  }, [enabled, threadId, upsertStreaming]);
-
-  const clearCompletedStreaming = useCallback((messageId: string) => {
-    setStreamingByRunId((prev) => {
-      const next = { ...prev };
-      for (const [runId, state] of Object.entries(next)) {
-        if (state.messageId === messageId && !state.isStreaming) {
-          delete next[runId];
-        }
-      }
-      return next;
-    });
+  const clearStreaming = useCallback(() => {
+    setStreaming(null);
   }, []);
 
-  const streamingMessages = Object.values(streamingByRunId).filter(
-    (msg) => msg.isStreaming || msg.text.length > 0,
+  const sendMessage = useCallback(
+    async (content: string) => {
+      if (!threadId || !content.trim() || sending) return;
+
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      setSending(true);
+      setError(null);
+      setStreaming({
+        messageId: `pending-${Date.now()}`,
+        text: "",
+        isStreaming: true,
+        thinking: true,
+      });
+
+      try {
+        const res = await fetch(`/api/agent-threads/${threadId}/messages`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify({ content }),
+          signal: controller.signal,
+        });
+
+        if (!res.ok) {
+          const body = (await res.json().catch(() => null)) as
+            | { error?: string }
+            | null;
+          throw new Error(body?.error ?? `Request failed (${res.status})`);
+        }
+
+        if (!res.body) {
+          throw new Error("No response stream");
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+
+          let newlineIdx = buffer.indexOf("\n");
+          while (newlineIdx >= 0) {
+            const line = buffer.slice(0, newlineIdx).trim();
+            buffer = buffer.slice(newlineIdx + 1);
+            newlineIdx = buffer.indexOf("\n");
+            if (!line) continue;
+
+            let event: ChatStreamEvent;
+            try {
+              event = JSON.parse(line) as ChatStreamEvent;
+            } catch {
+              continue;
+            }
+
+            switch (event.type) {
+              case "message_saved":
+                onHumanMessageSavedRef.current?.(event.messageId);
+                break;
+              case "thinking":
+                setStreaming((prev) =>
+                  prev
+                    ? { ...prev, thinking: event.active, isStreaming: true }
+                    : prev,
+                );
+                break;
+              case "text_delta":
+                setStreaming((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        text: prev.text + event.text,
+                        thinking: false,
+                        isStreaming: true,
+                      }
+                    : {
+                        messageId: `pending-${Date.now()}`,
+                        text: event.text,
+                        thinking: false,
+                        isStreaming: true,
+                      },
+                );
+                break;
+              case "tool_start":
+                setStreaming((prev) =>
+                  prev
+                    ? { ...prev, thinking: true, activeTool: event.tool }
+                    : prev,
+                );
+                break;
+              case "tool_end":
+                setStreaming((prev) =>
+                  prev
+                    ? { ...prev, activeTool: undefined }
+                    : prev,
+                );
+                break;
+              case "done":
+                setStreaming({
+                  messageId: event.messageId,
+                  text: event.text,
+                  isStreaming: false,
+                  thinking: false,
+                });
+                onMessageFinalRef.current?.(event.messageId);
+                break;
+              case "error":
+                setError(event.error);
+                setStreaming((prev) =>
+                  prev ? { ...prev, isStreaming: false, thinking: false } : prev,
+                );
+                break;
+            }
+          }
+        }
+      } catch (err) {
+        if ((err as Error).name === "AbortError") return;
+        setError(err instanceof Error ? err.message : "Failed to send message");
+        setStreaming((prev) =>
+          prev ? { ...prev, isStreaming: false, thinking: false } : null,
+        );
+      } finally {
+        setSending(false);
+        abortRef.current = null;
+      }
+    },
+    [threadId, sending],
   );
 
   return {
-    streamingMessages,
-    connected,
-    disconnected,
-    clearCompletedStreaming,
+    streaming,
+    streamingMessages: streaming ? [streaming] : [],
+    sending,
+    error,
+    sendMessage,
+    clearStreaming,
+    connected: true,
+    disconnected: false,
   };
 }

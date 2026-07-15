@@ -2,7 +2,6 @@ import { forOrgRead } from "@/lib/prisma";
 import { computeCompletedStepIds } from "@/lib/enterprise-workflow";
 import { hasObservabilitySynced } from "@/lib/observability-connectivity";
 import { isJiraCalibrationComplete } from "@/lib/jira-calibration/status";
-import { rollupAgentTokens } from "@/lib/agent-control-plane/token-rollup";
 
 export async function getOrganizationContext(organizationId: string) {
   const db = forOrgRead(organizationId);
@@ -16,8 +15,6 @@ export async function getOrganizationContext(organizationId: string) {
     events,
     releases,
     workflow,
-    agents,
-    agentRuns,
     incidents,
     auditLogs,
     telemetryMetrics,
@@ -25,7 +22,6 @@ export async function getOrganizationContext(organizationId: string) {
     telemetryEvents,
     webhookEvents,
     governancePolicy,
-    agentTokenRollup,
   ] = await Promise.all([
     // Organization is the tenant root — query by id on the scoped client is fine
     // (Organization is not in TENANT_MODELS, so forOrg does not rewrite it).
@@ -59,16 +55,6 @@ export async function getOrganizationContext(organizationId: string) {
       orderBy: { createdAt: "desc" },
     }),
     db.deliveryWorkflow.findUnique({ where: { organizationId } }),
-    db.agentRegistry.findMany({
-      where: { organizationId },
-      orderBy: { agentType: "asc" },
-    }),
-    db.agentHeartbeatRun.findMany({
-      where: { organizationId },
-      orderBy: { startedAt: "desc" },
-      take: 8,
-      include: { agent: { select: { id: true, displayName: true } } },
-    }),
     db.incident.findMany({
       where: { organizationId },
       orderBy: { detectedAt: "desc" },
@@ -103,7 +89,6 @@ export async function getOrganizationContext(organizationId: string) {
       take: 12,
     }),
     db.governancePolicy.findUnique({ where: { organizationId } }),
-    rollupAgentTokens(organizationId, 30),
   ]);
 
   const pendingApprovals = approvals.filter((a) => !a.decision);
@@ -163,8 +148,6 @@ export async function getOrganizationContext(organizationId: string) {
     events,
     releases,
     workflow,
-    agents,
-    agentRuns,
     incidents,
     auditLogs,
     telemetryMetrics,
@@ -172,7 +155,6 @@ export async function getOrganizationContext(organizationId: string) {
     telemetryEvents,
     webhookEvents,
     governancePolicy,
-    agentTokenRollup,
     completedStepIds,
     stats: {
       governanceScore: dna?.governanceScore ?? 0,
@@ -187,9 +169,6 @@ export async function getOrganizationContext(organizationId: string) {
       openIncidents: incidents.filter((i) => i.status === "OPEN" || i.status === "INVESTIGATING")
         .length,
       auditEventCount: auditLogs.length,
-      activeAgents: agents.filter(
-        (a) => !["PAUSED", "PENDING_APPROVAL", "TERMINATED", "ERROR"].includes(a.status),
-      ).length,
       metricCount: telemetryMetrics.length,
       telemetryEventCount: telemetryEvents.length,
       webhookEventCount: webhookEvents.length,
@@ -200,9 +179,6 @@ export async function getOrganizationContext(organizationId: string) {
       p95Latency: p95,
       degradedDeployments: degradedDeployments.length,
       rollbackPending: deploymentEvents.filter((d) => d.rollbackRecommended).length,
-      agentTokenInput: agentTokenRollup.inputTokens,
-      agentTokenOutput: agentTokenRollup.outputTokens,
-      agentHeartbeatRuns30d: agentTokenRollup.runCount,
     },
   };
 }

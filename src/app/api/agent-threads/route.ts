@@ -41,8 +41,6 @@ export async function POST(request: Request) {
       ok: true,
       threadId: result.data.threadId,
       messageId: result.data.messageId,
-      wakeupId: result.data.wakeupId,
-      coalesced: result.data.coalesced ?? false,
     });
   } catch {
     return NextResponse.json({ error: "Invalid thread data" }, { status: 400 });

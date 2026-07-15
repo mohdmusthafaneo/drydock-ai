@@ -1,18 +1,9 @@
 import type {
   AgentChatMessage,
   AgentChatMessageKind,
-  AgentChatParticipant,
   AgentChatThread,
   AgentChatThreadStatus,
 } from "@/generated/prisma/client";
-
-export type ChatWakeupPayload = {
-  threadId: string;
-  triggerMessageId: string;
-  targetAgentId?: string;
-  approvalId?: string;
-  decision?: "APPROVED" | "REJECTED" | "MODIFIED";
-};
 
 export type ReasoningJson = {
   thinking: string;
@@ -25,18 +16,15 @@ export type ReasoningJson = {
   }>;
 };
 
-export type StreamChunkSsePayload = {
-  runId: string;
-  agentId: string;
-  messageId?: string;
-  kind: string;
-  text?: string;
-  thinking?: string;
-  tool?: string;
-  input?: Record<string, unknown>;
-  outputPreview?: string;
-  error?: string;
-};
+/** NDJSON stream events from POST /messages. */
+export type ChatStreamEvent =
+  | { type: "message_saved"; messageId: string }
+  | { type: "text_delta"; text: string }
+  | { type: "thinking"; active: boolean }
+  | { type: "tool_start"; tool: string }
+  | { type: "tool_end"; tool: string }
+  | { type: "done"; messageId: string; text: string }
+  | { type: "error"; error: string };
 
 import { readJsonField } from "@/lib/json-field";
 
@@ -60,29 +48,18 @@ export function buildReasoningJson(state: {
 
 export type ThreadListStatusFilter = "open" | "done" | "all";
 
-export const OPEN_THREAD_STATUSES: AgentChatThreadStatus[] = [
-  "open",
-  "routing",
-  "active",
-  "awaiting_human",
-  "stalled",
-];
+export const OPEN_THREAD_STATUSES: AgentChatThreadStatus[] = ["open"];
 
 export const DEFAULT_THREAD_LIST_LIMIT = 20;
 
 export type AgentChatThreadSummary = AgentChatThread & {
-  _count: { messages: number; participants: number };
+  _count: { messages: number };
   messages: Pick<AgentChatMessage, "id" | "contentMarkdown" | "kind" | "createdAt">[];
 };
 
 export type AgentChatThreadDetail = AgentChatThread & {
-  participants: (AgentChatParticipant & {
-    agent: { id: string; displayName: string; agentType: string } | null;
-    user: { id: string; name: string } | null;
-  })[];
   messages: (AgentChatMessage & {
     authorUser: { id: string; name: string } | null;
-    authorAgent: { id: string; displayName: string } | null;
     approval: {
       id: string;
       type: string;
@@ -96,8 +73,6 @@ export type AgentChatThreadDetail = AgentChatThread & {
 
 export type CreateHumanMessageResult = {
   messageId: string;
-  wakeupId: string | null;
-  coalesced: boolean;
 };
 
 export function truncateThreadTitle(text: string, maxLen = 80): string {

@@ -16,7 +16,6 @@ import {
   Shield,
   BarChart3,
   ScrollText,
-  Bot,
   MessagesSquare,
   Server,
   AlertTriangle,
@@ -184,14 +183,8 @@ export function getEnterpriseNavLayout(): EnterpriseNavLayout {
           { href: "/reports", label: "Reports", icon: BarChart3 },
           { href: "/audit", label: "Audit logs", icon: ScrollText },
           {
-            href: "/agents",
-            label: "Agents",
-            icon: Bot,
-            roleGate: ["ORG_ADMIN", "DELIVERY_MANAGER", "ENGINEERING_MANAGER", "DEVOPS_LEAD"],
-          },
-          {
             href: "/agent-threads",
-            label: "Agent threads",
+            label: "Conversations",
             icon: MessagesSquare,
             roleGate: ["ORG_ADMIN", "DELIVERY_MANAGER", "ENGINEERING_MANAGER", "DEVOPS_LEAD"],
           },
@@ -335,7 +328,6 @@ export function isEnterpriseOnlyPath(pathname: string): boolean {
     "/governance",
     "/reports",
     "/audit",
-    "/agents",
     "/agent-threads",
     "/admin",
   ];

@@ -1,81 +1,615 @@
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 
-import { agentJson } from "./client";
-import { getAidosToolContext } from "./context";
 import {
-  APPROVAL_ROLE_VALUES,
-  IMPACT_VALUES,
-  SPECIALIST_ROLE_VALUES,
-} from "./names";
+  JIRA_JQL_PRESETS,
+  queryJiraJqlForOrganization,
+} from "@/lib/agent-control-plane/tools/jira-tools";
+import { buildReleaseAssessContext } from "@/lib/agent-control-plane/tools/release-tools";
+import { resolveStoredCodeAnalysis } from "@/lib/code-analysis/sync";
+import { loadComplianceFindings } from "@/lib/compliance/load-findings";
+import { loadComplianceFindingSummary } from "@/lib/compliance/summary";
+import { resolveStoredJiraDelivery } from "@/lib/delivery-analysis/resolve";
+import {
+  checkIntegrationHealth,
+  summarizeIntegrationHealth,
+} from "@/lib/integration-health";
+import { summarizePortfolioHygiene } from "@/lib/jira-hygiene";
+import { getOrganizationContext } from "@/lib/org-data";
+import { prisma } from "@/lib/prisma";
+import {
+  loadPredictionSummary,
+  loadProblemPredictions,
+} from "@/lib/problem-prediction/load-predictions";
 
-const inboxQueryFromWake = (wakePayload: Record<string, unknown>) => {
-  const params = new URLSearchParams();
-  for (const key of [
-    "approvalId",
-    "decision",
-    "releaseId",
-    "webhookEventId",
-    "telemetryEventId",
-    "event",
-  ] as const) {
-    const value = wakePayload[key];
-    if (typeof value === "string") {
-      params.set(key, value);
-    }
-  }
-  return params;
-};
+import { getAidosToolContext } from "./context";
 
-export const aidosGetMeTool = createTool({
-  id: "aidos_get_me",
-  description: "Get current agent identity, permissions, and runtime config.",
+export const aidosGetOrgContextTool = createTool({
+  id: "aidos_get_org_context",
+  description:
+    "Get a slim organization snapshot: DNA, workflow progress, integrations (no credentials), stats, and recent releases/recommendations/approvals/incidents.",
   inputSchema: z.object({}),
   execute: async (_input, context) => {
-    const ctx = getAidosToolContext(context);
-    return agentJson(ctx, "/api/agents/me");
+    const { organizationId } = getAidosToolContext(context);
+    const ctx = await getOrganizationContext(organizationId);
+    if (!ctx.org) {
+      return { ok: false, error: "Organization not found" };
+    }
+
+    const dna = ctx.dna
+      ? {
+          methodology: ctx.dna.workflowMode,
+          approvalLevel: ctx.dna.approvalLevel,
+          riskThreshold: ctx.dna.riskThreshold,
+          autonomyMode: ctx.dna.autonomyMode,
+          autonomyLevel: ctx.dna.autonomyLevel,
+          governanceScore: ctx.dna.governanceScore,
+          observabilityStrategy: ctx.dna.observabilityStrategy,
+          summary: ctx.dna.summary,
+        }
+      : null;
+
+    return {
+      ok: true,
+      org: {
+        id: ctx.org.id,
+        name: ctx.org.name,
+        slug: ctx.org.slug,
+      },
+      dna,
+      workflow: {
+        configuredAt: ctx.workflow?.configuredAt?.toISOString() ?? null,
+        executionStatus: ctx.workflow?.executionStatus ?? null,
+        currentStepId: ctx.workflow?.currentStepId ?? null,
+        completedStepIds: ctx.completedStepIds,
+      },
+      integrations: ctx.integrations.map((i) => ({
+        provider: i.provider,
+        status: i.status,
+        lastSyncAt: i.lastSyncAt?.toISOString() ?? null,
+      })),
+      stats: ctx.stats,
+      recent: {
+        releases: ctx.releases.slice(0, 10).map((r) => ({
+          id: r.id,
+          name: r.name,
+          version: r.version,
+          status: r.status,
+          readinessScore: r.readinessScore,
+        })),
+        recommendations: ctx.recommendations.slice(0, 10).map((r) => ({
+          id: r.id,
+          title: r.title,
+          status: r.status,
+          impact: r.impact,
+        })),
+        approvals: ctx.approvals.slice(0, 10).map((a) => ({
+          id: a.id,
+          title: a.title ?? a.recommendation?.title ?? null,
+          status: a.decision ?? "PENDING",
+        })),
+        incidents: ctx.incidents.slice(0, 10).map((i) => ({
+          id: i.id,
+          title: i.title,
+          status: i.status,
+          severityScore: i.severityScore,
+        })),
+      },
+    };
   },
 });
 
-export const aidosGetInboxTool = createTool({
-  id: "aidos_get_inbox",
-  description: "List prioritized pending work items for this agent.",
+export const aidosListRecommendationsTool = createTool({
+  id: "aidos_list_recommendations",
+  description: "List governance recommendations for the organization.",
   inputSchema: z.object({
+    status: z
+      .enum(["PENDING", "APPROVED", "REJECTED", "MODIFIED"])
+      .optional()
+      .describe("Filter by recommendation status"),
     limit: z
       .number()
       .optional()
-      .describe("Max items to return (default 20, max 50)"),
+      .describe("Max recommendations to return (default 50, max 200)"),
   }),
   execute: async (input, context) => {
-    const ctx = getAidosToolContext(context);
-    const limit = Math.min(input.limit ?? 20, 50);
-    const params = inboxQueryFromWake(ctx.wakePayload);
-    params.set("limit", String(limit));
-    return agentJson(ctx, `/api/agents/me/inbox?${params}`);
+    const { organizationId } = getAidosToolContext(context);
+    const limit = Math.min(input.limit ?? 50, 200);
+    const recommendations = await prisma.recommendation.findMany({
+      where: {
+        organizationId,
+        ...(input.status ? { status: input.status } : {}),
+      },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        status: true,
+        impact: true,
+        confidence: true,
+        releaseId: true,
+        createdAt: true,
+      },
+    });
+
+    return {
+      ok: true,
+      recommendations: recommendations.map((r) => ({
+        ...r,
+        createdAt: r.createdAt.toISOString(),
+      })),
+    };
   },
 });
 
-export const aidosAssessReleaseTool = createTool({
-  id: "aidos_assess_release",
-  description:
-    "Run governance assessment on a release and create recommendation + approval.",
+export const aidosListApprovalsTool = createTool({
+  id: "aidos_list_approvals",
+  description: "List governance approvals for the organization.",
   inputSchema: z.object({
-    releaseId: z.string().describe("Release id to assess"),
+    status: z
+      .enum(["PENDING", "APPROVED", "REJECTED", "MODIFIED"])
+      .optional()
+      .describe("Filter by approval status"),
+    limit: z
+      .number()
+      .optional()
+      .describe("Max approvals to return (default 50, max 200)"),
   }),
   execute: async (input, context) => {
-    const ctx = getAidosToolContext(context);
-    return agentJson(
-      ctx,
-      `/api/agents/me/releases/${encodeURIComponent(input.releaseId)}/assess`,
-      { method: "POST", body: "{}" },
+    const { organizationId } = getAidosToolContext(context);
+    const limit = Math.min(input.limit ?? 50, 200);
+    const status = input.status;
+
+    const approvals = await prisma.approval.findMany({
+      where: {
+        organizationId,
+        ...(status === "PENDING"
+          ? { decision: null }
+          : status
+            ? { decision: status }
+            : {}),
+      },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      select: {
+        id: true,
+        title: true,
+        decision: true,
+        recommendationId: true,
+        createdAt: true,
+        decidedAt: true,
+        recommendation: {
+          select: {
+            description: true,
+            requiredRole: true,
+            releaseId: true,
+            title: true,
+          },
+        },
+      },
+    });
+
+    return {
+      ok: true,
+      approvals: approvals.map((a) => ({
+        id: a.id,
+        title: a.title ?? a.recommendation?.title ?? null,
+        description: a.recommendation?.description ?? null,
+        status: a.decision ?? "PENDING",
+        requiredRole: a.recommendation?.requiredRole ?? null,
+        recommendationId: a.recommendationId,
+        releaseId: a.recommendation?.releaseId ?? null,
+        createdAt: a.createdAt.toISOString(),
+        decidedAt: a.decidedAt?.toISOString() ?? null,
+      })),
+    };
+  },
+});
+
+export const aidosListReleasesTool = createTool({
+  id: "aidos_list_releases",
+  description: "List releases for the organization.",
+  inputSchema: z.object({
+    status: z
+      .enum([
+        "DETECTED",
+        "ASSESSED",
+        "PENDING_APPROVAL",
+        "APPROVED",
+        "DEPLOYED",
+        "BLOCKED",
+      ])
+      .optional()
+      .describe("Filter by release status"),
+    limit: z
+      .number()
+      .optional()
+      .describe("Max releases to return (default 50, max 200)"),
+  }),
+  execute: async (input, context) => {
+    const { organizationId } = getAidosToolContext(context);
+    const limit = Math.min(input.limit ?? 50, 200);
+    const releases = await prisma.release.findMany({
+      where: {
+        organizationId,
+        ...(input.status ? { status: input.status } : {}),
+      },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      select: {
+        id: true,
+        name: true,
+        version: true,
+        branch: true,
+        environment: true,
+        status: true,
+        readinessScore: true,
+        governanceRiskScore: true,
+        riskLevel: true,
+        primaryRecommendation: true,
+        assessedAt: true,
+        deployedAt: true,
+        createdAt: true,
+      },
+    });
+
+    return {
+      ok: true,
+      releases: releases.map((r) => ({
+        ...r,
+        assessedAt: r.assessedAt?.toISOString() ?? null,
+        deployedAt: r.deployedAt?.toISOString() ?? null,
+        createdAt: r.createdAt.toISOString(),
+      })),
+    };
+  },
+});
+
+export const aidosGetReleaseReadinessTool = createTool({
+  id: "aidos_get_release_readiness",
+  description:
+    "Get detailed readiness context for a release (DNA, Jira, GitHub, code analysis, policy).",
+  inputSchema: z.object({
+    releaseId: z.string().describe("Release id"),
+  }),
+  execute: async (input, context) => {
+    const { organizationId } = getAidosToolContext(context);
+    const ctx = await buildReleaseAssessContext(organizationId, input.releaseId);
+
+    if (!ctx) {
+      return { ok: false, error: "Release not found" };
+    }
+
+    if ("error" in ctx && ctx.error) {
+      return {
+        ok: true,
+        release: {
+          id: ctx.release.id,
+          name: ctx.release.name,
+          version: ctx.release.version,
+          status: ctx.release.status,
+          readinessScore: ctx.release.readinessScore,
+          governanceRiskScore: ctx.release.governanceRiskScore,
+          riskLevel: ctx.release.riskLevel,
+          primaryRecommendation: ctx.release.primaryRecommendation,
+          assessmentSummary: ctx.release.assessmentSummary,
+        },
+        error: ctx.error,
+      };
+    }
+
+    const full = ctx as Exclude<typeof ctx, { error: string }>;
+    const dna = full.dna
+      ? {
+          methodology: full.dna.workflowMode,
+          approvalLevel: full.dna.approvalLevel,
+          riskThreshold: full.dna.riskThreshold,
+          autonomyMode: full.dna.autonomyMode,
+          autonomyLevel: full.dna.autonomyLevel,
+          governanceScore: full.dna.governanceScore,
+          observabilityStrategy: full.dna.observabilityStrategy,
+          summary: full.dna.summary,
+        }
+      : null;
+    const health = full.jira?.health ?? null;
+
+    return {
+      ok: true,
+      release: {
+        id: full.release.id,
+        name: full.release.name,
+        version: full.release.version,
+        branch: full.release.branch,
+        environment: full.release.environment,
+        status: full.release.status,
+        readinessScore: full.release.readinessScore,
+        governanceRiskScore: full.release.governanceRiskScore,
+        riskLevel: full.release.riskLevel,
+        primaryRecommendation: full.release.primaryRecommendation,
+        assessmentSummary: full.release.assessmentSummary,
+        assessedAt: full.release.assessedAt?.toISOString() ?? null,
+      },
+      dna,
+      jira: full.jira
+        ? {
+            connected: full.jira.connected,
+            synced: full.jira.synced,
+            health: health
+              ? {
+                  score: health.score,
+                  matchedVersion: health.matchedVersion ?? null,
+                  scopeLabel: health.scopeLabel ?? null,
+                  snapshotSyncedAt: health.snapshotSyncedAt,
+                  topSignals: health.signals.slice(0, 8),
+                  topGaps: health.gaps.slice(0, 8),
+                  releaseScope: health.releaseScope ?? null,
+                }
+              : null,
+          }
+        : null,
+      github: full.github
+        ? {
+            connected: full.github.connected,
+            synced: full.github.synced,
+            ci: full.github.ci,
+            changeRisk: full.github.changeRisk,
+          }
+        : null,
+      codeAnalysis: full.codeAnalysis
+        ? {
+            connected: full.codeAnalysis.connected,
+            synced: full.codeAnalysis.synced,
+            aiLinesPct: full.codeAnalysis.aiLinesPct,
+            aiPrsPct: full.codeAnalysis.aiPrsPct,
+            reviewCoverageOnAiPrsPct: full.codeAnalysis.reviewCoverageOnAiPrsPct,
+            topSignals: (full.codeAnalysis.governanceSignals ?? []).slice(0, 8),
+          }
+        : null,
+      jiraHygiene: full.jiraHygiene,
+      governancePolicy: full.governancePolicy
+        ? {
+            deploymentThresholds: full.governancePolicy.deploymentThresholds ?? null,
+            releaseRules: full.governancePolicy.releaseRules ?? null,
+            approvalRequirements: full.governancePolicy.approvalRequirements ?? null,
+          }
+        : null,
+    };
+  },
+});
+
+export const aidosGetJiraContextTool = createTool({
+  id: "aidos_get_jira_context",
+  description:
+    "Get Jira delivery context: connected projects, KPIs, sprint signals, and hygiene summary.",
+  inputSchema: z.object({}),
+  execute: async (_input, context) => {
+    const { organizationId } = getAidosToolContext(context);
+    const stored = await resolveStoredJiraDelivery(organizationId);
+    if (!stored) {
+      return { ok: true, connected: false };
+    }
+
+    const projects = stored.snapshot.projects.map((p) => ({
+      key: p.key,
+      name: p.name,
+      openIssues: p.openIssues,
+      blockedCount: p.blockedCount,
+      overdueCount: p.overdueCount,
+      bugsOpen: p.bugsOpen,
+      unassignedCount: p.unassignedCount,
+      reopenedCount: p.reopenedCount ?? null,
+      spilloverCount: p.spilloverCount ?? null,
+      resolvedLast7d: p.resolvedLast7d ?? null,
+      activeSprint: p.activeSprint
+        ? {
+            id: p.activeSprint.id,
+            name: p.activeSprint.name,
+            state: p.activeSprint.state,
+            openIssues: p.activeSprint.openIssues ?? null,
+            bugsOpen: p.activeSprint.bugsOpen ?? null,
+            blockedCount: p.activeSprint.blockedCount ?? null,
+            done: p.activeSprint.done ?? null,
+            committed: p.activeSprint.committed ?? null,
+          }
+        : null,
+    }));
+
+    const hygiene = summarizePortfolioHygiene(stored.jiraHygiene);
+
+    return {
+      ok: true,
+      connected: true,
+      siteUrl: stored.siteUrl ?? null,
+      projectKeys: stored.projectKeys,
+      syncedAt: stored.snapshot.syncedAt,
+      kpis: {
+        projectCount: projects.length,
+        openIssues: projects.reduce((s, p) => s + p.openIssues, 0),
+        blockedCount: projects.reduce((s, p) => s + p.blockedCount, 0),
+        overdueCount: projects.reduce((s, p) => s + p.overdueCount, 0),
+        bugsOpen: projects.reduce((s, p) => s + p.bugsOpen, 0),
+        unassignedCount: projects.reduce((s, p) => s + p.unassignedCount, 0),
+      },
+      projects,
+      hygiene,
+      calibration: stored.calibrationGate
+        ? {
+            status: stored.calibrationGate.status,
+            calibrated: stored.calibrationGate.calibrated,
+            pendingProjects: stored.calibrationGate.pendingProjects,
+            message: stored.calibrationGate.message ?? null,
+          }
+        : null,
+    };
+  },
+});
+
+export const aidosGetCodeAnalysisTool = createTool({
+  id: "aidos_get_code_analysis",
+  description:
+    "Get code analysis snapshot: AI attribution signals, recent PRs, and governance flags.",
+  inputSchema: z.object({}),
+  execute: async (_input, context) => {
+    const { organizationId } = getAidosToolContext(context);
+    const stored = await resolveStoredCodeAnalysis(organizationId);
+    if (!stored) {
+      return {
+        ok: true,
+        connected: false,
+        syncedAt: null,
+        repoCount: 0,
+        prCount: 0,
+        commitCount: 0,
+      };
+    }
+
+    const signals = new Map<string, number>();
+    for (const pr of stored.pullRequests) {
+      for (const flag of pr.qualityFlags ?? []) {
+        signals.set(flag, (signals.get(flag) ?? 0) + 1);
+      }
+    }
+    for (const commit of stored.commits) {
+      for (const signal of commit.signals ?? []) {
+        signals.set(signal, (signals.get(signal) ?? 0) + 1);
+      }
+    }
+
+    const topSignals = [...signals.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 12)
+      .map(([signal, count]) => ({ signal, count }));
+
+    const recentPrs = [...stored.pullRequests]
+      .sort((a, b) => (b.mergedAt ?? "").localeCompare(a.mergedAt ?? ""))
+      .slice(0, 15)
+      .map((pr) => ({
+        title: pr.title,
+        state: "merged",
+        author: pr.author,
+        url: pr.url,
+        repo: pr.repo,
+        mergedAt: pr.mergedAt ?? null,
+        attribution: pr.attribution,
+      }));
+
+    return {
+      ok: true,
+      connected: true,
+      syncedAt: stored.syncedAt,
+      repoCount: stored.repos.length,
+      repos: stored.repos.slice(0, 40),
+      prCount: stored.pullRequests.length,
+      commitCount: stored.commits.length,
+      topSignals,
+      recentPrs,
+    };
+  },
+});
+
+export const aidosGetIntegrationHealthTool = createTool({
+  id: "aidos_get_integration_health",
+  description: "Check health of connected integrations (Jira, GitHub, etc.).",
+  inputSchema: z.object({}),
+  execute: async (_input, context) => {
+    const { organizationId } = getAidosToolContext(context);
+    const integrations = await prisma.integration.findMany({
+      where: { organizationId },
+      orderBy: { provider: "asc" },
+    });
+
+    const summaries = await Promise.all(
+      integrations.map((integration) => checkIntegrationHealth(integration)),
     );
+    const aggregate = summarizeIntegrationHealth(summaries);
+
+    return {
+      ok: true,
+      integrations: summaries.map((s) => ({
+        provider: s.provider,
+        status: s.status,
+        healthy: s.healthy,
+        lastSyncAt: s.lastSyncAt?.toISOString() ?? null,
+        lastHealthCheckAt: s.lastHealthCheckAt?.toISOString() ?? null,
+        lastError: s.lastError,
+        webhookEnabled: s.webhookEnabled,
+        message: s.message,
+      })),
+      aggregate,
+    };
+  },
+});
+
+export const aidosListIncidentsTool = createTool({
+  id: "aidos_list_incidents",
+  description: "List incidents for the organization.",
+  inputSchema: z.object({
+    status: z
+      .enum(["OPEN", "INVESTIGATING", "REMEDIATED", "CLOSED"])
+      .optional()
+      .describe("Filter by incident status"),
+    limit: z
+      .number()
+      .optional()
+      .describe("Max incidents to return (default 50, max 200)"),
+  }),
+  execute: async (input, context) => {
+    const { organizationId } = getAidosToolContext(context);
+    const limit = Math.min(input.limit ?? 50, 200);
+    const incidents = await prisma.incident.findMany({
+      where: {
+        organizationId,
+        ...(input.status ? { status: input.status } : {}),
+      },
+      orderBy: { detectedAt: "desc" },
+      take: limit,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        status: true,
+        severityScore: true,
+        source: true,
+        releaseId: true,
+        detectedAt: true,
+        resolvedAt: true,
+        createdAt: true,
+        release: {
+          select: {
+            id: true,
+            name: true,
+            version: true,
+            status: true,
+          },
+        },
+      },
+    });
+
+    return {
+      ok: true,
+      incidents: incidents.map((i) => ({
+        id: i.id,
+        title: i.title,
+        description: i.description,
+        status: i.status,
+        severityScore: i.severityScore,
+        source: i.source,
+        releaseId: i.releaseId,
+        detectedAt: i.detectedAt.toISOString(),
+        resolvedAt: i.resolvedAt?.toISOString() ?? null,
+        createdAt: i.createdAt.toISOString(),
+        release: i.release,
+      })),
+    };
   },
 });
 
 export const aidosListComplianceFindingsTool = createTool({
   id: "aidos_list_compliance_findings",
   description:
-    "List compliance monitoring findings for the organization. Use to review open policy violations on PRs, commits, and AI code governance before creating remediation recommendations.",
+    "List compliance monitoring findings for the organization. Use to review open policy violations on PRs, commits, and AI code governance.",
   inputSchema: z.object({
     status: z
       .enum(["open", "resolved"])
@@ -85,34 +619,32 @@ export const aidosListComplianceFindingsTool = createTool({
       .enum(["critical", "warning", "info"])
       .optional()
       .describe("Filter by severity"),
-    projectKey: z
-      .string()
-      .optional()
-      .describe("Filter by Jira project key"),
+    projectKey: z.string().optional().describe("Filter by Jira project key"),
     limit: z
       .number()
       .optional()
       .describe("Max findings to return (default 100, max 200)"),
   }),
   execute: async (input, context) => {
-    const ctx = getAidosToolContext(context);
-    const params = new URLSearchParams();
-    if (input.status) params.set("status", input.status);
-    if (input.severity) params.set("severity", input.severity);
-    if (input.projectKey) params.set("projectKey", input.projectKey);
-    if (input.limit != null) params.set("limit", String(input.limit));
-    const query = params.toString();
-    return agentJson(
-      ctx,
-      `/api/agents/me/compliance/findings${query ? `?${query}` : ""}`,
-    );
+    const { organizationId } = getAidosToolContext(context);
+    const [findings, summary] = await Promise.all([
+      loadComplianceFindings(organizationId, {
+        status: input.status,
+        severity: input.severity,
+        projectKey: input.projectKey,
+        limit: input.limit,
+      }),
+      loadComplianceFindingSummary(organizationId),
+    ]);
+
+    return { ok: true, findings, summary };
   },
 });
 
 export const aidosListPredictionsTool = createTool({
   id: "aidos_list_predictions",
   description:
-    "List forward-looking problem predictions for the organization. Use to review early-warning signals before creating mitigation recommendations.",
+    "List forward-looking problem predictions for the organization. Use to review early-warning signals.",
   inputSchema: z.object({
     status: z
       .enum(["open", "resolved"])
@@ -126,365 +658,84 @@ export const aidosListPredictionsTool = createTool({
       .enum(["delivery", "devops", "compliance", "planning", "code"])
       .optional()
       .describe("Filter by prediction domain"),
-    projectKey: z
-      .string()
-      .optional()
-      .describe("Filter by Jira project key"),
+    projectKey: z.string().optional().describe("Filter by Jira project key"),
     limit: z
       .number()
       .optional()
       .describe("Max predictions to return (default 100, max 200)"),
   }),
   execute: async (input, context) => {
-    const ctx = getAidosToolContext(context);
-    const params = new URLSearchParams();
-    if (input.status) params.set("status", input.status);
-    if (input.severity) params.set("severity", input.severity);
-    if (input.domain) params.set("domain", input.domain);
-    if (input.projectKey) params.set("projectKey", input.projectKey);
-    if (input.limit != null) params.set("limit", String(input.limit));
-    const query = params.toString();
-    return agentJson(
-      ctx,
-      `/api/agents/me/predictions${query ? `?${query}` : ""}`,
-    );
+    const { organizationId } = getAidosToolContext(context);
+    const [predictions, summary] = await Promise.all([
+      loadProblemPredictions(organizationId, {
+        status: input.status,
+        severity: input.severity,
+        domain: input.domain,
+        projectKey: input.projectKey,
+        limit: input.limit,
+      }),
+      loadPredictionSummary(organizationId),
+    ]);
+
+    return { ok: true, predictions, summary };
   },
 });
 
 export const aidosQueryJiraJqlTool = createTool({
   id: "aidos_query_jira_jql",
   description:
-    "Query the connected Jira board with JQL (read-only). Use for chat questions about open bugs, blocked work, sprint scope, or release readiness. Prefer mode=count for totals; use preset shortcuts when the question matches open_bugs, blocked, open, or done.",
+    "Run a read-only JQL query against the organization's connected Jira projects. Prefer presets when possible.",
   inputSchema: z
     .object({
-      jql: z
-        .string()
-        .optional()
-        .describe(
-          "JQL fragment scoped to org projects automatically, e.g. issuetype = Bug AND status != Done",
-        ),
-      preset: z
-        .enum(["open_bugs", "blocked", "open", "done"])
-        .optional()
-        .describe(
-          "Toolchain-aware preset instead of raw JQL — open_bugs, blocked, open, or done",
-        ),
-      mode: z
-        .enum(["count", "issues"])
-        .optional()
-        .describe("count returns only approximate total; issues returns sample rows"),
-      maxResults: z
-        .number()
-        .optional()
-        .describe("Max issues to return when mode=issues (default 20, max 50)"),
+      jql: z.string().trim().min(1).max(2000).optional(),
+      preset: z.enum(JIRA_JQL_PRESETS).optional(),
+      mode: z.enum(["count", "issues"]).optional(),
+      maxResults: z.number().int().min(1).max(50).optional(),
     })
     .refine((value) => Boolean(value.jql || value.preset), {
       message: "Provide jql or preset",
     }),
   execute: async (input, context) => {
-    const ctx = getAidosToolContext(context);
-    return agentJson(ctx, "/api/agents/me/jira/query", {
-      method: "POST",
-      body: JSON.stringify(input),
+    const { organizationId } = getAidosToolContext(context);
+    const result = await queryJiraJqlForOrganization({
+      organizationId,
+      jql: input.jql,
+      preset: input.preset,
+      mode: input.mode,
+      maxResults: input.maxResults,
     });
-  },
-});
 
-export const aidosCreateRecommendationTool = createTool({
-  id: "aidos_create_recommendation",
-  description: "Create a governance recommendation (and approval when required).",
-  inputSchema: z.object({
-    title: z.string(),
-    description: z.string(),
-    rationale: z.string(),
-    confidence: z.number().describe("0.0 to 1.0"),
-    impact: z.enum(IMPACT_VALUES).optional(),
-    releaseId: z.string().optional(),
-    requiredRole: z.enum(APPROVAL_ROLE_VALUES).optional(),
-    createApproval: z.boolean().optional(),
-    idempotencyKey: z
-      .string()
-      .optional()
-      .describe(
-        "Stable key to avoid duplicate recommendations, e.g. compliance finding id",
-      ),
-  }),
-  execute: async (input, context) => {
-    const ctx = getAidosToolContext(context);
-    return agentJson(ctx, "/api/agents/me/recommendations", {
-      method: "POST",
-      body: JSON.stringify(input),
-    });
-  },
-});
+    if (!result.ok) {
+      return { ok: false, error: result.error };
+    }
 
-export const aidosCompleteWorkItemTool = createTool({
-  id: "aidos_complete_work_item",
-  description: "Acknowledge an inbox work item as complete.",
-  inputSchema: z.object({
-    workItemId: z
-      .string()
-      .describe("Inbox item id, e.g. release_assess:<releaseId>"),
-  }),
-  execute: async (input, context) => {
-    const ctx = getAidosToolContext(context);
-    return agentJson(
-      ctx,
-      `/api/agents/me/work-items/${encodeURIComponent(input.workItemId)}/complete`,
-      { method: "POST", body: "{}" },
-    );
-  },
-});
-
-export const aidosHireAgentTool = createTool({
-  id: "aidos_hire_agent",
-  description:
-    "Request hiring a specialist agent with custom AGENTS.md (requires human AGENT_HIRE approval).",
-  inputSchema: z.object({
-    displayName: z.string(),
-    role: z.enum(SPECIALIST_ROLE_VALUES),
-    capabilities: z.string().optional(),
-    reportsToAgentId: z.string().optional(),
-    instructionsBundle: z.object({
-      files: z
-        .record(z.string(), z.unknown())
-        .describe("Must include AGENTS.md with role charter"),
-    }),
-    desiredSkills: z.array(z.string()).optional(),
-    runtimeConfig: z.record(z.string(), z.unknown()).optional(),
-  }),
-  execute: async (input, context) => {
-    const ctx = getAidosToolContext(context);
-    return agentJson(ctx, "/api/agents/hire", {
-      method: "POST",
-      body: JSON.stringify(input),
-    });
-  },
-});
-
-export const aidosCompleteInitializationTool = createTool({
-  id: "aidos_complete_initialization",
-  description:
-    "Mark Super Agent team initialization complete after INITIALIZE.md hires are submitted.",
-  inputSchema: z.object({}),
-  execute: async (_input, context) => {
-    const ctx = getAidosToolContext(context);
-    return agentJson(ctx, "/api/agents/me/initialization/complete", {
-      method: "POST",
-      body: "{}",
-    });
-  },
-});
-
-export const aidosDelegateWakeupTool = createTool({
-  id: "aidos_delegate_wakeup",
-  description:
-    "Delegate work to a specialist agent by enqueueing a delegation wakeup (Super Agent only). May be called multiple times in one heartbeat for parallel specialists (e.g. QA + DevOps) — each target gets its own wakeup on the same thread.",
-  inputSchema: z.object({
-    targetAgentId: z
-      .string()
-      .optional()
-      .describe("Specialist agent id (use targetRole if unknown)"),
-    targetRole: z
-      .enum(SPECIALIST_ROLE_VALUES)
-      .optional()
-      .describe("Resolve specialist by role when targetAgentId is omitted"),
-    reason: z
-      .string()
-      .describe("Delegation reason, e.g. release.detected or chat.delegate"),
-    payload: z
-      .object({
-        threadId: z.string().optional().describe("Agent chat thread id"),
-        triggerMessageId: z
-          .string()
-          .optional()
-          .describe("Human message id that triggered the chat wakeup"),
-      })
-      .passthrough()
-      .optional()
-      .describe(
-        "Work context passed to specialist wakeup. For agent chat threads include threadId and triggerMessageId.",
-      ),
-  }),
-  execute: async (input, context) => {
-    const ctx = getAidosToolContext(context);
-    return agentJson(ctx, "/api/agents/me/delegate", {
-      method: "POST",
-      body: JSON.stringify(input),
-    });
-  },
-});
-
-export const aidosInviteAgentToThreadTool = createTool({
-  id: "aidos_invite_agent_to_thread",
-  description:
-    "Invite a specialist agent to an operational chat thread and post a system routing message (Super Agent only).",
-  inputSchema: z.object({
-    threadId: z.string().describe("Agent chat thread id"),
-    targetAgentId: z.string().describe("Specialist agent id to invite"),
-  }),
-  execute: async (input, context) => {
-    const ctx = getAidosToolContext(context);
-    return agentJson(
-      ctx,
-      `/api/agents/me/chat/threads/${encodeURIComponent(input.threadId)}/invite`,
-      {
-        method: "POST",
-        body: JSON.stringify({ targetAgentId: input.targetAgentId }),
-      },
-    );
-  },
-});
-
-export const aidosPostThreadMessageTool = createTool({
-  id: "aidos_post_thread_message",
-  description:
-    "Post a visible agent reply to an operational chat thread (coordinator or invited specialist).",
-  inputSchema: z.object({
-    threadId: z.string().describe("Agent chat thread id"),
-    contentMarkdown: z
-      .string()
-      .describe("Reply content shown to humans in the thread timeline"),
-  }),
-  execute: async (input, context) => {
-    const ctx = getAidosToolContext(context);
-    return agentJson(
-      ctx,
-      `/api/agents/me/chat/threads/${encodeURIComponent(input.threadId)}/messages`,
-      {
-        method: "POST",
-        body: JSON.stringify({ contentMarkdown: input.contentMarkdown }),
-      },
-    );
-  },
-});
-
-export const aidosCloseThreadTool = createTool({
-  id: "aidos_close_thread",
-  description:
-    "Close an operational chat thread with a summary (Super Agent only). Sets status to done and persists summaryMarkdown as thread contextSummary for future wakeups after reopen.",
-  inputSchema: z.object({
-    threadId: z.string().describe("Agent chat thread id"),
-    summaryMarkdown: z
-      .string()
-      .describe(
-        "Closure summary shown in the timeline and stored as contextSummary for LLM context on reopen",
-      ),
-  }),
-  execute: async (input, context) => {
-    const ctx = getAidosToolContext(context);
-    return agentJson(
-      ctx,
-      `/api/agents/me/chat/threads/${encodeURIComponent(input.threadId)}/close`,
-      {
-        method: "POST",
-        body: JSON.stringify({ summaryMarkdown: input.summaryMarkdown }),
-      },
-    );
-  },
-});
-
-export const aidosReopenThreadTool = createTool({
-  id: "aidos_reopen_thread",
-  description:
-    "Reopen a closed operational chat thread (Super Agent only). Sets status to active.",
-  inputSchema: z.object({
-    threadId: z.string().describe("Agent chat thread id"),
-  }),
-  execute: async (input, context) => {
-    const ctx = getAidosToolContext(context);
-    return agentJson(
-      ctx,
-      `/api/agents/me/chat/threads/${encodeURIComponent(input.threadId)}/reopen`,
-      { method: "POST", body: "{}" },
-    );
-  },
-});
-
-export const aidosAwaitHumanInputTool = createTool({
-  id: "aidos_await_human_input",
-  description:
-    "Mark thread as awaiting human input and post a system prompt (coordinator or invited specialist).",
-  inputSchema: z.object({
-    threadId: z.string().describe("Agent chat thread id"),
-    promptMarkdown: z
-      .string()
-      .optional()
-      .describe("Optional prompt explaining what input is needed"),
-  }),
-  execute: async (input, context) => {
-    const ctx = getAidosToolContext(context);
-    return agentJson(
-      ctx,
-      `/api/agents/me/chat/threads/${encodeURIComponent(input.threadId)}/await-human`,
-      {
-        method: "POST",
-        body: JSON.stringify({ promptMarkdown: input.promptMarkdown }),
-      },
-    );
-  },
-});
-
-export const aidosRequestApprovalTool = createTool({
-  id: "aidos_request_approval",
-  description:
-    "Request human approval for a critical action in an operational chat thread. Posts an approval card and sets thread to awaiting_human.",
-  inputSchema: z.object({
-    threadId: z.string().describe("Agent chat thread id"),
-    title: z.string().describe("Short approval title"),
-    description: z
-      .string()
-      .describe("What action requires approval and why"),
-    rationale: z.string().optional().describe("Optional governance rationale"),
-    action: z
-      .string()
-      .describe("Action key, e.g. assess_release, integration_mutation"),
-    requiredRole: z.enum(APPROVAL_ROLE_VALUES).optional(),
-    riskScore: z.number().optional().describe("0.0 to 1.0"),
-    payload: z
-      .record(z.string(), z.unknown())
-      .optional()
-      .describe("Optional extra context (releaseId, etc.)"),
-  }),
-  execute: async (input, context) => {
-    const ctx = getAidosToolContext(context);
-    return agentJson(
-      ctx,
-      `/api/agents/me/chat/threads/${encodeURIComponent(input.threadId)}/approvals`,
-      {
-        method: "POST",
-        body: JSON.stringify({
-          title: input.title,
-          description: input.description,
-          rationale: input.rationale,
-          action: input.action,
-          requiredRole: input.requiredRole,
-          riskScore: input.riskScore,
-          payload: input.payload,
-        }),
-      },
-    );
+    return {
+      ok: true,
+      jql: result.jql,
+      mode: result.mode,
+      projectKeys: result.projectKeys,
+      count: result.count,
+      issues: result.issues,
+      nextPageToken: result.nextPageToken,
+      queriedAt: result.queriedAt,
+      preset: result.preset,
+    };
   },
 });
 
 export const aidosTools = {
-  aidos_get_me: aidosGetMeTool,
-  aidos_get_inbox: aidosGetInboxTool,
-  aidos_assess_release: aidosAssessReleaseTool,
+  aidos_get_org_context: aidosGetOrgContextTool,
+  aidos_list_recommendations: aidosListRecommendationsTool,
+  aidos_list_approvals: aidosListApprovalsTool,
+  aidos_list_releases: aidosListReleasesTool,
+  aidos_get_release_readiness: aidosGetReleaseReadinessTool,
+  aidos_get_jira_context: aidosGetJiraContextTool,
+  aidos_get_code_analysis: aidosGetCodeAnalysisTool,
+  aidos_get_integration_health: aidosGetIntegrationHealthTool,
+  aidos_list_incidents: aidosListIncidentsTool,
   aidos_list_compliance_findings: aidosListComplianceFindingsTool,
   aidos_list_predictions: aidosListPredictionsTool,
   aidos_query_jira_jql: aidosQueryJiraJqlTool,
-  aidos_create_recommendation: aidosCreateRecommendationTool,
-  aidos_complete_work_item: aidosCompleteWorkItemTool,
-  aidos_hire_agent: aidosHireAgentTool,
-  aidos_complete_initialization: aidosCompleteInitializationTool,
-  aidos_delegate_wakeup: aidosDelegateWakeupTool,
-  aidos_invite_agent_to_thread: aidosInviteAgentToThreadTool,
-  aidos_post_thread_message: aidosPostThreadMessageTool,
-  aidos_close_thread: aidosCloseThreadTool,
-  aidos_reopen_thread: aidosReopenThreadTool,
-  aidos_await_human_input: aidosAwaitHumanInputTool,
-  aidos_request_approval: aidosRequestApprovalTool,
 } as const;
 
 export type AidosToolMap = typeof aidosTools;

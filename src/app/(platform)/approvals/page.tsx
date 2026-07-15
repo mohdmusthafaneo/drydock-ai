@@ -3,7 +3,6 @@ import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 import { getSession } from "@/lib/session";
 import { getOrganizationContext } from "@/lib/org-data";
-import { parseHirePayload } from "@/lib/agent-control-plane/hire";
 import {
   buildApprovalsHeroSummary,
   sortPendingApprovals,
@@ -11,18 +10,13 @@ import {
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AgentHireApprovalCard } from "@/components/approvals/agent-hire-approval-card";
 import { RecommendationApprovalCard } from "@/components/approvals/recommendation-approval-card";
 import { RevealSection } from "@/components/motion/reveal-section";
 
 function approvalTitle(approval: {
-  type: string;
   title: string | null;
   recommendation: { title: string } | null;
 }): string {
-  if (approval.type === "AGENT_HIRE") {
-    return approval.title ?? "Agent hire request";
-  }
   return approval.recommendation?.title ?? approval.title ?? "Approval";
 }
 
@@ -46,14 +40,11 @@ export default async function ApprovalsPage() {
   const decided = ctx.approvals.filter((a) => a.decision);
   const hero = buildApprovalsHeroSummary(ctx);
 
-  const releaseApprovals = pending.filter((a) => a.type !== "AGENT_HIRE");
-  const agentHireApprovals = pending.filter((a) => a.type === "AGENT_HIRE");
-
   return (
     <div className="space-y-8">
       <PageHeader
         title="Approval center"
-        description="Human-governed gate for recommendations and agent hires. No deployment or agent activation without approval."
+        description="Human-governed gate for recommendations. No deployment without approval."
       />
 
       <RevealSection className="rounded-[24px] border border-border-subtle bg-pure-white px-6 py-6 shadow-[var(--shadow)]">
@@ -80,80 +71,43 @@ export default async function ApprovalsPage() {
                   No leadership actions right now
                 </p>
                 <p className="mt-1 text-[14px] leading-relaxed text-ash">
-                  Releases can proceed without your sign-off, and no agent hires are waiting.
+                  Releases can proceed without your sign-off.
                 </p>
               </div>
             </div>
           ) : (
-            <>
-              {releaseApprovals.length > 0 && (
-                <div className="space-y-4">
-                  {releaseApprovals.length > 0 && agentHireApprovals.length > 0 && (
-                    <h3 className="text-[13px] font-medium uppercase tracking-[0.06em] text-graphite">
-                      Release governance
-                    </h3>
-                  )}
-                  {releaseApprovals.map((approval) => {
-                    if (!approval.recommendation) {
-                      return (
-                        <p key={approval.id} className="text-sm text-error">
-                          Missing recommendation data for approval
-                        </p>
-                      );
-                    }
+            <div className="space-y-4">
+              {pending.map((approval) => {
+                if (!approval.recommendation) {
+                  return (
+                    <p key={approval.id} className="text-sm text-error">
+                      Missing recommendation data for approval
+                    </p>
+                  );
+                }
 
-                    const rec = approval.recommendation;
+                const rec = approval.recommendation;
 
-                    return (
-                      <RecommendationApprovalCard
-                        key={approval.id}
-                        approvalId={approval.id}
-                        riskScore={approval.riskScore}
-                        recommendation={{
-                          title: rec.title,
-                          description: rec.description,
-                          rationale: rec.rationale,
-                          impact: rec.impact,
-                          confidence: rec.confidence,
-                          requiredRole: rec.requiredRole,
-                          release: rec.release
-                            ? { id: rec.release.id, name: rec.release.name }
-                            : null,
-                        }}
-                      />
-                    );
-                  })}
-                </div>
-              )}
-
-              {agentHireApprovals.length > 0 && (
-                <div className="space-y-4">
-                  {releaseApprovals.length > 0 && (
-                    <h3 className="text-[13px] font-medium uppercase tracking-[0.06em] text-graphite">
-                      Agent hires
-                    </h3>
-                  )}
-                  {agentHireApprovals.map((approval) => {
-                    const payload = parseHirePayload(approval.payloadJson);
-                    if (!payload) {
-                      return (
-                        <p key={approval.id} className="text-sm text-error">
-                          Invalid agent hire payload
-                        </p>
-                      );
-                    }
-                    return (
-                      <AgentHireApprovalCard
-                        key={approval.id}
-                        approvalId={approval.id}
-                        title={approvalTitle(approval)}
-                        payload={payload}
-                      />
-                    );
-                  })}
-                </div>
-              )}
-            </>
+                return (
+                  <RecommendationApprovalCard
+                    key={approval.id}
+                    approvalId={approval.id}
+                    riskScore={approval.riskScore}
+                    recommendation={{
+                      title: rec.title,
+                      description: rec.description,
+                      rationale: rec.rationale,
+                      impact: rec.impact,
+                      confidence: rec.confidence,
+                      requiredRole: rec.requiredRole,
+                      release: rec.release
+                        ? { id: rec.release.id, name: rec.release.name }
+                        : null,
+                    }}
+                  />
+                );
+              })}
+            </div>
           )}
         </CardContent>
       </Card>
@@ -179,9 +133,6 @@ export default async function ApprovalsPage() {
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0 flex-1 space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        {approval.type === "AGENT_HIRE" && (
-                          <Badge variant="ai">Agent hire</Badge>
-                        )}
                         <span className="font-medium text-primary">{approvalTitle(approval)}</span>
                       </div>
                       <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">

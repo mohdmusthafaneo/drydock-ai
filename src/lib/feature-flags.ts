@@ -18,7 +18,6 @@ export type NavFeatureFlagId =
   | "nav.governance"
   | "nav.reports"
   | "nav.audit"
-  | "nav.agents"
   | "nav.agent_threads"
   | "nav.integrations"
   | "nav.admin"
@@ -41,7 +40,6 @@ export const NAV_FEATURE_FLAGS: Record<NavFeatureFlagId, boolean> = {
   "nav.governance": true,
   "nav.reports": false,
   "nav.audit": true,
-  "nav.agents": true,
   "nav.agent_threads": true,
   "nav.integrations": true,
   "nav.admin": false,
@@ -64,7 +62,6 @@ const NAV_HREF_TO_FLAG: Record<string, NavFeatureFlagId> = {
   "/governance": "nav.governance",
   "/reports": "nav.reports",
   "/audit": "nav.audit",
-  "/agents": "nav.agents",
   "/agent-threads": "nav.agent_threads",
   "/integrations": "nav.integrations",
   "/admin": "nav.admin",

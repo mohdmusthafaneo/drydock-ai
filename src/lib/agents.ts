@@ -1,28 +1,7 @@
-import type { AgentType, AutonomyMode } from "@/generated/prisma/client";
-
-export type AgentDefinition = {
-  agentType: AgentType;
-  displayName: string;
-  description: string;
-  defaultConfidence: number;
-  autonomyMode: AutonomyMode;
-};
-
 /**
- * Org bootstrap roster — exactly one Super Agent at seed time.
- * Specialists are hired by the Super Agent via governed AGENT_HIRE flow (Phase 5.3).
+ * Workflow autonomy modes for Delivery DNA / governance setup.
+ * (Agent orchestration roster removed — chat uses in-process AIDOS Assistant.)
  */
-export const DEFAULT_AGENT_DEFINITIONS: AgentDefinition[] = [
-  {
-    agentType: "SUPER_ORCHESTRATOR",
-    displayName: "Super Agent",
-    description:
-      "Leads operational intelligence — delegates work and hires specialists under human approval",
-    defaultConfidence: 0.92,
-    autonomyMode: "ASSIST",
-  },
-];
-
 export const WORKFLOW_MODES = [
   { mode: "OBSERVE", label: "Observe", description: "AI monitors only — no recommendations" },
   { mode: "RECOMMEND", label: "Recommend", description: "AI proposes — humans decide" },

@@ -1,4 +1,4 @@
-/** Phase M3 — opt-in Mastra LLM paths for non-agent surfaces (env-driven). */
+/** Opt-in Mastra LLM paths for product surfaces (env-driven). */
 
 function envFlag(name: string, defaultValue = false): boolean {
   const raw = process.env[name]?.trim().toLowerCase();
@@ -14,9 +14,4 @@ export function isDiscoveryDnaLlmEnabled(): boolean {
 /** When true, accelerator generate uses multi-step Mastra workflow with approval gates. */
 export function isMvpAcceleratorLlmEnabled(): boolean {
   return envFlag("MASTRA_MVP_ACCELERATOR_LLM_ENABLED");
-}
-
-/** When true, external thread ingress may invoke chatRoutingWorkflow directly (stub path). */
-export function isAgentThreadIngressMastraEnabled(): boolean {
-  return envFlag("MASTRA_AGENT_THREAD_INGRESS_ENABLED", true);
 }

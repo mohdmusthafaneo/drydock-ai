@@ -1,106 +1,31 @@
-import type { AgentType } from "@/generated/prisma/client";
 import { Agent } from "@mastra/core/agent";
 
 import { resolveMastraModelConfig } from "../config/models";
-import { getAidosToolsForAgent } from "./toolsets";
 
-export const AGENT_TYPE_TO_MASTRA_ID: Record<AgentType, string> = {
-  SUPER_ORCHESTRATOR: "superOrchestratorAgent",
-  QA_INTELLIGENCE: "qaIntelligenceAgent",
-  DEVOPS_INTELLIGENCE: "devopsIntelligenceAgent",
-  GOVERNANCE: "governanceAgent",
-  INCIDENT_CORRELATION: "incidentCorrelationAgent",
-  INTEGRATION: "integrationAgent",
-  PROBLEM_PREDICTOR: "problemPredictorAgent",
-};
+export const AIDOS_ASSISTANT_ID = "aidosAssistant";
 
-const BASE_INSTRUCTIONS: Record<AgentType, string> = {
-  SUPER_ORCHESTRATOR: `You are the AIDOS Super Orchestrator agent.
+export const AIDOS_ASSISTANT_INSTRUCTIONS = `You are the AIDOS Assistant — a governance-aware operational intelligence assistant for this organization.
 
-Coordinate governed agent operations across the organization. Follow HEARTBEAT.md, CHAT.md, and skills/aidos/SKILL.md from your managed instruction bundle (injected at runtime).
+Answer questions about the project, organization configuration, Jira/GitHub delivery signals, release readiness, recommendations, approvals, compliance findings, incidents, and predictions.
 
-Use AIDOS tools for all mutations. Critical actions require human approval before execution.`,
-  QA_INTELLIGENCE: `You are the AIDOS QA Intelligence specialist.
+Rules:
+- Ground factual claims with read-only tools before stating organization-specific facts.
+- Prefer concise, actionable answers grounded in AIDOS data.
+- Recommend-only: never claim you executed changes, hired agents, or deployed anything.
+- If data is missing or a tool returns disconnected/not found, say so clearly.
+- Do not invent metrics, ticket keys, or approval decisions.`;
 
-Assess releases, create recommendations, and complete inbox work. Follow HEARTBEAT.md, CHAT.md, TOOLS.md, and skills/aidos/SKILL.md from your managed instruction bundle (injected at runtime).
-
-For Jira board questions in chat (open bugs, blocked work, sprint scope), use aidos_query_jira_jql before answering — read-only live JQL against the org's connected projects. Your system prompt includes runtime Jira context (site, sync projects, boards, active sprints, toolchain mapping) for query generation.
-
-Use AIDOS tools for all mutations.`,
-  DEVOPS_INTELLIGENCE: `You are the AIDOS DevOps Intelligence specialist.
-
-Monitor delivery signals and create governance recommendations. Follow HEARTBEAT.md, CHAT.md, TOOLS.md, and skills/aidos/SKILL.md from your managed instruction bundle (injected at runtime).
-
-Use AIDOS tools for all mutations.`,
-  GOVERNANCE: `You are the AIDOS Governance specialist.
-
-Review operational signals and create recommendations. Follow HEARTBEAT.md, CHAT.md, TOOLS.md, and skills/aidos/SKILL.md from your managed instruction bundle (injected at runtime).
-
-For compliance inbox items (workType compliance_finding): use aidos_list_compliance_findings to load the finding, then aidos_create_recommendation with concrete remediation steps (never auto-fix). Set impact to CRITICAL, createApproval true, requiredRole ENGINEERING_MANAGER when appropriate, and idempotencyKey to the finding id.
-
-Use AIDOS tools for all mutations.`,
-  INCIDENT_CORRELATION: `You are the AIDOS Incident Correlation specialist.
-
-Correlate incidents and create recommendations. Follow HEARTBEAT.md, CHAT.md, TOOLS.md, and skills/aidos/SKILL.md from your managed instruction bundle (injected at runtime).
-
-Use AIDOS tools for all mutations.`,
-  INTEGRATION: `You are the AIDOS Integration specialist.
-
-Handle integration-related operational work. Follow HEARTBEAT.md, CHAT.md, TOOLS.md, and skills/aidos/SKILL.md from your managed instruction bundle (injected at runtime).
-
-Use AIDOS tools for all mutations.`,
-  PROBLEM_PREDICTOR: `You are the AIDOS Problem Predictor specialist.
-
-Review forward-looking problem predictions and create mitigation recommendations before issues materialize. Follow HEARTBEAT.md, CHAT.md, TOOLS.md, and skills/aidos/SKILL.md from your managed instruction bundle (injected at runtime).
-
-For prediction inbox items (workType prediction_review): use aidos_list_predictions to load the prediction, then aidos_create_recommendation with concrete mitigation steps (never auto-fix). Set impact to CRITICAL or HIGH based on severity, createApproval true, requiredRole ENGINEERING_MANAGER when appropriate, and idempotencyKey to the prediction id.
-
-Use AIDOS tools for all mutations.`,
-};
-
-function createTypedAgent(agentType: AgentType): Agent {
-  const id = AGENT_TYPE_TO_MASTRA_ID[agentType];
-  return new Agent({
-    id,
-    name: id,
-    instructions: BASE_INSTRUCTIONS[agentType],
-    model: resolveMastraModelConfig(),
-    tools: getAidosToolsForAgent(agentType, { canCreateAgents: agentType === "SUPER_ORCHESTRATOR" }),
-  });
-}
-
-export const superOrchestratorAgent = createTypedAgent("SUPER_ORCHESTRATOR");
-export const qaIntelligenceAgent = createTypedAgent("QA_INTELLIGENCE");
-export const devopsIntelligenceAgent = createTypedAgent("DEVOPS_INTELLIGENCE");
-export const governanceAgent = createTypedAgent("GOVERNANCE");
-export const incidentCorrelationAgent = createTypedAgent("INCIDENT_CORRELATION");
-export const integrationAgent = createTypedAgent("INTEGRATION");
-export const problemPredictorAgent = createTypedAgent("PROBLEM_PREDICTOR");
+/**
+ * Tools are supplied at run-time via toolsets in `runAidosAssistant`
+ * to avoid circular imports between agents ↔ tools.
+ */
+export const aidosAssistant = new Agent({
+  id: AIDOS_ASSISTANT_ID,
+  name: "AIDOS Assistant",
+  instructions: AIDOS_ASSISTANT_INSTRUCTIONS,
+  model: resolveMastraModelConfig(),
+});
 
 export const aidosAgents = {
-  superOrchestratorAgent,
-  qaIntelligenceAgent,
-  devopsIntelligenceAgent,
-  governanceAgent,
-  incidentCorrelationAgent,
-  integrationAgent,
-  problemPredictorAgent,
+  aidosAssistant,
 } as const;
-
-const AGENT_BY_TYPE: Record<AgentType, Agent> = {
-  SUPER_ORCHESTRATOR: superOrchestratorAgent,
-  QA_INTELLIGENCE: qaIntelligenceAgent,
-  DEVOPS_INTELLIGENCE: devopsIntelligenceAgent,
-  GOVERNANCE: governanceAgent,
-  INCIDENT_CORRELATION: incidentCorrelationAgent,
-  INTEGRATION: integrationAgent,
-  PROBLEM_PREDICTOR: problemPredictorAgent,
-};
-
-export function getMastraAgentIdForType(agentType: AgentType): string {
-  return AGENT_TYPE_TO_MASTRA_ID[agentType];
-}
-
-export function getAidosAgentForType(agentType: AgentType): Agent {
-  return AGENT_BY_TYPE[agentType];
-}

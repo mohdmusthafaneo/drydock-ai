@@ -14,8 +14,6 @@ function msg(
 ): ContextMessage {
   return {
     authorUser: null,
-    authorAgent: null,
-    targetAgentId: null,
     createdAt: new Date("2026-06-01T12:00:00Z"),
     ...partial,
   };
@@ -43,9 +41,8 @@ describe("summarizeOmittedMessages", () => {
     const omitted = [
       msg({ kind: "human", contentMarkdown: "How many bugs?", authorUser: { name: "Alex" } }),
       msg({
-        kind: "agent_reply",
+        kind: "assistant",
         contentMarkdown: "42 open bugs",
-        authorAgent: { displayName: "QA Intelligence" },
       }),
     ];
 
@@ -64,20 +61,12 @@ describe("buildChatContextSections", () => {
     const markdown = buildChatContextSections({
       thread: {
         id: "thread-1",
-        status: "active",
+        status: "open",
         title: "Bug count",
         contextSummary: "Previously discussed release v2.1 readiness.",
       },
-      participants: [
-        {
-          role: "coordinator",
-          agent: { id: "super", displayName: "Super Agent", agentType: "SUPER_ORCHESTRATOR" },
-          user: null,
-        },
-      ],
       recentOldestFirst: recent,
       omittedDigest: "- [human] Alex: Old question about bugs",
-      actingAgentId: "super",
     });
 
     assert.match(markdown, /Prior context summary/);
@@ -85,54 +74,41 @@ describe("buildChatContextSections", () => {
     assert.match(markdown, /Earlier messages \(summarized/);
     assert.match(markdown, /Old question about bugs/);
     assert.match(markdown, /Latest question/);
-    assert.match(markdown, /multiple specialists in one heartbeat when work is parallel/);
+    assert.match(markdown, /AIDOS Assistant/);
   });
 
-  it("includes first specialist reply for sequential second-agent context", () => {
+  it("includes assistant replies in context", () => {
     const recent = [
       msg({ kind: "human", contentMarkdown: "Assess release", authorUser: { name: "Alex" } }),
       msg({
-        kind: "agent_reply",
-        contentMarkdown: "QA found 3 blockers",
-        authorAgent: { displayName: "QA Intelligence" },
+        kind: "assistant",
+        contentMarkdown: "Found 3 blockers",
       }),
       msg({
-        kind: "agent_reply",
+        kind: "assistant",
         contentMarkdown: "Governance review complete",
-        authorAgent: { displayName: "Governance Agent" },
       }),
     ];
 
     const markdown = buildChatContextSections({
-      thread: { id: "thread-2", status: "active", title: "Release", contextSummary: null },
-      participants: [
-        {
-          role: "specialist",
-          agent: { id: "gov", displayName: "Governance Agent", agentType: "SPECIALIST" },
-          user: null,
-        },
-      ],
+      thread: { id: "thread-2", status: "open", title: "Release", contextSummary: null },
       recentOldestFirst: recent,
-      actingAgentId: "gov",
     });
 
-    assert.match(markdown, /QA found 3 blockers/);
+    assert.match(markdown, /Found 3 blockers/);
     assert.match(markdown, /Governance review complete/);
-    assert.doesNotMatch(markdown, /Super Agent coordinator/);
-    assert.match(markdown, /invited specialist/);
   });
 });
 
 describe("formatMessageLine", () => {
-  it("formats agent replies with author name", () => {
+  it("formats assistant replies", () => {
     const line = formatMessageLine(
       msg({
-        kind: "agent_reply",
+        kind: "assistant",
         contentMarkdown: "All clear",
-        authorAgent: { displayName: "DevOps Intelligence" },
       }),
     );
-    assert.match(line, /\[agent_reply\] DevOps Intelligence/);
+    assert.match(line, /\[assistant\] Assistant/);
     assert.match(line, /All clear/);
   });
 });

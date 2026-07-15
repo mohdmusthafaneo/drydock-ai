@@ -20,7 +20,6 @@ import {
   resolveGovernancePolicyForProject,
 } from "@/lib/governance/policy";
 import { logAgentActivity, logAgentAudit } from "../audit";
-import { isToolAllowed } from "./registry";
 
 function parseServiceScope(raw: string | null | undefined): string[] {
   if (!raw?.trim()) return [];
@@ -145,14 +144,6 @@ export async function assessReleaseForAgent(input: {
   releaseId: string;
   tx?: Prisma.TransactionClient;
 }): Promise<AssessReleaseResult> {
-  if (!isToolAllowed(input.agentType as never, "assess_release")) {
-    return {
-      skipped: true,
-      reason: "Tool not allowed for agent type",
-      releaseId: input.releaseId,
-    };
-  }
-
   const ctx = await buildReleaseAssessContext(
     input.organizationId,
     input.releaseId,
@@ -246,7 +237,6 @@ export async function assessReleaseForAgent(input: {
       data: {
         organizationId: input.organizationId,
         recommendationId: recommendation.id,
-        requestedByAgentId: input.agentId,
         riskScore: assessment.governanceRiskScore / 100,
       },
     });

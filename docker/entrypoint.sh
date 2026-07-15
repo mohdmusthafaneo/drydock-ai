@@ -2,13 +2,6 @@
 set -e
 
 ROLE="${AIDOS_PROCESS_ROLE:-web}"
-INSTRUCTIONS_ROOT="${AGENT_INSTRUCTIONS_ROOT:-/data/agent-instructions}"
-
-# Host volumes often mount as root — ensure nextjs (uid 1001) can write agent bundles.
-fix_instructions_volume_permissions() {
-  mkdir -p "$INSTRUCTIONS_ROOT"
-  chown -R nextjs:nodejs "$INSTRUCTIONS_ROOT"
-}
 
 case "$ROLE" in
   web)
@@ -21,8 +14,6 @@ case "$ROLE" in
       echo "ERROR: /app/prisma.config.ts is missing from the image. Rebuild the Docker image."
       exit 1
     fi
-
-    fix_instructions_volume_permissions
 
     echo "Running database migrations..."
     su-exec nextjs npx prisma migrate deploy
@@ -37,7 +28,7 @@ case "$ROLE" in
       exit 1
     fi
 
-    echo "Starting agent worker (role=worker, pg-boss)..."
+    echo "Starting platform worker (role=worker, pg-boss)..."
     exec su-exec nextjs npx tsx /app/scripts/agent-worker-loop.ts
     ;;
 

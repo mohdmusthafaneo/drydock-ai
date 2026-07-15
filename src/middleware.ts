@@ -24,8 +24,6 @@ const publicPathPrefixes = [
   "/api/cron/",
   "/api/platform/",
   "/api/internal/",
-  "/api/agents/me",
-  "/api/agents/hire",
   "/api/webhooks/",
 ];
 

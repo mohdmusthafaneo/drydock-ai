@@ -1,5 +1,4 @@
 import { Prisma } from "@/generated/prisma/client";
-import { enqueuePredictionEvaluatedWakeups } from "@/lib/agent-control-plane/prediction-wakeups";
 import { invalidateExecutiveBriefingSnapshot } from "@/lib/executive-briefing/invalidate-snapshot";
 import { computePredictions } from "@/lib/problem-prediction/compute";
 import { indicatorsForCatalog } from "@/lib/problem-prediction/indicators";
@@ -196,12 +195,6 @@ async function persistPredictionsInner(
       },
     });
 
-    void enqueuePredictionEvaluatedWakeups(organizationId, {
-      newCritical,
-      batchKey: organizationId,
-    }).catch((error) => {
-      console.error("[prediction] failed to enqueue agent wakeup", error);
-    });
   }
 
   return {

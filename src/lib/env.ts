@@ -33,13 +33,6 @@ const envSchema = z.object({
   /** Optional Postgres read replica for analytics (falls back to DATABASE_URL). */
   DATABASE_URL_REPLICA: z.string().min(1).optional(),
 
-  AGENT_WORKER_ENABLED: optionalBoolean,
-  AGENT_WORKER_POKE_ON_ENQUEUE: optionalBoolean,
-  AGENT_WORKER_INTERVAL_SEC: z.coerce.number().int().positive().optional(),
-  AGENT_WORKER_CONCURRENCY: z.coerce.number().int().positive().optional(),
-  AGENT_DEFAULT_HEARTBEAT_SEC: z.coerce.number().int().positive().optional(),
-  AGENT_INSTRUCTIONS_ROOT: z.string().min(1).optional(),
-
   ANTHROPIC_BASE_URL: z.string().url().optional(),
   ANTHROPIC_API_KEY: z.string().optional(),
   ANTHROPIC_MODEL: z.string().optional(),
@@ -54,7 +47,6 @@ const envSchema = z.object({
   MASTRA_PG_SCHEMA: z.string().min(1).optional(),
   MASTRA_DISCOVERY_DNA_LLM_ENABLED: optionalBoolean,
   MASTRA_MVP_ACCELERATOR_LLM_ENABLED: optionalBoolean,
-  MASTRA_AGENT_THREAD_INGRESS_ENABLED: optionalBoolean,
 
   GITHUB_APP_SLUG: z.string().optional(),
   GITHUB_APP_ID: z.string().optional(),

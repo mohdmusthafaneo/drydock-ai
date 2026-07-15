@@ -12,6 +12,8 @@ const buttonVariants = cva(
         ink: "bg-ink text-pure-white hover:opacity-90",
         secondary:
           "bg-surface text-primary border border-border hover:bg-hover",
+        outline:
+          "bg-surface text-primary border border-border hover:bg-hover",
         ghost: "hover:bg-hover text-secondary hover:text-primary",
         link: "text-ink underline-offset-4 hover:underline",
         destructive: "bg-error text-white hover:opacity-90",
@@ -54,3 +56,5 @@ export function Button({
     />
   );
 }
+
+export { buttonVariants };

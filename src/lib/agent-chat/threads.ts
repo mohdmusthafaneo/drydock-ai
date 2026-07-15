@@ -1,16 +1,12 @@
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
-import { findSuperAgent } from "@/lib/agent-control-plane/delegation";
-import { enqueueWakeup, isAgentRunnable } from "@/lib/agent-control-plane/wakeup";
 import { logChatActivity, logChatAudit } from "./audit";
-import { isInvitedSpecialist } from "./participants";
 import {
   DEFAULT_THREAD_LIST_LIMIT,
   OPEN_THREAD_STATUSES,
   truncateThreadTitle,
   type AgentChatThreadDetail,
   type AgentChatThreadSummary,
-  type ChatWakeupPayload,
   type CreateHumanMessageResult,
   type ThreadListStatusFilter,
 } from "./types";
@@ -25,8 +21,6 @@ export type CreateThreadInput = {
 export type CreateThreadResult = {
   threadId: string;
   messageId?: string;
-  wakeupId?: string;
-  coalesced?: boolean;
 };
 
 function statusFilterWhere(
@@ -44,17 +38,12 @@ export async function createAgentChatThread(
   | { ok: false; error: string }
 > {
   const { organizationId, userId, title, initialMessage } = input;
-  const superAgent = await findSuperAgent(organizationId);
-
-  if (!superAgent) {
-    return { ok: false, error: "Super Agent is not configured for this organization" };
-  }
 
   const resolvedTitle =
     title?.trim() ||
     (initialMessage?.trim()
       ? truncateThreadTitle(initialMessage)
-      : "New agent thread");
+      : "New chat");
 
   const initialContent = initialMessage?.trim();
 
@@ -65,25 +54,6 @@ export async function createAgentChatThread(
         title: resolvedTitle,
         createdByUserId: userId,
         status: "open",
-        externalSource: "web",
-      },
-    });
-
-    await tx.agentChatParticipant.create({
-      data: {
-        organizationId,
-        threadId: thread.id,
-        role: "coordinator",
-        agentId: superAgent.id,
-      },
-    });
-
-    await tx.agentChatParticipant.create({
-      data: {
-        organizationId,
-        threadId: thread.id,
-        role: "human",
-        userId,
       },
     });
 
@@ -104,8 +74,6 @@ export async function createAgentChatThread(
     });
 
     let messageId: string | undefined;
-    let wakeupId: string | undefined;
-    let coalesced = false;
 
     if (initialContent) {
       const message = await tx.agentChatMessage.create({
@@ -136,35 +104,14 @@ export async function createAgentChatThread(
       });
     }
 
-    return { thread, messageId, wakeupId, coalesced };
+    return { thread, messageId };
   });
-
-  if (initialContent && result.messageId && isAgentRunnable(superAgent.status)) {
-    const payload: ChatWakeupPayload = {
-      threadId: result.thread.id,
-      triggerMessageId: result.messageId,
-    };
-    const wakeup = await enqueueWakeup({
-      organizationId,
-      agentId: superAgent.id,
-      source: "chat",
-      reason: "chat.human_message",
-      payload,
-      idempotencyKey: `chat:${result.thread.id}:${result.messageId}`,
-    });
-    if (wakeup.ok) {
-      result.wakeupId = wakeup.wakeupId;
-      result.coalesced = wakeup.coalesced;
-    }
-  }
 
   return {
     ok: true,
     data: {
       threadId: result.thread.id,
       messageId: result.messageId,
-      wakeupId: result.wakeupId,
-      coalesced: result.coalesced,
     },
   };
 }
@@ -205,7 +152,7 @@ export async function listAgentChatThreads(
     orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
     take: limit + 1,
     include: {
-      _count: { select: { messages: true, participants: true } },
+      _count: { select: { messages: true } },
       messages: {
         orderBy: { createdAt: "desc" },
         take: 1,
@@ -233,18 +180,10 @@ export async function getAgentChatThread(
   return prisma.agentChatThread.findFirst({
     where: { id: threadId, organizationId },
     include: {
-      participants: {
-        orderBy: { invitedAt: "asc" },
-        include: {
-          agent: { select: { id: true, displayName: true, agentType: true } },
-          user: { select: { id: true, name: true } },
-        },
-      },
       messages: {
         orderBy: { createdAt: "asc" },
         include: {
           authorUser: { select: { id: true, name: true } },
-          authorAgent: { select: { id: true, displayName: true } },
           approval: {
             select: {
               id: true,
@@ -268,12 +207,11 @@ export async function postHumanChatMessage(input: {
   userId: string;
   threadId: string;
   content: string;
-  targetAgentId?: string;
 }): Promise<
   | { ok: true; data: CreateHumanMessageResult }
   | { ok: false; error: string; status?: number }
 > {
-  const { organizationId, userId, threadId, content, targetAgentId } = input;
+  const { organizationId, userId, threadId, content } = input;
   const trimmed = content.trim();
 
   if (!trimmed) {
@@ -290,25 +228,7 @@ export async function postHumanChatMessage(input: {
 
   const wasClosed = thread.status === "done";
 
-  const superAgent = await findSuperAgent(organizationId);
-  if (!superAgent) {
-    return { ok: false, error: "Super Agent is not configured", status: 503 };
-  }
-
   const message = await prisma.$transaction(async (tx) => {
-    await tx.agentChatParticipant.upsert({
-      where: {
-        threadId_userId: { threadId, userId },
-      },
-      create: {
-        organizationId,
-        threadId,
-        role: "human",
-        userId,
-      },
-      update: {},
-    });
-
     const created = await tx.agentChatMessage.create({
       data: {
         organizationId,
@@ -316,19 +236,14 @@ export async function postHumanChatMessage(input: {
         kind: "human",
         contentMarkdown: trimmed,
         authorUserId: userId,
-        targetAgentId: targetAgentId ?? null,
       },
     });
 
-    const threadStatusUpdate = wasClosed
-      ? { status: "active" as const, closedAt: null, updatedAt: new Date() }
-      : thread.status === "awaiting_human"
-        ? { status: "active" as const, updatedAt: new Date() }
-        : { updatedAt: new Date() };
-
     await tx.agentChatThread.update({
       where: { id: threadId },
-      data: threadStatusUpdate,
+      data: wasClosed
+        ? { status: "open", closedAt: null, updatedAt: new Date() }
+        : { updatedAt: new Date() },
     });
 
     if (wasClosed) {
@@ -337,7 +252,7 @@ export async function postHumanChatMessage(input: {
           organizationId,
           threadId,
           kind: "system",
-          contentMarkdown: "Thread reopened by human follow-up",
+          contentMarkdown: "Conversation reopened",
           authorUserId: userId,
         },
       });
@@ -345,7 +260,7 @@ export async function postHumanChatMessage(input: {
       await logChatActivity(tx, {
         organizationId,
         type: "agent_chat.thread.reopened",
-        title: "Thread reopened by human follow-up",
+        title: "Conversation reopened by human follow-up",
         metadata: { threadId, userId, triggerMessageId: created.id },
       });
 
@@ -367,7 +282,6 @@ export async function postHumanChatMessage(input: {
         threadId,
         messageId: created.id,
         userId,
-        targetAgentId,
       },
     });
 
@@ -377,79 +291,14 @@ export async function postHumanChatMessage(input: {
       action: "agent_chat.message.posted",
       entityType: "AgentChatMessage",
       entityId: created.id,
-      metadata: { threadId, kind: "human", targetAgentId },
+      metadata: { threadId, kind: "human" },
     });
 
     return created;
   });
 
-  const payload: ChatWakeupPayload = {
-    threadId,
-    triggerMessageId: message.id,
-    ...(targetAgentId ? { targetAgentId } : {}),
-  };
-
-  let wakeupAgentId = superAgent.id;
-  let wakeupReason = wasClosed ? "chat.human_reopen" : "chat.human_message";
-
-  if (wasClosed) {
-    // Closed threads always wake Super Agent to re-coordinate follow-ups.
-  } else if (targetAgentId) {
-    if (targetAgentId === superAgent.id) {
-      return { ok: false, error: "Cannot @mention Super Agent directly", status: 400 };
-    }
-
-    const isSpecialist = await isInvitedSpecialist(
-      organizationId,
-      threadId,
-      targetAgentId,
-    );
-    if (!isSpecialist) {
-      return {
-        ok: false,
-        error: "Target agent is not an invited specialist in this thread",
-        status: 400,
-      };
-    }
-
-    const targetAgent = await prisma.agentRegistry.findFirst({
-      where: { id: targetAgentId, organizationId },
-    });
-    if (!targetAgent || !isAgentRunnable(targetAgent.status)) {
-      return {
-        ok: true,
-        data: { messageId: message.id, wakeupId: null, coalesced: false },
-      };
-    }
-
-    wakeupAgentId = targetAgentId;
-    wakeupReason = "chat.human_mention";
-  } else if (!isAgentRunnable(superAgent.status)) {
-    return {
-      ok: true,
-      data: { messageId: message.id, wakeupId: null, coalesced: false },
-    };
-  }
-
-  const wakeup = await enqueueWakeup({
-    organizationId,
-    agentId: wakeupAgentId,
-    source: "chat",
-    reason: wakeupReason,
-    payload,
-    idempotencyKey: `chat:${threadId}:${message.id}`,
-  });
-
-  if (!wakeup.ok) {
-    return { ok: false, error: wakeup.error, status: 400 };
-  }
-
   return {
     ok: true,
-    data: {
-      messageId: message.id,
-      wakeupId: wakeup.wakeupId,
-      coalesced: wakeup.coalesced,
-    },
+    data: { messageId: message.id },
   };
 }

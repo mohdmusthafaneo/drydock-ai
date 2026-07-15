@@ -6,30 +6,20 @@ export {
   type AidosRequestContextValues,
   type AidosToolContext,
 } from "./context";
-export { agentFetch, agentJson, parseAgentResponse } from "./client";
-export {
-  AIDOS_TOOL_IDS,
-  TOOL_TO_REGISTRY,
-  type AidosToolId,
-} from "./names";
+export { AIDOS_TOOL_IDS, type AidosToolId } from "./names";
 export {
   aidosTools,
-  aidosAssessReleaseTool,
+  aidosGetOrgContextTool,
+  aidosListRecommendationsTool,
+  aidosListApprovalsTool,
+  aidosListReleasesTool,
+  aidosGetReleaseReadinessTool,
+  aidosGetJiraContextTool,
+  aidosGetCodeAnalysisTool,
+  aidosGetIntegrationHealthTool,
+  aidosListIncidentsTool,
   aidosListComplianceFindingsTool,
   aidosListPredictionsTool,
   aidosQueryJiraJqlTool,
-  aidosAwaitHumanInputTool,
-  aidosCloseThreadTool,
-  aidosCompleteInitializationTool,
-  aidosCompleteWorkItemTool,
-  aidosCreateRecommendationTool,
-  aidosDelegateWakeupTool,
-  aidosGetInboxTool,
-  aidosGetMeTool,
-  aidosHireAgentTool,
-  aidosInviteAgentToThreadTool,
-  aidosPostThreadMessageTool,
-  aidosReopenThreadTool,
-  aidosRequestApprovalTool,
   type AidosToolMap,
 } from "./tools";

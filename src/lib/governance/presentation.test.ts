@@ -132,7 +132,7 @@ describe("governance presentation", () => {
     const summary = buildObservabilityStabilitySummary({
       stats: { openIncidents: 0, degradedDeployments: 0, errorRate: 0.5, metricCount: 12 },
       incidents: [],
-    } as Parameters<typeof buildObservabilityStabilitySummary>[0]);
+    } as unknown as Parameters<typeof buildObservabilityStabilitySummary>[0]);
     assert.equal(summary.verdict, "good");
     assert.match(summary.headline, /stable/i);
   });

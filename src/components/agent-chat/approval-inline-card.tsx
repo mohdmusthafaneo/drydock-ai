@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/input";
 import { MarkdownContent } from "@/components/ui/markdown-content";
 import { invalidateThreadDetail } from "@/lib/queries/invalidate";
-import { parseHirePayload } from "@/lib/agent-control-plane/hire-payload";
 import type { ApprovalDecision, ApprovalType } from "@/generated/prisma/client";
 import { readJsonField } from "@/lib/json-field";
 
@@ -40,12 +39,6 @@ export function resolveApprovalTitle(
   approval: ThreadApprovalSnapshot | null,
 ): string {
   if (!approval) return "Approval request";
-
-  if (approval.type === "AGENT_HIRE") {
-    const payload = parseHirePayload(approval.payloadJson);
-    return approval.title ?? `Hire agent: ${payload?.displayName ?? "specialist"}`;
-  }
-
   return approval.recommendation?.title ?? approval.title ?? "Approval request";
 }
 
@@ -60,7 +53,6 @@ export function resolveApprovalRequiredRole(
     const parsed = readJsonField<{ requiredRole?: string }>(approval.payloadJson, {});
     return parsed.requiredRole ?? null;
   }
-  if (approval.type === "AGENT_HIRE") return "ORG_ADMIN";
   return null;
 }
 
@@ -69,7 +61,6 @@ export function ApprovalInlineCard({
   approvalId,
   title,
   contentMarkdown,
-  type,
   decision,
   requiredRole,
 }: ApprovalInlineCardProps) {
@@ -106,26 +97,6 @@ export function ApprovalInlineCard({
     await invalidateThreadDetail(queryClient, threadId);
   }
 
-  if (type === "AGENT_HIRE") {
-    return (
-      <div className="mx-auto max-w-lg rounded-[var(--radius-card)] border border-rust/20 bg-apricot-wash px-4 py-3 shadow-[var(--shadow-subtle)]">
-        <p className="text-xs font-medium uppercase tracking-wide text-rust">
-          Agent hire approval
-        </p>
-        <p className="mt-1 text-sm font-medium text-ink">{title}</p>
-        <p className="mt-2 text-xs text-ash">
-          Agent hire decisions are managed in the Approval Center.
-        </p>
-        <Link
-          href="/approvals"
-          className="mt-3 inline-block text-xs font-medium text-ink underline-offset-4 hover:underline"
-        >
-          Open Approval Center →
-        </Link>
-      </div>
-    );
-  }
-
   if (!isPending) {
     return (
       <div className="mx-auto max-w-lg rounded-[var(--radius-card)] border border-border-subtle bg-fog px-4 py-3 text-center shadow-[var(--shadow-subtle)]">
@@ -144,7 +115,7 @@ export function ApprovalInlineCard({
   }
 
   return (
-    <div className="mx-auto max-w-lg space-y-3 rounded-[var(--radius-card)] border border-chart-blue/30 bg-sky-wash px-4 py-4 shadow-[var(--shadow-subtle)]">
+    <div className="mx-auto max-w-lg space-y-3 rounded-2xl border border-chart-blue/25 bg-pure-white px-4 py-4 shadow-[var(--shadow-subtle)]">
       <div className="space-y-1">
         <p className="text-xs font-medium uppercase tracking-wide text-chart-blue">
           Approval required
@@ -155,7 +126,7 @@ export function ApprovalInlineCard({
         )}
       </div>
 
-      <div className="text-sm text-ash">
+      <div className="rounded-xl bg-sky-wash/60 px-3 py-2 text-sm text-ash">
         <MarkdownContent content={contentMarkdown} className="text-sm" />
       </div>
 
@@ -174,7 +145,8 @@ export function ApprovalInlineCard({
         </Button>
         <Button
           size="sm"
-          variant="link"
+          variant="secondary"
+          className="rounded-full"
           disabled={loading}
           onClick={() => decide("MODIFIED")}
         >
@@ -182,8 +154,8 @@ export function ApprovalInlineCard({
         </Button>
         <Button
           size="sm"
-          variant="link"
-          className="text-error"
+          variant="secondary"
+          className="rounded-full text-error"
           disabled={loading}
           onClick={() => decide("REJECTED")}
         >

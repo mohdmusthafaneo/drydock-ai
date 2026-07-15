@@ -81,9 +81,7 @@ enum RecommendationStatus {
 
 enum ApprovalType {
   RECOMMENDATION
-  AGENT_HIRE
   AGENT_ACTION
-  ORCHESTRATION_PLAN
 }
 
 enum RecommendationImpact {
@@ -124,10 +122,6 @@ model Organization {
   acceleratorProjects AcceleratorProject[]
   releases           Release[]
   deliveryWorkflow   DeliveryWorkflow?
-  agents             AgentRegistry[]
-  agentApiKeys       AgentApiKey[]
-  agentWakeupRequests AgentWakeupRequest[]
-  agentHeartbeatRuns AgentHeartbeatRun[]
   incidents          Incident[]
   incidentCodeLinks  IncidentCodeLink[]
   telemetryMetrics   TelemetryMetric[]
@@ -145,9 +139,7 @@ model Organization {
   complianceFindings       ComplianceFinding[]
   problemPredictions       ProblemPrediction[]
   agentChatThreads         AgentChatThread[]
-  agentChatParticipants    AgentChatParticipant[]
   agentChatMessages        AgentChatMessage[]
-  agentChatStreamChunks    AgentChatStreamChunk[]
   executiveBriefingSnapshots ExecutiveBriefingSnapshot[]
   jiraCalibrationProfiles JiraCalibrationProfile[]
   embeddings              Embedding[]
@@ -383,89 +375,17 @@ enum WorkflowExecutionStatus {
   COMPLETED
 }
 
-enum AgentType {
-  SUPER_ORCHESTRATOR
-  QA_INTELLIGENCE
-  DEVOPS_INTELLIGENCE
-  GOVERNANCE
-  INCIDENT_CORRELATION
-  INTEGRATION
-  PROBLEM_PREDICTOR
-}
-
-enum AgentStatus {
-  IDLE
-  ACTIVE
-  RUNNING
-  PAUSED
-  PENDING_APPROVAL
-  DEGRADED
-  ERROR
-  TERMINATED
-}
-
-enum AgentWakeupSource {
-  timer
-  event
-  approval
-  on_demand
-  delegation
-  chat
-}
-
 enum AgentChatThreadStatus {
   open
-  routing
-  active
-  awaiting_human
   done
-  stalled
 }
 
 enum AgentChatMessageKind {
   human
-  agent_reply
+  assistant
   system
   approval_request
   approval_resolved
-}
-
-enum AgentChatParticipantRole {
-  coordinator
-  specialist
-  human
-}
-
-enum AgentChatStreamChunkKind {
-  text_delta
-  thinking_delta
-  tool_start
-  tool_end
-  run_complete
-  run_error
-}
-
-enum AgentChatExternalSource {
-  web
-  slack
-  discord
-  api
-}
-
-enum AgentWakeupStatus {
-  queued
-  running
-  completed
-  skipped
-  coalesced
-}
-
-enum AgentHeartbeatRunStatus {
-  running
-  succeeded
-  failed
-  timed_out
-  cancelled
 }
 
 enum IncidentStatus {
@@ -483,114 +403,10 @@ model DeliveryWorkflow {
   currentStepId            String?
   stepsCompletedJson       Json                      @default("[]")
   configuredAt             DateTime?
-  agentTeamInitializedAt   DateTime?
   createdAt                DateTime                  @default(now())
   updatedAt                DateTime                  @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-}
-
-model AgentRegistry {
-  id                 String       @id @default(cuid())
-  organizationId     String
-  agentType          AgentType
-  role               String?
-  displayName        String
-  description        String?
-  status             AgentStatus  @default(IDLE)
-  confidenceScore    Float        @default(0.85)
-  autonomyMode       AutonomyMode @default(RECOMMEND)
-  reportsToAgentId   String?
-  adapterType        String       @default("mastra")
-  adapterConfigJson  Json         @default("{}")
-  runtimeConfigJson  Json         @default("{}")
-  permissionsJson    Json         @default("{}")
-  lastHeartbeatAt    DateTime?
-  lastActiveAt       DateTime?
-  createdByAgentId   String?
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
-
-  organization    Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  reportsTo       AgentRegistry?        @relation("AgentReportsTo", fields: [reportsToAgentId], references: [id], onDelete: SetNull)
-  directReports   AgentRegistry[]       @relation("AgentReportsTo")
-  apiKeys         AgentApiKey[]
-  wakeupRequests  AgentWakeupRequest[]
-  heartbeatRuns        AgentHeartbeatRun[]
-  chatParticipants     AgentChatParticipant[]
-  chatMessagesAuthored AgentChatMessage[] @relation("ChatMessageAuthorAgent")
-
-  @@index([organizationId, status])
-  @@index([organizationId, role])
-}
-
-model AgentApiKey {
-  id             String    @id @default(cuid())
-  organizationId String
-  agentId        String
-  keyHash        String
-  label          String    @default("default")
-  revokedAt      DateTime?
-  createdAt      DateTime  @default(now())
-
-  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  agent        AgentRegistry @relation(fields: [agentId], references: [id], onDelete: Cascade)
-
-  @@index([agentId])
-  @@index([keyHash])
-}
-
-model AgentWakeupRequest {
-  id              String            @id @default(cuid())
-  organizationId  String
-  agentId         String
-  source          AgentWakeupSource
-  reason          String
-  status          AgentWakeupStatus @default(queued)
-  payloadJson     Json              @default("{}")
-  idempotencyKey  String?
-  coalescedCount  Int               @default(0)
-  requestedAt     DateTime          @default(now())
-  startedAt       DateTime?
-  finishedAt      DateTime?
-  error           String?
-
-  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  agent        AgentRegistry       @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  heartbeatRuns AgentHeartbeatRun[]
-
-  @@index([organizationId, status, requestedAt])
-  @@index([agentId, status])
-  @@unique([organizationId, idempotencyKey])
-}
-
-/// Timescale hypertable (partition: startedAt). Prefer updateMany by id (no single-column unique).
-model AgentHeartbeatRun {
-  id                  String                  @default(cuid())
-  organizationId      String
-  agentId             String
-  wakeupRequestId     String
-  status              AgentHeartbeatRunStatus @default(running)
-  source              AgentWakeupSource
-  reason              String
-  contextSnapshotJson Json                    @default("{}")
-  startedAt           DateTime                @default(now())
-  finishedAt          DateTime?
-  exitCode            Int?
-  error               String?
-  summary             String?
-  mastraRunId         String?
-  mastraTraceId       String?
-  tokenUsageJson      Json                    @default("{}")
-  logsJson            Json                    @default("[]")
-
-  organization  Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  agent         AgentRegistry      @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  wakeupRequest AgentWakeupRequest @relation(fields: [wakeupRequestId], references: [id], onDelete: Cascade)
-
-  @@id([id, startedAt])
-  @@index([organizationId, startedAt])
-  @@index([agentId, startedAt])
 }
 
 model Incident {
@@ -766,7 +582,6 @@ model User {
   auditLogs      AuditLog[]
   acceleratorProjects   AcceleratorProject[]
   agentChatThreadsCreated AgentChatThread[] @relation("ChatThreadCreator")
-  chatParticipants      AgentChatParticipant[]
   chatMessagesAuthored  AgentChatMessage[] @relation("ChatMessageAuthorUser")
 }
 
@@ -895,7 +710,6 @@ model Approval {
   recommendationId   String?
   title              String?
   payloadJson        Json              @default("{}")
-  requestedByAgentId String?
   approverId         String?
   decision           ApprovalDecision?
   riskScore          Float?
@@ -1064,40 +878,15 @@ model AgentChatThread {
   status             AgentChatThreadStatus    @default(open)
   contextSummary     String?
   createdByUserId    String?
-  externalSource     AgentChatExternalSource  @default(web)
-  externalChannelId  String?
-  externalThreadId   String?
   closedAt           DateTime?
   createdAt          DateTime                 @default(now())
   updatedAt          DateTime                 @updatedAt
 
   organization  Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   createdBy     User?                    @relation("ChatThreadCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
-  participants  AgentChatParticipant[]
   messages      AgentChatMessage[]
 
-  @@unique([organizationId, externalSource, externalThreadId])
   @@index([organizationId, status, updatedAt])
-}
-
-model AgentChatParticipant {
-  id               String                   @id @default(cuid())
-  organizationId   String
-  threadId         String
-  role             AgentChatParticipantRole
-  agentId          String?
-  userId           String?
-  invitedAt        DateTime                 @default(now())
-  invitedByAgentId String?
-
-  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  thread       AgentChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  agent        AgentRegistry?  @relation(fields: [agentId], references: [id], onDelete: SetNull)
-  user         User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@unique([threadId, agentId])
-  @@unique([threadId, userId])
-  @@index([organizationId, threadId])
 }
 
 model AgentChatMessage {
@@ -1108,39 +897,16 @@ model AgentChatMessage {
   contentMarkdown String               @default("")
   reasoningJson   Json                 @default("{}")
   authorUserId    String?
-  authorAgentId   String?
-  targetAgentId   String?
   approvalId      String?
-  runId           String?
   createdAt       DateTime             @default(now())
 
   organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   thread       AgentChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
   authorUser   User?           @relation("ChatMessageAuthorUser", fields: [authorUserId], references: [id], onDelete: SetNull)
-  authorAgent  AgentRegistry?  @relation("ChatMessageAuthorAgent", fields: [authorAgentId], references: [id], onDelete: SetNull)
   approval     Approval?       @relation(fields: [approvalId], references: [id], onDelete: SetNull)
 
   @@index([threadId, createdAt])
   @@index([organizationId, threadId])
-}
-
-/// Timescale hypertable (partition: createdAt). Composite PK required by Timescale.
-model AgentChatStreamChunk {
-  id             String                   @default(cuid())
-  organizationId String
-  threadId       String
-  runId          String
-  messageId      String?
-  sequence       Int
-  kind           AgentChatStreamChunkKind
-  payloadJson    Json                     @default("{}")
-  createdAt      DateTime                 @default(now())
-
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  @@id([id, createdAt])
-  @@index([threadId, runId, sequence])
-  @@index([threadId, createdAt])
 }
 
 /// 384-dim embedding row. The `vector` column is pgvector; read/write via raw SQL

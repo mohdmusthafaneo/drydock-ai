@@ -11,7 +11,6 @@ import {
   resolveMetricsAssessContext,
   scopeMetricsContext,
 } from "@/lib/observability-connectivity";
-import { enqueueReleaseAssessedWakeups } from "@/lib/agent-control-plane/release-wakeups";
 import { invalidateExecutiveBriefingSnapshot } from "@/lib/executive-briefing/invalidate-snapshot";
 import { assessReleaseGovernance } from "@/lib/release-governance";
 import { buildAssessmentSnapshot } from "@/lib/release-assess-snapshot";
@@ -233,14 +232,6 @@ export async function POST(
       });
     }
 
-    await tx.agentRegistry.updateMany({
-      where: {
-        organizationId: session.organizationId,
-        agentType: { in: ["QA_INTELLIGENCE", "GOVERNANCE", "INCIDENT_CORRELATION"] },
-      },
-      data: { status: "ACTIVE", lastActiveAt: new Date() },
-    });
-
     const completed = readJsonField<string[]>(
       (
         await tx.deliveryWorkflow.findUnique({
@@ -293,7 +284,6 @@ export async function POST(
     },
   });
 
-  await enqueueReleaseAssessedWakeups(session.organizationId, release.id);
   invalidateExecutiveBriefingSnapshot(session.organizationId);
 
   return NextResponse.json({

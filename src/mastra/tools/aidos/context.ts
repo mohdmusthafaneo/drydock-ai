@@ -1,12 +1,7 @@
 import { RequestContext } from "@mastra/core/request-context";
 
-import { resolveAidosApiBaseUrl } from "@/lib/agent-control-plane/llm/config";
-
 export type AidosToolContext = {
-  apiBaseUrl: string;
-  agentApiKey: string;
-  runId: string;
-  wakePayload: Record<string, unknown>;
+  organizationId: string;
 };
 
 export const AIDOS_TOOL_CONTEXT_KEY = "aidosToolContext";
@@ -15,18 +10,12 @@ export type AidosRequestContextValues = {
   [AIDOS_TOOL_CONTEXT_KEY]: AidosToolContext;
 };
 
-/** Build runtime tool context from worker / adapter execution inputs. */
+/** Build runtime tool context for in-process assistant runs. */
 export function createAidosToolContext(input: {
-  apiBaseUrl?: string;
-  agentApiKey: string;
-  runId: string;
-  wakePayload?: Record<string, unknown>;
+  organizationId: string;
 }): AidosToolContext {
   return {
-    apiBaseUrl: (input.apiBaseUrl ?? resolveAidosApiBaseUrl()).replace(/\/$/, ""),
-    agentApiKey: input.agentApiKey,
-    runId: input.runId,
-    wakePayload: input.wakePayload ?? {},
+    organizationId: input.organizationId,
   };
 }
 
