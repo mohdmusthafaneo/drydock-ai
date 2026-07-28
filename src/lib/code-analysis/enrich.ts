@@ -1,14 +1,10 @@
-import { getMastra } from "@/mastra";
 import { prisma } from "@/lib/prisma";
 import { fetchJiraIssueTexts } from "@/lib/code-analysis/jira-issue-fetch";
 import { readJsonField } from "@/lib/json-field";
 import {
   computeCompositeRisk,
   fallbackCompletionScore,
-  mergeCompletionResults,
-  scoreCompletionWithLlm,
 } from "@/lib/code-analysis/scoring";
-import { isLlmAvailable } from "@/lib/code-analysis/enrich-config";
 import type { CodeAnalysisPullRequest } from "@/lib/code-analysis/types";
 
 export type EnrichCodeAnalysisResult =
@@ -55,16 +51,8 @@ export async function enrichCodeAnalysisForOrg(
     ),
   ];
 
-  const issueTexts = await fetchJiraIssueTexts(organizationId, allKeys);
-  const llmEnabled = isLlmAvailable();
-  let mastra: Awaited<ReturnType<typeof getMastra>> | null = null;
-  if (llmEnabled) {
-    try {
-      mastra = await getMastra();
-    } catch {
-      mastra = null;
-    }
-  }
+  // Fetch issue texts so linked tickets remain available for future scoring.
+  await fetchJiraIssueTexts(organizationId, allKeys);
 
   let scored = 0;
 
@@ -95,24 +83,6 @@ export async function enrichCodeAnalysisForOrg(
         const fallback = fallbackCompletionScore({ jiraKeys, hasDiff: false });
         completionScore = fallback.completionScore;
         completionRationale = fallback.completionRationale;
-      } else if (mastra) {
-        const perKeyResults = [];
-        for (const key of jiraKeys) {
-          const issue = issueTexts.get(key);
-          if (!issue) {
-            perKeyResults.push({
-              completionScore: null,
-              completionRationale: `Ticket ${key} not found in Jira.`,
-            });
-            continue;
-          }
-          perKeyResults.push(
-            await scoreCompletionWithLlm(mastra, issue, diffExcerpt),
-          );
-        }
-        const merged = mergeCompletionResults(perKeyResults);
-        completionScore = merged.completionScore;
-        completionRationale = merged.completionRationale;
       } else {
         const fallback = fallbackCompletionScore({
           jiraKeys,

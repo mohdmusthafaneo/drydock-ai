@@ -1,10 +1,7 @@
-import type { Mastra } from "@mastra/core/mastra";
-import { generateProductIntelligenceText, parseLlmJson } from "@/mastra/workflows/llm-text";
 import type {
   AiAttribution,
   CodeAnalysisPullRequest,
 } from "@/lib/code-analysis/types";
-import type { JiraIssueText } from "@/lib/code-analysis/jira-issue-fetch";
 
 export type CompletionScoreResult = {
   completionScore: number | null;
@@ -73,59 +70,6 @@ export function fallbackCompletionScore(input: {
     completionScore: clampScore(score),
     completionRationale: rationaleParts.join(" "),
   };
-}
-
-const COMPLETION_PROMPT = `You are a delivery governance analyst. Compare the Jira ticket requirements to the code diff and score how completely the change fulfills the ticket.
-
-Respond with JSON only:
-{
-  "completionScore": <integer 0-100>,
-  "rationale": "<one or two sentences>"
-}
-
-Scoring guide:
-- 90-100: Fully implements ticket scope with appropriate tests/docs if required
-- 60-89: Core scope met with minor gaps
-- 30-59: Partial implementation or significant scope drift
-- 0-29: Does not address ticket or introduces unrelated changes
-
-Ticket:
-Summary: {{summary}}
-Description:
-{{description}}
-
-Code diff excerpt:
-{{diff}}
-`;
-
-export async function scoreCompletionWithLlm(
-  mastra: Mastra,
-  issue: JiraIssueText,
-  diffExcerpt: string,
-): Promise<CompletionScoreResult> {
-  const prompt = COMPLETION_PROMPT.replace("{{summary}}", issue.summary)
-    .replace("{{description}}", issue.description || "(no description)")
-    .replace("{{diff}}", diffExcerpt.slice(0, 5000));
-
-  try {
-    const raw = await generateProductIntelligenceText(mastra, prompt);
-    const parsed = parseLlmJson<{ completionScore?: number; rationale?: string }>(raw);
-    if (!parsed || typeof parsed.completionScore !== "number") {
-      return {
-        completionScore: null,
-        completionRationale: "LLM returned an invalid completion score.",
-      };
-    }
-    return {
-      completionScore: clampScore(parsed.completionScore),
-      completionRationale: parsed.rationale?.trim() || "Completion scored by LLM.",
-    };
-  } catch {
-    return {
-      completionScore: null,
-      completionRationale: "LLM scoring failed.",
-    };
-  }
 }
 
 function isTestFile(path: string): boolean {

@@ -19,11 +19,4 @@ export {
   resolveMastraPgSchema,
   resolveMastraPostgresConnectionString,
 } from "./config/storage";
-export { aidosAgents, aidosAssistant, AIDOS_ASSISTANT_ID } from "./agents";
-export {
-  createAidosRequestContext,
-  createAidosToolContext,
-  aidosTools,
-  AIDOS_TOOL_IDS,
-} from "./tools/aidos";
-export { runAidosAssistant } from "./workflows/run-assistant";
+export { aidosAgents } from "./agents";

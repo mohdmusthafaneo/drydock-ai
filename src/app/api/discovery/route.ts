@@ -3,8 +3,6 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { generateDeliveryDNA, generateRecommendations } from "@/lib/delivery-dna";
-import { enrichDeliveryDnaWithMastra } from "@/lib/discovery/mastra-enrichment";
-import { isDiscoveryDnaLlmEnabled } from "@/lib/mastra-feature-flags";
 import { hasLiveObservability } from "@/lib/observability-connectivity";
 import { seedEnterpriseFoundation } from "@/lib/enterprise-seed";
 import { getLandingPathForOrganization } from "@/lib/landing-path-org";
@@ -42,24 +40,7 @@ export async function POST(request: Request) {
     };
 
     const dnaResult = generateDeliveryDNA(answers);
-
-    let summary = dnaResult.summary;
-    if (isDiscoveryDnaLlmEnabled()) {
-      try {
-        const enriched = await enrichDeliveryDnaWithMastra({
-          answers,
-          deterministicDna: dnaResult,
-        });
-        summary = enriched.summary;
-        if (enriched.llmRationale) {
-          summary = `${summary} ${enriched.llmRationale}`.slice(0, 4000);
-        }
-      } catch (err) {
-        console.warn("[discovery] Mastra DNA enrichment skipped:", err);
-      }
-    }
-
-    const persistedDna = { ...dnaResult, summary };
+    const persistedDna = { ...dnaResult, summary: dnaResult.summary };
 
     await prisma.$transaction(async (tx) => {
       await tx.organizationProfile.upsert({
