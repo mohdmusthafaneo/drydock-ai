@@ -1,0 +1,40 @@
+{
+  "skill_name": "analyze-git",
+  "evals": [
+    {
+      "id": 1,
+      "name": "full-branch-productivity-json",
+      "prompt": "Analyze the dev branch of this repo and give me a productivity report as JSON.",
+      "expected_output": "A JSON file matching the schema in references/json-schema.md, with at least: report, headline, contributors, commit_type_breakdown, weekly_volume, weekday_distribution, hour_distribution_ist, productivity_by_area, largest_commits, commit_size_distribution_added_lines, branching_and_delivery, methodology_and_caveats.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "since-window-filter",
+      "prompt": "Analyze the dev branch for the last 30 days only and give me a JSON report.",
+      "expected_output": "JSON output where report.window reflects the filtered time range; commit count is smaller than the full-branch report.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "json-and-markdown-narrative",
+      "prompt": "Generate a productivity report for the dev branch — I want both the raw JSON and a Markdown summary I can send to my VP.",
+      "expected_output": "Two artifacts: (1) analyze-git-report.json, fully populated; (2) analyze-git-report.md with sections TL;DR, Headline, Contributors, Cadence, Productivity by area, Branching & delivery, Risks, Recommendations.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "name": "main-branch-stale-detection",
+      "prompt": "Are there any release-blocking issues on this repo? Specifically, is main behind dev?",
+      "expected_output": "A response that surfaces branching_and_delivery.dev_ahead_of_main_commits; if it's >0, flags release blocker.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "name": "single-author-bus-factor",
+      "prompt": "What's our bus factor? If one person leaves, are we screwed?",
+      "expected_output": "A response reading contributors[0].share_pct from the JSON; if >90%, reports bus factor = 1 and recommends pairing.",
+      "files": []
+    }
+  ]
+}
