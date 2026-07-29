@@ -2,11 +2,12 @@ import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { resolveMastraDir, SHARED_WORKSPACE_ROOT } from "../workspace";
+
+import { mastraDir, productivityWorkspace } from "../workspace";
 
 /**
  * Copies analyze-git's Python analyzer into the sandbox without the LLM
- * re-emitting the file body (which blows MiniMax's output token cap).
+ * re-emitting the file body (which blows MiniMax's ~4k output token cap).
  */
 const SCRIPT_RELATIVE = path.join(
   "skills",
@@ -17,7 +18,7 @@ const SCRIPT_RELATIVE = path.join(
 const DEST_RELATIVE = path.join("tools", "analyze_git.py");
 
 function skillScriptAbsolutePath(): string {
-  return path.join(resolveMastraDir(), SCRIPT_RELATIVE);
+  return path.join(mastraDir, SCRIPT_RELATIVE);
 }
 
 export const materializeAnalyzeGitTool = createTool({
@@ -31,7 +32,10 @@ export const materializeAnalyzeGitTool = createTool({
   }),
   execute: async () => {
     const src = skillScriptAbsolutePath();
-    const destDir = path.join(SHARED_WORKSPACE_ROOT, "tools");
+    const destDir = path.join(
+      productivityWorkspace.filesystem!.basePath,
+      "tools",
+    );
     const dest = path.join(destDir, "analyze_git.py");
 
     const content = await fs.readFile(src);

@@ -11,8 +11,13 @@ export async function withCredentialAdvisoryLock<T>(
 ): Promise<T> {
   const lockKey = `${organizationId}:${provider}`;
 
-  return prisma.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`;
-    return fn();
-  });
+  // Token probe/refresh does HTTP inside this lock; default interactive
+  // timeout (5s) fails under concurrent Mastra tool calls.
+  return prisma.$transaction(
+    async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`;
+      return fn();
+    },
+    { maxWait: 30_000, timeout: 60_000 },
+  );
 }

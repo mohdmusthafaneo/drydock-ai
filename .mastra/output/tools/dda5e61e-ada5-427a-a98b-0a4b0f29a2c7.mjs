@@ -3,13 +3,16 @@ import { z } from 'zod';
 import { simpleGit } from 'simple-git';
 import fs from 'node:fs/promises';
 import path__default from 'node:path';
-import { S as SHARED_WORKSPACE_ROOT } from '../workspace.mjs';
+import { p as productivityWorkspace } from '../workspace.mjs';
 import 'node:fs';
 import '@mastra/core/workspace';
 
 function cloneLocationFor(repositoryUrl) {
-  const name = repositoryUrl.split("/").pop() || "repo";
-  return path__default.join(SHARED_WORKSPACE_ROOT, "github-repositories", name);
+  return path__default.join(
+    productivityWorkspace.filesystem.basePath,
+    "github-repositories",
+    repositoryUrl.split("/").pop() || ""
+  );
 }
 const repositoryCloneTool = createTool({
   id: "repository-clone",
@@ -55,16 +58,18 @@ const repositoryCloneTool = createTool({
 });
 const getCommitsTool = createTool({
   id: "get-commits",
-  description: "Get the commits of a repository (local path or clone location)",
+  description: "Get the commits of a repository (pass cloned local path or remote URL)",
   inputSchema: z.object({
-    repository_url: z.string().describe("Local clone path returned by repository-clone")
+    repository_url: z.string()
   }),
   outputSchema: z.object({
     commits: z.array(z.string())
   }),
   execute: async (inputData) => {
     const log = await simpleGit(inputData.repository_url).log();
-    const commits = log.all.map((commit) => `${commit.hash} ${commit.message}`);
+    const commits = log.all.map(
+      (commit) => `${commit.hash} ${commit.message}`
+    );
     return { commits };
   }
 });

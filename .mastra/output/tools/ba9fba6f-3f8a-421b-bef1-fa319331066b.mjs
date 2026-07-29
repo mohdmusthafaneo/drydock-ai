@@ -806,10 +806,13 @@ async function getGitHubCredentialToken(organizationId) {
 
 async function withCredentialAdvisoryLock(organizationId, provider, fn) {
   const lockKey = `${organizationId}:${provider}`;
-  return prisma.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`;
-    return fn();
-  });
+  return prisma.$transaction(
+    async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`;
+      return fn();
+    },
+    { maxWait: 3e4, timeout: 6e4 }
+  );
 }
 
 const JIRA_API$1 = "https://api.atlassian.com/ex/jira";

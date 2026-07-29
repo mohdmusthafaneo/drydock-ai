@@ -8,51 +8,44 @@ import {
 } from "@mastra/core/workspace";
 
 /**
- * Resolve `src/mastra` whether the process cwd is the repo root (Next.js),
- * `src/mastra` (`mastra dev -d`), or `src/mastra/public` (Studio public cwd).
+ * Resolve `src/mastra` whether cwd is the repo root (Next.js) or
+ * `src/mastra` / `src/mastra/public` (Mastra Studio).
  */
 export function resolveMastraDir(): string {
   const candidates = [
-    process.env.MASTRA_DIR?.trim(),
     path.resolve(process.cwd(), "src/mastra"),
-    process.cwd(),
     path.resolve(process.cwd(), ".."),
-  ].filter((p): p is string => Boolean(p));
-
+    path.resolve(process.cwd()),
+  ];
   for (const candidate of candidates) {
-    if (fs.existsSync(path.join(candidate, "skills"))) {
+    if (fs.existsSync(path.join(candidate, "skills", "analyze-git"))) {
       return candidate;
     }
   }
-
   return path.resolve(process.cwd(), "src/mastra");
 }
 
-const mastraDir = resolveMastraDir();
+export const mastraDir = resolveMastraDir();
 
-/** Shared clone root under `.data` (gitignored). */
-export const SHARED_WORKSPACE_ROOT = path.resolve(
+/** Persistent sandbox roots under `.data/` (gitignored). */
+export const workspaceRoot = path.resolve(
   process.cwd(),
-  ".data/mastra-workspaces/shared",
-);
-const QA_WORKSPACE_ROOT = path.resolve(
-  process.cwd(),
-  ".data/mastra-workspaces/qa",
+  ".data",
+  "mastra-workspaces",
 );
 
-for (const root of [SHARED_WORKSPACE_ROOT, QA_WORKSPACE_ROOT]) {
-  fs.mkdirSync(root, { recursive: true });
-}
+const productivityBase = path.join(workspaceRoot, "productivity");
+const qaBase = path.join(workspaceRoot, "qa");
 
 /** Productivity agent: sandboxed FS + analyze-git skill. */
 export const productivityWorkspace = new Workspace({
   id: "productivity-workspace",
   name: "Productivity Workspace",
   filesystem: new LocalFilesystem({
-    basePath: SHARED_WORKSPACE_ROOT,
+    basePath: productivityBase,
   }),
   sandbox: new LocalSandbox({
-    workingDirectory: SHARED_WORKSPACE_ROOT,
+    workingDirectory: productivityBase,
   }),
   skillSource: new LocalSkillSource({ basePath: mastraDir }),
   skills: ["skills"],
@@ -63,10 +56,10 @@ export const qaWorkspace = new Workspace({
   id: "qa-workspace",
   name: "QA Workspace",
   filesystem: new LocalFilesystem({
-    basePath: QA_WORKSPACE_ROOT,
+    basePath: qaBase,
   }),
   sandbox: new LocalSandbox({
-    workingDirectory: QA_WORKSPACE_ROOT,
+    workingDirectory: qaBase,
   }),
 });
 
@@ -78,9 +71,9 @@ export const governanceWorkspace = new Workspace({
   id: "governance-workspace",
   name: "Governance Workspace",
   filesystem: new LocalFilesystem({
-    basePath: SHARED_WORKSPACE_ROOT,
+    basePath: productivityBase,
   }),
   sandbox: new LocalSandbox({
-    workingDirectory: SHARED_WORKSPACE_ROOT,
+    workingDirectory: productivityBase,
   }),
 });

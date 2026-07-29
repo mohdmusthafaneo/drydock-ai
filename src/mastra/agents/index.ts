@@ -1,7 +1,22 @@
+import { devopsAgent } from "./devops-agent";
+import { governanceAgent } from "./governance-agent";
+import { productivityAgent } from "./productivity-agent";
+import { qaAgent } from "./qa-agent";
+
 /**
- * AIDOS Mastra agents — cleared for migration of the four R&D agents:
- * productivity, qa, governance, devops.
- *
- * Register new agents here and in `createMastraInstance` (`../server.ts`).
+ * Four domain agents migrated from mastra-test-app R&D:
+ * productivity (git), qa (Jira), governance (repowise), devops (AWS hygiene).
  */
-export const aidosAgents = {} as const;
+export const aidosAgents = {
+  productivityAgent,
+  qaAgent,
+  governanceAgent,
+  devopsAgent,
+} as const;
+
+export {
+  productivityAgent,
+  qaAgent,
+  governanceAgent,
+  devopsAgent,
+};

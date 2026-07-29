@@ -1,8 +1,8 @@
 import { Agent } from "@mastra/core/agent";
 import { Memory } from "@mastra/memory";
 
-import { resolveMastraModelConfig } from "../config/models";
 import { MAX_OUTPUT_TOKEN } from "../constant";
+import { resolveMastraModelConfig } from "../config/models";
 import { repositoryCloneTool } from "../tools/github-tools";
 import {
   repowiseIndexTool,
@@ -39,7 +39,6 @@ When reporting:
 - Separate sections: Change risk | Code health hotspots | Findings | Dead code (safe).
 - Suggest concrete next actions (e.g. "require extra review on X", "split Y before merge", "safe to delete unused export Z").
 - Keep the report concise; do not dump raw JSON.
-- Recommend-only: never claim you merged, deleted code, or enforced policy automatically.
 `,
   model: resolveMastraModelConfig(),
   tools: {

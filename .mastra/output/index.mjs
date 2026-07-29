@@ -5,12 +5,12 @@ import { PinoLogger } from '@mastra/loggers';
 import { Observability, SensitiveDataFilter, MastraStorageExporter, MastraPlatformExporter } from '@mastra/observability';
 import { Agent, isDurableAgentLike, MessageList } from '@mastra/core/agent';
 import { Memory } from '@mastra/memory';
-import { awsAccountScanTool } from './tools/7bc48496-4071-4c0a-80fe-3b7ea42ae932.mjs';
-import { repositoryCloneTool, getCommitsTool } from './tools/faaf6db2-d5d9-415d-8f6e-7b16c715df04.mjs';
-import { repowiseDeadCodeTool, repowiseRiskTool, repowiseHealthTool, repowiseIndexTool } from './tools/5db88f85-3c06-423a-9e67-a0e3446f3e1e.mjs';
+import { awsAccountScanTool } from './tools/466a74dd-5a33-48e2-ba9d-c792d0d6c370.mjs';
+import { repositoryCloneTool, getCommitsTool } from './tools/dda5e61e-ada5-427a-a98b-0a4b0f29a2c7.mjs';
+import { repowiseDeadCodeTool, repowiseRiskTool, repowiseHealthTool, repowiseIndexTool } from './tools/513dd8ff-a05b-445c-8e3a-401921f59368.mjs';
 import { g as governanceWorkspace, p as productivityWorkspace, q as qaWorkspace } from './workspace.mjs';
-import { materializeAnalyzeGitTool } from './tools/125ec5be-2a1d-4907-8457-f3defa2bd5f6.mjs';
-import { jiraJqlTool, jiraMyselfTool } from './tools/36974c2e-0d0e-4770-9c81-b296d0b5a03c.mjs';
+import { materializeAnalyzeGitTool } from './tools/e5e3cf27-b336-455a-980d-a6bfbfe6d657.mjs';
+import { jiraJqlTool, jiraMyselfTool } from './tools/ba9fba6f-3f8a-421b-bef1-fa319331066b.mjs';
 import { readFile } from 'fs/promises';
 import * as https from 'https';
 import { request } from 'https';
@@ -82,6 +82,8 @@ import 'pino';
 import 'ioredis';
 import 'jose';
 
+const MAX_OUTPUT_TOKEN = 1024 * 128;
+
 const DEFAULT_ANTHROPIC_BASE_URL = "https://api.minimax.io/anthropic";
 const DEFAULT_MODEL_ID = "MiniMax-M3";
 function normalizeAnthropicBaseUrlForMastra(baseUrl) {
@@ -100,8 +102,6 @@ function resolveMastraModelConfig() {
   };
 }
 
-const MAX_OUTPUT_TOKEN = 1024 * 128;
-
 const devopsAgent = new Agent({
   id: "devops-agent",
   name: "DevOps Agent",
@@ -119,8 +119,6 @@ Report format:
 - Keep the chat summary concise; do not dump the full resource list unless asked.
 
 Operator credentials (default AWS credential chain) must be able to sts:AssumeRole into the customer role. The customer role trust policy must allow this account and require the provided ExternalId.
-
-Recommend-only: never claim you remediating resources, changing IAM, or applying fixes in the customer account.
 `,
   model: resolveMastraModelConfig(),
   tools: {
@@ -171,7 +169,6 @@ When reporting:
 - Separate sections: Change risk | Code health hotspots | Findings | Dead code (safe).
 - Suggest concrete next actions (e.g. "require extra review on X", "split Y before merge", "safe to delete unused export Z").
 - Keep the report concise; do not dump raw JSON.
-- Recommend-only: never claim you merged, deleted code, or enforced policy automatically.
 `,
   model: resolveMastraModelConfig(),
   tools: {
@@ -210,7 +207,6 @@ When responding:
 - Write the final report to: <cloned-repo-path>/analyze-git-report.json
 - After the script succeeds, confirm the report path and a one-line headline (commits, contributors). Do not dump the full JSON into the chat
 - Do not stop until the report file exists
-- Recommend-only: never claim you pushed commits, merged PRs, or changed the remote repository
 `,
   model: resolveMastraModelConfig(),
   tools: { repositoryCloneTool, getCommitsTool, materializeAnalyzeGitTool },
@@ -233,10 +229,10 @@ const qaAgent = new Agent({
   instructions: `You are a QA analyst agent that assesses the health of a Jira board and surfaces actionable quality and delivery risks.
 
 When responding:
-- Always confirm you have the AIDOS organizationId needed by the tools. Ask for it if missing \u2014 do not invent ids.
-- Jira tools authenticate automatically from the organization's connected Integration (OAuth tokens are resolved server-side). Never ask for or pass access tokens or cloudId.
+- Always confirm you have the AIDOS organizationId needed by the tools before searching. Ask for it if missing instead of guessing.
+- Jira tools authenticate automatically from the organization's connected Jira Integration (OAuth tokens are resolved server-side). Never ask for or pass access tokens or cloudId.
 - Use jiraMyselfTool once to resolve the acting user when you need "my" context (e.g. issues assigned to the caller).
-- Use jiraJqlTool to gather evidence. Prefer presets (open_bugs, blocked, open, done) when they fit; otherwise pass targeted JQL. Request only the fields you need via focused queries and paginate with nextPageToken when results are truncated.
+- Use jiraJqlTool to gather evidence with targeted JQL or presets (open_bugs, blocked, open, done) rather than pulling the whole board at once. Prefer presets when they fit. Paginate with nextPageToken when results are truncated.
 
 Focus your analysis on:
 - Bug status overview: counts by status (open, in progress, blocked, resolved), broken down by priority/severity, and the trend of newly created vs. resolved bugs.
@@ -248,9 +244,7 @@ When reporting:
 - Lead with a concise headline (e.g. total open bugs, blockers, reopened count) before details.
 - Support each finding with concrete numbers and representative issue keys, and cite the JQL used so results are reproducible.
 - Call out the most urgent risks first and suggest a clear next action for each.
-- Do not fabricate issue keys, counts, or statuses \u2014 only report what the tools return. If data is incomplete, say so.
-- Recommend-only: never claim you changed Jira tickets, statuses, or assignments.
-`,
+- Do not fabricate issue keys, counts, or statuses \u2014 only report what the tools return. If data is incomplete, say so.`,
   model: resolveMastraModelConfig(),
   tools: { jiraMyselfTool, jiraJqlTool },
   memory: new Memory({

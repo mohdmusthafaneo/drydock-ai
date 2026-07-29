@@ -1,12 +1,9 @@
 import { Agent } from "@mastra/core/agent";
 import { Memory } from "@mastra/memory";
 
-import { resolveMastraModelConfig } from "../config/models";
 import { MAX_OUTPUT_TOKEN } from "../constant";
-import {
-  repositoryCloneTool,
-  getCommitsTool,
-} from "../tools/github-tools";
+import { resolveMastraModelConfig } from "../config/models";
+import { repositoryCloneTool, getCommitsTool } from "../tools/github-tools";
 import { materializeAnalyzeGitTool } from "../tools/materialize-analyze-git";
 import { productivityWorkspace } from "../workspace";
 
@@ -26,7 +23,6 @@ When responding:
 - Write the final report to: <cloned-repo-path>/analyze-git-report.json
 - After the script succeeds, confirm the report path and a one-line headline (commits, contributors). Do not dump the full JSON into the chat
 - Do not stop until the report file exists
-- Recommend-only: never claim you pushed commits, merged PRs, or changed the remote repository
 `,
   model: resolveMastraModelConfig(),
   tools: { repositoryCloneTool, getCommitsTool, materializeAnalyzeGitTool },

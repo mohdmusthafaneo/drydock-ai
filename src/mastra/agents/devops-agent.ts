@@ -1,8 +1,8 @@
 import { Agent } from "@mastra/core/agent";
 import { Memory } from "@mastra/memory";
 
-import { resolveMastraModelConfig } from "../config/models";
 import { MAX_OUTPUT_TOKEN } from "../constant";
+import { resolveMastraModelConfig } from "../config/models";
 import { awsAccountScanTool } from "../tools/devops-tools";
 
 export const devopsAgent = new Agent({
@@ -22,8 +22,6 @@ Report format:
 - Keep the chat summary concise; do not dump the full resource list unless asked.
 
 Operator credentials (default AWS credential chain) must be able to sts:AssumeRole into the customer role. The customer role trust policy must allow this account and require the provided ExternalId.
-
-Recommend-only: never claim you remediating resources, changing IAM, or applying fixes in the customer account.
 `,
   model: resolveMastraModelConfig(),
   tools: {

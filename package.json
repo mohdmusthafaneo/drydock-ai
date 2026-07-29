@@ -22,6 +22,18 @@
     "build:landing": "node scripts/build-landing-assets.mjs && node scripts/patch-landing-html.mjs && node scripts/optimize-landing.mjs"
   },
   "dependencies": {
+    "@aws-sdk/client-cloudtrail": "^3.1097.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.1097.0",
+    "@aws-sdk/client-config-service": "^3.1097.0",
+    "@aws-sdk/client-ec2": "^3.1097.0",
+    "@aws-sdk/client-ecs": "^3.1097.0",
+    "@aws-sdk/client-eks": "^3.1097.0",
+    "@aws-sdk/client-elastic-load-balancing-v2": "^3.1097.0",
+    "@aws-sdk/client-iam": "^3.1097.0",
+    "@aws-sdk/client-lambda": "^3.1097.0",
+    "@aws-sdk/client-rds": "^3.1097.0",
+    "@aws-sdk/client-s3": "^3.1097.0",
+    "@aws-sdk/client-sts": "^3.1097.0",
     "@mastra/core": "^1.42.0",
     "@mastra/loggers": "^1.1.2",
     "@mastra/memory": "^1.20.3",
@@ -65,6 +77,7 @@
     "remark-breaks": "^4.0.0",
     "remark-gfm": "^4.0.1",
     "shiki": "^4.3.1",
+    "simple-git": "^3.36.0",
     "tailwind-merge": "^3.6.0",
     "use-stick-to-bottom": "^1.1.6",
     "zod": "^4.4.3"

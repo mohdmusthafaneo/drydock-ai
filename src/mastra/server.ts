@@ -16,10 +16,18 @@ import {
 
 export type CreateMastraOptions = Record<string, never>;
 
-/** Empty Mastra instance — ready for the four-agent migration. */
 export function createMastraInstance(_options: CreateMastraOptions = {}): Mastra {
   return new Mastra({
     agents: { ...aidosAgents },
+    backgroundTasks: {
+      enabled: true,
+      globalConcurrency: 5,
+      perAgentConcurrency: 2,
+      backpressure: "queue",
+      // Default; aws-account-scan overrides to 10 minutes via tool config.
+      defaultTimeoutMs: 600_000,
+      waitTimeoutMs: 600_000,
+    },
     storage: new PostgresStore({
       id: "mastra-storage",
       connectionString: resolveMastraPostgresConnectionString(),

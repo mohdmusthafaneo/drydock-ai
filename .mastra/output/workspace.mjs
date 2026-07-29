@@ -1,41 +1,36 @@
 import fs from 'node:fs';
 import path__default from 'node:path';
-import { Workspace, LocalSandbox, LocalFilesystem, LocalSkillSource } from '@mastra/core/workspace';
+import { Workspace, LocalSkillSource, LocalSandbox, LocalFilesystem } from '@mastra/core/workspace';
 
 function resolveMastraDir() {
   const candidates = [
-    process.env.MASTRA_DIR?.trim(),
     path__default.resolve(process.cwd(), "src/mastra"),
-    process.cwd(),
-    path__default.resolve(process.cwd(), "..")
-  ].filter((p) => Boolean(p));
+    path__default.resolve(process.cwd(), ".."),
+    path__default.resolve(process.cwd())
+  ];
   for (const candidate of candidates) {
-    if (fs.existsSync(path__default.join(candidate, "skills"))) {
+    if (fs.existsSync(path__default.join(candidate, "skills", "analyze-git"))) {
       return candidate;
     }
   }
   return path__default.resolve(process.cwd(), "src/mastra");
 }
 const mastraDir = resolveMastraDir();
-const SHARED_WORKSPACE_ROOT = path__default.resolve(
+const workspaceRoot = path__default.resolve(
   process.cwd(),
-  ".data/mastra-workspaces/shared"
+  ".data",
+  "mastra-workspaces"
 );
-const QA_WORKSPACE_ROOT = path__default.resolve(
-  process.cwd(),
-  ".data/mastra-workspaces/qa"
-);
-for (const root of [SHARED_WORKSPACE_ROOT, QA_WORKSPACE_ROOT]) {
-  fs.mkdirSync(root, { recursive: true });
-}
+const productivityBase = path__default.join(workspaceRoot, "productivity");
+const qaBase = path__default.join(workspaceRoot, "qa");
 const productivityWorkspace = new Workspace({
   id: "productivity-workspace",
   name: "Productivity Workspace",
   filesystem: new LocalFilesystem({
-    basePath: SHARED_WORKSPACE_ROOT
+    basePath: productivityBase
   }),
   sandbox: new LocalSandbox({
-    workingDirectory: SHARED_WORKSPACE_ROOT
+    workingDirectory: productivityBase
   }),
   skillSource: new LocalSkillSource({ basePath: mastraDir }),
   skills: ["skills"]
@@ -44,21 +39,21 @@ const qaWorkspace = new Workspace({
   id: "qa-workspace",
   name: "QA Workspace",
   filesystem: new LocalFilesystem({
-    basePath: QA_WORKSPACE_ROOT
+    basePath: qaBase
   }),
   sandbox: new LocalSandbox({
-    workingDirectory: QA_WORKSPACE_ROOT
+    workingDirectory: qaBase
   })
 });
 const governanceWorkspace = new Workspace({
   id: "governance-workspace",
   name: "Governance Workspace",
   filesystem: new LocalFilesystem({
-    basePath: SHARED_WORKSPACE_ROOT
+    basePath: productivityBase
   }),
   sandbox: new LocalSandbox({
-    workingDirectory: SHARED_WORKSPACE_ROOT
+    workingDirectory: productivityBase
   })
 });
 
-export { SHARED_WORKSPACE_ROOT as S, governanceWorkspace as g, productivityWorkspace as p, qaWorkspace as q, resolveMastraDir as r };
+export { governanceWorkspace as g, mastraDir as m, productivityWorkspace as p, qaWorkspace as q };

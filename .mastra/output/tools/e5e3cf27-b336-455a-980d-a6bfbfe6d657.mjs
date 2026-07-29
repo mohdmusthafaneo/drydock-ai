@@ -2,7 +2,7 @@ import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import fs from 'node:fs/promises';
 import path__default from 'node:path';
-import { S as SHARED_WORKSPACE_ROOT, r as resolveMastraDir } from '../workspace.mjs';
+import { p as productivityWorkspace, m as mastraDir } from '../workspace.mjs';
 import 'node:fs';
 import '@mastra/core/workspace';
 
@@ -14,7 +14,7 @@ const SCRIPT_RELATIVE = path__default.join(
 );
 const DEST_RELATIVE = path__default.join("tools", "analyze_git.py");
 function skillScriptAbsolutePath() {
-  return path__default.join(resolveMastraDir(), SCRIPT_RELATIVE);
+  return path__default.join(mastraDir, SCRIPT_RELATIVE);
 }
 const materializeAnalyzeGitTool = createTool({
   id: "materialize-analyze-git",
@@ -26,7 +26,10 @@ const materializeAnalyzeGitTool = createTool({
   }),
   execute: async () => {
     const src = skillScriptAbsolutePath();
-    const destDir = path__default.join(SHARED_WORKSPACE_ROOT, "tools");
+    const destDir = path__default.join(
+      productivityWorkspace.filesystem.basePath,
+      "tools"
+    );
     const dest = path__default.join(destDir, "analyze_git.py");
     const content = await fs.readFile(src);
     await fs.mkdir(destDir, { recursive: true });
