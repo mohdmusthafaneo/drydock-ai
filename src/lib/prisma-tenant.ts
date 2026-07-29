@@ -41,6 +41,14 @@ export const TENANT_MODELS = new Set([
   "CommitSnapshot",
   "EvidenceLink",
   "EvidenceReview",
+  "ProductivityAnalysisRun",
+  "ProductivityContributorStat",
+  "ProductivityCommitTypeStat",
+  "ProductivityWeeklyVolume",
+  "ProductivityActivityBucket",
+  "ProductivityAreaStat",
+  "ProductivityLargeCommit",
+  "ProductivityInsight",
 ]);
 
 const READ_OPS = new Set([

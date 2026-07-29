@@ -109,7 +109,7 @@ Top 15 non-merge commits by `added` lines. Each entry:
 
 ```json
 {
-  "sha": "e311b86e",
+  "sha": "e311b86e7f3e2a1b9c0d3f4e5a6b7c8d9e0f1234",
   "date": "2026-05-21",
   "author": "Suralal",
   "subject": "Initial commit: AIDOS governance-aware operational intelligence...",

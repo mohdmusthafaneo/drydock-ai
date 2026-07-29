@@ -8,3 +8,6 @@ export {
   repowiseDeadCodeTool,
 } from "./repowise-tools";
 export { awsAccountScanTool } from "./devops-tools";
+
+export { persistProductivityReportTool } from "./productivity/persist-report";
+export { verifyProductivityReportTool } from "./productivity/verify-report";

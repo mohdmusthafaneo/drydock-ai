@@ -35,7 +35,10 @@ from typing import Any
 # `+` alone is rejected by git, and `%x00` (null bytes) crashes Python's
 # subprocess on 3.14+ ("embedded null byte" error).
 SENTINEL = "===ANALYZE_GIT==="  # prefix used standalone in --pretty
-SENTINEL_FMT = "===ANALYZE_GIT===%H|%ai|%an|%s|===ANALYZE_GIT==="  # for --format
+# For --format: keep a single delimiter between fields; do NOT include a trailing
+# delimiter right before the closing sentinel, otherwise the trailing empty part
+# ends up in the subject and breaks downstream parsing.
+SENTINEL_FMT = "===ANALYZE_GIT===%H|%ai|%an|%s===ANALYZE_GIT==="  # for --format
 
 # Files we tag as "noisy" so the narrative can caveat them.
 NOISY_PATH_PATTERNS = [
@@ -326,10 +329,12 @@ def build_report(repo: Path, branch: str, since: str | None,
         inner = line[len(SENTINEL):]
         if inner.endswith(SENTINEL):
             inner = inner[:-len(SENTINEL)]
-        parts = inner.split("|", 4)
-        if len(parts) < 5:
+        # Format is: sha|date|author|subject (date comes from %ai, includes timezone).
+        # Split with max=3 so the subject can contain `|` characters.
+        parts = inner.split("|", 3)
+        if len(parts) < 4:
             continue
-        dt_str = parts[2][:19]  # "YYYY-MM-DD HH:MM:SS"
+        dt_str = parts[1][:19]  # "YYYY-MM-DD HH:MM:SS"
         try:
             dt = datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S")
         except ValueError:
@@ -362,7 +367,7 @@ def build_report(repo: Path, branch: str, since: str | None,
     largest = sorted(non_merge, key=lambda c: -c["added"])[:15]
     largest_commits = [
         {
-            "sha": c["sha"][:8],
+            "sha": c["sha"],
             "date": c["date"],
             "author": c["author"],
             "subject": c["subject"][:80],

@@ -5,12 +5,14 @@ import { PinoLogger } from '@mastra/loggers';
 import { Observability, SensitiveDataFilter, MastraStorageExporter, MastraPlatformExporter } from '@mastra/observability';
 import { Agent, isDurableAgentLike, MessageList } from '@mastra/core/agent';
 import { Memory } from '@mastra/memory';
-import { awsAccountScanTool } from './tools/466a74dd-5a33-48e2-ba9d-c792d0d6c370.mjs';
-import { repositoryCloneTool, getCommitsTool } from './tools/dda5e61e-ada5-427a-a98b-0a4b0f29a2c7.mjs';
-import { repowiseDeadCodeTool, repowiseRiskTool, repowiseHealthTool, repowiseIndexTool } from './tools/513dd8ff-a05b-445c-8e3a-401921f59368.mjs';
+import { awsAccountScanTool } from './tools/a2defb17-d878-44b0-9840-7b20b607e0fb.mjs';
+import { repositoryCloneTool, getCommitsTool } from './tools/13eb4d25-eb80-4d35-ac77-f7a00ff751af.mjs';
+import { repowiseDeadCodeTool, repowiseRiskTool, repowiseHealthTool, repowiseIndexTool } from './tools/1f5ada6d-753f-40f8-99de-f5484f0a4e21.mjs';
 import { g as governanceWorkspace, p as productivityWorkspace, q as qaWorkspace } from './workspace.mjs';
-import { materializeAnalyzeGitTool } from './tools/e5e3cf27-b336-455a-980d-a6bfbfe6d657.mjs';
-import { jiraJqlTool, jiraMyselfTool } from './tools/ba9fba6f-3f8a-421b-bef1-fa319331066b.mjs';
+import { materializeAnalyzeGitTool } from './tools/fb9c212b-09c7-44a0-b14d-9a8fb25a104e.mjs';
+import { persistProductivityReportTool } from './tools/8bcafd55-923d-476e-a7b5-16284873e50d.mjs';
+import { verifyProductivityReportTool } from './tools/746aa0ba-fe43-4500-a1e3-d7660f9d49b3.mjs';
+import { jiraJqlTool, jiraMyselfTool } from './tools/3c42d11c-654a-41f5-9bf8-69a12555890b.mjs';
 import { readFile } from 'fs/promises';
 import * as https from 'https';
 import { request } from 'https';
@@ -73,6 +75,9 @@ import 'node:fs/promises';
 import 'node:path';
 import 'node:fs';
 import 'node:child_process';
+import './tools/327489ef-f4c3-4829-9719-94a3832f3353.mjs';
+import './request-context.mjs';
+import './prisma.mjs';
 import '@prisma/adapter-pg';
 import 'pg';
 import 'node:url';
@@ -199,17 +204,36 @@ const productivityAgent = new Agent({
 When responding:
 - Always ask for a repository if none is provided
 - Call repositoryCloneTool with the repo URL (it reuses an existing clone if present \u2014 do not treat "already exists" as a blocker)
+- Determine the branch to analyze:
+  - If the user explicitly provided a branch, use it.
+  - Otherwise default to "main".
 - Activate the analyze-git skill, then follow its runbook exactly:
   1. materializeAnalyzeGitTool (copies scripts/analyze_git.py \u2192 tools/analyze_git.py). NEVER skill_read + mastra_workspace_write_file the script body \u2014 that overflows model output limits.
   2. If materializeAnalyzeGitTool fails, recover with a sandbox copy/shell approach \u2014 still never paste the Python source into a write_file call.
   3. python3 tools/analyze_git.py --repo <cloned-repo-path> --branch <branch> --out <report-path>
 - Prefer the analyze-git JSON report over ad-hoc git parsing; use getCommitsTool only as a fallback
 - Write the final report to: <cloned-repo-path>/analyze-git-report.json
-- After the script succeeds, confirm the report path and a one-line headline (commits, contributors). Do not dump the full JSON into the chat
+- After the script succeeds:
+  1. Confirm the report path exists (do not dump the full JSON into the chat).
+  2. Call persistProductivityReportTool with:
+     - report_path: the absolute <report-path>
+     - repository_url: the GitHub repo URL you cloned
+     - branch: <branch>
+  3. Call verifyProductivityReportTool with the returned runId (and organizationId if required).
+  4. Do not finish until verification has run.
+- If verification fails, surface the failed check names returned by verifyProductivityReportTool.
+- Final response must be a JSON object (no markdown) shaped like:
+  { status, organizationId, repository, branch, runId, reportPath, headline: { commits, contributors, activeDays, netGrowthProduct }, verification: { ok, failedChecks }, rowsPersisted }
 - Do not stop until the report file exists
 `,
   model: resolveMastraModelConfig(),
-  tools: { repositoryCloneTool, getCommitsTool, materializeAnalyzeGitTool },
+  tools: {
+    repositoryCloneTool,
+    getCommitsTool,
+    materializeAnalyzeGitTool,
+    persistProductivityReportTool,
+    verifyProductivityReportTool
+  },
   memory: new Memory({
     options: {
       lastMessages: 100

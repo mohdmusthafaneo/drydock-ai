@@ -40,4 +40,6 @@ export {
   repowiseRiskTool,
   repowiseDeadCodeTool,
   awsAccountScanTool,
+  persistProductivityReportTool,
+  verifyProductivityReportTool,
 } from "./tools";

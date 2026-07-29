@@ -1024,3 +1024,223 @@ model EvidenceReview {
 
   @@index([organizationId])
 }
+
+enum ProductivityAnalysisRunStatus {
+  PERSISTED
+  VERIFIED
+  FAILED
+}
+
+enum ProductivityActivityDimension {
+  WEEKDAY
+  HOUR_IST
+  COMMIT_SIZE_ADDED
+}
+
+enum ProductivityInsightKind {
+  WENT_WELL
+  RISK
+  RECOMMENDATION
+}
+
+/// Parent row: one analyze-git JSON report persisted as normalized tables.
+model ProductivityAnalysisRun {
+  id             String @id @default(cuid())
+  organizationId String
+
+  repositoryName String
+  repositoryUrl  String?
+  branch         String
+
+  reportPath     String
+  reportSha256   String
+
+  mastraRunId    String?
+  mastraTraceId  String?
+  mastraThreadId String?
+
+  analyzedAt DateTime @default(now())
+  status     ProductivityAnalysisRunStatus @default(PERSISTED)
+  verifiedAt DateTime?
+  verificationErrorsJson Json @default("[]")
+
+  // Report.window flattening (YYYY-MM-DD → DateTime at midnight in local JS time).
+  windowFirstCommit DateTime?
+  windowLastCommit  DateTime?
+  windowCalendarDays Int?
+  windowActiveDays   Int?
+  windowActiveIsoWeeks Int?
+
+  // Report.headline flattening.
+  headlineTotalCommits          Int?
+  headlineMergeCommits         Int?
+  headlineNonMergeCommits      Int?
+  headlineFilesTouched         Int?
+  headlineLinesAddedRaw        Int?
+  headlineLinesDeletedRaw      Int?
+  headlineLinesAddedProduct   Int?
+  headlineLinesDeletedProduct Int?
+  headlineNetGrowthRaw         Int?
+  headlineNetGrowthProduct    Int?
+  headlinePrsMerged            Int?
+
+  headlineActiveDays Int?
+  headlineCalendarDays Int?
+  headlineAvgCommitsPerActiveDay Float?
+  headlineAvgCommitsPerCalendarDay Float?
+
+  headlineMedianCommitAdded Int?
+  headlineMedianCommitDeleted Int?
+  headlineMeanCommitAdded Int?
+  headlineMeanCommitDeleted Int?
+  headlineP90CommitAdded Int?
+  headlineMaxCommitAdded Int?
+  headlineFeatFixRatio Float?
+
+  // Arrays from methodology_and_caveats + branching_and_delivery.
+  strongestSignals String[]
+  weakestSignals   String[]
+  remoteBranches   String[]
+
+  // Scalar fields from branching_and_delivery.
+  devAheadOfMainCommits Int?
+  mainAheadOfDevCommits Int?
+  remoteBranchCount Int?
+
+  // Scalar fields from methodology_and_caveats.
+  tlDr String @default("")
+  methodologyDataSource String?
+  methodologyLocNote String?
+  methodologyExclusionsNoisyFiles String?
+  methodologyExclusionsGeneratedDirs String?
+
+  contributors                    ProductivityContributorStat[]
+  commitTypeBreakdown            ProductivityCommitTypeStat[]
+  weeklyVolume                   ProductivityWeeklyVolume[]
+  activityBuckets                ProductivityActivityBucket[]
+  areaStats                      ProductivityAreaStat[]
+  largeCommits                   ProductivityLargeCommit[]
+  insights                       ProductivityInsight[]
+
+  @@unique([organizationId, repositoryName, branch, reportSha256])
+  @@index([organizationId, analyzedAt])
+}
+
+model ProductivityContributorStat {
+  id             String @id @default(cuid())
+  organizationId String
+  runId          String
+
+  authorName   String
+  commits      Int
+  sharePct     Float
+  files        Int
+  linesAdded   Int
+  linesDeleted Int
+  net           Int
+  rank          Int?
+
+  run ProductivityAnalysisRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, authorName])
+  @@index([organizationId, authorName])
+}
+
+model ProductivityCommitTypeStat {
+  id             String @id @default(cuid())
+  organizationId String
+  runId          String
+
+  commitType String
+  count      Int
+  sharePct   Float
+
+  run ProductivityAnalysisRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, commitType])
+}
+
+model ProductivityWeeklyVolume {
+  id             String @id @default(cuid())
+  organizationId String
+  runId          String
+
+  isoWeek String
+  commits Int
+
+  run ProductivityAnalysisRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, isoWeek])
+  @@index([organizationId, isoWeek])
+}
+
+model ProductivityActivityBucket {
+  id             String @id @default(cuid())
+  organizationId String
+  runId          String
+
+  dimension    ProductivityActivityDimension
+  bucketKey    String
+  bucketIndex  Int
+  commits      Int
+
+  run ProductivityAnalysisRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, dimension, bucketKey])
+  @@index([organizationId, dimension, bucketKey])
+}
+
+model ProductivityAreaStat {
+  id             String @id @default(cuid())
+  organizationId String
+  runId          String
+
+  area    String
+  commits Int
+  files   Int
+  added   Int
+  deleted Int
+  net     Int
+  rank    Int?
+
+  run ProductivityAnalysisRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, area])
+  @@index([organizationId, area])
+}
+
+model ProductivityLargeCommit {
+  id             String @id @default(cuid())
+  organizationId String
+  runId          String
+
+  sha         String
+  committedOn DateTime?
+  authorName  String
+  subject     String
+  files       Int
+  added       Int
+  deleted     Int
+  rank        Int?
+
+  run ProductivityAnalysisRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, sha])
+  @@index([organizationId, committedOn])
+}
+
+model ProductivityInsight {
+  id             String @id @default(cuid())
+  organizationId String
+  runId          String
+
+  kind  ProductivityInsightKind
+  title String
+  detail String
+  rank Int
+
+  run ProductivityAnalysisRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, kind, rank])
+  @@index([organizationId, kind])
+}
