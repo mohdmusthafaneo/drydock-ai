@@ -5,14 +5,19 @@ import { PinoLogger } from '@mastra/loggers';
 import { Observability, SensitiveDataFilter, MastraStorageExporter, MastraPlatformExporter } from '@mastra/observability';
 import { Agent, isDurableAgentLike, MessageList } from '@mastra/core/agent';
 import { Memory } from '@mastra/memory';
-import { awsAccountScanTool } from './tools/a2defb17-d878-44b0-9840-7b20b607e0fb.mjs';
-import { repositoryCloneTool, getCommitsTool } from './tools/13eb4d25-eb80-4d35-ac77-f7a00ff751af.mjs';
-import { repowiseDeadCodeTool, repowiseRiskTool, repowiseHealthTool, repowiseIndexTool } from './tools/1f5ada6d-753f-40f8-99de-f5484f0a4e21.mjs';
+import { persistDevOpsAccountScanTool } from './tools/e5c53303-131e-4256-86fd-4c3a5c83b57e.mjs';
+import { verifyDevOpsAccountScanTool } from './tools/33e4b1ba-f3ec-46bb-a856-407a304a428f.mjs';
+import { repositoryCloneTool, getCommitsTool } from './tools/410a0db8-0b0a-4b01-808f-d0907ed8b2bd.mjs';
+import { repowiseDeadCodeTool, repowiseRiskTool, repowiseHealthTool, repowiseIndexTool } from './tools/960a4bfa-a17a-4028-ab91-41d155c232af.mjs';
+import { persistGovernanceReportTool } from './tools/a23ed2f4-9366-4fd8-bb4e-05f325455b1b.mjs';
+import { verifyGovernanceReportTool } from './tools/bbd26132-d4db-4907-b901-a3eda413bfda.mjs';
 import { g as governanceWorkspace, p as productivityWorkspace, q as qaWorkspace } from './workspace.mjs';
-import { materializeAnalyzeGitTool } from './tools/fb9c212b-09c7-44a0-b14d-9a8fb25a104e.mjs';
-import { persistProductivityReportTool } from './tools/8bcafd55-923d-476e-a7b5-16284873e50d.mjs';
-import { verifyProductivityReportTool } from './tools/746aa0ba-fe43-4500-a1e3-d7660f9d49b3.mjs';
-import { jiraJqlTool, jiraMyselfTool } from './tools/3c42d11c-654a-41f5-9bf8-69a12555890b.mjs';
+import { materializeAnalyzeGitTool } from './tools/aed33fb5-369d-49a7-b6dc-5d13601e1a2e.mjs';
+import { persistProductivityReportTool } from './tools/5dacf8bc-4524-4070-9511-975c67d43e52.mjs';
+import { verifyProductivityReportTool } from './tools/8a5665c4-35b8-4eea-828b-124893571114.mjs';
+import { jiraJqlTool, jiraMyselfTool } from './tools/cde5449e-d141-4e65-b0e5-54b8ffe3b1a9.mjs';
+import { persistQAReportTool } from './tools/3fde8471-38fa-45d8-8e45-3e58c47cf050.mjs';
+import { verifyQAReportTool } from './tools/9e184ea7-b1e7-49ad-8a34-863fca714521.mjs';
 import { readFile } from 'fs/promises';
 import * as https from 'https';
 import { request } from 'https';
@@ -58,6 +63,7 @@ import { MastraServerBase } from '@mastra/core/server';
 import { Buffer as Buffer$1 } from 'buffer';
 import { tools } from './tools.mjs';
 import 'node:crypto';
+import './run-scan.mjs';
 import '@aws-sdk/client-sts';
 import '@aws-sdk/client-cloudtrail';
 import '@aws-sdk/client-cloudwatch-logs';
@@ -70,18 +76,18 @@ import '@aws-sdk/client-iam';
 import '@aws-sdk/client-lambda';
 import '@aws-sdk/client-rds';
 import '@aws-sdk/client-s3';
-import 'simple-git';
-import 'node:fs/promises';
-import 'node:path';
-import 'node:fs';
-import 'node:child_process';
-import './tools/327489ef-f4c3-4829-9719-94a3832f3353.mjs';
-import './request-context.mjs';
 import './prisma.mjs';
 import '@prisma/adapter-pg';
 import 'pg';
+import 'node:path';
 import 'node:url';
 import '@prisma/client/runtime/client';
+import './request-context.mjs';
+import 'simple-git';
+import 'node:fs/promises';
+import 'node:fs';
+import 'node:child_process';
+import './tools/8ba8f183-1f4b-46d6-aa7a-b8f4d9b1c098.mjs';
 import 'node:async_hooks';
 import 'pino';
 import 'ioredis';
@@ -114,10 +120,15 @@ const devopsAgent = new Agent({
 
 When the user wants an account scan:
 1. Ask for the IAM role ARN and ExternalId if either is missing.
-2. Call awsAccountScanTool with role_arn and external_id. The scan is long-running (often 30s\u2013several minutes) and runs as a background task \u2014 tell the user the scan has started and wait for the tool result; do not treat a delayed response as failure.
-3. When the report arrives, summarize it clearly. Do not invent findings.
+2. Call persistDevOpsAccountScanTool with role_arn and external_id. This tool performs the full AWS scan (assume role + multi-region inventory + hygiene checks) AND persists the normalized results into the database in one step. It is long-running (often 30s\u2013several minutes) and runs as a background task \u2014 tell the user the scan has started and wait for the tool result; do not treat a delayed response as failure.
+3. When the tool returns a runId, call verifyDevOpsAccountScanTool with the runId (and organizationId if required).
+4. Do not finish until verification has run.
+- If verification fails, surface the failed check names returned by verifyDevOpsAccountScanTool.
 
-Report format:
+Final response must be a JSON object (no markdown) shaped like:
+  { status, organizationId, accountId, runId, headline: { regionsCount, resourcesCount, findingsCount, warningsCount }, verification: { ok, failedChecks }, rowsPersisted }
+
+Report format (before the JSON):
 - One-line headline: account id, duration, resource count, finding count (CRITICAL/HIGH).
 - Sections: Critical & high findings | Other findings | Inventory snapshot (by resource type) | Warnings (if any).
 - For each finding: severity, title, resource, and the recommendation.
@@ -127,11 +138,12 @@ Operator credentials (default AWS credential chain) must be able to sts:AssumeRo
 `,
   model: resolveMastraModelConfig(),
   tools: {
-    awsAccountScanTool
+    persistDevOpsAccountScanTool,
+    verifyDevOpsAccountScanTool
   },
   backgroundTasks: {
     tools: {
-      awsAccountScanTool: { enabled: true, timeoutMs: 6e5 }
+      persistDevOpsAccountScanTool: { enabled: true, timeoutMs: 6e5 }
     },
     waitTimeoutMs: 6e5
   },
@@ -169,6 +181,22 @@ Focus your analysis on:
 3. Actionable findings \u2014 nested complexity, change entropy, N+1, missing tests on risky files.
 4. Safe dead-code cleanup candidates (debt), clearly labeled as optional cleanup not blockers unless the user asks.
 
+After gathering all repowise data:
+1. Call persistGovernanceReportTool with:
+   - repository_url, repository_name, revspec (the revspec you used for risk)
+   - risk: { score, probability, level, risk_percentile, review_priority, summary } from repowiseRiskTool
+   - drivers: the risk drivers array from repowiseRiskTool
+   - kpis: the KPIs object from repowiseHealthTool
+   - worst_files: the worst files array from repowiseHealthTool
+   - findings: the health findings array from repowiseHealthTool
+   - dead_code_findings: the findings array from repowiseDeadCodeTool
+2. Call verifyGovernanceReportTool with the returned runId (and organizationId if required).
+3. Do not finish until verification has run.
+- If verification fails, surface the failed check names returned by verifyGovernanceReportTool.
+
+Final response must be a JSON object (no markdown) shaped like:
+  { status, organizationId, repository, revspec, runId, headline: { riskScore, riskLevel, riskPercentile, worstFilePath, driversCount, worstFilesCount, findingsCount, deadCodeFindingsCount, kpisCount }, verification: { ok, failedChecks }, rowsPersisted }
+
 When reporting:
 - Lead with a one-line headline (risk level + avg health + worst file).
 - Separate sections: Change risk | Code health hotspots | Findings | Dead code (safe).
@@ -181,7 +209,9 @@ When reporting:
     repowiseIndexTool,
     repowiseHealthTool,
     repowiseRiskTool,
-    repowiseDeadCodeTool
+    repowiseDeadCodeTool,
+    persistGovernanceReportTool,
+    verifyGovernanceReportTool
   },
   memory: new Memory({
     options: {
@@ -264,13 +294,31 @@ Focus your analysis on:
 - Reopened work: issues that moved back from a done/resolved state, indicating rework or incomplete fixes.
 - Blocked work: issues flagged as blocked or with blocking links/dependencies, and who/what they are waiting on.
 
-When reporting:
+After gathering data:
+1. Run all four preset queries (open_bugs, blocked, open, done) using jiraJqlTool with mode="count" to get totals, then again with mode="issues" (maxResults=20) to capture representative issue keys.
+2. Call persistQAReportTool with:
+   - projectKeys: the project keys returned by jiraJqlTool
+   - statusBuckets: array of { preset, count } for each of the four presets (OPEN_BUGS, BLOCKED, OPEN, DONE)
+   - issueEvidence: up to 200 representative issues from the preset queries (include preset, issueKey, summary, status, issueType, priority, assignee)
+3. Call verifyQAReportTool with the returned runId (and organizationId if required).
+4. Do not finish until verification has run.
+- If verification fails, surface the failed check names returned by verifyQAReportTool.
+
+Final response must be a JSON object (no markdown) shaped like:
+  { status, organizationId, projectKeys, runId, headline: { openBugs, blocked, open, done, issueEvidence }, verification: { ok, failedChecks }, rowsPersisted }
+
+When reporting (before the JSON):
 - Lead with a concise headline (e.g. total open bugs, blockers, reopened count) before details.
 - Support each finding with concrete numbers and representative issue keys, and cite the JQL used so results are reproducible.
 - Call out the most urgent risks first and suggest a clear next action for each.
 - Do not fabricate issue keys, counts, or statuses \u2014 only report what the tools return. If data is incomplete, say so.`,
   model: resolveMastraModelConfig(),
-  tools: { jiraMyselfTool, jiraJqlTool },
+  tools: {
+    jiraMyselfTool,
+    jiraJqlTool,
+    persistQAReportTool,
+    verifyQAReportTool
+  },
   memory: new Memory({
     options: {
       lastMessages: 100

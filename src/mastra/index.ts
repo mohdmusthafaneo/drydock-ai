@@ -42,4 +42,10 @@ export {
   awsAccountScanTool,
   persistProductivityReportTool,
   verifyProductivityReportTool,
+  persistQAReportTool,
+  verifyQAReportTool,
+  persistGovernanceReportTool,
+  verifyGovernanceReportTool,
+  persistDevOpsAccountScanTool,
+  verifyDevOpsAccountScanTool,
 } from "./tools";

@@ -3,7 +3,8 @@ import { Memory } from "@mastra/memory";
 
 import { MAX_OUTPUT_TOKEN } from "../constant";
 import { resolveMastraModelConfig } from "../config/models";
-import { awsAccountScanTool } from "../tools/devops-tools";
+import { persistDevOpsAccountScanTool } from "../tools/devops/persist-scan";
+import { verifyDevOpsAccountScanTool } from "../tools/devops/verify-scan";
 
 export const devopsAgent = new Agent({
   id: "devops-agent",
@@ -12,10 +13,15 @@ export const devopsAgent = new Agent({
 
 When the user wants an account scan:
 1. Ask for the IAM role ARN and ExternalId if either is missing.
-2. Call awsAccountScanTool with role_arn and external_id. The scan is long-running (often 30s–several minutes) and runs as a background task — tell the user the scan has started and wait for the tool result; do not treat a delayed response as failure.
-3. When the report arrives, summarize it clearly. Do not invent findings.
+2. Call persistDevOpsAccountScanTool with role_arn and external_id. This tool performs the full AWS scan (assume role + multi-region inventory + hygiene checks) AND persists the normalized results into the database in one step. It is long-running (often 30s–several minutes) and runs as a background task — tell the user the scan has started and wait for the tool result; do not treat a delayed response as failure.
+3. When the tool returns a runId, call verifyDevOpsAccountScanTool with the runId (and organizationId if required).
+4. Do not finish until verification has run.
+- If verification fails, surface the failed check names returned by verifyDevOpsAccountScanTool.
 
-Report format:
+Final response must be a JSON object (no markdown) shaped like:
+  { status, organizationId, accountId, runId, headline: { regionsCount, resourcesCount, findingsCount, warningsCount }, verification: { ok, failedChecks }, rowsPersisted }
+
+Report format (before the JSON):
 - One-line headline: account id, duration, resource count, finding count (CRITICAL/HIGH).
 - Sections: Critical & high findings | Other findings | Inventory snapshot (by resource type) | Warnings (if any).
 - For each finding: severity, title, resource, and the recommendation.
@@ -25,11 +31,12 @@ Operator credentials (default AWS credential chain) must be able to sts:AssumeRo
 `,
   model: resolveMastraModelConfig(),
   tools: {
-    awsAccountScanTool,
+    persistDevOpsAccountScanTool,
+    verifyDevOpsAccountScanTool,
   },
   backgroundTasks: {
     tools: {
-      awsAccountScanTool: { enabled: true, timeoutMs: 600_000 },
+      persistDevOpsAccountScanTool: { enabled: true, timeoutMs: 600_000 },
     },
     waitTimeoutMs: 600_000,
   },

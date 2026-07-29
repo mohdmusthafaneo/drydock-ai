@@ -10,6 +10,8 @@ import {
   repowiseRiskTool,
   repowiseDeadCodeTool,
 } from "../tools/repowise-tools";
+import { persistGovernanceReportTool } from "../tools/governance/persist-report";
+import { verifyGovernanceReportTool } from "../tools/governance/verify-report";
 import { governanceWorkspace } from "../workspace";
 
 export const governanceAgent = new Agent({
@@ -34,6 +36,22 @@ Focus your analysis on:
 3. Actionable findings — nested complexity, change entropy, N+1, missing tests on risky files.
 4. Safe dead-code cleanup candidates (debt), clearly labeled as optional cleanup not blockers unless the user asks.
 
+After gathering all repowise data:
+1. Call persistGovernanceReportTool with:
+   - repository_url, repository_name, revspec (the revspec you used for risk)
+   - risk: { score, probability, level, risk_percentile, review_priority, summary } from repowiseRiskTool
+   - drivers: the risk drivers array from repowiseRiskTool
+   - kpis: the KPIs object from repowiseHealthTool
+   - worst_files: the worst files array from repowiseHealthTool
+   - findings: the health findings array from repowiseHealthTool
+   - dead_code_findings: the findings array from repowiseDeadCodeTool
+2. Call verifyGovernanceReportTool with the returned runId (and organizationId if required).
+3. Do not finish until verification has run.
+- If verification fails, surface the failed check names returned by verifyGovernanceReportTool.
+
+Final response must be a JSON object (no markdown) shaped like:
+  { status, organizationId, repository, revspec, runId, headline: { riskScore, riskLevel, riskPercentile, worstFilePath, driversCount, worstFilesCount, findingsCount, deadCodeFindingsCount, kpisCount }, verification: { ok, failedChecks }, rowsPersisted }
+
 When reporting:
 - Lead with a one-line headline (risk level + avg health + worst file).
 - Separate sections: Change risk | Code health hotspots | Findings | Dead code (safe).
@@ -47,6 +65,8 @@ When reporting:
     repowiseHealthTool,
     repowiseRiskTool,
     repowiseDeadCodeTool,
+    persistGovernanceReportTool,
+    verifyGovernanceReportTool,
   },
   memory: new Memory({
     options: {

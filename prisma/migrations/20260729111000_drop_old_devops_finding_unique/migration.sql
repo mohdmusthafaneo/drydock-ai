@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS "DevOpsHygieneFinding_runId_checkId_severity_resourceType_re_key";

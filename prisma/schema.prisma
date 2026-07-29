@@ -1244,3 +1244,356 @@ model ProductivityInsight {
   @@unique([runId, kind, rank])
   @@index([organizationId, kind])
 }
+
+enum QAAnalysisRunStatus {
+  PERSISTED
+  VERIFIED
+  FAILED
+}
+
+enum QAQueryPresetKind {
+  OPEN_BUGS
+  BLOCKED
+  OPEN
+  DONE
+}
+
+model QAAnalysisRun {
+  id             String @id @default(cuid())
+  organizationId String
+
+  projectScopeHash String
+  reportSha256     String
+
+  analyzedAt DateTime @default(now())
+  status     QAAnalysisRunStatus @default(PERSISTED)
+  verifiedAt DateTime?
+  verificationErrorsJson Json @default("[]")
+
+  projectKeysCount Int?
+
+  headlineOpenBugsCount Int?
+  headlineBlockedCount  Int?
+  headlineOpenCount     Int?
+  headlineDoneCount     Int?
+  headlineIssueEvidenceCount Int?
+
+  statusStats    QAStatusStat[]
+  projectKeys    QAProjectKey[]
+  issueEvidence  QAIssueEvidence[]
+
+  @@unique([organizationId, projectScopeHash, reportSha256])
+  @@index([organizationId, analyzedAt])
+}
+
+model QAStatusStat {
+  id             String @id @default(cuid())
+  organizationId String
+  runId          String
+
+  preset QAQueryPresetKind
+  count  Int
+
+  run QAAnalysisRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, preset])
+  @@index([organizationId, preset])
+}
+
+model QAProjectKey {
+  id             String @id @default(cuid())
+  organizationId String
+  runId          String
+
+  projectKey String
+
+  run QAAnalysisRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, projectKey])
+  @@index([organizationId, projectKey])
+}
+
+model QAIssueEvidence {
+  id             String @id @default(cuid())
+  organizationId String
+  runId          String
+
+  preset QAQueryPresetKind
+
+  issueKey  String
+  summary   String
+  status    String
+  issueType String
+  priority  String?
+  assignee  String?
+
+  run QAAnalysisRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, preset, issueKey])
+  @@index([organizationId, preset])
+}
+
+enum GovernanceAnalysisRunStatus {
+  PERSISTED
+  VERIFIED
+  FAILED
+}
+
+model GovernanceAnalysisRun {
+  id             String @id @default(cuid())
+  organizationId String
+
+  repositoryName String
+  repositoryUrl  String?
+  revspec        String
+  reportSha256   String
+
+  analyzedAt DateTime @default(now())
+  status     GovernanceAnalysisRunStatus @default(PERSISTED)
+  verifiedAt DateTime?
+  verificationErrorsJson Json @default("[]")
+
+  headlineRiskScore     Float?
+  headlineProbability    Float?
+  headlineRiskLevel      String?
+  headlineRiskPercentile Float?
+  headlineReviewPriority String?
+  headlineSummary       String?
+
+  headlineDriversCount Int?
+  headlineWorstFilesCount Int?
+  headlineFindingsCount Int?
+  headlineDeadCodeFindingsCount Int?
+  headlineKpisCount Int?
+
+  headlineWorstFilePath  String?
+  headlineWorstFileScore Float?
+
+  kpis               GovernanceKpiStat[]
+  worstFiles        GovernanceWorstFileStat[]
+  riskDrivers       GovernanceRiskDriver[]
+  healthFindings    GovernanceHealthFinding[]
+  deadCodeFindings  GovernanceDeadCodeFinding[]
+
+  @@unique([organizationId, repositoryName, revspec, reportSha256])
+  @@index([organizationId, analyzedAt])
+}
+
+model GovernanceKpiStat {
+  id             String @id @default(cuid())
+  organizationId String
+  runId          String
+
+  kpiKey       String
+  valueFloat   Float?
+  valueString  String?
+
+  run GovernanceAnalysisRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, kpiKey])
+  @@index([organizationId, kpiKey])
+}
+
+model GovernanceWorstFileStat {
+  id             String @id @default(cuid())
+  organizationId String
+  runId          String
+
+  rank Int
+  filePath String
+
+  score Float?
+  maxCcn Int?
+  maxNesting Int?
+  nloc Int?
+  duplicationPct Float?
+  hasTestFile Boolean?
+
+  run GovernanceAnalysisRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, filePath])
+  @@index([organizationId, filePath])
+}
+
+model GovernanceRiskDriver {
+  id             String @id @default(cuid())
+  organizationId String
+  runId          String
+
+  rank Int
+  feature String?
+  value Float?
+  contribution Float?
+  label String?
+
+  run GovernanceAnalysisRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, rank])
+  @@index([organizationId, rank])
+}
+
+model GovernanceHealthFinding {
+  id             String @id @default(cuid())
+  organizationId String
+  runId          String
+
+  rank Int
+  severity String?
+  biomarkerType String?
+  filePath String?
+  functionName String?
+  healthImpact Float?
+  reason String?
+
+  run GovernanceAnalysisRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, rank])
+  @@index([organizationId, severity])
+}
+
+model GovernanceDeadCodeFinding {
+  id             String @id @default(cuid())
+  organizationId String
+  runId          String
+
+  rank Int
+  kind String?
+  filePath String?
+  symbol String?
+  confidence Float?
+  reason String?
+  cleanupReady Boolean?
+
+  run GovernanceAnalysisRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, rank])
+  @@index([organizationId, kind])
+}
+
+enum DevOpsAccountScanRunStatus {
+  PERSISTED
+  VERIFIED
+  FAILED
+}
+
+enum DevOpsHygieneSeverity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+  INFO
+}
+
+model DevOpsAccountScanRun {
+  id             String @id @default(cuid())
+  organizationId String
+
+  accountId String
+  roleArn String
+
+  regionsCount Int?
+  durationMs Int?
+
+  reportSha256 String
+
+  analyzedAt DateTime @default(now())
+  status DevOpsAccountScanRunStatus @default(PERSISTED)
+  verifiedAt DateTime?
+  verificationErrorsJson Json @default("[]")
+
+  headlineResourcesCount Int?
+  headlineFindingsCount Int?
+  headlineWarningsCount Int?
+
+  severityStats     DevOpsSeverityStat[]
+  resourceTypeStats DevOpsResourceTypeStat[]
+  resources         DevOpsResourceInventory[]
+  hygieneFindings   DevOpsHygieneFinding[]
+  warnings          DevOpsAccountScanWarning[]
+
+  @@unique([organizationId, accountId, roleArn, reportSha256])
+  @@index([organizationId, analyzedAt])
+}
+
+model DevOpsSeverityStat {
+  id             String @id @default(cuid())
+  organizationId String
+  runId          String
+
+  severity DevOpsHygieneSeverity
+  count Int
+
+  run DevOpsAccountScanRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, severity])
+  @@index([organizationId, severity])
+}
+
+model DevOpsResourceTypeStat {
+  id             String @id @default(cuid())
+  organizationId String
+  runId          String
+
+  resourceType String
+  count Int
+
+  run DevOpsAccountScanRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, resourceType])
+  @@index([organizationId, resourceType])
+}
+
+model DevOpsResourceInventory {
+  id             String @id @default(cuid())
+  organizationId String
+  runId          String
+
+  resourceType String
+  resourceId String
+  region String?
+  name String?
+  arn String?
+
+  run DevOpsAccountScanRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, resourceType, resourceId, region])
+  @@index([organizationId, resourceType, region])
+}
+
+model DevOpsHygieneFinding {
+  id             String @id @default(cuid())
+  organizationId String
+  runId          String
+
+  rank Int
+  checkId String
+  severity DevOpsHygieneSeverity
+
+  title String
+  description String
+  recommendation String
+
+  resourceType String?
+  resourceRef String?
+
+  run DevOpsAccountScanRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  // Rank is the stable per-run ordering from the scanner; checkId+resourceRef can collide.
+  @@unique([runId, rank])
+  @@index([organizationId, severity])
+  @@index([runId, checkId])
+}
+
+model DevOpsAccountScanWarning {
+  id             String @id @default(cuid())
+  organizationId String
+  runId          String
+
+  rank Int
+  warningText String
+
+  run DevOpsAccountScanRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, warningText])
+  @@index([organizationId, runId])
+}

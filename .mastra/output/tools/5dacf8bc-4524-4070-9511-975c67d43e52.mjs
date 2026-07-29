@@ -4,7 +4,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path__default from 'node:path';
 import { p as productivityWorkspace } from '../workspace.mjs';
-import { analyzeGitReportSchema, mapReportToRows } from './327489ef-f4c3-4829-9719-94a3832f3353.mjs';
+import { analyzeGitReportSchema, mapReportToRows } from './8ba8f183-1f4b-46d6-aa7a-b8f4d9b1c098.mjs';
 import { r as resolveOrganizationId } from '../request-context.mjs';
 import { p as prisma } from '../prisma.mjs';
 import 'node:fs';
@@ -73,7 +73,7 @@ const persistProductivityReportTool = createTool({
     const rows = output.rowCounts;
     return {
       type: "text",
-      value: `Productivity persisted: runId=${output.runId.slice(0, 10)}\u2026 reused=${output.reused} (rows: contributors=${rows.contributors}, commitTypes=${rows.commitTypes}, largeCommits=${rows.largeCommits}).`
+      value: `Productivity persisted: runId=${output.runId} reused=${output.reused} (rows: contributors=${rows.contributors}, commitTypes=${rows.commitTypes}, largeCommits=${rows.largeCommits}).`
     };
   },
   execute: async (inputData, context) => {

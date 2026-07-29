@@ -42,7 +42,7 @@ const verifyProductivityReportTool = createTool({
     const failedNames = failed.slice(0, 5).map((c) => c.name).join(", ");
     return {
       type: "text",
-      value: `Verification ${output.ok ? "passed" : "failed"} for runId=${output.runId.slice(0, 10)}\u2026 (${output.status}).${failedNames ? ` Failed checks: ${failedNames}` : ""}`
+      value: `Verification ${output.ok ? "passed" : "failed"} for runId=${output.runId} (${output.status}).${failedNames ? ` Failed checks: ${failedNames}` : ""}`
     };
   },
   execute: async (inputData, context) => {

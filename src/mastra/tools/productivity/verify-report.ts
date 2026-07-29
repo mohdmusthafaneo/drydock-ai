@@ -4,7 +4,7 @@ import { z } from "zod";
 import type { Prisma } from "@/generated/prisma/client";
 
 import { forOrg, prisma } from "@/lib/prisma";
-import { resolveOrganizationId } from "@/mastra/config/request-context";
+import { resolveOrganizationId } from "../../config/request-context";
 
 export const verifyProductivityReportTool = createTool({
   id: "verify-productivity-report",
@@ -41,7 +41,7 @@ export const verifyProductivityReportTool = createTool({
     const failedNames = failed.slice(0, 5).map((c) => c.name).join(", ");
     return {
       type: "text" as const,
-      value: `Verification ${output.ok ? "passed" : "failed"} for runId=${output.runId.slice(0, 10)}… (${output.status}).${
+      value: `Verification ${output.ok ? "passed" : "failed"} for runId=${output.runId} (${output.status}).${
         failedNames ? ` Failed checks: ${failedNames}` : ""
       }`,
     };

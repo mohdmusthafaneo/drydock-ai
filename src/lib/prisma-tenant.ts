@@ -49,6 +49,25 @@ export const TENANT_MODELS = new Set([
   "ProductivityAreaStat",
   "ProductivityLargeCommit",
   "ProductivityInsight",
+
+  "QAAnalysisRun",
+  "QAStatusStat",
+  "QAProjectKey",
+  "QAIssueEvidence",
+
+  "GovernanceAnalysisRun",
+  "GovernanceKpiStat",
+  "GovernanceWorstFileStat",
+  "GovernanceRiskDriver",
+  "GovernanceHealthFinding",
+  "GovernanceDeadCodeFinding",
+
+  "DevOpsAccountScanRun",
+  "DevOpsSeverityStat",
+  "DevOpsResourceTypeStat",
+  "DevOpsResourceInventory",
+  "DevOpsHygieneFinding",
+  "DevOpsAccountScanWarning",
 ]);
 
 const READ_OPS = new Set([

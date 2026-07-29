@@ -6,7 +6,7 @@ import path from "node:path";
 
 import { productivityWorkspace } from "../../workspace";
 import { analyzeGitReportSchema, mapReportToRows } from "./report-schema";
-import { resolveOrganizationId } from "@/mastra/config/request-context";
+import { resolveOrganizationId } from "../../config/request-context";
 import { prisma } from "@/lib/prisma";
 
 function parseRepositoryName(repositoryUrl: string): string {
@@ -73,7 +73,7 @@ export const persistProductivityReportTool = createTool({
     const rows = output.rowCounts;
     return {
       type: "text" as const,
-      value: `Productivity persisted: runId=${output.runId.slice(0, 10)}… reused=${output.reused} (rows: contributors=${rows.contributors}, commitTypes=${rows.commitTypes}, largeCommits=${rows.largeCommits}).`,
+      value: `Productivity persisted: runId=${output.runId} reused=${output.reused} (rows: contributors=${rows.contributors}, commitTypes=${rows.commitTypes}, largeCommits=${rows.largeCommits}).`,
     };
   },
   execute: async (inputData, context) => {
