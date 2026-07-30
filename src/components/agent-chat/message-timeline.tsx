@@ -15,12 +15,6 @@ import {
 } from "@/components/agent-chat/thought-panel";
 import type { StreamingMessageState } from "@/components/agent-chat/use-agent-thread-stream";
 import { parseReasoningJson } from "@/lib/agent-chat/types";
-import {
-  ApprovalInlineCard,
-  resolveApprovalRequiredRole,
-  resolveApprovalTitle,
-  type ThreadApprovalSnapshot,
-} from "@/components/agent-chat/approval-inline-card";
 
 export type TimelineMessage = {
   id: string;
@@ -29,7 +23,6 @@ export type TimelineMessage = {
   reasoningJson?: unknown;
   createdAt: Date | string;
   authorUser: { id: string; name: string } | null;
-  approval?: ThreadApprovalSnapshot | null;
 };
 
 function isAssistantKind(kind: TimelineMessage["kind"]): boolean {
@@ -58,34 +51,17 @@ function authorLabel(message: TimelineMessage): string {
 
 type MessageBubbleProps = {
   message: TimelineMessage;
-  threadId?: string;
 };
 
-export function MessageBubble({ message, threadId }: MessageBubbleProps) {
+export function MessageBubble({ message }: MessageBubbleProps) {
   const isHuman = message.kind === "human";
-  const isApprovalRequest = message.kind === "approval_request";
-  const isApprovalResolved = message.kind === "approval_resolved";
-  const isSystem = message.kind === "system";
+  const isLegacyApproval =
+    message.kind === "approval_request" ||
+    message.kind === "approval_resolved";
+  const isSystem = message.kind === "system" || isLegacyApproval;
   const isAssistant = isAssistantKind(message.kind);
 
-  if (isApprovalRequest && threadId && message.approval) {
-    const approval = message.approval;
-    return (
-      <div className="flex justify-center px-2 py-2">
-        <ApprovalInlineCard
-          threadId={threadId}
-          approvalId={approval.id}
-          title={resolveApprovalTitle(message.contentMarkdown, approval)}
-          contentMarkdown={message.contentMarkdown}
-          type={approval.type}
-          decision={approval.decision}
-          requiredRole={resolveApprovalRequiredRole(approval)}
-        />
-      </div>
-    );
-  }
-
-  if (isApprovalResolved || isSystem) {
+  if (isSystem) {
     return (
       <div className="flex justify-center px-2 py-1">
         <div className="max-w-lg rounded-2xl bg-fog px-4 py-2 text-center text-xs text-graphite">
@@ -162,7 +138,6 @@ type MessageTimelineProps = {
 };
 
 export function MessageTimeline({
-  threadId,
   messages,
   streamingMessages = [],
   emptyState,
@@ -176,7 +151,7 @@ export function MessageTimeline({
     return (
       emptyState ?? (
         <div className="flex flex-1 items-center justify-center py-16 text-sm text-graphite">
-          Ask AIDOS about delivery, releases, Jira, approvals, or integrations.
+          Ask AIDOS about delivery, releases, Jira, or agent analysis runs.
         </div>
       )
     );
@@ -185,7 +160,7 @@ export function MessageTimeline({
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-5">
       {messages.map((message) => (
-        <MessageBubble key={message.id} message={message} threadId={threadId} />
+        <MessageBubble key={message.id} message={message} />
       ))}
       {activeStreaming.map((stream) => (
         <StreamingMessageBubble

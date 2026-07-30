@@ -28,11 +28,33 @@ export {
   qaAgent,
   governanceAgent,
   devopsAgent,
+  aidosAssistant,
+  AIDOS_ASSISTANT_ID,
+  AIDOS_ASSISTANT_INSTRUCTIONS,
 } from "./agents";
 export {
   aidosWorkflows,
   agentAnalysisRefreshWorkflow,
 } from "./workflows";
+export { runAidosAssistant } from "./workflows/run-assistant";
+export type {
+  AssistantStreamHandlers,
+  RunAssistantInput,
+  RunAssistantResult,
+} from "./workflows/run-assistant";
+export {
+  createAidosRequestContext,
+  createAidosToolContext,
+  getAidosToolContext,
+  AIDOS_TOOL_IDS,
+  aidosTools,
+} from "./tools/aidos";
+export type {
+  AidosToolId,
+  AidosToolMap,
+  AidosToolContext,
+  AidosRequestContextValues,
+} from "./tools/aidos";
 export {
   repositoryCloneTool,
   getCommitsTool,

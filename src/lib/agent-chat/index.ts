@@ -15,9 +15,7 @@ export {
   AGENT_CHAT_OMITTED_SAMPLE_LIMIT,
 } from "./context";
 export type { ContextMessage, BuildChatContextSectionsInput } from "./context";
-export { postApprovalResolvedMessage } from "./approvals";
 export { postAssistantChatMessage } from "./messages";
-export { emitThreadMessagePostedWebhook } from "./outbound-webhook";
 export { parseReasoningJson, buildReasoningJson } from "./types";
 export type { ReasoningJson, ChatStreamEvent } from "./types";
 export { humanizeToolName } from "./thought-stream";

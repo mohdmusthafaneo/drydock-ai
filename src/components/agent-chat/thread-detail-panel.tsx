@@ -121,7 +121,6 @@ export function ThreadDetailPanel({ threadId }: ThreadDetailPanelProps) {
             contentMarkdown: optimisticHuman.content,
             createdAt: new Date().toISOString(),
             authorUser: { id: "me", name: "You" },
-            approval: null,
           },
         ]
       : []),
@@ -155,8 +154,8 @@ export function ThreadDetailPanel({ threadId }: ThreadDetailPanelProps) {
                   <div>
                     <p className="font-display text-xl text-ink">AIDOS</p>
                     <p className="mt-1 text-sm text-ash">
-                      Ask about delivery DNA, releases, Jira, approvals, or
-                      integration health.
+                      Ask about Jira, releases, or the latest QA / DevOps /
+                      productivity / governance analysis runs.
                     </p>
                   </div>
                   <div className="flex flex-wrap justify-center gap-2">

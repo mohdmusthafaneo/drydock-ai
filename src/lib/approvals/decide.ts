@@ -2,8 +2,6 @@ import type { UserRole } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { readJsonField } from "@/lib/json-field";
 import { canApproveRequiredRole } from "@/lib/permissions";
-import { postApprovalResolvedMessage } from "@/lib/agent-chat/approvals";
-import { parseApprovalChatContext } from "@/lib/approvals/chat-context";
 import { invalidateExecutiveBriefingSnapshot } from "@/lib/executive-briefing/invalidate-snapshot";
 
 export type DecideApprovalInput = {
@@ -37,12 +35,6 @@ export async function decideApproval(
   if (approval.decision) {
     return { ok: false, error: "Approval already decided", status: 409 };
   }
-
-  const chatContext = parseApprovalChatContext(approval.payloadJson);
-  const approver = await prisma.user.findFirst({
-    where: { id: userId, organizationId },
-    select: { name: true },
-  });
 
   // Legacy agent-action approvals (no longer created) — still decidable.
   if (approval.type === "AGENT_ACTION") {
@@ -88,23 +80,9 @@ export async function decideApproval(
           action: `agent_action.${decision.toLowerCase()}`,
           entityType: "Approval",
           entityId: approval.id,
-          metadataJson: JSON.stringify({
-            comment,
-            threadId: chatContext?.threadId,
-          }),
+          metadataJson: JSON.stringify({ comment }),
         },
       });
-
-      if (chatContext?.threadId) {
-        await postApprovalResolvedMessage({
-          organizationId,
-          threadId: chatContext.threadId,
-          approvalId: approval.id,
-          decision,
-          approverName: approver?.name,
-          tx,
-        });
-      }
     });
 
     invalidateExecutiveBriefingSnapshot(organizationId);
@@ -205,17 +183,6 @@ export async function decideApproval(
           },
         });
       }
-    }
-
-    if (chatContext?.threadId) {
-      await postApprovalResolvedMessage({
-        organizationId,
-        threadId: chatContext.threadId,
-        approvalId: approval.id,
-        decision,
-        approverName: approver?.name,
-        tx,
-      });
     }
   });
 

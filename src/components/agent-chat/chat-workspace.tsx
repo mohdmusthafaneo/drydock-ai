@@ -156,8 +156,8 @@ function NewChatEmpty() {
             AIDOS
           </h1>
           <p className="mt-2 text-sm text-ash">
-            Ask about delivery DNA, Jira, releases, approvals, or integration
-            health.
+            Ask about Jira, releases, or the latest QA / DevOps / productivity /
+            governance analysis runs.
           </p>
         </div>
         <NewChatComposer />

@@ -13,10 +13,8 @@ export const RETENTION_POLICIES = [
   { table: "TelemetryEvent", interval: "90 days" },
   { table: "WebhookEvent", interval: "30 days" },
   { table: "DeploymentEvent", interval: "365 days" },
-  { table: "AgentHeartbeatRun", interval: "90 days" },
   { table: "AuditLog", interval: "365 days" },
   { table: "ActivityEvent", interval: "180 days" },
-  { table: "AgentChatStreamChunk", interval: "7 days" },
 ] as const;
 
 type HypertableRow = { hypertable_name: string };

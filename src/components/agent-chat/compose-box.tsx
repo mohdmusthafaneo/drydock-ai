@@ -17,10 +17,10 @@ import {
 import { PromptSuggestion } from "@/components/prompt-kit/prompt-suggestion";
 
 export const CHAT_STARTER_SUGGESTIONS = [
-  "Summarize our delivery DNA",
   "What open bugs are in this sprint?",
+  "What did the QA agent find?",
+  "Any high-severity AWS findings?",
   "How ready is our latest release?",
-  "Show integration health",
 ] as const;
 
 export function ComposeBox({
@@ -63,7 +63,7 @@ export function ComposeBox({
           placeholder={
             isDone
               ? "Send a message to reopen…"
-              : "Ask about org status, Jira, releases, approvals…"
+              : "Ask about Jira, releases, or agent analysis…"
           }
           className="!min-h-[40px] max-h-[160px] flex-1 py-2 text-sm text-ink"
         />

@@ -10,10 +10,8 @@ describe("RETENTION_POLICIES", () => {
       "TelemetryEvent",
       "WebhookEvent",
       "DeploymentEvent",
-      "AgentHeartbeatRun",
       "AuditLog",
       "ActivityEvent",
-      "AgentChatStreamChunk",
     ] as const) {
       assert.equal(tables.includes(name), true, `missing ${name}`);
     }
