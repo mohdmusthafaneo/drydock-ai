@@ -12,6 +12,12 @@ import {
   impactVerdictLabel,
   requiredRoleLabel,
 } from "@/lib/governance/presentation";
+import {
+  approvalConsequenceText,
+  approvalEvidenceBullets,
+  approvalFreshnessLabel,
+} from "@/lib/approvals/presentation";
+import type { RecommendationQueue } from "@/generated/prisma/client";
 
 const TONE_STYLES = {
   risk: "border-rust/25 bg-rust/8",
@@ -34,6 +40,9 @@ export type RecommendationApprovalData = {
   impact: string;
   confidence: number;
   requiredRole: string | null;
+  queue: RecommendationQueue | null;
+  affectedSystems: string[];
+  createdAt: string | null;
   release: { id: string; name: string } | null;
 };
 
@@ -53,8 +62,26 @@ export function RecommendationApprovalCard({
 
   const tone = impactTone(recommendation.impact);
   const roleHint = requiredRoleLabel(recommendation.requiredRole);
+  const consequence = approvalConsequenceText({
+    queue: recommendation.queue,
+    release: recommendation.release,
+  });
+  const evidence = approvalEvidenceBullets({
+    description: recommendation.description,
+    rationale: recommendation.rationale,
+    affectedSystems: recommendation.affectedSystems,
+  });
+  const freshness = approvalFreshnessLabel(recommendation.createdAt);
 
   async function decide(decision: "APPROVED" | "REJECTED" | "MODIFIED") {
+    if (
+      (decision === "REJECTED" || decision === "MODIFIED") &&
+      !comment.trim()
+    ) {
+      setError("Add a comment before rejecting or requesting modification");
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -109,7 +136,6 @@ export function RecommendationApprovalCard({
         <h3 className="font-display text-[18px] leading-snug tracking-[-0.14px] text-ink">
           {recommendation.title}
         </h3>
-        <p className="mt-2 text-[14px] leading-relaxed text-ash">{recommendation.description}</p>
       </div>
 
       <dl className="grid gap-3 text-sm sm:grid-cols-2">
@@ -133,22 +159,43 @@ export function RecommendationApprovalCard({
         )}
       </dl>
 
-      <p className="text-[14px] leading-relaxed text-ash">
-        <span className="font-medium text-secondary">Why this matters: </span>
-        {recommendation.rationale}
+      <p className="rounded-xl border border-border-subtle/80 bg-pure-white/60 px-4 py-3 text-[13px] leading-relaxed text-graphite">
+        {consequence}
       </p>
 
-      {recommendation.release && (
-        <Link
-          href={`/releases/${recommendation.release.id}`}
-          className="inline-flex text-[14px] font-medium text-ink underline-offset-4 hover:text-rust hover:underline"
-        >
-          View release {recommendation.release.name} →
-        </Link>
+      {evidence.length > 0 && (
+        <div>
+          <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-graphite">
+            Evidence
+          </p>
+          <ul className="mt-2 space-y-1.5">
+            {evidence.map((bullet) => (
+              <li
+                key={bullet}
+                className="flex items-start gap-2 text-[14px] leading-relaxed text-ash"
+              >
+                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-graphite" />
+                <span>{bullet}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px]">
+        {recommendation.release && (
+          <Link
+            href={`/releases/${recommendation.release.id}`}
+            className="font-medium text-ink underline-offset-4 hover:text-rust hover:underline"
+          >
+            View release analysis →
+          </Link>
+        )}
+        {freshness && <span className="text-graphite">{freshness}</span>}
+      </div>
+
       <Textarea
-        placeholder="Optional comment for audit log…"
+        placeholder="Comment required for reject / request modification…"
         value={comment}
         onChange={(e) => setComment(e.target.value)}
         rows={2}

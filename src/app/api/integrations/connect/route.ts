@@ -13,6 +13,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  if (process.env.NODE_ENV !== "development") {
+    return NextResponse.json(
+      { error: "Stub connect is development-only" },
+      { status: 403 },
+    );
+  }
+
   try {
     const { provider } = schema.parse(await request.json());
 

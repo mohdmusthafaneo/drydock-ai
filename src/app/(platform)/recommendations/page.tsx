@@ -14,6 +14,33 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RecommendationCard } from "@/components/recommendations/recommendation-card";
 
+function renderRecommendationList(
+  items: Awaited<ReturnType<typeof getOrganizationContext>>["recommendations"],
+  pendingApprovalByRecId: Map<string, string>,
+) {
+  return items.map((rec) => {
+    const systems = readJsonField(rec.affectedSystems, []) as string[];
+    return (
+      <RecommendationCard
+        key={rec.id}
+        rec={{
+          id: rec.id,
+          title: rec.title,
+          description: rec.description,
+          rationale: rec.rationale,
+          impact: rec.impact,
+          confidence: rec.confidence,
+          status: rec.status,
+          requiredRole: rec.requiredRole,
+          affectedSystems: systems,
+          release: rec.release ? { id: rec.release.id, name: rec.release.name } : null,
+          pendingApprovalId: pendingApprovalByRecId.get(rec.id) ?? null,
+        }}
+      />
+    );
+  });
+}
+
 export default async function RecommendationsCenterPage() {
   const session = await getSession();
   if (!session) redirect("/login");
@@ -22,9 +49,11 @@ export default async function RecommendationsCenterPage() {
   if (!ctx.dna) redirect("/governance/setup");
 
   const highlights = buildRecommendationsSummaryHighlights(ctx);
-  // Actionable queue only — rejected setup / collapsed qa-blocked stay in history via status filter.
   const active = ctx.recommendations.filter((r) => r.status !== "REJECTED");
-  const sorted = sortRecommendationsByUrgency(active);
+  const opsQueue = sortRecommendationsByUrgency(active.filter((r) => r.queue === "OPS"));
+  const governanceQueue = sortRecommendationsByUrgency(
+    active.filter((r) => r.queue === "GOVERNANCE"),
+  );
 
   const pendingApprovalByRecId = new Map(
     ctx.approvals
@@ -35,8 +64,8 @@ export default async function RecommendationsCenterPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Recommendations center"
-        description="Explainable AI proposals — scored, correlated, and routed to human governance."
+        title="Recommendations"
+        description="OPS triage — engineering actions from agent analysis. Governance items that need leadership sign-off promote to Approval Center."
       />
 
       {highlights.length > 0 && (
@@ -49,15 +78,24 @@ export default async function RecommendationsCenterPage() {
       )}
 
       <div className="space-y-4">
-        {sorted.length === 0 ? (
+        <div>
+          <h2 className="font-display text-[22px] leading-snug tracking-[-0.14px] text-ink">
+            OPS queue
+          </h2>
+          <p className="mt-1 text-[14px] text-ash">
+            Actionable engineering recommendations — work these without a leadership gate.
+          </p>
+        </div>
+
+        {opsQueue.length === 0 ? (
           <Card className="border-dashed border-border">
             <CardContent className="space-y-4 py-12 text-center">
               <p className="font-display text-[22px] leading-snug text-ink">
-                No recommendations yet
+                No OPS recommendations
               </p>
               <p className="mx-auto max-w-md text-[14px] leading-relaxed text-ash">
-                Assess a release to generate governance recommendations. AIDOS will surface risks,
-                gaps, and sign-off requirements before deploy.
+                Agent analysis will surface blocked work, cloud hygiene, and delivery risks here.
+                Assess a release or refresh agents to populate the queue.
               </p>
               <Button asChild variant="ink">
                 <Link href="/releases">View releases</Link>
@@ -65,29 +103,27 @@ export default async function RecommendationsCenterPage() {
             </CardContent>
           </Card>
         ) : (
-          sorted.map((rec) => {
-            const systems = readJsonField(rec.affectedSystems, []) as string[];
-            return (
-              <RecommendationCard
-                key={rec.id}
-                rec={{
-                  id: rec.id,
-                  title: rec.title,
-                  description: rec.description,
-                  rationale: rec.rationale,
-                  impact: rec.impact,
-                  confidence: rec.confidence,
-                  status: rec.status,
-                  requiredRole: rec.requiredRole,
-                  affectedSystems: systems,
-                  release: rec.release ? { id: rec.release.id, name: rec.release.name } : null,
-                  pendingApprovalId: pendingApprovalByRecId.get(rec.id) ?? null,
-                }}
-              />
-            );
-          })
+          renderRecommendationList(opsQueue, pendingApprovalByRecId)
         )}
       </div>
+
+      {governanceQueue.length > 0 && (
+        <div className="space-y-4 border-t border-border-subtle pt-8">
+          <div>
+            <h2 className="font-display text-[22px] leading-snug tracking-[-0.14px] text-ink">
+              Governance
+            </h2>
+            <p className="mt-1 text-[14px] text-ash">
+              Policy and autonomy changes — decide in{" "}
+              <Link href="/approvals" className="font-medium text-ink underline-offset-4 hover:underline">
+                Approval Center
+              </Link>
+              .
+            </p>
+          </div>
+          {renderRecommendationList(governanceQueue, pendingApprovalByRecId)}
+        </div>
+      )}
     </div>
   );
 }

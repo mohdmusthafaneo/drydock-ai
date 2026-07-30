@@ -41,7 +41,7 @@ export async function GET(request: Request) {
       via: "session",
     });
 
-    return NextResponse.redirect(appUrl("/integrations?connected=jira"));
+    return NextResponse.redirect(appUrl("/integrations?connected=jira&handoff=1"));
   } catch (err) {
     console.error("Jira OAuth callback error:", err);
     return NextResponse.redirect(appUrl("/integrations?error=jira_callback_failed"));

@@ -2,20 +2,7 @@ import { forOrgRead } from "@/lib/prisma";
 import { computeCompletedStepIds } from "@/lib/enterprise-workflow";
 import { hasObservabilitySynced } from "@/lib/observability-connectivity";
 import { isJiraCalibrationComplete } from "@/lib/jira-calibration/status";
-import { isOpsQueueRecommendationTitle } from "@/lib/agent-analysis/ops-queue";
-
-function isLeadershipPendingApproval(approval: {
-  decision: unknown;
-  title: string | null;
-  recommendation: { title: string; releaseId: string | null } | null;
-}): boolean {
-  if (approval.decision) return false;
-  const title = approval.title ?? approval.recommendation?.title ?? "";
-  if (isOpsQueueRecommendationTitle(title)) return false;
-  // Prefer release-linked gates for the executive "release approvals" count.
-  // Non-release, non-ops recommendations still count (e.g. governance matrix).
-  return true;
-}
+import { isLeadershipPendingApproval } from "@/lib/recommendation-queue";
 
 export async function getOrganizationContext(organizationId: string) {
   const db = forOrgRead(organizationId);
@@ -105,7 +92,17 @@ export async function getOrganizationContext(organizationId: string) {
     db.governancePolicy.findUnique({ where: { organizationId } }),
   ]);
 
-  const pendingApprovals = approvals.filter(isLeadershipPendingApproval);
+  const leadershipPending = approvals.filter(isLeadershipPendingApproval);
+  const pendingReleaseApprovals = leadershipPending.filter(
+    (a) => a.recommendation?.queue === "RELEASE_GATE",
+  ).length;
+  const pendingGovernanceApprovals = leadershipPending.filter(
+    (a) => a.recommendation?.queue === "GOVERNANCE",
+  ).length;
+  const pendingApprovals = pendingReleaseApprovals + pendingGovernanceApprovals;
+  const pendingSetupTasks = recommendations.filter(
+    (r) => r.status === "PENDING" && r.queue === "SETUP",
+  ).length;
   const connectedIntegrations = integrations.filter((i) => i.status === "CONNECTED");
   const activeReleases = releases.filter(
     (r) => r.status !== "DEPLOYED" && r.status !== "BLOCKED",
@@ -142,7 +139,7 @@ export async function getOrganizationContext(organizationId: string) {
     jiraCalibrationComplete,
     workflowConfigured,
     hasAssessedRelease: assessedReleases.length > 0,
-    hasPendingApprovals: pendingApprovals.length > 0,
+    hasPendingApprovals: leadershipPending.length > 0,
     hasDeployedRelease: deployedReleases.length > 0,
     hasOpenIncident: incidents.some((i) => i.status === "OPEN" || i.status === "INVESTIGATING"),
     hasObservabilitySynced: hasObservabilitySyncedFlag,
@@ -177,8 +174,13 @@ export async function getOrganizationContext(organizationId: string) {
       governanceRisk: releases[0]?.governanceRiskScore
         ? Math.round(releases[0].governanceRiskScore)
         : 0,
-      pendingRecommendations: recommendations.filter((r) => r.status === "PENDING").length,
-      pendingApprovals: pendingApprovals.length,
+      pendingRecommendations: recommendations.filter(
+        (r) => r.status === "PENDING" && r.queue !== "SETUP",
+      ).length,
+      pendingApprovals,
+      pendingReleaseApprovals,
+      pendingGovernanceApprovals,
+      pendingSetupTasks,
       connectedTools: connectedIntegrations.length,
       openIncidents: incidents.filter((i) => i.status === "OPEN" || i.status === "INVESTIGATING")
         .length,

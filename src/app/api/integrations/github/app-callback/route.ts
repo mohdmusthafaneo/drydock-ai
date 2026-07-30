@@ -38,5 +38,5 @@ export async function GET(request: Request) {
     return NextResponse.redirect(appUrl("/integrations?error=github_app_persist_failed"));
   }
 
-  return NextResponse.redirect(appUrl("/integrations?connected=github_app"));
+  return NextResponse.redirect(appUrl("/integrations?connected=github_app&handoff=1"));
 }

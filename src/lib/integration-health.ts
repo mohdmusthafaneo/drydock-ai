@@ -4,9 +4,17 @@ import { isGrafanaTrulyConnected, parseGrafanaMeta } from "@/lib/grafana-meta";
 import { isJiraOAuthConnected, parseJiraMeta } from "@/lib/jira-meta";
 import { isJiraReconnectMessage, JIRA_RECONNECT_MESSAGE } from "@/lib/jira-errors";
 
+export type IntegrationHealthState =
+  | "healthy"
+  | "degraded"
+  | "expired"
+  | "disconnected"
+  | "pending";
+
 export type IntegrationHealthSummary = {
   provider: IntegrationProvider;
   status: Integration["status"];
+  state: IntegrationHealthState;
   healthy: boolean;
   lastSyncAt: Date | null;
   lastHealthCheckAt: Date | null;
@@ -15,12 +23,32 @@ export type IntegrationHealthSummary = {
   message: string;
 };
 
+/** Lightweight Phase-1 health gate (no DB write). Phase 1.5 Jira work may refine. */
+export function isIntegrationHealthyLite(
+  integration: Pick<Integration, "status" | "lastError">,
+): boolean {
+  return integration.status === "CONNECTED" && !integration.lastError;
+}
+
+function resolveHealthState(input: {
+  status: Integration["status"];
+  healthy: boolean;
+  expired: boolean;
+}): IntegrationHealthState {
+  if (input.status === "PENDING") return "pending";
+  if (input.status === "DISCONNECTED") return "disconnected";
+  if (input.expired) return "expired";
+  if (input.healthy) return "healthy";
+  return "degraded";
+}
+
 export async function checkIntegrationHealth(
   integration: Integration,
 ): Promise<IntegrationHealthSummary> {
   const now = new Date();
   let healthy = integration.status === "CONNECTED";
   let message = "Connected and syncing";
+  let expired = false;
 
   if (integration.status === "PENDING") {
     healthy = false;
@@ -28,6 +56,9 @@ export async function checkIntegrationHealth(
   } else if (integration.status === "ERROR") {
     healthy = false;
     message = integration.lastError ?? "Connection error";
+    if (integration.lastError && isJiraReconnectMessage(integration.lastError)) {
+      expired = true;
+    }
   } else if (integration.status === "DISCONNECTED") {
     healthy = false;
     message = "Disconnected";
@@ -55,6 +86,10 @@ export async function checkIntegrationHealth(
     if (meta.connectionStatus === "error" || (integration.lastError && isJiraReconnectMessage(integration.lastError))) {
       healthy = false;
       const rawError = meta.lastError ?? integration.lastError;
+      const reconnect =
+        (rawError && isJiraReconnectMessage(rawError)) ||
+        (integration.lastError != null && isJiraReconnectMessage(integration.lastError));
+      if (reconnect) expired = true;
       message =
         rawError && isJiraReconnectMessage(rawError)
           ? JIRA_RECONNECT_MESSAGE
@@ -85,9 +120,16 @@ export async function checkIntegrationHealth(
     data: { lastHealthCheckAt: now },
   });
 
+  const state = resolveHealthState({
+    status: integration.status,
+    healthy,
+    expired,
+  });
+
   return {
     provider: integration.provider,
     status: integration.status,
+    state,
     healthy,
     lastSyncAt: integration.lastSyncAt,
     lastHealthCheckAt: now,

@@ -31,6 +31,15 @@ function isChatPath(pathname: string): boolean {
   return pathname === "/agent-threads" || pathname.startsWith("/agent-threads/");
 }
 
+function isWizardPath(pathname: string): boolean {
+  return (
+    pathname === "/governance/setup" ||
+    pathname.startsWith("/governance/setup/") ||
+    pathname === "/activate" ||
+    pathname.startsWith("/activate/")
+  );
+}
+
 function HeaderTagline({ text }: { text: string }) {
   const short = text.split("·")[0]?.trim() ?? text;
 
@@ -56,16 +65,23 @@ export function AppShell({
   session,
   integrationGates,
   homePath,
+  activationMode = false,
+  hasDna = false,
   children,
 }: {
   session: SessionPayload;
   integrationGates?: IntegrationNavGates;
   homePath: string;
+  activationMode?: boolean;
+  hasDna?: boolean;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
   const meta = WORKSPACE_META.ENTERPRISE;
-  const enterpriseLayout = getResolvedEnterpriseNavLayout(integrationGates, session.role);
+  const enterpriseLayout = getResolvedEnterpriseNavLayout(integrationGates, session.role, {
+    activationMode,
+    hasDna,
+  });
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarHovered, setSidebarHovered] = useState(false);
@@ -97,6 +113,7 @@ export function AppShell({
 
   const pageTitle = resolvePageTitleForPath(pathname, "ENTERPRISE", integrationGates);
   const chatMode = isChatPath(pathname);
+  const hideMobileNav = isWizardPath(pathname);
 
   return (
     <div className="app-canvas flex h-dvh overflow-hidden bg-base text-primary">
@@ -175,7 +192,9 @@ export function AppShell({
             "min-h-0 w-full flex-1 overscroll-contain",
             chatMode
               ? "flex flex-col overflow-hidden px-0 pb-0 pt-0 lg:px-3 lg:pb-3 lg:pt-3"
-              : "overflow-y-auto px-4 pb-24 pt-2 lg:px-10 lg:pb-8 lg:pt-3",
+              : hideMobileNav
+                ? "overflow-y-auto px-4 pb-8 pt-2 lg:px-10 lg:pb-8 lg:pt-3"
+                : "overflow-y-auto px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-2 lg:px-10 lg:pb-8 lg:pt-3",
           )}
           onClick={handleMainInteract}
           onScroll={handleMainInteract}
@@ -190,7 +209,15 @@ export function AppShell({
             {children}
           </div>
         </main>
-        <MobileNav integrationGates={integrationGates} userRole={session.role} steep />
+        {!hideMobileNav ? (
+          <MobileNav
+            integrationGates={integrationGates}
+            userRole={session.role}
+            activationMode={activationMode}
+            hasDna={hasDna}
+            steep
+          />
+        ) : null}
       </div>
     </div>
   );

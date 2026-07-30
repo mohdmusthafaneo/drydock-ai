@@ -11,9 +11,9 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/layout/page-header";
 import { ExecutiveVerdictBanner } from "@/components/executive-briefing/executive-verdict-banner";
+import { EngineeringDetailSection } from "@/components/agent-analysis/engineering-detail-section";
 
 export default async function WorkflowCenterPage() {
   const session = await getSession();
@@ -30,7 +30,7 @@ export default async function WorkflowCenterPage() {
     <div className="space-y-8">
       <PageHeader
         title="Workflow center"
-        description="Enterprise delivery workflow — governance, QA, observability, and human approval."
+        description="Active releases moving through governance — register, assess, and clear human gates before deploy."
       >
         <div className="flex flex-wrap items-center gap-3">
           <Button asChild variant="secondary" size="lg">
@@ -48,56 +48,6 @@ export default async function WorkflowCenterPage() {
         headline={attention.headline}
         subcopy={attention.subcopy}
       />
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Enterprise workflow architecture</CardTitle>
-          <CardDescription>
-            {completed.size} of {ENTERPRISE_WORKFLOW_STEPS.length} stages complete
-            {ctx.workflow?.executionStatus && ` · ${ctx.workflow.executionStatus}`}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ol className="space-y-2">
-            {ENTERPRISE_WORKFLOW_STEPS.map((step) => {
-              const done = completed.has(step.id);
-              const badgeCount = stepBadges[step.id] ?? 0;
-              return (
-                <li key={step.id}>
-                  <Link
-                    href={step.href}
-                    className={cn(
-                      "flex items-start gap-3 rounded-[16px] px-3 py-2.5 transition-colors",
-                      done
-                        ? "bg-success-muted text-success"
-                        : "bg-fog text-ink hover:bg-hover",
-                    )}
-                  >
-                    {done ? (
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-                    ) : (
-                      <Circle className="mt-0.5 h-4 w-4 shrink-0 text-graphite" />
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-medium">
-                          {step.order}. {step.label}
-                        </p>
-                        {badgeCount > 0 && (
-                          <Badge variant="warning" className="text-[10px]">
-                            {badgeCount}
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted">{step.description}</p>
-                    </div>
-                  </Link>
-                </li>
-              );
-            })}
-          </ol>
-        </CardContent>
-      </Card>
 
       <div>
         <h2 className="mb-3 font-display text-[26px] leading-[1.18] tracking-[-0.23px] text-ink">
@@ -122,6 +72,52 @@ export default async function WorkflowCenterPage() {
           </div>
         )}
       </div>
+
+      <EngineeringDetailSection
+        title="Enterprise architecture"
+        description={`${completed.size} of ${ENTERPRISE_WORKFLOW_STEPS.length} stages complete${
+          ctx.workflow?.executionStatus ? ` · ${ctx.workflow.executionStatus}` : ""
+        }`}
+      >
+        <ol className="space-y-2">
+          {ENTERPRISE_WORKFLOW_STEPS.map((step) => {
+            const done = completed.has(step.id);
+            const badgeCount = stepBadges[step.id] ?? 0;
+            return (
+              <li key={step.id}>
+                <Link
+                  href={step.href}
+                  className={cn(
+                    "flex items-start gap-3 rounded-[16px] px-3 py-2.5 transition-colors",
+                    done
+                      ? "bg-success-muted text-success"
+                      : "bg-fog text-ink hover:bg-hover",
+                  )}
+                >
+                  {done ? (
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+                  ) : (
+                    <Circle className="mt-0.5 h-4 w-4 shrink-0 text-graphite" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-medium">
+                        {step.order}. {step.label}
+                      </p>
+                      {badgeCount > 0 && (
+                        <Badge variant="warning" className="text-[10px]">
+                          {badgeCount}
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted">{step.description}</p>
+                  </div>
+                </Link>
+              </li>
+            );
+          })}
+        </ol>
+      </EngineeringDetailSection>
     </div>
   );
 }

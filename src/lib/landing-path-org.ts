@@ -4,6 +4,7 @@ import { computeCompletedStepIds } from "@/lib/enterprise-workflow";
 import { hasObservabilitySynced } from "@/lib/observability-connectivity";
 import { isJiraCalibrationComplete } from "@/lib/jira-calibration/status";
 import { resolveLandingPath } from "@/lib/landing-path";
+import { isLeadershipPendingApproval } from "@/lib/recommendation-queue";
 import { prisma } from "@/lib/prisma";
 
 export async function getLandingPathForOrganization(organizationId: string): Promise<string> {
@@ -24,7 +25,10 @@ export async function getLandingPathForOrganization(organizationId: string): Pro
       }),
       prisma.approval.findMany({
         where: { organizationId },
-        select: { decision: true },
+        select: {
+          decision: true,
+          recommendation: { select: { queue: true } },
+        },
       }),
       prisma.deliveryWorkflow.findUnique({
         where: { organizationId },
@@ -40,7 +44,7 @@ export async function getLandingPathForOrganization(organizationId: string): Pro
 
   const assessedReleases = releases.filter((r) => r.assessedAt);
   const deployedReleases = releases.filter((r) => r.status === "DEPLOYED");
-  const pendingApprovals = approvals.filter((a) => !a.decision);
+  const pendingApprovals = approvals.filter(isLeadershipPendingApproval);
   const hasObservabilitySyncedFlag = hasObservabilitySynced(integrations);
 
   const jiraConnected = integrations.some((i) => i.provider === "JIRA");

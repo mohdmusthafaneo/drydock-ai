@@ -36,12 +36,16 @@ function minimalBriefing(overrides?: Partial<ExecutiveBriefing>): ExecutiveBrief
 
 function minimalCtx(overrides?: {
   pendingApprovals?: number;
+  pendingReleaseApprovals?: number;
+  pendingGovernanceApprovals?: number;
   rollbackPending?: number;
   openIncidents?: number;
 }) {
   return {
     stats: {
       pendingApprovals: overrides?.pendingApprovals ?? 0,
+      pendingReleaseApprovals: overrides?.pendingReleaseApprovals ?? 0,
+      pendingGovernanceApprovals: overrides?.pendingGovernanceApprovals ?? 0,
       rollbackPending: overrides?.rollbackPending ?? 0,
       openIncidents: overrides?.openIncidents ?? 0,
       releaseReadiness: 70,

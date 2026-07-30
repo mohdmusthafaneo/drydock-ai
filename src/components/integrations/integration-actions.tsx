@@ -13,10 +13,16 @@ export function GitHubOAuthConnect() {
   );
 }
 
-export function JiraOAuthConnect() {
+export function JiraOAuthConnect({
+  label = "Connect with Jira",
+  variant = "default",
+}: {
+  label?: string;
+  variant?: "default" | "brand" | "secondary" | "ghost";
+}) {
   return (
-    <Button size="sm" asChild>
-      <Link href="/api/integrations/jira/authorize">Connect with Jira</Link>
+    <Button size="sm" variant={variant} asChild>
+      <Link href="/api/integrations/jira/authorize">{label}</Link>
     </Button>
   );
 }
@@ -24,6 +30,11 @@ export function JiraOAuthConnect() {
 export function StubConnectButton({ provider }: { provider: string }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+
+  // Dev-only stub — never render in production builds.
+  if (process.env.NODE_ENV !== "development") {
+    return null;
+  }
 
   async function connect() {
     setLoading(true);

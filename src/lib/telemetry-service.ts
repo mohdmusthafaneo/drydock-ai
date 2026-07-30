@@ -143,6 +143,7 @@ export async function ingestTelemetryForOrganization(input: {
             affectedSystems: JSON.stringify(rec.affectedSystems),
             requiredRole: rec.requiredRole,
             status: "PENDING",
+            queue: "RELEASE_GATE",
           },
         });
         await prisma.approval.create({

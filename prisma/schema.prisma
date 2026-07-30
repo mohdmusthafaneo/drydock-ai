@@ -80,6 +80,14 @@ enum RecommendationStatus {
   MODIFIED
 }
 
+/// UX lane: SETUP/OPS never create leadership Approvals; RELEASE_GATE/GOVERNANCE do.
+enum RecommendationQueue {
+  SETUP
+  OPS
+  RELEASE_GATE
+  GOVERNANCE
+}
+
 enum ApprovalType {
   RECOMMENDATION
   AGENT_ACTION
@@ -696,12 +704,15 @@ model Recommendation {
   affectedSystems Json                @default("[]")
   requiredRole   UserRole?
   status         RecommendationStatus @default(PENDING)
+  queue          RecommendationQueue  @default(OPS)
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   release      Release?     @relation(fields: [releaseId], references: [id], onDelete: SetNull)
   approvals    Approval[]
+
+  @@index([organizationId, queue, status])
 }
 
 model Approval {

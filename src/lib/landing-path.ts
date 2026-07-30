@@ -13,8 +13,8 @@ export function resolveLandingPath(input: {
   hasDna: boolean;
   completedStepIds?: string[];
 }): string {
-  if (!input.hasDna && isNavHrefEnabled("/governance")) {
-    return "/governance/setup";
+  if (!input.hasDna) {
+    return "/activate";
   }
 
   if (isNavHrefEnabled("/dashboard")) {

@@ -230,6 +230,7 @@ export async function assessReleaseForAgent(input: {
         affectedSystems: JSON.stringify(primaryRec.affectedSystems),
         requiredRole: primaryRec.requiredRole ?? null,
         status: "PENDING",
+        queue: "RELEASE_GATE",
       },
     });
 

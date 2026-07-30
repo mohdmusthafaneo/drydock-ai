@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,13 +16,13 @@ import {
 import { cn } from "@/lib/utils";
 
 const TOOLS = [
-  { id: "github", label: "GitHub" },
-  { id: "jira", label: "Jira" },
-  { id: "grafana", label: "Grafana" },
-  { id: "prometheus", label: "Prometheus" },
-  { id: "kubernetes", label: "Kubernetes" },
-  { id: "slack", label: "Slack" },
-  { id: "jenkins", label: "Jenkins" },
+  { id: "github", label: "GitHub", href: "/integrations?focus=github" },
+  { id: "jira", label: "Jira", href: "/integrations?focus=jira" },
+  { id: "grafana", label: "Grafana", href: "/integrations?focus=grafana" },
+  { id: "prometheus", label: "Prometheus", href: "/integrations?focus=prometheus" },
+  { id: "kubernetes", label: "Kubernetes", href: "/integrations" },
+  { id: "slack", label: "Slack", href: "/integrations?focus=slack" },
+  { id: "jenkins", label: "Jenkins", href: "/integrations?focus=jenkins" },
 ];
 
 const WORKFLOWS = [
@@ -32,7 +33,7 @@ const WORKFLOWS = [
   { id: "gitflow", label: "GitFlow" },
 ];
 
-const STEPS = ["Organization", "Maturity", "Tools & workflows", "Governance", "Review"];
+const STEPS = ["Organization", "Governance", "Review"];
 
 const DEFAULT_FORM = {
   industryType: "technology",
@@ -113,7 +114,7 @@ export function DiscoveryWizard({
       setError(data.error || "Failed to complete discovery");
       return;
     }
-    router.push(data.redirect || "/workflow");
+    router.push(data.redirect || "/integrations?from=dna");
     router.refresh();
   }
 
@@ -191,79 +192,6 @@ export function DiscoveryWizard({
 
           {step === 1 && (
             <>
-              {(
-                [
-                  ["sdlcMaturity", "SDLC maturity"],
-                  ["devopsMaturity", "DevOps maturity"],
-                  ["governanceLevel", "Governance maturity"],
-                ] as const
-              ).map(([key, label]) => (
-                <div key={key} className="space-y-2">
-                  <Label>
-                    {label}: {form[key]}/5
-                  </Label>
-                  <input
-                    type="range"
-                    min={1}
-                    max={5}
-                    value={form[key]}
-                    onChange={(e) =>
-                      setForm({ ...form, [key]: Number(e.target.value) })
-                    }
-                    className="w-full accent-rust"
-                  />
-                </div>
-              ))}
-            </>
-          )}
-
-          {step === 2 && (
-            <>
-              <div>
-                <Label className="mb-2 block">Tooling ecosystem</Label>
-                <div className="flex flex-wrap gap-2">
-                  {TOOLS.map((tool) => (
-                    <button
-                      key={tool.id}
-                      type="button"
-                      onClick={() => toggleItem("tools", tool.id)}
-                      className={cn(
-                        "rounded-full border px-3 py-1 text-sm transition-colors",
-                        form.tools.includes(tool.id)
-                          ? "border-chart-blue/40 bg-sky-wash text-ink"
-                          : "border-border-subtle text-muted hover:bg-hover hover:text-ink",
-                      )}
-                    >
-                      {tool.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <Label className="mb-2 block">Workflows</Label>
-                <div className="flex flex-wrap gap-2">
-                  {WORKFLOWS.map((wf) => (
-                    <button
-                      key={wf.id}
-                      type="button"
-                      onClick={() => toggleItem("workflows", wf.id)}
-                      className={cn(
-                        "rounded-full border px-3 py-1 text-sm transition-colors",
-                        form.workflows.includes(wf.id)
-                          ? "border-rust/30 bg-apricot-wash text-ink"
-                          : "border-border-subtle text-muted hover:bg-hover hover:text-ink",
-                      )}
-                    >
-                      {wf.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
-
-          {step === 3 && (
-            <>
               <div className="space-y-2">
                 <Label>Compliance</Label>
                 <select
@@ -295,7 +223,7 @@ export function DiscoveryWizard({
             </>
           )}
 
-          {step === 4 && (
+          {step === 2 && (
             <div className="space-y-5">
               <p className="text-[14px] leading-relaxed text-ash">
                 Review your Delivery DNA before generating. This sets approval depth, autonomy
@@ -346,6 +274,105 @@ export function DiscoveryWizard({
               <div className="rounded-[16px] bg-fog px-4 py-3 text-[14px] leading-relaxed text-ash">
                 {previewDna.summary}
               </div>
+
+              <div className="rounded-[16px] border border-border-subtle px-4 py-3">
+                <p className="text-[13px] font-medium text-ink">You&apos;ll connect these next</p>
+                <p className="mt-1 text-[13px] leading-relaxed text-ash">
+                  Chips deep-link to Integrations — they do not authorize access by themselves.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {TOOLS.filter((t) => form.tools.includes(t.id)).map((tool) => (
+                    <Link
+                      key={tool.id}
+                      href={tool.href}
+                      className="rounded-full border border-chart-blue/40 bg-sky-wash px-3 py-1 text-sm text-ink transition-colors hover:border-chart-blue/60"
+                    >
+                      {tool.label}
+                    </Link>
+                  ))}
+                  {form.tools.length === 0 && (
+                    <Link
+                      href="/integrations?from=dna"
+                      className="text-[13px] font-medium text-ink underline-offset-4 hover:underline"
+                    >
+                      Open Integrations
+                    </Link>
+                  )}
+                </div>
+              </div>
+
+              <details className="rounded-[16px] border border-border-subtle bg-fog/60 p-4">
+                <summary className="cursor-pointer text-sm font-medium text-ink hover:text-rust">
+                  Advanced — maturity, tools & workflows
+                </summary>
+                <div className="mt-4 space-y-5">
+                  {(
+                    [
+                      ["sdlcMaturity", "SDLC maturity"],
+                      ["devopsMaturity", "DevOps maturity"],
+                      ["governanceLevel", "Governance maturity"],
+                    ] as const
+                  ).map(([key, label]) => (
+                    <div key={key} className="space-y-2">
+                      <Label>
+                        {label}: {form[key]}/5
+                      </Label>
+                      <input
+                        type="range"
+                        min={1}
+                        max={5}
+                        value={form[key]}
+                        onChange={(e) =>
+                          setForm({ ...form, [key]: Number(e.target.value) })
+                        }
+                        className="w-full accent-rust"
+                      />
+                    </div>
+                  ))}
+
+                  <div>
+                    <Label className="mb-2 block">Tooling ecosystem (intent only)</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {TOOLS.map((tool) => (
+                        <button
+                          key={tool.id}
+                          type="button"
+                          onClick={() => toggleItem("tools", tool.id)}
+                          className={cn(
+                            "rounded-full border px-3 py-1 text-sm transition-colors",
+                            form.tools.includes(tool.id)
+                              ? "border-chart-blue/40 bg-sky-wash text-ink"
+                              : "border-border-subtle text-muted hover:bg-hover hover:text-ink",
+                          )}
+                        >
+                          {tool.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="mb-2 block">Workflows</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {WORKFLOWS.map((wf) => (
+                        <button
+                          key={wf.id}
+                          type="button"
+                          onClick={() => toggleItem("workflows", wf.id)}
+                          className={cn(
+                            "rounded-full border px-3 py-1 text-sm transition-colors",
+                            form.workflows.includes(wf.id)
+                              ? "border-rust/30 bg-apricot-wash text-ink"
+                              : "border-border-subtle text-muted hover:bg-hover hover:text-ink",
+                          )}
+                        >
+                          {wf.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </details>
             </div>
           )}
 

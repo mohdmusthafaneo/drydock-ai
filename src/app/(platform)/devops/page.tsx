@@ -19,10 +19,21 @@ import { AgentAnalysisRefreshButton } from "@/components/agent-analysis/agent-an
 import { AgentPageShell } from "@/components/agent-analysis/agent-page-shell";
 import { EngineeringDetailSection } from "@/components/agent-analysis/engineering-detail-section";
 import { SegmentedShareBar } from "@/components/agent-analysis/segmented-share-bar";
+import { BriefingContextChip } from "@/components/briefing/briefing-context-chip";
+import { DataTrustStrip } from "@/components/trust/data-trust-strip";
+import { formatDistanceToNow } from "@/lib/format-date";
 
-export default async function DevOpsIntelligencePage() {
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+export default async function DevOpsIntelligencePage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
   const session = await getSession();
   if (!session) redirect("/login");
+
+  const sp = await searchParams;
 
   const [ctx, devopsRun] = await Promise.all([
     getOrganizationContext(session.organizationId),
@@ -54,6 +65,14 @@ export default async function DevOpsIntelligencePage() {
     deploymentEventCount: ctx.deploymentEvents.length,
   });
 
+  const lastSyncLabel = devopsRun?.analyzedAt
+    ? formatDistanceToNow(new Date(devopsRun.analyzedAt))
+    : null;
+  const blindSpots: string[] = [];
+  if (!awsConnected) blindSpots.push("AWS not connected");
+  else if (!devopsRun) blindSpots.push("DevOps scan not available");
+  if (!hasDeployments) blindSpots.push("No deployment events yet");
+
   return (
     <div className="space-y-8">
       <PageHeader
@@ -62,6 +81,9 @@ export default async function DevOpsIntelligencePage() {
       >
         <AgentAnalysisRefreshButton label="Refresh all agents" />
       </PageHeader>
+
+      <BriefingContextChip from={sp.from} />
+      <DataTrustStrip lastSyncLabel={lastSyncLabel} blindSpots={blindSpots} />
 
       {skipReason && !devopsRun ? (
         <p className="rounded-xl border border-border-subtle bg-elevated px-4 py-3 text-sm text-secondary">

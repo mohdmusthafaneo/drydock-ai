@@ -1,10 +1,6 @@
 import { prisma } from "@/lib/prisma";
-
-const STALE_SETUP_TITLES = [
-  "Enable human-governed recommendation loop",
-  "Connect Jira for workflow intelligence",
-  "Connect GitHub for change-risk signals",
-] as const;
+import { asJsonInput } from "@/lib/json-field";
+import { SETUP_RECOMMENDATION_TITLES } from "@/lib/recommendation-queue";
 
 /**
  * Auto-reject setup recommendations that contradict live Integration /
@@ -26,7 +22,10 @@ export async function dismissStaleSetupRecommendations(
       where: {
         organizationId,
         status: "PENDING",
-        title: { in: [...STALE_SETUP_TITLES] },
+        OR: [
+          { queue: "SETUP" },
+          { title: { in: [...SETUP_RECOMMENDATION_TITLES] } },
+        ],
       },
       select: { id: true, title: true },
     }),
@@ -37,12 +36,16 @@ export async function dismissStaleSetupRecommendations(
   const providers = new Set(integrations.map((i) => i.provider));
   const jiraOk = providers.has("JIRA");
   const githubOk = providers.has("GITHUB");
+  const grafanaOk = providers.has("GRAFANA");
+  const prometheusOk = providers.has("PROMETHEUS");
   const autonomyRecommend =
     !dna?.autonomyMode || dna.autonomyMode === "RECOMMEND";
 
   const toDismiss = pending.filter((rec) => {
     if (rec.title === "Connect Jira for workflow intelligence") return jiraOk;
     if (rec.title === "Connect GitHub for change-risk signals") return githubOk;
+    if (rec.title === "Add Grafana observability connector") return grafanaOk;
+    if (rec.title === "Connect Prometheus for metric KPIs") return prometheusOk;
     if (rec.title === "Enable human-governed recommendation loop") {
       return autonomyRecommend;
     }
@@ -52,19 +55,27 @@ export async function dismissStaleSetupRecommendations(
   if (toDismiss.length === 0) return { dismissed: 0 };
 
   const ids = toDismiss.map((r) => r.id);
+  const openApprovals = await prisma.approval.findMany({
+    where: {
+      organizationId,
+      recommendationId: { in: ids },
+      decision: null,
+    },
+    select: { id: true },
+  });
+
   await prisma.$transaction([
-    prisma.approval.updateMany({
-      where: {
-        organizationId,
-        recommendationId: { in: ids },
-        decision: null,
-      },
-      data: {
-        decision: "REJECTED",
-        comment: "Auto-dismissed — integration/DNA already satisfies this setup item",
-        decidedAt: new Date(),
-      },
-    }),
+    ...openApprovals.map((a) =>
+      prisma.approval.update({
+        where: { id: a.id },
+        data: {
+          decision: "REJECTED",
+          comment: "Auto-dismissed — integration/DNA already satisfies this setup item",
+          decidedAt: new Date(),
+          payloadJson: asJsonInput({ systemDismissal: true }),
+        },
+      }),
+    ),
     prisma.recommendation.updateMany({
       where: { id: { in: ids } },
       data: { status: "REJECTED" },

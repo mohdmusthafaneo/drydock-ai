@@ -5,16 +5,27 @@ import { loadLatestQaRun } from "@/lib/agent-analysis/load-latest-runs";
 import { buildQaPageView } from "@/lib/agent-analysis/presentation";
 import { syncAgentAnalysisRecommendations } from "@/lib/agent-analysis/sync-recommendations";
 import { dismissStaleSetupRecommendations } from "@/lib/agent-analysis/dismiss-stale-setup-recs";
+import { formatDistanceToNow } from "@/lib/format-date";
 import { QACockpit } from "@/components/qa/qa-cockpit";
 import { QaAgentRunPanel } from "@/components/qa/qa-agent-run-panel";
 import { AgentAnalysisRefreshButton } from "@/components/agent-analysis/agent-analysis-refresh-button";
 import { AgentPageShell } from "@/components/agent-analysis/agent-page-shell";
 import { EngineeringDetailSection } from "@/components/agent-analysis/engineering-detail-section";
+import { BriefingContextChip } from "@/components/briefing/briefing-context-chip";
+import { DataTrustStrip } from "@/components/trust/data-trust-strip";
 import { PageHeader } from "@/components/layout/page-header";
 
-export default async function QAIntelligencePage() {
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+export default async function QAIntelligencePage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
   const session = await getSession();
   if (!session) redirect("/login");
+
+  const sp = await searchParams;
 
   const [ctx, qaRun] = await Promise.all([
     getOrganizationContext(session.organizationId),
@@ -41,6 +52,14 @@ export default async function QAIntelligencePage() {
   const blockedCount = qaRun?.evidence.filter((e) => e.preset === "BLOCKED").length ?? 0;
   const bugCount = qaRun?.evidence.filter((e) => e.preset === "OPEN_BUGS").length ?? 0;
 
+  const lastSyncLabel = qaRun?.analyzedAt
+    ? formatDistanceToNow(new Date(qaRun.analyzedAt))
+    : null;
+  const blindSpots: string[] = [];
+  if (!qaRun) blindSpots.push("QA agent scan not available");
+  const jira = ctx.integrations.find((i) => i.provider === "JIRA");
+  if (!jira) blindSpots.push("Jira not connected");
+
   return (
     <div className="space-y-8">
       <PageHeader
@@ -49,6 +68,9 @@ export default async function QAIntelligencePage() {
       >
         <AgentAnalysisRefreshButton label="Refresh all agents" />
       </PageHeader>
+
+      <BriefingContextChip from={sp.from} />
+      <DataTrustStrip lastSyncLabel={lastSyncLabel} blindSpots={blindSpots} />
 
       <AgentPageShell view={view}>
         <div className="space-y-4 border-t border-border-subtle pt-8">

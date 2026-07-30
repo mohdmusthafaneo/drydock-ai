@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { getOrganizationContext } from "@/lib/org-data";
-import { getOnboardingSteps } from "@/lib/onboarding";
+import { getOnboardingSteps, isOrgActivated } from "@/lib/onboarding";
+import { isIntegrationHealthyLite } from "@/lib/integration-health";
 import { OnboardingBanner } from "@/components/layout/onboarding-banner";
 import { AppShell } from "@/components/layout/app-shell";
 import { QueryProvider } from "@/components/providers/query-provider";
@@ -9,7 +10,6 @@ import { prisma } from "@/lib/prisma";
 import type { SessionPayload } from "@/lib/session";
 import { isNavPathEnabled } from "@/lib/feature-flags";
 import { resolveLandingPath } from "@/lib/landing-path";
-import { isJiraCalibrationComplete } from "@/lib/jira-calibration/status";
 import {
   getIntegrationNavGates,
   isIntegrationGatedPathAccessible,
@@ -60,45 +60,22 @@ export async function PlatformShell({
     redirect("/integrations");
   }
 
-  const [
-    releaseCount,
-    assessedReleaseCount,
-    workflowConfigured,
-    jiraCalibrationComplete,
-  ] = await Promise.all([
-    prisma.release.count({ where: { organizationId: session.organizationId } }),
-    prisma.release.count({
-      where: {
-        organizationId: session.organizationId,
-        assessedAt: { not: null },
-      },
-    }),
-    prisma.deliveryWorkflow.findUnique({
-      where: { organizationId: session.organizationId },
-      select: { configuredAt: true },
-    }),
-    isJiraCalibrationComplete(session.organizationId),
-  ]);
-
-  const jiraConnected = ctx.integrations.some(
-    (i) => i.provider === "JIRA" && i.status === "CONNECTED",
+  const hasDeliverySourceSynced = ctx.integrations.some(
+    (i) =>
+      (i.provider === "JIRA" || i.provider === "GITHUB") && i.lastSyncAt != null,
   );
-  const githubConnected = ctx.integrations.some(
-    (i) => i.provider === "GITHUB" && i.status === "CONNECTED",
-  );
+  const activationMode = !isOrgActivated({
+    hasDna: Boolean(ctx.dna),
+    hasDeliverySourceSynced,
+  });
 
   const steps = getOnboardingSteps({
     hasProfile: Boolean(ctx.profile?.completedAt),
     hasDna: Boolean(ctx.dna),
-    workflowConfigured: Boolean(workflowConfigured?.configuredAt),
-    hasRelease: releaseCount > 0,
-    hasAssessedRelease: assessedReleaseCount > 0,
-    connectedCount: ctx.integrations.filter((i) => i.status === "CONNECTED").length,
-    pendingApprovals: ctx.stats.pendingApprovals,
-    toolchainMappingConfirmed: Boolean(ctx.profile?.toolchainMappingConfirmedAt),
-    jiraConnected,
-    githubConnected,
-    jiraCalibrationComplete,
+    hasHealthyIntegration: ctx.integrations.some(isIntegrationHealthyLite),
+    hasSuccessfulSync: ctx.integrations.some((i) => i.lastSyncAt != null),
+    hasFirstDecision: ctx.approvals.some((a) => a.approverId != null),
+    hasPendingLeadershipDecision: ctx.stats.pendingApprovals > 0,
   });
 
   return (
@@ -106,6 +83,8 @@ export async function PlatformShell({
       session={session}
       integrationGates={integrationGates}
       homePath={homePath}
+      activationMode={activationMode}
+      hasDna={Boolean(ctx.dna)}
     >
       {!isChatPath(pathname) ? <OnboardingBanner steps={steps} /> : null}
       <QueryProvider>{children}</QueryProvider>

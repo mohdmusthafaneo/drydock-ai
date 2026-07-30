@@ -4,7 +4,7 @@ import { PrismaClient } from "@/generated/prisma/client";
 import { createTenantExtension } from "@/lib/prisma-tenant";
 
 /** Bump when schema changes so dev hot-reload picks up a fresh client. */
-const PRISMA_SCHEMA_VERSION = 20;
+const PRISMA_SCHEMA_VERSION = 21;
 
 /** Delegates that must exist on a valid client (guards stale dev cache). */
 const REQUIRED_DELEGATES = [

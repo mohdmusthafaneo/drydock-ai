@@ -45,11 +45,11 @@ describe("governance presentation", () => {
           id: "a1",
           decision: null,
           type: "RECOMMENDATION",
-          recommendation: { releaseId: "r1", impact: "HIGH" },
+          recommendation: { releaseId: "r1", impact: "HIGH", queue: "RELEASE_GATE" },
         },
       ],
       releases: [{ id: "r1", name: "Release 2.4" }],
-      stats: { pendingApprovals: 1 },
+      stats: { pendingApprovals: 1, pendingReleaseApprovals: 1, pendingGovernanceApprovals: 0 },
     } as Parameters<typeof buildApprovalsHeroSummary>[0]);
 
     assert.match(hero.headline, /Release 2\.4/);

@@ -8,3 +8,22 @@ export function formatDistanceToNow(date: Date): string {
   const days = Math.floor(hours / 24);
   return `${days}d ago`;
 }
+
+/** Fixed locale — avoids SSR/client hydration mismatches from `toLocaleString()`. */
+export function formatFixedLocaleDateTime(iso: string | Date): string {
+  try {
+    const date = typeof iso === "string" ? new Date(iso) : iso;
+    if (Number.isNaN(date.getTime())) {
+      return typeof iso === "string" ? iso : "";
+    }
+    return date.toLocaleString("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return typeof iso === "string" ? iso : "";
+  }
+}

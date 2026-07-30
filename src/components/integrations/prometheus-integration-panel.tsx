@@ -6,6 +6,7 @@ import { ExternalLink, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DisconnectButton } from "@/components/integrations/integration-actions";
+import { formatFixedLocaleDateTime } from "@/lib/format-date";
 import type { PrometheusAuthType } from "@/lib/prometheus-meta";
 
 type AuthTypeOption = PrometheusAuthType;
@@ -434,9 +435,5 @@ export function PrometheusIntegrationPanel({
 }
 
 function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleString();
-  } catch {
-    return iso;
-  }
+  return formatFixedLocaleDateTime(iso);
 }

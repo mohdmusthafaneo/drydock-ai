@@ -3,11 +3,24 @@ import { z } from "zod";
 import { getSession } from "@/lib/session";
 import { decideApproval } from "@/lib/approvals/decide";
 
-const schema = z.object({
-  approvalId: z.string(),
-  decision: z.enum(["APPROVED", "REJECTED", "MODIFIED"]),
-  comment: z.string().optional(),
-});
+const schema = z
+  .object({
+    approvalId: z.string(),
+    decision: z.enum(["APPROVED", "REJECTED", "MODIFIED"]),
+    comment: z.string().optional(),
+  })
+  .superRefine((body, ctx) => {
+    if (
+      (body.decision === "REJECTED" || body.decision === "MODIFIED") &&
+      !body.comment?.trim()
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "A comment is required when rejecting or requesting modification",
+        path: ["comment"],
+      });
+    }
+  });
 
 export async function POST(request: Request) {
   const session = await getSession();
@@ -32,7 +45,11 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ ok: true });
-  } catch {
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      const message = err.issues[0]?.message ?? "Invalid request";
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 }

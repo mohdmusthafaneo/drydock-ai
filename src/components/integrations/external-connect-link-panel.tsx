@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Copy, Link2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { formatFixedLocaleDateTime } from "@/lib/format-date";
 
 type ActiveInvite = {
   id: string;
@@ -151,7 +152,7 @@ export function ExternalConnectLinkPanel({
             className="w-full rounded-lg border border-border bg-elevated px-2 py-1.5 font-mono text-[11px] text-secondary"
           />
           <p className="text-[11px] text-muted">
-            Expires {new Date(invite.expiresAt).toLocaleString()}
+            Expires {formatFixedLocaleDateTime(invite.expiresAt)}
           </p>
           <div className="flex flex-wrap gap-2">
             <Button type="button" size="sm" variant="secondary" onClick={copyLink}>

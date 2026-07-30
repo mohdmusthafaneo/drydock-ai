@@ -1,8 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import type { LatestAgentAnalysisBundle } from "@/lib/agent-analysis/types";
 import { isOpsQueueRecommendationTitle } from "@/lib/agent-analysis/ops-queue";
+import { asJsonInput } from "@/lib/json-field";
 
 export { isOpsQueueRecommendationTitle } from "@/lib/agent-analysis/ops-queue";
+
+const SYSTEM_DISMISSAL_PAYLOAD = asJsonInput({ systemDismissal: true });
 
 function devopsRecTitle(findingId: string, title: string): string {
   return `[cloud:${findingId}] ${title}`;
@@ -83,6 +86,7 @@ export async function syncAgentAnalysisRecommendations(
           ),
           requiredRole: "DEVOPS_LEAD",
           status: "PENDING",
+          queue: "OPS",
         },
       });
       await tx.activityEvent.create({
@@ -130,6 +134,7 @@ export async function syncAgentAnalysisRecommendations(
           affectedSystems: JSON.stringify(bundle.qa.projectKeys),
           requiredRole: "ENGINEERING_MANAGER",
           status: "PENDING",
+          queue: "OPS",
         },
       });
       await tx.activityEvent.create({
@@ -172,18 +177,25 @@ async function collapseLegacyQaBlockedRecommendations(
   if (legacy.length === 0) return;
 
   const ids = legacy.map((r) => r.id);
-  await tx.approval.updateMany({
+  const openApprovals = await tx.approval.findMany({
     where: {
       organizationId,
       recommendationId: { in: ids },
       decision: null,
     },
-    data: {
-      decision: "REJECTED",
-      comment: "Collapsed into aggregated QA board-health recommendation",
-      decidedAt: new Date(),
-    },
+    select: { id: true },
   });
+  for (const a of openApprovals) {
+    await tx.approval.update({
+      where: { id: a.id },
+      data: {
+        decision: "REJECTED",
+        comment: "Collapsed into aggregated QA board-health recommendation",
+        decidedAt: new Date(),
+        payloadJson: SYSTEM_DISMISSAL_PAYLOAD,
+      },
+    });
+  }
   await tx.recommendation.updateMany({
     where: { id: { in: ids } },
     data: { status: "REJECTED" },
@@ -227,18 +239,25 @@ async function dedupePrefixedRecommendations(
 
   if (rejectIds.length === 0) return 0;
 
-  await tx.approval.updateMany({
+  const openApprovals = await tx.approval.findMany({
     where: {
       organizationId,
       recommendationId: { in: rejectIds },
       decision: null,
     },
-    data: {
-      decision: "REJECTED",
-      comment: "Deduped duplicate agent-analysis recommendation",
-      decidedAt: new Date(),
-    },
+    select: { id: true },
   });
+  for (const a of openApprovals) {
+    await tx.approval.update({
+      where: { id: a.id },
+      data: {
+        decision: "REJECTED",
+        comment: "Deduped duplicate agent-analysis recommendation",
+        decidedAt: new Date(),
+        payloadJson: SYSTEM_DISMISSAL_PAYLOAD,
+      },
+    });
+  }
   await tx.recommendation.updateMany({
     where: { id: { in: rejectIds } },
     data: { status: "REJECTED" },
@@ -272,13 +291,16 @@ async function closeOpsQueueApprovals(
 
   if (ids.length === 0) return;
 
-  await tx.approval.updateMany({
-    where: { id: { in: ids } },
-    data: {
-      decision: "REJECTED",
-      comment:
-        "Ops queue — tracked on Recommendations for eng leads, not Approval Center",
-      decidedAt: new Date(),
-    },
-  });
+  for (const id of ids) {
+    await tx.approval.update({
+      where: { id },
+      data: {
+        decision: "REJECTED",
+        comment:
+          "Ops queue — tracked on Recommendations for eng leads, not Approval Center",
+        decidedAt: new Date(),
+        payloadJson: SYSTEM_DISMISSAL_PAYLOAD,
+      },
+    });
+  }
 }

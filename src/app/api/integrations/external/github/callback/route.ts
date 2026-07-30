@@ -91,7 +91,7 @@ export async function GET(request: Request) {
         via: "session",
       });
 
-      return NextResponse.redirect(appUrl("/integrations?connected=github_app"));
+      return NextResponse.redirect(appUrl("/integrations?connected=github_app&handoff=1"));
     }
 
     return NextResponse.redirect(appUrl("/connect/error?code=invalid&provider=github"));

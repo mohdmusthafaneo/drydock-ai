@@ -8,6 +8,7 @@ function mockSummary(
 ): IntegrationHealthSummary {
   return {
     status: "CONNECTED",
+    state: "healthy",
     healthy: true,
     lastSyncAt: new Date(),
     lastHealthCheckAt: new Date(),

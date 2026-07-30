@@ -106,7 +106,7 @@ export async function GET(request: Request) {
       });
     });
 
-    return NextResponse.redirect(appUrl("/integrations?connected=github"));
+    return NextResponse.redirect(appUrl("/integrations?connected=github&handoff=1"));
   } catch (err) {
     console.error("GitHub OAuth callback error:", err);
     return NextResponse.redirect(appUrl("/integrations?error=github_callback_failed"));

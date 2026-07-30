@@ -13,26 +13,38 @@ import {
 } from "@/lib/workspace-mode";
 import { cn } from "@/lib/utils";
 
+function findNavItem(
+  layout: ReturnType<typeof getResolvedEnterpriseNavLayout>,
+  href: string,
+): ResolvedNavItem | undefined {
+  const top = layout.topItems.find((item) => item.href === href);
+  if (top) return top;
+  const bottom = layout.bottomItems.find((item) => item.href === href);
+  if (bottom) return bottom;
+  return layout.sections
+    .flatMap((section) => section.items)
+    .find((item) => item.href === href);
+}
+
 function pickEnterpriseMobileItems(
   gates: IntegrationNavGates,
   userRole?: UserRole,
+  options?: { activationMode?: boolean; hasDna?: boolean },
 ): ResolvedNavItem[] {
-  const layout = getResolvedEnterpriseNavLayout(gates, userRole);
-  const pinnedHrefs = ["/workflow", "/dashboard", "/integrations", "/settings"];
+  const layout = getResolvedEnterpriseNavLayout(gates, userRole, options);
+  const pinnedHrefs = options?.activationMode
+    ? [
+        options.hasDna ? "/dashboard" : "/activate",
+        "/integrations",
+        "/governance/setup",
+        "/settings",
+      ]
+    : ["/dashboard", "/integrations", "/agent-threads", "/approvals"];
   const pinned = pinnedHrefs
-    .map((href) => {
-      const top = layout.topItems.find((item) => item.href === href);
-      if (top) return top;
-      return layout.bottomItems.find((item) => item.href === href);
-    })
+    .map((href) => findNavItem(layout, href))
     .filter((item): item is ResolvedNavItem => Boolean(item));
 
-  const unlockedAnalysis = layout.sections
-    .flatMap((section) => section.items)
-    .find((item) => item.integrationGate && !item.locked);
-
-  const items = unlockedAnalysis ? [...pinned.slice(0, 4), unlockedAnalysis] : pinned;
-  return items.slice(0, 5);
+  return pinned.slice(0, 4);
 }
 
 function MobileNavLink({
@@ -47,6 +59,12 @@ function MobileNavLink({
   const pathname = usePathname();
   const Icon = item.icon;
   const active = isNavItemActive(pathname, item.href);
+  const shortLabel =
+    item.href === "/agent-threads"
+      ? "Ask"
+      : item.href === "/approvals"
+        ? "Govern"
+        : item.label.split(" ")[0];
 
   return (
     <Link
@@ -57,7 +75,7 @@ function MobileNavLink({
       )}
     >
       <Icon className="h-5 w-5" strokeWidth={steep ? 1.5 : 2} />
-      <span className="max-w-[4rem] truncate">{item.label.split(" ")[0]}</span>
+      <span className="max-w-[4rem] truncate">{shortLabel}</span>
     </Link>
   );
 }
@@ -65,13 +83,20 @@ function MobileNavLink({
 export function MobileNav({
   integrationGates = DEFAULT_INTEGRATION_NAV_GATES,
   userRole,
+  activationMode = false,
+  hasDna = false,
   steep = false,
 }: {
   integrationGates?: IntegrationNavGates;
   userRole?: UserRole;
+  activationMode?: boolean;
+  hasDna?: boolean;
   steep?: boolean;
 }) {
-  const items = pickEnterpriseMobileItems(integrationGates, userRole);
+  const items = pickEnterpriseMobileItems(integrationGates, userRole, {
+    activationMode,
+    hasDna,
+  });
 
   return (
     <nav

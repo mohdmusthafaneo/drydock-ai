@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { registerUser } from "@/lib/auth";
 import { jsonWithSession } from "@/lib/auth-response";
-import { getHomePath } from "@/lib/workspace-mode";
 
 const schema = z.object({
   name: z.string().min(2),
@@ -27,7 +26,7 @@ export async function POST(request: Request) {
       },
       {
         ok: true,
-        redirect: getHomePath("ENTERPRISE", false),
+        redirect: "/activate",
       },
     );
   } catch (error) {

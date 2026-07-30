@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronDown, Lock } from "lucide-react";
 import {
   isNavItemActive,
@@ -112,9 +112,14 @@ function NavSectionBlock({
 }) {
   const pathname = usePathname();
   const sectionActive = section.items.some((item) => isNavItemActive(pathname, item.href));
-  const [collapsedSection, setCollapsedSection] = useState(
-    section.defaultCollapsed && !sectionActive,
+  // Seed from defaultCollapsed only (no pathname) so SSR and first client paint match.
+  const [collapsedSection, setCollapsedSection] = useState(() =>
+    Boolean(section.defaultCollapsed),
   );
+
+  useEffect(() => {
+    setCollapsedSection(Boolean(section.defaultCollapsed) && !sectionActive);
+  }, [section.defaultCollapsed, sectionActive]);
 
   if (collapsed) {
     return <CollapsedSectionLink section={section} steep={steep} />;

@@ -32,8 +32,25 @@ const VERDICT_STYLES: Record<
   },
 };
 
+/** Append claim-to-evidence deep-link params for domain pages. */
+export function briefingEvidenceHref(href: string, claimId: string): string {
+  const hashIndex = href.indexOf("#");
+  const pathAndQuery = hashIndex >= 0 ? href.slice(0, hashIndex) : href;
+  const hash = hashIndex >= 0 ? href.slice(hashIndex) : "";
+
+  const qIndex = pathAndQuery.indexOf("?");
+  const path = qIndex >= 0 ? pathAndQuery.slice(0, qIndex) : pathAndQuery;
+  const existing = qIndex >= 0 ? pathAndQuery.slice(qIndex + 1) : "";
+  const params = new URLSearchParams(existing);
+  params.set("from", "briefing");
+  params.set("claim", claimId);
+  const qs = params.toString();
+  return `${path}?${qs}${hash}`;
+}
+
 export function BriefingClaimCard({ claim }: Props) {
   const styles = VERDICT_STYLES[claim.verdict];
+  const href = claim.href ? briefingEvidenceHref(claim.href, claim.id) : undefined;
 
   return (
     <HoverLift className="h-full">
@@ -70,9 +87,9 @@ export function BriefingClaimCard({ claim }: Props) {
 
         <p className="mt-2 flex-1 text-[14px] leading-relaxed text-ash">{claim.context}</p>
 
-        {claim.href && (
+        {href && (
           <Link
-            href={claim.href}
+            href={href}
             className="mt-4 inline-flex items-center gap-1 text-[15px] font-medium text-ink transition-colors hover:text-rust"
           >
             View details

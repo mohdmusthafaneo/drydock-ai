@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DisconnectButton } from "@/components/integrations/integration-actions";
+import { formatFixedLocaleDateTime } from "@/lib/format-date";
 
 export function AwsIntegrationPanel({
   connected,
@@ -244,16 +245,5 @@ export function AwsIntegrationPanel({
 }
 
 function formatDate(iso: string): string {
-  try {
-    // Fixed locale avoids SSR/client hydration mismatch.
-    return new Date(iso).toLocaleString("en-GB", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return iso;
-  }
+  return formatFixedLocaleDateTime(iso);
 }

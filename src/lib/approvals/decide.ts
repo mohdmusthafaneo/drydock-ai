@@ -23,6 +23,17 @@ export async function decideApproval(
   const { organizationId, userId, userRole, approvalId, decision, comment } =
     input;
 
+  if (
+    (decision === "REJECTED" || decision === "MODIFIED") &&
+    !comment?.trim()
+  ) {
+    return {
+      ok: false,
+      error: "A comment is required when rejecting or requesting modification",
+      status: 400,
+    };
+  }
+
   const approval = await prisma.approval.findFirst({
     where: { id: approvalId, organizationId },
     include: { recommendation: true },

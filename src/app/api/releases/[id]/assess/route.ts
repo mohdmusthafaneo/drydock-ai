@@ -189,6 +189,7 @@ export async function POST(
         affectedSystems: JSON.stringify(primaryRec.affectedSystems),
         requiredRole: primaryRec.requiredRole ?? null,
         status: "PENDING",
+        queue: "RELEASE_GATE",
       },
     });
 

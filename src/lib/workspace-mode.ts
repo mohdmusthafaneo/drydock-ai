@@ -23,8 +23,6 @@ import {
   Settings,
   Users,
   Plus,
-  Cog,
-  Layers,
   HeartPulse,
   TrendingUp,
 } from "lucide-react";
@@ -122,28 +120,30 @@ export function getNavForMode(mode: WorkspaceMode): NavItem[] {
 export function getEnterpriseNavLayout(): EnterpriseNavLayout {
   return {
     topItems: [
-      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, primary: true },
-      { href: "/workflow", label: "Workflow center", icon: GitBranch },
+      { href: "/dashboard", label: "Today", icon: LayoutDashboard, primary: true },
+      { href: "/integrations", label: "Connect", icon: Plug },
     ],
     sections: [
       {
-        id: "analysis",
-        label: "Analysis",
+        id: "investigate",
+        label: "Investigate",
         icon: Code2,
         items: [
-          {
-            href: "/code-analysis",
-            label: "Code analysis",
-            icon: Code2,
-            integrationGate: "codeAnalysis",
-            lockedHint: "Connect GitHub",
-          },
           {
             href: "/delivery-analysis",
             label: "Delivery analysis",
             icon: Kanban,
             integrationGate: "deliveryAnalysis",
             lockedHint: "Connect Jira",
+          },
+          { href: "/qa", label: "QA intelligence", icon: FlaskConical },
+          { href: "/devops", label: "DevOps", icon: Server },
+          {
+            href: "/code-analysis",
+            label: "Code analysis",
+            icon: Code2,
+            integrationGate: "codeAnalysis",
+            lockedHint: "Connect GitHub",
           },
           {
             href: "/observability",
@@ -154,44 +154,34 @@ export function getEnterpriseNavLayout(): EnterpriseNavLayout {
           },
           { href: "/code-health", label: "Code health", icon: HeartPulse },
           { href: "/productivity", label: "Productivity", icon: TrendingUp },
-        ],
-      },
-      {
-        id: "operations",
-        label: "Operations",
-        icon: Cog,
-        defaultCollapsed: true,
-        items: [
-          { href: "/qa", label: "QA intelligence", icon: FlaskConical },
-          { href: "/devops", label: "DevOps", icon: Server },
           { href: "/incidents", label: "Incidents", icon: AlertTriangle },
         ],
       },
       {
-        id: "governance",
-        label: "Governance",
-        icon: Shield,
-        defaultCollapsed: true,
+        id: "ask",
+        label: "Ask AIDOS",
+        icon: MessagesSquare,
         items: [
-          { href: "/recommendations", label: "Recommendations", icon: Lightbulb },
-          { href: "/approvals", label: "Approval center", icon: CheckSquare },
-          { href: "/governance", label: "Delivery DNA", icon: Shield },
-        ],
-      },
-      {
-        id: "platform",
-        label: "Platform",
-        icon: Layers,
-        defaultCollapsed: true,
-        items: [
-          { href: "/reports", label: "Reports", icon: BarChart3 },
-          { href: "/audit", label: "Audit logs", icon: ScrollText },
           {
             href: "/agent-threads",
             label: "Conversations",
             icon: MessagesSquare,
             roleGate: ["ORG_ADMIN", "DELIVERY_MANAGER", "ENGINEERING_MANAGER", "DEVOPS_LEAD"],
           },
+        ],
+      },
+      {
+        id: "govern",
+        label: "Govern",
+        icon: Shield,
+        defaultCollapsed: true,
+        items: [
+          { href: "/approvals", label: "Approval center", icon: CheckSquare },
+          { href: "/recommendations", label: "Recommendations", icon: Lightbulb },
+          { href: "/governance", label: "Delivery DNA", icon: Shield },
+          { href: "/workflow", label: "Workflow center", icon: GitBranch },
+          { href: "/reports", label: "Reports", icon: BarChart3 },
+          { href: "/audit", label: "Audit logs", icon: ScrollText },
           {
             href: "/admin",
             label: "Admin",
@@ -201,10 +191,25 @@ export function getEnterpriseNavLayout(): EnterpriseNavLayout {
         ],
       },
     ],
-    bottomItems: [
-      { href: "/integrations", label: "Integrations", icon: Plug },
-      { href: "/settings", label: "Settings", icon: Settings },
+    bottomItems: [{ href: "/settings", label: "Settings", icon: Settings }],
+  };
+}
+
+/** Constrained IA until DNA + first Jira/GitHub sync — Activate → Connect → DNA. */
+export function getActivationNavLayout(hasDna: boolean): EnterpriseNavLayout {
+  return {
+    topItems: [
+      {
+        href: hasDna ? "/dashboard" : "/activate",
+        label: hasDna ? "Today" : "Activate",
+        icon: LayoutDashboard,
+        primary: true,
+      },
+      { href: "/integrations", label: "Connect", icon: Plug },
+      { href: "/governance/setup", label: "Delivery DNA", icon: Shield },
     ],
+    sections: [],
+    bottomItems: [{ href: "/settings", label: "Settings", icon: Settings }],
   };
 }
 
@@ -247,8 +252,11 @@ export function resolveNavItem(
 export function getResolvedEnterpriseNavLayout(
   gates: IntegrationNavGates = DEFAULT_INTEGRATION_NAV_GATES,
   userRole?: UserRole,
+  options?: { activationMode?: boolean; hasDna?: boolean },
 ): ResolvedEnterpriseNavLayout {
-  const layout = getEnterpriseNavLayout();
+  const layout = options?.activationMode
+    ? getActivationNavLayout(Boolean(options.hasDna))
+    : getEnterpriseNavLayout();
 
   return {
     topItems: filterRoleAllowedItems(filterFlagEnabledItems(layout.topItems), userRole).map(
@@ -308,7 +316,7 @@ export function getHomePath(mode: WorkspaceMode, hasDna: boolean): string {
     if (isNavHrefEnabled("/accelerator")) return WORKSPACE_META.MVP.homePath;
     return getEnabledHomePath("MVP");
   }
-  if (!hasDna && isNavHrefEnabled("/governance")) return "/governance/setup";
+  if (!hasDna) return "/activate";
   if (isNavHrefEnabled("/dashboard")) return "/dashboard";
   if (isNavHrefEnabled("/workflow")) return "/workflow";
   return getEnabledHomePath("ENTERPRISE");
@@ -316,6 +324,7 @@ export function getHomePath(mode: WorkspaceMode, hasDna: boolean): string {
 
 export function isEnterpriseOnlyPath(pathname: string): boolean {
   const prefixes = [
+    "/activate",
     "/discovery",
     "/delivery-dna",
     "/dashboard",

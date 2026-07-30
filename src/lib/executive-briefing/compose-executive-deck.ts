@@ -3,6 +3,7 @@ import type { getOrganizationContext } from "@/lib/org-data";
 import type { DeliveryAnalysisSnapshot, DeliveryAnalysisSprintRow, DeliveryAnalysisVersionRow } from "@/lib/delivery-analysis/types";
 import type { ToolchainMapping } from "@/lib/toolchain-mapping";
 import type { AgentDecision } from "@/lib/agent-analysis/types";
+import { isLeadershipApprovalCenterItem } from "@/lib/recommendation-queue";
 import { filterPortfolioReleases } from "@/lib/release-source";
 import { scoreToBand } from "@/lib/executive-briefing/health-score";
 
@@ -90,16 +91,15 @@ export function buildDecisions(
 ): LeadershipDecision[] {
   const decisions: LeadershipDecision[] = [];
 
-  if (ctx.stats.pendingApprovals > 0) {
-    const pending = ctx.approvals.filter((a) => {
-      if (a.decision) return false;
-      const title = a.title ?? a.recommendation?.title ?? "";
-      return !(
-        title.startsWith("[qa-blocked:") ||
-        title.startsWith("[qa-board:") ||
-        title.startsWith("[cloud:")
-      );
-    });
+  const releasePendingCount =
+    ctx.stats.pendingReleaseApprovals ?? ctx.stats.pendingApprovals;
+
+  if (releasePendingCount > 0) {
+    const pending = ctx.approvals.filter(
+      (a) =>
+        isLeadershipApprovalCenterItem(a) &&
+        a.recommendation?.queue === "RELEASE_GATE",
+    );
     const releaseIds = new Set(
       pending
         .map((a) => a.recommendation?.releaseId)
@@ -117,7 +117,7 @@ export function buildDecisions(
 
     decisions.push({
       id: "approvals",
-      title: `${ctx.stats.pendingApprovals} release approval${ctx.stats.pendingApprovals === 1 ? "" : "s"} waiting`,
+      title: `${releasePendingCount} release approval${releasePendingCount === 1 ? "" : "s"} waiting`,
       context: `Your sign-off is required before ${releaseLine} can deploy.`,
       urgency: "attention",
       href: "/approvals",

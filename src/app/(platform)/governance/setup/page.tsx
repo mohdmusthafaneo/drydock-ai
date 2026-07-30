@@ -56,7 +56,7 @@ export default async function GovernanceSetupPage() {
         description={
           initialForm
             ? "Update your org context — existing answers are pre-filled. Review before regenerating DNA."
-            : "Configure org maturity, compliance, tooling, and delivery policies. This generates your Delivery DNA."
+            : "Three steps: organization, governance posture, then review. Maturity and tooling are optional under Advanced."
         }
       />
       <DiscoveryWizard

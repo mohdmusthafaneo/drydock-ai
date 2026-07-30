@@ -11,79 +11,64 @@ function filterEnabledSteps(steps: OnboardingStep[]): OnboardingStep[] {
   return steps.filter((step) => isNavPathEnabled(step.href));
 }
 
-type Ctx = {
+export type OnboardingCtx = {
   hasProfile: boolean;
   hasDna: boolean;
-  workflowConfigured: boolean;
-  hasRelease: boolean;
-  hasAssessedRelease: boolean;
-  connectedCount: number;
-  pendingApprovals: number;
-  toolchainMappingConfirmed: boolean;
-  jiraConnected: boolean;
-  githubConnected: boolean;
-  jiraCalibrationComplete: boolean;
+  hasHealthyIntegration: boolean;
+  hasSuccessfulSync: boolean;
+  hasFirstDecision: boolean;
+  /** When false and prior milestones are met, first-decision is skipped (nothing to decide yet). */
+  hasPendingLeadershipDecision: boolean;
 };
 
-function buildOnboardingSteps(ctx: Ctx): OnboardingStep[] {
-  const steps: OnboardingStep[] = [
+/**
+ * First decision is complete when a human signed off, or when the org is past
+ * connect/sync and there is nothing in the leadership Approval Center — mature
+ * orgs must not stay stuck on this banner forever.
+ */
+export function isFirstDecisionMilestoneDone(ctx: OnboardingCtx): boolean {
+  if (ctx.hasFirstDecision) return true;
+  if (!ctx.hasHealthyIntegration || !ctx.hasSuccessfulSync) return false;
+  return !ctx.hasPendingLeadershipDecision;
+}
+
+function buildOnboardingSteps(ctx: OnboardingCtx): OnboardingStep[] {
+  return [
     {
-      id: "governance-setup",
-      label: "Discovery & Delivery DNA",
+      id: "workspace-ready",
+      label: "Workspace ready",
       href: "/governance/setup",
       done: ctx.hasProfile && ctx.hasDna,
     },
     {
-      id: "integrations",
-      label: "Setup integrations",
+      id: "first-healthy-integration",
+      label: "First healthy integration",
       href: "/integrations",
-      done: ctx.connectedCount >= 1,
+      done: ctx.hasHealthyIntegration,
     },
     {
-      id: "toolchain-mapping",
-      label: "Map Jira & GitHub workflows",
-      href: "/governance/toolchain-mapping",
-      // Advance when formally confirmed OR both sources are already connected
-      // (Connexus-style workspaces shouldn't stay stuck on NEXT IN SETUP).
-      done:
-        ctx.toolchainMappingConfirmed ||
-        (ctx.jiraConnected && ctx.githubConnected),
+      id: "first-successful-sync",
+      label: "First successful sync",
+      href: "/integrations",
+      done: ctx.hasSuccessfulSync,
+    },
+    {
+      id: "first-decision",
+      label: "First decision",
+      href: "/approvals",
+      done: isFirstDecisionMilestoneDone(ctx),
     },
   ];
-
-  if (ctx.jiraConnected) {
-    steps.push({
-      id: "jira-calibration",
-      label: "Calibrate Jira workflow (90 days)",
-      href: "/governance/toolchain-mapping",
-      done: ctx.jiraCalibrationComplete,
-    });
-  }
-
-  steps.push(
-    {
-      id: "workflow",
-      label: "Configure workflow & autonomy",
-      href: "/governance/workflow",
-      done: ctx.workflowConfigured,
-    },
-    {
-      id: "release",
-      label: "Register & assess a release",
-      href: "/workflow",
-      done: ctx.hasAssessedRelease,
-    },
-    {
-      id: "approve",
-      label: "Complete approval workflow",
-      href: "/approvals",
-      done: ctx.hasAssessedRelease && ctx.pendingApprovals === 0,
-    },
-  );
-
-  return steps;
 }
 
-export function getOnboardingSteps(ctx: Ctx) {
+export function getOnboardingSteps(ctx: OnboardingCtx) {
   return filterEnabledSteps(buildOnboardingSteps(ctx));
+}
+
+/** DNA + at least one delivery source (Jira or GitHub) synced — exit activate mode. */
+export function isOrgActivated(input: {
+  hasDna: boolean;
+  hasDeliverySourceSynced: boolean;
+}): boolean {
+  return input.hasDna && input.hasDeliverySourceSynced;
 }

@@ -8,15 +8,15 @@ import { seedEnterpriseFoundation } from "@/lib/enterprise-seed";
 import { getLandingPathForOrganization } from "@/lib/landing-path-org";
 
 const schema = z.object({
-  industryType: z.string(),
-  teamSize: z.string(),
-  sdlcMaturity: z.number().min(1).max(5),
-  devopsMaturity: z.number().min(1).max(5),
-  governanceLevel: z.number().min(1).max(5),
-  complianceType: z.string(),
-  deploymentStrategy: z.string(),
-  tools: z.array(z.string()),
-  workflows: z.array(z.string()),
+  industryType: z.string().default("technology"),
+  teamSize: z.string().default("11-50"),
+  sdlcMaturity: z.number().min(1).max(5).default(3),
+  devopsMaturity: z.number().min(1).max(5).default(3),
+  governanceLevel: z.number().min(1).max(5).default(3),
+  complianceType: z.string().default("none"),
+  deploymentStrategy: z.string().default("continuous"),
+  tools: z.array(z.string()).default(["github", "jira"]),
+  workflows: z.array(z.string()).default(["scrum", "devops"]),
 });
 
 export async function POST(request: Request) {
@@ -99,32 +99,29 @@ export async function POST(request: Request) {
         },
       });
 
+      // Seed Integration rows as DISCONNECTED only — DNA tool chips are intent,
+      // not connectivity. Real connect happens on /integrations.
       const providers = ["GITHUB", "JIRA", "JENKINS", "GRAFANA", "PROMETHEUS", "SLACK", "AWS"] as const;
       for (const provider of providers) {
-        const connected =
-          (provider === "GITHUB" && body.tools.includes("github")) ||
-          (provider === "JIRA" && body.tools.includes("jira")) ||
-          (provider === "GRAFANA" && body.tools.includes("grafana")) ||
-          (provider === "PROMETHEUS" && body.tools.includes("prometheus")) ||
-          (provider === "SLACK" && body.tools.includes("slack"));
-
-        await tx.integration.upsert({
+        const existing = await tx.integration.findUnique({
           where: {
             organizationId_provider: {
               organizationId: session.organizationId,
               provider,
             },
           },
-          create: {
-            organizationId: session.organizationId,
-            provider,
-            status: connected ? "PENDING" : "DISCONNECTED",
-            displayName: provider,
-          },
-          update: {
-            status: connected ? "PENDING" : "DISCONNECTED",
-          },
+          select: { id: true },
         });
+        if (!existing) {
+          await tx.integration.create({
+            data: {
+              organizationId: session.organizationId,
+              provider,
+              status: "DISCONNECTED",
+              displayName: provider,
+            },
+          });
+        }
       }
 
       await tx.recommendation.deleteMany({
@@ -140,7 +137,8 @@ export async function POST(request: Request) {
         prometheusConnected: liveObs.prometheus,
       });
       for (const rec of recs) {
-        const recommendation = await tx.recommendation.create({
+        // SETUP lane: recommendations only — never seed Approval Center rows.
+        await tx.recommendation.create({
           data: {
             organizationId: session.organizationId,
             title: rec.title,
@@ -150,13 +148,7 @@ export async function POST(request: Request) {
             confidence: rec.confidence,
             affectedSystems: JSON.stringify(rec.affectedSystems),
             status: "PENDING",
-          },
-        });
-
-        await tx.approval.create({
-          data: {
-            organizationId: session.organizationId,
-            recommendationId: recommendation.id,
+            queue: "SETUP",
           },
         });
       }

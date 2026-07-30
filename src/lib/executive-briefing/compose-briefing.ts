@@ -46,6 +46,10 @@ const BANNED_L1_TERMS = [
 
 const STALE_MS = 24 * 60 * 60 * 1000;
 
+function releaseApprovalCount(stats: ComposeBriefingInput["stats"]): number {
+  return stats.pendingReleaseApprovals ?? stats.pendingApprovals;
+}
+
 function countWords(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
@@ -235,8 +239,8 @@ function buildProductionHeadline(
       ? input.latestRelease
       : null;
 
-  if (input.stats.pendingApprovals > 0) {
-    const n = input.stats.pendingApprovals;
+  if (releaseApprovalCount(input.stats) > 0) {
+    const n = releaseApprovalCount(input.stats);
     const releaseName = release?.name ?? "the next release";
     return [
       { kind: "emphasis", text: String(n) },
@@ -293,7 +297,7 @@ function buildProductionHeadline(
     }
 
     const assessmentSummary = input.assessmentSummary?.trim();
-    if (assessmentSummary && input.stats.pendingApprovals === 0) {
+    if (assessmentSummary && releaseApprovalCount(input.stats) === 0) {
       const clipped =
         assessmentSummary.length > 120
           ? `${assessmentSummary.slice(0, 117)}…`
@@ -323,10 +327,10 @@ function buildInsight(
   input: ComposeBriefingInput,
   health: ExecutiveBriefing["health"],
 ): BriefingInsight | undefined {
-  if (input.stats.pendingApprovals > 0) {
+  if (releaseApprovalCount(input.stats) > 0) {
     return {
       tone: "attention",
-      message: `${input.stats.pendingApprovals} release approval${input.stats.pendingApprovals === 1 ? "" : "s"} need${input.stats.pendingApprovals === 1 ? "s" : ""} your sign-off before deploy.`,
+      message: `${releaseApprovalCount(input.stats)} release approval${releaseApprovalCount(input.stats) === 1 ? "" : "s"} need${releaseApprovalCount(input.stats) === 1 ? "s" : ""} your sign-off before deploy.`,
       href: "/approvals",
     };
   }
@@ -482,11 +486,11 @@ function buildHighlights(
       href: incidents > 0 ? "/incidents" : "/observability",
       tone: incidents === 0 ? "good" : "risk",
     });
-  } else if (input.stats.pendingApprovals > 0) {
+  } else if (releaseApprovalCount(input.stats) > 0) {
     highlights.push({
       id: "approvals",
       label: "Approvals",
-      value: String(input.stats.pendingApprovals),
+      value: String(releaseApprovalCount(input.stats)),
       subtext: "waiting for you",
       href: "/approvals",
       tone: "attention",
@@ -933,8 +937,8 @@ function buildClaims(input: ComposeBriefingInput, health: ExecutiveBriefing["hea
     });
   }
 
-  if (input.stats.pendingApprovals > 0) {
-    const n = input.stats.pendingApprovals;
+  if (releaseApprovalCount(input.stats) > 0) {
+    const n = releaseApprovalCount(input.stats);
     claims.push({
       id: "approvals",
       headline: "Release approvals",

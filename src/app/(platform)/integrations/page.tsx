@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { getOrganizationContext } from "@/lib/org-data";
@@ -6,9 +6,12 @@ import { parseIntegrationMeta } from "@/lib/integration-meta";
 import { getJiraOAuthConfig } from "@/lib/jira-oauth";
 import { parseJiraMeta } from "@/lib/jira-meta";
 import { fetchOrgJiraProjects } from "@/lib/jira-project-selection";
-import { checkIntegrationHealth, summarizeIntegrationHealth } from "@/lib/integration-health";
+import {
+  checkIntegrationHealth,
+  summarizeIntegrationHealth,
+  type IntegrationHealthSummary,
+} from "@/lib/integration-health";
 import { persistGitHubAppInstallation } from "@/lib/github-app-install";
-import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/rbac";
 import { signOAuthState } from "@/lib/oauth-state";
 import { appPath, getAppUrl, isAppUrlConfigured } from "@/lib/app-url";
@@ -16,6 +19,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { IntegrationAlerts } from "@/components/integrations/integration-alerts";
+import { ConnectHandoffBanner } from "@/components/integrations/connect-handoff-banner";
 import { SyncIntegrationsButton } from "@/components/integrations/integration-health-actions";
 import { GitHubIntegrationPanel } from "@/components/integrations/github-integration-panel";
 import { JiraIntegrationPanel } from "@/components/integrations/jira-integration-panel";
@@ -35,6 +39,8 @@ import {
 } from "@/lib/aws-meta";
 import { ensureAwsIntegrationRow } from "@/lib/ensure-aws-integration";
 import { decryptToken } from "@/lib/token-crypto";
+import { ConnectorConfigureDisclosure } from "@/components/integrations/connector-configure-disclosure";
+import { MoreConnectorsSection } from "@/components/integrations/more-connectors-section";
 
 const PROVIDER_LABELS: Record<string, string> = {
   GITHUB: "GitHub",
@@ -46,10 +52,51 @@ const PROVIDER_LABELS: Record<string, string> = {
   AWS: "AWS",
 };
 
+const PRIMARY_ORDER = ["GITHUB", "JIRA"] as const;
+const OBSERVABILITY_ORDER = ["GRAFANA", "PROMETHEUS"] as const;
+const MORE_PROVIDERS = new Set(["JENKINS", "SLACK"]);
+
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+type IntegrationRow = Awaited<
+  ReturnType<typeof getOrganizationContext>
+>["integrations"][number];
 
 function firstParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
+}
+
+function pickByProvider(
+  integrations: IntegrationRow[],
+  providers: readonly string[],
+): IntegrationRow[] {
+  return providers
+    .map((p) => integrations.find((i) => i.provider === p))
+    .filter((i): i is IntegrationRow => Boolean(i));
+}
+
+function SectionHeading({
+  step,
+  title,
+  description,
+}: {
+  step?: number;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-2">
+        {step != null && (
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-elevated text-xs font-semibold text-secondary">
+            {step}
+          </span>
+        )}
+        <h2 className="text-sm font-semibold text-primary">{title}</h2>
+      </div>
+      <p className="text-xs text-muted">{description}</p>
+    </div>
+  );
 }
 
 export default async function IntegrationsPage({
@@ -63,6 +110,8 @@ export default async function IntegrationsPage({
   const sp = await searchParams;
   const installationIdRaw = firstParam(sp.installation_id);
   const setupAction = firstParam(sp.setup_action);
+  const handoff = firstParam(sp.handoff);
+  const connectedParam = firstParam(sp.connected);
 
   // GitHub redirects here after the org admin installs the AIDOS GitHub App.
   // Persist the installation id, then bounce to a clean URL so a refresh
@@ -85,7 +134,7 @@ export default async function IntegrationsPage({
       redirect(appPath("/integrations?error=github_app_persist_failed"));
     }
 
-    redirect(appPath("/integrations?connected=github_app"));
+    redirect(appPath("/integrations?connected=github_app&handoff=1"));
   }
 
   const appUrl = getAppUrl();
@@ -99,6 +148,7 @@ export default async function IntegrationsPage({
   const trustedAwsAccountId = process.env.TRUSTED_AWS_ACCOUNT_ID?.trim() || null;
   const jiraOAuthConfigured = getJiraOAuthConfig().configured;
   const canManage = hasPermission(session, "integrations", "manage_integrations");
+  const isDev = process.env.NODE_ENV === "development";
 
   const grafanaIntegration = ctx.integrations.find((i) => i.provider === "GRAFANA");
   const prometheusIntegration = ctx.integrations.find((i) => i.provider === "PROMETHEUS");
@@ -121,6 +171,7 @@ export default async function IntegrationsPage({
 
   const health = await Promise.all(integrations.map((i) => checkIntegrationHealth(i)));
   const healthSummary = summarizeIntegrationHealth(health);
+  const healthById = new Map(integrations.map((i, idx) => [i.id, health[idx]]));
 
   const jiraIntegration = integrations.find((i) => i.provider === "JIRA");
   const jiraConnected = jiraIntegration?.status === "CONNECTED";
@@ -136,14 +187,57 @@ export default async function IntegrationsPage({
     }
   }
 
+  const panelCtx = {
+    canManage,
+    githubAppSlug,
+    githubInstallState,
+    githubWebhookUrl,
+    grafanaWebhookUrl,
+    appUrlConfigured,
+    jiraOAuthConfigured,
+    jiraProjectOptions,
+    jiraProjectLoadError,
+    trustedAwsAccountId,
+    integrations,
+    isDev,
+  };
+
+  function renderCard(integration: IntegrationRow, opts?: { spanWide?: boolean }) {
+    const h = healthById.get(integration.id);
+    if (!h) return null;
+    return (
+      <IntegrationConnectorCard
+        key={integration.id}
+        integration={integration}
+        health={h}
+        spanWide={opts?.spanWide}
+        {...panelCtx}
+      />
+    );
+  }
+
+  const primary = pickByProvider(integrations, PRIMARY_ORDER);
+  const observability = pickByProvider(integrations, OBSERVABILITY_ORDER);
+  const aws = integrations.find((i) => i.provider === "AWS");
+  const more = integrations.filter((i) => MORE_PROVIDERS.has(i.provider));
+  const leftovers = integrations.filter(
+    (i) =>
+      !PRIMARY_ORDER.includes(i.provider as (typeof PRIMARY_ORDER)[number]) &&
+      !OBSERVABILITY_ORDER.includes(i.provider as (typeof OBSERVABILITY_ORDER)[number]) &&
+      i.provider !== "AWS" &&
+      !MORE_PROVIDERS.has(i.provider),
+  );
+
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Integration hub"
-        description="Phase 1 — GitHub App, webhooks, metadata sync, and health monitoring for your operational stack."
+        title="Connect"
+        description="Connect the systems AIDOS needs for a trustworthy briefing."
       >
         {canManage && <SyncIntegrationsButton />}
       </PageHeader>
+
+      {handoff === "1" && <ConnectHandoffBanner connected={connectedParam} />}
 
       {integrations.length > 0 && (
         <RevealSection>
@@ -177,160 +271,67 @@ export default async function IntegrationsPage({
         </Card>
       )}
 
-      <div id="integration-grid" className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {integrations.map((integration, idx) => {
-          const meta = parseIntegrationMeta(integration.metadataJson);
-          const jiraMeta = parseJiraMeta(integration.metadataJson);
-          const h = health[idx];
-          const isGitHub = integration.provider === "GITHUB";
-          const isJira = integration.provider === "JIRA";
-          const isPrometheus = integration.provider === "PROMETHEUS";
-          const isGrafana = integration.provider === "GRAFANA";
-          const isAws = integration.provider === "AWS";
-          const prometheusMeta = isPrometheus
-            ? parsePrometheusMeta(integration.metadataJson)
-            : null;
-          const grafanaMeta = isGrafana ? parseGrafanaMeta(integration.metadataJson) : null;
-          const awsMeta = isAws ? parseAwsMeta(integration.metadataJson) : null;
-          let awsExternalIdMasked: string | undefined;
-          if (awsMeta?.externalIdEnc) {
-            try {
-              awsExternalIdMasked = maskExternalId(decryptToken(awsMeta.externalIdEnc));
-            } catch {
-              awsExternalIdMasked = "••••";
-            }
-          }
-          const isConnected = integration.status === "CONNECTED";
+      <div id="integration-grid" className="space-y-8">
+        <section className="space-y-4">
+          <SectionHeading
+            step={1}
+            title="Source control"
+            description="Start with GitHub so AIDOS can read repos, PRs, and delivery signals."
+          />
+          <div className="grid gap-4 md:grid-cols-2">
+            {primary
+              .filter((i) => i.provider === "GITHUB")
+              .map((i) => renderCard(i, { spanWide: true }))}
+          </div>
+        </section>
 
-          return (
-            <Card key={integration.id} className={isGitHub ? "md:col-span-2 xl:col-span-2" : ""}>
-              <CardHeader>
-                <div className="flex items-start justify-between gap-2">
-                  <CardTitle className="text-base">
-                    {PROVIDER_LABELS[integration.provider] || integration.provider}
-                  </CardTitle>
-                  <Badge variant={h.healthy ? "success" : isConnected ? "warning" : "muted"}>
-                    {h.healthy ? "Healthy" : integration.status}
-                  </Badge>
-                </div>
-                <CardDescription>{h.message}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {h.lastSyncAt && (
-                  <p className="text-xs text-muted">Last sync: {h.lastSyncAt.toLocaleString()}</p>
-                )}
+        <section className="space-y-4">
+          <SectionHeading
+            step={2}
+            title="Delivery tracking"
+            description="Connect Jira for work items, cycle time, and release context."
+          />
+          <div className="grid gap-4 md:grid-cols-2">
+            {primary.filter((i) => i.provider === "JIRA").map((i) => renderCard(i))}
+          </div>
+        </section>
 
-                {isGitHub ? (
-                  <GitHubIntegrationPanel
-                    connected={isConnected}
-                    lastSyncSummary={meta.lastSyncSummary}
-                    repos={meta.repos}
-                    selectedRepoFullNames={meta.repoFullNames}
-                    webhookUrl={githubWebhookUrl}
-                    webhookEnabled={integration.webhookEnabled}
-                    appSlug={githubAppSlug}
-                    installationId={meta.installationId}
-                    installedAt={meta.installedAt}
-                    canManage={canManage}
-                    installState={githubInstallState}
-                    appUrlConfigured={appUrlConfigured}
-                  />
-                ) : isJira ? (
-                  <JiraIntegrationPanel
-                    connected={isConnected}
-                    configured={jiraOAuthConfigured}
-                    siteName={jiraMeta.siteName}
-                    siteUrl={jiraMeta.siteUrl}
-                    displayName={jiraMeta.displayName}
-                    connectedAt={integration.connectedAt?.toISOString()}
-                    connectionStatus={jiraMeta.connectionStatus}
-                    lastError={jiraMeta.lastError ?? integration.lastError ?? undefined}
-                    lastSyncSummary={jiraMeta.lastSyncSummary}
-                    selectedProjectKeys={jiraMeta.projectKeys}
-                    deliverySnapshot={jiraMeta.deliverySnapshot}
-                    availableSitesCount={jiraMeta.availableSites?.length}
-                    initialProjects={jiraProjectOptions}
-                    initialProjectLoadError={jiraProjectLoadError}
-                    canManage={canManage}
-                    appUrlConfigured={appUrlConfigured}
-                  />
-                ) : isPrometheus ? (
-                  <PrometheusIntegrationPanel
-                    connected={isConnected}
-                    trulyConnected={isPrometheusTrulyConnected(integration)}
-                    prometheusUrl={prometheusMeta?.prometheusUrl}
-                    authType={prometheusMeta?.authType}
-                    basicUsername={prometheusMeta?.basicUsername}
-                    connectedAt={integration.connectedAt?.toISOString()}
-                    connectionStatus={prometheusMeta?.connectionStatus}
-                    lastError={prometheusMeta?.lastError ?? integration.lastError ?? undefined}
-                    lastSyncSummary={prometheusMeta?.lastSyncSummary}
-                    selectedServiceScopes={prometheusMeta?.serviceScopes}
-                    grafanaProxyActive={Boolean(
-                      parseGrafanaMeta(
-                        ctx.integrations.find((i) => i.provider === "GRAFANA")?.metadataJson ?? "{}",
-                      ).prometheusDatasource?.uid,
-                    )}
-                    grafanaProxyDatasourceName={
-                      parseGrafanaMeta(
-                        ctx.integrations.find((i) => i.provider === "GRAFANA")?.metadataJson ?? "{}",
-                      ).prometheusDatasource?.name
-                    }
-                    canManage={canManage}
-                  />
-                ) : isGrafana ? (
-                  <GrafanaIntegrationPanel
-                    connected={isConnected}
-                    trulyConnected={isGrafanaTrulyConnected(integration)}
-                    grafanaUrl={grafanaMeta?.grafanaUrl}
-                    authType={grafanaMeta?.authType}
-                    connectedAt={integration.connectedAt?.toISOString()}
-                    connectionStatus={grafanaMeta?.connectionStatus}
-                    lastError={grafanaMeta?.lastError ?? integration.lastError ?? undefined}
-                    lastSyncSummary={grafanaMeta?.lastSyncSummary}
-                    selectedDashboardScopes={grafanaMeta?.dashboardScopes}
-                    operationalSnapshot={grafanaMeta?.operationalSnapshot}
-                    prometheusDatasource={grafanaMeta?.prometheusDatasource}
-                    metricsServiceScopes={grafanaMeta?.metricsServiceScopes}
-                    metricsLastSyncSummary={grafanaMeta?.metricsLastSyncSummary}
-                    metricsSnapshot={grafanaMeta?.metricsSnapshot}
-                    metricsLastError={grafanaMeta?.metricsLastError}
-                    webhookUrl={
-                      grafanaMeta?.webhookSecret
-                        ? `${grafanaWebhookUrl}&secret=${grafanaMeta.webhookSecret}`
-                        : grafanaWebhookUrl
-                    }
-                    webhookSecret={grafanaMeta?.webhookSecret}
-                    webhookEnabled={integration.webhookEnabled}
-                    appUrlConfigured={appUrlConfigured}
-                    canManage={canManage}
-                  />
-                ) : isAws ? (
-                  <AwsIntegrationPanel
-                    connected={isConnected}
-                    trulyConnected={isAwsTrulyConnected(integration)}
-                    roleArn={awsMeta?.roleArn}
-                    accountIdHint={awsMeta?.accountIdHint}
-                    externalIdMasked={awsExternalIdMasked}
-                    connectedAt={integration.connectedAt?.toISOString()}
-                    lastScanSummary={awsMeta?.lastScanSummary}
-                    lastScanAt={awsMeta?.lastScanAt}
-                    canManage={canManage}
-                    trustedAccountId={trustedAwsAccountId}
-                  />
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {integration.webhookEnabled && <Badge variant="brand">Webhooks active</Badge>}
-                    {!isConnected && <StubConnectButton provider={integration.provider} />}
-                    {isConnected && canManage && (
-                      <DisconnectButton provider={integration.provider} />
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
+        {observability.length > 0 && (
+          <section className="space-y-4">
+            <SectionHeading
+              step={3}
+              title="Observability"
+              description="Grafana and Prometheus for runtime health and release confidence."
+            />
+            <div className="grid gap-4 md:grid-cols-2">
+              {observability.map((i) => renderCard(i))}
+            </div>
+          </section>
+        )}
+
+        {aws && (
+          <section className="space-y-4">
+            <SectionHeading
+              step={4}
+              title="Cloud"
+              description="AWS assume-role access for inventory and cloud hygiene scans."
+            />
+            <div className="grid gap-4 md:grid-cols-2">{renderCard(aws)}</div>
+          </section>
+        )}
+
+        <MoreConnectorsSection count={more.length}>
+          {more.map((i) => renderCard(i))}
+        </MoreConnectorsSection>
+
+        {leftovers.length > 0 && (
+          <section className="space-y-4">
+            <SectionHeading title="Other" description="Additional connectors for this organization." />
+            <div className="grid gap-4 md:grid-cols-2">
+              {leftovers.map((i) => renderCard(i))}
+            </div>
+          </section>
+        )}
       </div>
 
       <Card className="border-border-subtle">
@@ -345,5 +346,236 @@ export default async function IntegrationsPage({
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function IntegrationConnectorCard({
+  integration,
+  health: h,
+  spanWide,
+  canManage,
+  githubAppSlug,
+  githubInstallState,
+  githubWebhookUrl,
+  grafanaWebhookUrl,
+  appUrlConfigured,
+  jiraOAuthConfigured,
+  jiraProjectOptions,
+  jiraProjectLoadError,
+  trustedAwsAccountId,
+  integrations,
+  isDev,
+}: {
+  integration: IntegrationRow;
+  health: IntegrationHealthSummary;
+  spanWide?: boolean;
+  canManage: boolean;
+  githubAppSlug: string | undefined;
+  githubInstallState: string | undefined;
+  githubWebhookUrl: string;
+  grafanaWebhookUrl: string;
+  appUrlConfigured: boolean;
+  jiraOAuthConfigured: boolean;
+  jiraProjectOptions: Array<{ key: string; name: string }>;
+  jiraProjectLoadError: string | undefined;
+  trustedAwsAccountId: string | null;
+  integrations: IntegrationRow[];
+  isDev: boolean;
+}) {
+  const meta = parseIntegrationMeta(integration.metadataJson);
+  const jiraMeta = parseJiraMeta(integration.metadataJson);
+  const isGitHub = integration.provider === "GITHUB";
+  const isJira = integration.provider === "JIRA";
+  const isPrometheus = integration.provider === "PROMETHEUS";
+  const isGrafana = integration.provider === "GRAFANA";
+  const isAws = integration.provider === "AWS";
+  const prometheusMeta = isPrometheus ? parsePrometheusMeta(integration.metadataJson) : null;
+  const grafanaMeta = isGrafana ? parseGrafanaMeta(integration.metadataJson) : null;
+  const awsMeta = isAws ? parseAwsMeta(integration.metadataJson) : null;
+  let awsExternalIdMasked: string | undefined;
+  if (awsMeta?.externalIdEnc) {
+    try {
+      awsExternalIdMasked = maskExternalId(decryptToken(awsMeta.externalIdEnc));
+    } catch {
+      awsExternalIdMasked = "••••";
+    }
+  }
+  const isConnected = integration.status === "CONNECTED";
+  const grafanaParsed = parseGrafanaMeta(
+    integrations.find((i) => i.provider === "GRAFANA")?.metadataJson ?? "{}",
+  );
+
+  const prometheusTruly = isPrometheusTrulyConnected(integration);
+  const grafanaTruly = isGrafanaTrulyConnected(integration);
+  const awsTruly = isAwsTrulyConnected(integration);
+
+  let body: ReactNode;
+
+  if (isGitHub) {
+    body = (
+      <GitHubIntegrationPanel
+        connected={isConnected}
+        lastSyncSummary={meta.lastSyncSummary}
+        repos={meta.repos}
+        selectedRepoFullNames={meta.repoFullNames}
+        webhookUrl={githubWebhookUrl}
+        webhookEnabled={integration.webhookEnabled}
+        appSlug={githubAppSlug}
+        installationId={meta.installationId}
+        installedAt={meta.installedAt}
+        canManage={canManage}
+        installState={githubInstallState}
+        appUrlConfigured={appUrlConfigured}
+      />
+    );
+  } else if (isJira) {
+    body = (
+      <JiraIntegrationPanel
+        connected={isConnected}
+        configured={jiraOAuthConfigured}
+        siteName={jiraMeta.siteName}
+        siteUrl={jiraMeta.siteUrl}
+        displayName={jiraMeta.displayName}
+        connectedAt={integration.connectedAt?.toISOString()}
+        connectionStatus={jiraMeta.connectionStatus}
+        lastError={jiraMeta.lastError ?? integration.lastError ?? undefined}
+        lastSyncSummary={jiraMeta.lastSyncSummary}
+        selectedProjectKeys={jiraMeta.projectKeys}
+        deliverySnapshot={jiraMeta.deliverySnapshot}
+        availableSitesCount={jiraMeta.availableSites?.length}
+        initialProjects={jiraProjectOptions}
+        initialProjectLoadError={jiraProjectLoadError}
+        canManage={canManage}
+        appUrlConfigured={appUrlConfigured}
+      />
+    );
+  } else if (isPrometheus) {
+    const panel = (
+      <PrometheusIntegrationPanel
+        connected={isConnected}
+        trulyConnected={prometheusTruly}
+        prometheusUrl={prometheusMeta?.prometheusUrl}
+        authType={prometheusMeta?.authType}
+        basicUsername={prometheusMeta?.basicUsername}
+        connectedAt={integration.connectedAt?.toISOString()}
+        connectionStatus={prometheusMeta?.connectionStatus}
+        lastError={prometheusMeta?.lastError ?? integration.lastError ?? undefined}
+        lastSyncSummary={prometheusMeta?.lastSyncSummary}
+        selectedServiceScopes={prometheusMeta?.serviceScopes}
+        grafanaProxyActive={Boolean(grafanaParsed.prometheusDatasource?.uid)}
+        grafanaProxyDatasourceName={grafanaParsed.prometheusDatasource?.name}
+        canManage={canManage}
+      />
+    );
+    body =
+      canManage && !prometheusTruly ? (
+        <ConnectorConfigureDisclosure summary="Connect Prometheus with a URL and read-only credentials so AIDOS can pull service metrics.">
+          {panel}
+        </ConnectorConfigureDisclosure>
+      ) : (
+        panel
+      );
+  } else if (isGrafana) {
+    const panel = (
+      <GrafanaIntegrationPanel
+        connected={isConnected}
+        trulyConnected={grafanaTruly}
+        grafanaUrl={grafanaMeta?.grafanaUrl}
+        authType={grafanaMeta?.authType}
+        connectedAt={integration.connectedAt?.toISOString()}
+        connectionStatus={grafanaMeta?.connectionStatus}
+        lastError={grafanaMeta?.lastError ?? integration.lastError ?? undefined}
+        lastSyncSummary={grafanaMeta?.lastSyncSummary}
+        selectedDashboardScopes={grafanaMeta?.dashboardScopes}
+        operationalSnapshot={grafanaMeta?.operationalSnapshot}
+        prometheusDatasource={grafanaMeta?.prometheusDatasource}
+        metricsServiceScopes={grafanaMeta?.metricsServiceScopes}
+        metricsLastSyncSummary={grafanaMeta?.metricsLastSyncSummary}
+        metricsSnapshot={grafanaMeta?.metricsSnapshot}
+        metricsLastError={grafanaMeta?.metricsLastError}
+        webhookUrl={
+          grafanaMeta?.webhookSecret
+            ? `${grafanaWebhookUrl}&secret=${grafanaMeta.webhookSecret}`
+            : grafanaWebhookUrl
+        }
+        webhookSecret={grafanaMeta?.webhookSecret}
+        webhookEnabled={integration.webhookEnabled}
+        appUrlConfigured={appUrlConfigured}
+        canManage={canManage}
+      />
+    );
+    body =
+      canManage && !grafanaTruly ? (
+        <ConnectorConfigureDisclosure summary="Connect Grafana with a URL and service-account token so AIDOS can read dashboards and alerts.">
+          {panel}
+        </ConnectorConfigureDisclosure>
+      ) : (
+        panel
+      );
+  } else if (isAws) {
+    const panel = (
+      <AwsIntegrationPanel
+        connected={isConnected}
+        trulyConnected={awsTruly}
+        roleArn={awsMeta?.roleArn}
+        accountIdHint={awsMeta?.accountIdHint}
+        externalIdMasked={awsExternalIdMasked}
+        connectedAt={integration.connectedAt?.toISOString()}
+        lastScanSummary={awsMeta?.lastScanSummary}
+        lastScanAt={awsMeta?.lastScanAt}
+        canManage={canManage}
+        trustedAccountId={trustedAwsAccountId}
+      />
+    );
+    body =
+      canManage && !awsTruly ? (
+        <ConnectorConfigureDisclosure summary="Store an IAM assume-role ARN and External ID for read-only cloud inventory scans.">
+          {panel}
+        </ConnectorConfigureDisclosure>
+      ) : (
+        panel
+      );
+  } else {
+    body = (
+      <div className="flex flex-wrap gap-2">
+        {integration.webhookEnabled && <Badge variant="brand">Webhooks active</Badge>}
+        {!isConnected && isDev && <StubConnectButton provider={integration.provider} />}
+        {!isConnected && !isDev && (
+          <p className="text-xs text-muted">Coming soon — not available in this environment.</p>
+        )}
+        {isConnected && canManage && <DisconnectButton provider={integration.provider} />}
+      </div>
+    );
+  }
+
+  return (
+    <Card className={spanWide ? "md:col-span-2" : undefined}>
+      <CardHeader>
+        <div className="flex items-start justify-between gap-2">
+          <CardTitle className="text-base">
+            {PROVIDER_LABELS[integration.provider] || integration.provider}
+          </CardTitle>
+          <Badge variant={h.healthy ? "success" : isConnected ? "warning" : "muted"}>
+            {h.healthy ? "Healthy" : integration.status}
+          </Badge>
+        </div>
+        <CardDescription>{h.message}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {h.lastSyncAt && (
+          <p className="text-xs text-muted">
+            Last sync:{" "}
+            {h.lastSyncAt.toLocaleString("en-GB", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </p>
+        )}
+        {body}
+      </CardContent>
+    </Card>
   );
 }

@@ -11,6 +11,7 @@ import {
 } from "@/components/integrations/integration-actions";
 import { ExternalConnectLinkPanel } from "@/components/integrations/external-connect-link-panel";
 import { isJiraReconnectMessage, JIRA_RECONNECT_MESSAGE } from "@/lib/jira-errors";
+import { formatFixedLocaleDateTime } from "@/lib/format-date";
 import type { JiraDeliverySnapshot } from "@/lib/jira-meta";
 
 type JiraProjectOption = { key: string; name: string };
@@ -270,13 +271,13 @@ export function JiraIntegrationPanel({
           </p>
         )}
 
-        {displayName && (
+        {displayName && !showConnectionIssue && (
           <p className="text-xs text-secondary">
             Connected as <span className="text-primary">{displayName}</span>
           </p>
         )}
 
-        {connectedAt && (
+        {connectedAt && !showConnectionIssue && (
           <p className="text-xs text-muted">Connected {formatDate(connectedAt)}</p>
         )}
 
@@ -290,13 +291,13 @@ export function JiraIntegrationPanel({
           <div className="space-y-1">
             <p className="text-xs text-warning-soft">
               {isJiraReconnectMessage(lastError)
-                ? "Jira authorization expired or was revoked. Disconnect and reconnect Jira on this page to restore sync."
+                ? "Jira authorization expired or was revoked. Reconnect to restore sync."
                 : lastError}
             </p>
             {canManage && isJiraReconnectMessage(lastError) && (
               <p className="text-xs text-muted">
-                Use <span className="font-medium text-primary">Disconnect</span> below, then
-                connect Jira again to issue new OAuth tokens.
+                Use <span className="font-medium text-primary">Reconnect</span> to issue new
+                OAuth tokens.
               </p>
             )}
           </div>
@@ -304,21 +305,36 @@ export function JiraIntegrationPanel({
 
         {lastError && connectionStatus !== "error" && lastError.toLowerCase().includes("scope") && (
           <p className="text-xs text-warning-soft">
-            {lastError} Disconnect and connect again after updating scopes in the Atlassian
-            developer console.
+            {lastError} Reconnect after updating scopes in the Atlassian developer console.
           </p>
         )}
 
         <div className="flex flex-wrap gap-2 pt-1">
-          {siteUrl && (
-            <Button size="sm" variant="ghost" asChild>
-              <a href={siteUrl} target="_blank" rel="noopener noreferrer">
-                Open in Jira
-                <ExternalLink className="ml-1 h-3.5 w-3.5" />
-              </a>
-            </Button>
+          {showConnectionIssue && canManage ? (
+            <>
+              <JiraOAuthConnect label="Reconnect" variant="brand" />
+              {siteUrl && (
+                <Button size="sm" variant="ghost" asChild>
+                  <a href={siteUrl} target="_blank" rel="noopener noreferrer">
+                    Open in Jira
+                    <ExternalLink className="ml-1 h-3.5 w-3.5" />
+                  </a>
+                </Button>
+              )}
+            </>
+          ) : (
+            <>
+              {siteUrl && (
+                <Button size="sm" variant="ghost" asChild>
+                  <a href={siteUrl} target="_blank" rel="noopener noreferrer">
+                    Open in Jira
+                    <ExternalLink className="ml-1 h-3.5 w-3.5" />
+                  </a>
+                </Button>
+              )}
+              {canManage && <DisconnectButton provider="JIRA" />}
+            </>
           )}
-          {canManage && <DisconnectButton provider="JIRA" />}
         </div>
       </div>
 
@@ -490,9 +506,5 @@ export function JiraIntegrationPanel({
 }
 
 function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleString();
-  } catch {
-    return iso;
-  }
+  return formatFixedLocaleDateTime(iso);
 }

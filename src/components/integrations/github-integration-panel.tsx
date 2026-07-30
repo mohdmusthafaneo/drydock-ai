@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DisconnectButton } from "@/components/integrations/integration-actions";
 import { ExternalConnectLinkPanel } from "@/components/integrations/external-connect-link-panel";
+import { formatFixedLocaleDateTime } from "@/lib/format-date";
 import type { GitHubRepoSummary } from "@/lib/integration-meta";
 
 type GitHubRepoOption = {
@@ -360,9 +361,5 @@ export function GitHubIntegrationPanel({
 }
 
 function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleString();
-  } catch {
-    return iso;
-  }
+  return formatFixedLocaleDateTime(iso);
 }

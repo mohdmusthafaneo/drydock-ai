@@ -18,6 +18,7 @@ import {
 } from "@/components/delivery-analysis/jira-hygiene-banner";
 import { AnalysisTabs } from "@/components/delivery-analysis/analysis-tabs";
 import { SnapshotUnavailable } from "@/components/delivery-analysis/snapshot-unavailable";
+import { EngineeringDetailSection } from "@/components/agent-analysis/engineering-detail-section";
 
 type Props = {
   projectKeys: string[];
@@ -259,32 +260,39 @@ export function DeliveryAnalysisDashboard({
 
           <KpiStrip kpis={snapshot.kpis} projectCount={snapshot.byProject.length} />
 
-          <div className="grid gap-6 lg:grid-cols-2">
-            <RiskMixChart riskMix={snapshot.riskMix} />
-            <TrendChart trend={snapshot.trend} hasHistory={snapshot.trend.length >= 2} />
-          </div>
+          <EngineeringDetailSection
+            title="Full signal board"
+            description="Charts, project breakdown, sprint cards, and delivery signals — expand when you need evidence."
+          >
+            <div className="space-y-6">
+              <div className="grid gap-6 lg:grid-cols-2">
+                <RiskMixChart riskMix={snapshot.riskMix} />
+                <TrendChart trend={snapshot.trend} hasHistory={snapshot.trend.length >= 2} />
+              </div>
 
-          <div className="grid gap-6 lg:grid-cols-2">
-            <ProjectBreakdown
-              items={snapshot.byProject}
-              onSelectProject={handleProjectSelect}
-              selectedProject={selectedProject}
-            />
-            <SprintCards sprints={snapshot.sprints} siteUrl={snapshot.siteUrl} />
-          </div>
+              <div className="grid gap-6 lg:grid-cols-2">
+                <ProjectBreakdown
+                  items={snapshot.byProject}
+                  onSelectProject={handleProjectSelect}
+                  selectedProject={selectedProject}
+                />
+                <SprintCards sprints={snapshot.sprints} siteUrl={snapshot.siteUrl} />
+              </div>
 
-          <DeliverySignalsCard
-            signals={snapshot.signals}
-            siteUrl={snapshot.siteUrl}
-            scopeLabel={snapshot.scopeLabel}
-            scopeMode={snapshot.scopeMode}
-          />
+              <DeliverySignalsCard
+                signals={snapshot.signals}
+                siteUrl={snapshot.siteUrl}
+                scopeLabel={snapshot.scopeLabel}
+                scopeMode={snapshot.scopeMode}
+              />
 
-          {snapshot.jiraHygiene?.findings.length ? (
-            <JiraHygieneFindingsCard findings={snapshot.jiraHygiene.findings} />
-          ) : null}
+              {snapshot.jiraHygiene?.findings.length ? (
+                <JiraHygieneFindingsCard findings={snapshot.jiraHygiene.findings} />
+              ) : null}
 
-          <AnalysisTabs snapshot={snapshot} />
+              <AnalysisTabs snapshot={snapshot} />
+            </div>
+          </EngineeringDetailSection>
         </>
       )}
     </div>

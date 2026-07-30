@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DisconnectButton } from "@/components/integrations/integration-actions";
 import { GrafanaMetricsConfigSection } from "@/components/integrations/grafana-metrics-config-section";
+import { formatFixedLocaleDateTime } from "@/lib/format-date";
 import type { GrafanaAuthType, GrafanaDashboardScope, GrafanaOperationalSnapshot, GrafanaPrometheusDatasource } from "@/lib/grafana-meta";
 import type { ObservabilityAnalysisSnapshot, PrometheusServiceScope } from "@/lib/observability-analysis/types";
 
@@ -696,9 +697,5 @@ export function GrafanaIntegrationPanel({
 }
 
 function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleString();
-  } catch {
-    return iso;
-  }
+  return formatFixedLocaleDateTime(iso);
 }

@@ -11,7 +11,7 @@ import {
   verdictFromPrimary,
   type GateVerdict,
 } from "@/lib/release-gate-brief";
-import { isOpsQueueRecommendationTitle } from "@/lib/agent-analysis/ops-queue";
+import { isLeadershipApprovalCenterItem } from "@/lib/recommendation-queue";
 import type { getOrganizationContext } from "@/lib/org-data";
 import { ENTERPRISE_WORKFLOW_STEPS } from "@/lib/enterprise-workflow";
 
@@ -105,12 +105,8 @@ export function buildApprovalsHeroSummary(ctx: Ctx): {
   headline: string;
   subcopy: string;
 } {
-  // Leadership gate only — ops-queue ([cloud:], [qa-board:], …) belongs on Recommendations.
-  const pending = ctx.approvals.filter((a) => {
-    if (a.decision) return false;
-    const title = a.title ?? a.recommendation?.title ?? "";
-    return !isOpsQueueRecommendationTitle(title);
-  });
+  // Leadership gate only — SETUP / OPS belong on Recommendations.
+  const pending = ctx.approvals.filter(isLeadershipApprovalCenterItem);
   if (pending.length === 0) {
     return {
       headline: "No leadership actions right now",
@@ -119,7 +115,10 @@ export function buildApprovalsHeroSummary(ctx: Ctx): {
   }
 
   const releaseApprovals = pending.filter(
-    (a) => a.recommendation?.releaseId,
+    (a) => a.recommendation?.queue === "RELEASE_GATE" || a.recommendation?.releaseId,
+  );
+  const governanceApprovals = pending.filter(
+    (a) => a.recommendation?.queue === "GOVERNANCE",
   );
   const releaseIds = new Set(
     releaseApprovals
@@ -150,15 +149,24 @@ export function buildApprovalsHeroSummary(ctx: Ctx): {
       subcopy: "Your sign-off is required before the next release can deploy.",
     };
   }
+  if (governanceApprovals.length > 0) {
+    return {
+      headline: `${n} governance approval${n === 1 ? "" : "s"} waiting`,
+      subcopy: "Policy and posture changes need leadership sign-off before they take effect.",
+    };
+  }
 
   return {
     headline: `${n} approval${n === 1 ? "" : "s"} awaiting your decision`,
-    subcopy: "Human-governed gate — nothing deploys without approval.",
+    subcopy: "Human-governed gate — review each item below.",
   };
 }
 
 export function buildRecommendationsSummaryHighlights(ctx: Ctx): BriefingHighlight[] {
-  const pending = ctx.recommendations.filter((r) => r.status === "PENDING");
+  // SETUP tasks live on Connect — never inflate OPS triage glance counts.
+  const pending = ctx.recommendations.filter(
+    (r) => r.status === "PENDING" && r.queue !== "SETUP",
+  );
   const criticalHigh = pending.filter((r) => r.impact === "CRITICAL" || r.impact === "HIGH");
   const releaseIds = new Set(
     pending.map((r) => r.releaseId).filter((id): id is string => Boolean(id)),

@@ -13,6 +13,9 @@ const baseStats = {
   errorRate: 0.3,
   p95Latency: 140,
   pendingApprovals: 0,
+  pendingReleaseApprovals: 0,
+  pendingGovernanceApprovals: 0,
+  pendingSetupTasks: 0,
   rollbackPending: 0,
   connectedTools: 3,
   integrationsHealthy: 3,
@@ -126,7 +129,7 @@ describe("composeExecutiveBriefing", () => {
   it("sets insight when pending approvals exist", () => {
     const briefing = composeExecutiveBriefing({
       orgName: "Acme Corp",
-      stats: { ...baseStats, pendingApprovals: 1 },
+      stats: { ...baseStats, pendingApprovals: 1, pendingReleaseApprovals: 1 },
       hasAssessedRelease: true,
       latestRelease: {
         id: "rel-1",
@@ -410,6 +413,7 @@ describe("composeExecutiveBriefing", () => {
       stats: {
         ...baseStats,
         pendingApprovals: 1,
+        pendingReleaseApprovals: 1,
         openIncidents: 2,
       },
       hasAssessedRelease: true,
@@ -546,7 +550,7 @@ describe("composeExecutiveBriefing", () => {
   it("pluralizes approval insight verb with the noun", () => {
     const singular = composeExecutiveBriefing({
       orgName: "Acme Corp",
-      stats: { ...baseStats, pendingApprovals: 1 },
+      stats: { ...baseStats, pendingApprovals: 1, pendingReleaseApprovals: 1 },
       hasAssessedRelease: true,
       latestRelease: {
         id: "rel-1",
@@ -563,7 +567,7 @@ describe("composeExecutiveBriefing", () => {
 
     const plural = composeExecutiveBriefing({
       orgName: "Acme Corp",
-      stats: { ...baseStats, pendingApprovals: 2 },
+      stats: { ...baseStats, pendingApprovals: 2, pendingReleaseApprovals: 2 },
       hasAssessedRelease: true,
       latestRelease: {
         id: "rel-1",

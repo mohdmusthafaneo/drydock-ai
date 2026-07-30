@@ -25,6 +25,9 @@ export type HealthScoreInput = {
     errorRate: number | null;
     p95Latency: number | null;
     pendingApprovals: number;
+    pendingReleaseApprovals?: number;
+    pendingGovernanceApprovals?: number;
+    pendingSetupTasks?: number;
     rollbackPending: number;
     connectedTools: number;
     integrationsHealthy: number;
@@ -231,8 +234,8 @@ function computeGovernanceDimension(input: HealthScoreInput): HealthDimension | 
 
   const approvalLine =
     stats.pendingApprovals > 0
-      ? `${stats.pendingApprovals} approval${stats.pendingApprovals === 1 ? "" : "s"} waiting for a decision`
-      : "No pending release approvals";
+      ? `${stats.pendingApprovals} leadership approval${stats.pendingApprovals === 1 ? "" : "s"} waiting for a decision`
+      : "No pending leadership approvals";
 
   const hygieneLine = jiraHygiene?.degradesTrust
     ? `; Jira board hygiene is below threshold (${jiraHygiene.portfolioScore}/100)`
