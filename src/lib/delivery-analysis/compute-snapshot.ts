@@ -279,7 +279,14 @@ export function computeDeliveryAnalysisSnapshot(input: {
     : null;
 
   const openWork = scopedMetrics?.openIssues ?? projects.reduce((n, p) => n + p.openIssues, 0);
-  const blocked = scopedMetrics?.blockedCount ?? projects.reduce((n, p) => n + p.blockedCount, 0);
+  const projectBlocked = projects.reduce((n, p) => n + p.blockedCount, 0);
+  // Sprint-scoped blocked can be 0 when JQL misses status mapping; fall back to
+  // project totals so delivery analysis matches Jira sync + QA agent.
+  const blocked = scopedMetrics
+    ? scopedMetrics.blockedCount > 0
+      ? scopedMetrics.blockedCount
+      : projectBlocked
+    : projectBlocked;
   const overdue = scopedMetrics?.overdueCount ?? projects.reduce((n, p) => n + p.overdueCount, 0);
   const reopened =
     scopedMetrics?.reopenedCount ??

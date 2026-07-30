@@ -22,7 +22,9 @@ export default async function RecommendationsCenterPage() {
   if (!ctx.dna) redirect("/governance/setup");
 
   const highlights = buildRecommendationsSummaryHighlights(ctx);
-  const sorted = sortRecommendationsByUrgency(ctx.recommendations);
+  // Actionable queue only — rejected setup / collapsed qa-blocked stay in history via status filter.
+  const active = ctx.recommendations.filter((r) => r.status !== "REJECTED");
+  const sorted = sortRecommendationsByUrgency(active);
 
   const pendingApprovalByRecId = new Map(
     ctx.approvals

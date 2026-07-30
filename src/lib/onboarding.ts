@@ -21,6 +21,7 @@ type Ctx = {
   pendingApprovals: number;
   toolchainMappingConfirmed: boolean;
   jiraConnected: boolean;
+  githubConnected: boolean;
   jiraCalibrationComplete: boolean;
 };
 
@@ -42,7 +43,11 @@ function buildOnboardingSteps(ctx: Ctx): OnboardingStep[] {
       id: "toolchain-mapping",
       label: "Map Jira & GitHub workflows",
       href: "/governance/toolchain-mapping",
-      done: ctx.toolchainMappingConfirmed,
+      // Advance when formally confirmed OR both sources are already connected
+      // (Connexus-style workspaces shouldn't stay stuck on NEXT IN SETUP).
+      done:
+        ctx.toolchainMappingConfirmed ||
+        (ctx.jiraConnected && ctx.githubConnected),
     },
   ];
 

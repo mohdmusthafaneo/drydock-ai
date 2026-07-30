@@ -4,6 +4,8 @@ import crypto from 'node:crypto';
 import { r as runAwsAccountScan } from '../run-scan.mjs';
 import { p as prisma } from '../prisma.mjs';
 import { r as resolveOrganizationId } from '../request-context.mjs';
+import { readJsonField } from '@/lib/json-field';
+import { d as decryptToken } from '../token-crypto.mjs';
 import '@aws-sdk/client-sts';
 import '@aws-sdk/client-cloudtrail';
 import '@aws-sdk/client-cloudwatch-logs';
@@ -21,6 +23,18 @@ import 'pg';
 import 'node:path';
 import 'node:url';
 import '@prisma/client/runtime/client';
+
+function parseAwsMeta(metadataJson) {
+  return readJsonField(metadataJson, {});
+}
+function mergeAwsMeta(existing, patch) {
+  return JSON.stringify({ ...existing, ...patch });
+}
+function isAwsTrulyConnected(integration) {
+  if (!integration || integration.status !== "CONNECTED") return false;
+  const meta = parseAwsMeta(integration.metadataJson);
+  return meta.mode === "aws-assume-role" && Boolean(meta.roleArn && meta.externalIdEnc);
+}
 
 function chunkArray(arr, size) {
   const out = [];
@@ -92,8 +106,9 @@ const persistDevOpsAccountScanTool = createTool({
   description: "Run a DevOps AWS account hygiene scan (assume role + inventory + hygiene checks) and persist normalized scan results into tenant-scoped Prisma tables. Returns a runId after persistence.",
   inputSchema: z.object({
     organizationId: z.string().optional(),
-    role_arn: z.string().min(1),
-    external_id: z.string().min(1)
+    /** Optional when the org has a connected AWS integration with stored role ARN + External ID. */
+    role_arn: z.string().min(1).optional(),
+    external_id: z.string().min(1).optional()
   }),
   outputSchema: z.object({
     runId: z.string(),
@@ -145,9 +160,34 @@ const persistDevOpsAccountScanTool = createTool({
         "organizationId is required to persist DevOps scans. Provide it via RequestContext or as persistDevOpsAccountScanTool.organizationId."
       );
     }
+    let roleArn = inputData.role_arn?.trim();
+    let externalId = inputData.external_id?.trim();
+    const awsIntegration = await prisma.integration.findUnique({
+      where: {
+        organizationId_provider: { organizationId, provider: "AWS" }
+      }
+    });
+    if ((!roleArn || !externalId) && isAwsTrulyConnected(awsIntegration ?? void 0)) {
+      const meta = parseAwsMeta(awsIntegration.metadataJson);
+      roleArn = roleArn || meta.roleArn;
+      if (!externalId && meta.externalIdEnc) {
+        try {
+          externalId = decryptToken(meta.externalIdEnc);
+        } catch {
+          throw new Error(
+            "Stored AWS External ID could not be decrypted. Re-save the AWS integration credentials."
+          );
+        }
+      }
+    }
+    if (!roleArn || !externalId) {
+      throw new Error(
+        "role_arn and external_id are required (or connect AWS on /integrations with a role ARN and External ID)."
+      );
+    }
     const report = await runAwsAccountScan({
-      roleArn: inputData.role_arn,
-      externalId: inputData.external_id
+      roleArn,
+      externalId
     });
     const reportSha256 = stableHashAwsScan(report);
     const uniqueWhere = {
@@ -160,6 +200,22 @@ const persistDevOpsAccountScanTool = createTool({
       where: { organizationId_accountId_roleArn_reportSha256: uniqueWhere }
     });
     if (existing?.status === "VERIFIED") {
+      if (awsIntegration) {
+        const meta = parseAwsMeta(awsIntegration.metadataJson);
+        await prisma.integration.update({
+          where: { id: awsIntegration.id },
+          data: {
+            lastSyncAt: /* @__PURE__ */ new Date(),
+            metadataJson: mergeAwsMeta(meta, {
+              lastScanAt: (/* @__PURE__ */ new Date()).toISOString(),
+              lastScanRunId: existing.id,
+              lastScanSummary: `Reused verified scan \u2014 ${existing.headlineFindingsCount ?? 0} findings`,
+              accountIdHint: existing.accountId,
+              connectionStatus: "ok"
+            })
+          }
+        }).catch(() => void 0);
+      }
       return {
         runId: existing.id,
         organizationId,
@@ -300,6 +356,25 @@ const persistDevOpsAccountScanTool = createTool({
       }
       return { runId, rowCounts };
     });
+    if (awsIntegration) {
+      const meta = parseAwsMeta(awsIntegration.metadataJson);
+      const summary = `Scan complete \u2014 ${findingsCount} findings \xB7 ${resourcesCount} resources`;
+      await prisma.integration.update({
+        where: { id: awsIntegration.id },
+        data: {
+          lastSyncAt: /* @__PURE__ */ new Date(),
+          lastError: null,
+          metadataJson: mergeAwsMeta(meta, {
+            lastScanAt: (/* @__PURE__ */ new Date()).toISOString(),
+            lastScanRunId: result.runId,
+            lastScanSummary: summary,
+            accountIdHint: report.accountId,
+            connectionStatus: "ok",
+            lastError: void 0
+          })
+        }
+      }).catch(() => void 0);
+    }
     return {
       runId: result.runId,
       organizationId,

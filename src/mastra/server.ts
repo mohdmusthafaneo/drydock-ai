@@ -9,6 +9,7 @@ import {
 } from "@mastra/observability";
 
 import { aidosAgents } from "./agents";
+import { aidosWorkflows } from "./workflows";
 import {
   resolveMastraPgSchema,
   resolveMastraPostgresConnectionString,
@@ -19,6 +20,7 @@ export type CreateMastraOptions = Record<string, never>;
 export function createMastraInstance(_options: CreateMastraOptions = {}): Mastra {
   return new Mastra({
     agents: { ...aidosAgents },
+    workflows: { ...aidosWorkflows },
     backgroundTasks: {
       enabled: true,
       globalConcurrency: 5,

@@ -229,12 +229,12 @@ function sprintMetricsFromProject(
 
   return {
     openIssues,
-    blockedCount: sprint.blockedCount ?? 0,
-    overdueCount: sprint.overdueCount ?? 0,
-    reopenedCount: sprint.reopenedCount ?? 0,
+    blockedCount: sprint.blockedCount ?? project.blockedCount ?? 0,
+    overdueCount: sprint.overdueCount ?? project.overdueCount ?? 0,
+    reopenedCount: sprint.reopenedCount ?? project.reopenedCount ?? 0,
     spilloverCount: sprint.spilloverCount ?? project.spilloverCount ?? 0,
-    bugsOpen: sprint.bugsOpen ?? 0,
-    unassignedCount: sprint.unassignedCount ?? 0,
+    bugsOpen: sprint.bugsOpen ?? project.bugsOpen ?? 0,
+    unassignedCount: sprint.unassignedCount ?? project.unassignedCount ?? 0,
     qaPipelineCount: sprint.qaPipelineCount ?? project.qaPipelineCount,
     sprintCompletionPct,
     scopeLabel: sprint.name,

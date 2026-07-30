@@ -77,6 +77,9 @@ export async function bootstrapJobInfrastructure(
 
 /** Long-running worker process entry — blocks until SIGTERM. */
 export async function runJobWorkerProcess(): Promise<void> {
+  // Ensure Mastra (and declarative workflow schedules) are loaded in the worker process.
+  await import("@/mastra").then(({ getMastra }) => getMastra());
+
   await bootstrapJobInfrastructure("worker");
   log.info("pg-boss worker process running");
 

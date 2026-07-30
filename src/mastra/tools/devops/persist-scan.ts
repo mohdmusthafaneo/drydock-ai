@@ -6,6 +6,8 @@ import { runAwsAccountScan } from "../../aws/run-scan";
 import type { HygieneFinding } from "../../aws/hygiene/HygieneEngine";
 import { prisma } from "@/lib/prisma";
 import { resolveOrganizationId } from "../../config/request-context";
+import { isAwsTrulyConnected, mergeAwsMeta, parseAwsMeta } from "@/lib/aws-meta";
+import { decryptToken } from "@/lib/token-crypto";
 
 function sha256(input: string): string {
   return crypto.createHash("sha256").update(input).digest("hex");
@@ -115,8 +117,9 @@ export const persistDevOpsAccountScanTool = createTool({
     "Run a DevOps AWS account hygiene scan (assume role + inventory + hygiene checks) and persist normalized scan results into tenant-scoped Prisma tables. Returns a runId after persistence.",
   inputSchema: z.object({
     organizationId: z.string().optional(),
-    role_arn: z.string().min(1),
-    external_id: z.string().min(1),
+    /** Optional when the org has a connected AWS integration with stored role ARN + External ID. */
+    role_arn: z.string().min(1).optional(),
+    external_id: z.string().min(1).optional(),
   }),
   outputSchema: z.object({
     runId: z.string(),
@@ -169,9 +172,38 @@ export const persistDevOpsAccountScanTool = createTool({
       );
     }
 
+    let roleArn = inputData.role_arn?.trim();
+    let externalId = inputData.external_id?.trim();
+
+    const awsIntegration = await prisma.integration.findUnique({
+      where: {
+        organizationId_provider: { organizationId, provider: "AWS" },
+      },
+    });
+
+    if ((!roleArn || !externalId) && isAwsTrulyConnected(awsIntegration ?? undefined)) {
+      const meta = parseAwsMeta(awsIntegration!.metadataJson);
+      roleArn = roleArn || meta.roleArn;
+      if (!externalId && meta.externalIdEnc) {
+        try {
+          externalId = decryptToken(meta.externalIdEnc);
+        } catch {
+          throw new Error(
+            "Stored AWS External ID could not be decrypted. Re-save the AWS integration credentials.",
+          );
+        }
+      }
+    }
+
+    if (!roleArn || !externalId) {
+      throw new Error(
+        "role_arn and external_id are required (or connect AWS on /integrations with a role ARN and External ID).",
+      );
+    }
+
     const report = await runAwsAccountScan({
-      roleArn: inputData.role_arn,
-      externalId: inputData.external_id,
+      roleArn,
+      externalId,
     });
 
     const reportSha256 = stableHashAwsScan(report);
@@ -188,6 +220,24 @@ export const persistDevOpsAccountScanTool = createTool({
     });
 
     if (existing?.status === "VERIFIED") {
+      if (awsIntegration) {
+        const meta = parseAwsMeta(awsIntegration.metadataJson);
+        await prisma.integration
+          .update({
+            where: { id: awsIntegration.id },
+            data: {
+              lastSyncAt: new Date(),
+              metadataJson: mergeAwsMeta(meta, {
+                lastScanAt: new Date().toISOString(),
+                lastScanRunId: existing.id,
+                lastScanSummary: `Reused verified scan — ${existing.headlineFindingsCount ?? 0} findings`,
+                accountIdHint: existing.accountId,
+                connectionStatus: "ok",
+              }),
+            },
+          })
+          .catch(() => undefined);
+      }
       return {
         runId: existing.id,
         organizationId,
@@ -351,6 +401,28 @@ export const persistDevOpsAccountScanTool = createTool({
 
       return { runId, rowCounts };
     });
+
+    if (awsIntegration) {
+      const meta = parseAwsMeta(awsIntegration.metadataJson);
+      const summary = `Scan complete — ${findingsCount} findings · ${resourcesCount} resources`;
+      await prisma.integration
+        .update({
+          where: { id: awsIntegration.id },
+          data: {
+            lastSyncAt: new Date(),
+            lastError: null,
+            metadataJson: mergeAwsMeta(meta, {
+              lastScanAt: new Date().toISOString(),
+              lastScanRunId: result.runId,
+              lastScanSummary: summary,
+              accountIdHint: report.accountId,
+              connectionStatus: "ok",
+              lastError: undefined,
+            }),
+          },
+        })
+        .catch(() => undefined);
+    }
 
     return {
       runId: result.runId,

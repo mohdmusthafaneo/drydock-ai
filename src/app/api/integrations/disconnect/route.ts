@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 
 const schema = z.object({
-  provider: z.enum(["GITHUB", "JIRA", "JENKINS", "GRAFANA", "PROMETHEUS", "SLACK"]),
+  provider: z.enum(["GITHUB", "JIRA", "JENKINS", "GRAFANA", "PROMETHEUS", "SLACK", "AWS"]),
 });
 
 export async function POST(request: Request) {

@@ -1,3 +1,7 @@
+import { loadLatestAgentAnalysis } from "@/lib/agent-analysis/load-latest-runs";
+import { buildAgentAnalysisClaims } from "@/lib/agent-analysis/claims";
+import { syncAgentAnalysisRecommendations } from "@/lib/agent-analysis/sync-recommendations";
+import { dismissStaleSetupRecommendations } from "@/lib/agent-analysis/dismiss-stale-setup-recs";
 import { getOrganizationContext } from "@/lib/org-data";
 import { prisma } from "@/lib/prisma";
 import { deliveryAnalysisForFilters, resolveStoredJiraDelivery } from "@/lib/delivery-analysis/resolve";
@@ -199,9 +203,10 @@ export async function loadExecutiveBriefing(
   deliverySnapshot: ReturnType<typeof deliveryAnalysisForFilters> | null;
   effectiveMapping: ToolchainMapping | null;
   jiraConnection: JiraConnectionState;
+  agentFreshness: import("@/lib/agent-analysis/types").AgentRunFreshness[];
 }> {
   const applyLlmSnapshot = options?.applyLlmSnapshot ?? true;
-  const [ctx, org, jiraStored, githubIntegration, complianceSummary, predictionSummary, calibrationGate, effectiveMapping] =
+  const [ctx, org, jiraStored, githubIntegration, complianceSummary, predictionSummary, calibrationGate, effectiveMapping, agentAnalysis] =
     await Promise.all([
     getOrganizationContext(organizationId),
     prisma.organization.findUnique({
@@ -231,7 +236,17 @@ export async function loadExecutiveBriefing(
     })),
     getJiraCalibrationGate(organizationId),
     resolveEffectiveToolchainMapping(organizationId),
+    loadLatestAgentAnalysis(organizationId).catch(() => ({
+      qa: null,
+      devops: null,
+      governance: null,
+      productivity: null,
+      freshness: [],
+    })),
   ]);
+
+  void syncAgentAnalysisRecommendations(organizationId, agentAnalysis).catch(() => undefined);
+  void dismissStaleSetupRecommendations(organizationId).catch(() => undefined);
 
   const jiraIntegration = ctx.integrations.find((i) => i.provider === "JIRA");
   const jiraMeta = jiraIntegration ? parseJiraMeta(jiraIntegration.metadataJson) : null;
@@ -266,6 +281,12 @@ export async function loadExecutiveBriefing(
   const assessedReleases = portfolioReleases.filter((r) => r.assessedAt);
   const { count: activeAuthors, topAuthors } = countActiveAuthors(codeSnapshot);
 
+  const agentAnalyzedAt =
+    agentAnalysis.freshness
+      .map((f) => f.analyzedAt)
+      .filter((t): t is string => Boolean(t))
+      .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] ?? null;
+
   const deterministic = composeExecutiveBriefing({
     orgName: org?.name ?? "Your organization",
     stats: ctx.stats,
@@ -299,9 +320,11 @@ export async function loadExecutiveBriefing(
       jiraSyncedAt: jiraStored?.snapshot.syncedAt ?? null,
       githubSyncedAt: codeStored?.syncedAt ?? githubIntegration?.lastSyncAt?.toISOString() ?? null,
       observabilitySyncedAt: obsSyncedAt,
+      agentAnalyzedAt,
     },
     complianceSummary,
     predictionSummary,
+    agentAnalysisClaims: buildAgentAnalysisClaims(agentAnalysis),
   });
 
   let briefing = deterministic;
@@ -333,5 +356,6 @@ export async function loadExecutiveBriefing(
     deliverySnapshot,
     effectiveMapping,
     jiraConnection,
+    agentFreshness: agentAnalysis.freshness,
   };
 }

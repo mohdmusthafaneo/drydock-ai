@@ -75,7 +75,15 @@ function buildDecisions(briefing: ExecutiveBriefing, ctx: Ctx): LeadershipDecisi
   const decisions: LeadershipDecision[] = [];
 
   if (ctx.stats.pendingApprovals > 0) {
-    const pending = ctx.approvals.filter((a) => !a.decision);
+    const pending = ctx.approvals.filter((a) => {
+      if (a.decision) return false;
+      const title = a.title ?? a.recommendation?.title ?? "";
+      return !(
+        title.startsWith("[qa-blocked:") ||
+        title.startsWith("[qa-board:") ||
+        title.startsWith("[cloud:")
+      );
+    });
     const releaseIds = new Set(
       pending
         .map((a) => a.recommendation?.releaseId)

@@ -18,6 +18,16 @@ import { verifyProductivityReportTool } from './tools/8a5665c4-35b8-4eea-828b-12
 import { jiraJqlTool, jiraMyselfTool } from './tools/cde5449e-d141-4e65-b0e5-54b8ffe3b1a9.mjs';
 import { persistQAReportTool } from './tools/3fde8471-38fa-45d8-8e45-3e58c47cf050.mjs';
 import { verifyQAReportTool } from './tools/9e184ea7-b1e7-49ad-8a34-863fca714521.mjs';
+import * as coreWorkflows from '@mastra/core/workflows';
+import { createWorkflow, createStep } from '@mastra/core/workflows';
+import z$2, { z } from 'zod';
+import { RequestContext, MASTRA_RESOURCE_ID_KEY as MASTRA_RESOURCE_ID_KEY$1 } from '@mastra/core/request-context';
+import { ORGANIZATION_ID_KEY } from '@/mastra/config/request-context';
+import { createLogger } from '@/lib/logger';
+import { asSystem } from '@/lib/prisma';
+import { parseIntegrationMeta } from '@/lib/integration-meta';
+import { isJiraOAuthConnected, parseJiraMeta } from '@/lib/jira-meta';
+import { isAwsTrulyConnected } from '@/lib/aws-meta';
 import { readFile } from 'fs/promises';
 import * as https from 'https';
 import { request } from 'https';
@@ -31,22 +41,19 @@ import crypto2__default, { randomUUID } from 'crypto';
 import { readFileSync, existsSync, createReadStream, statSync } from 'fs';
 import { versions } from 'process';
 import { isVercelTool, isProviderDefinedTool, Tool } from '@mastra/core/tools';
-import { z, toJSONSchema, ZodOptional, ZodNullable, ZodArray, ZodRecord, ZodObject } from 'zod/v4';
+import { z as z$1, toJSONSchema, ZodOptional, ZodNullable, ZodArray, ZodRecord, ZodObject } from 'zod/v4';
 import { MastraMemory } from '@mastra/core/memory';
 import * as authEE from '@mastra/core/auth/ee';
 import { matchesPermission } from '@mastra/core/auth/ee';
 import z3, { ZodFirstPartyTypeKind } from 'zod/v3';
 import { toStandardSchema as toStandardSchema$1 } from '@mastra/core/schema';
 import { zodToJsonSchema as zodToJsonSchema$1 } from '@mastra/core/utils/zod-to-json';
-import z$2, { z as z$1 } from 'zod';
 import { AGENT_STREAM_TOPIC } from '@mastra/core/agent/durable';
 import { MASTRA_VERSIONS_KEY, mergeVersionOverrides } from '@mastra/core/di';
 import { MastraError as MastraError$1, ErrorDomain as ErrorDomain$1, ErrorCategory } from '@mastra/core/error';
 import { parseModelString, PROVIDER_REGISTRY, resolveModelConfig, EMBEDDING_MODELS } from '@mastra/core/llm';
 import { LocalSkillSource } from '@mastra/core/workspace';
-import { MASTRA_RESOURCE_ID_KEY as MASTRA_RESOURCE_ID_KEY$1, RequestContext } from '@mastra/core/request-context';
 import { isProcessorWorkflow } from '@mastra/core/processors';
-import * as coreWorkflows from '@mastra/core/workflows';
 import { coreFeatures } from '@mastra/core/features';
 import { generateEmptyFromSchema } from '@mastra/core/utils';
 import { generateSignalId } from '@mastra/core/observability';
@@ -83,15 +90,18 @@ import 'node:path';
 import 'node:url';
 import '@prisma/client/runtime/client';
 import './request-context.mjs';
+import '@/lib/json-field';
+import './token-crypto.mjs';
 import 'simple-git';
 import 'node:fs/promises';
-import 'node:fs';
-import 'node:child_process';
-import './tools/8ba8f183-1f4b-46d6-aa7a-b8f4d9b1c098.mjs';
+import './provider-credentials.mjs';
 import 'node:async_hooks';
 import 'pino';
 import 'ioredis';
 import 'jose';
+import 'node:fs';
+import 'node:child_process';
+import './tools/8ba8f183-1f4b-46d6-aa7a-b8f4d9b1c098.mjs';
 
 const MAX_OUTPUT_TOKEN = 1024 * 128;
 
@@ -119,10 +129,11 @@ const devopsAgent = new Agent({
   instructions: `You are a DevOps / cloud hygiene analyst for AWS accounts.
 
 When the user wants an account scan:
-1. Ask for the IAM role ARN and ExternalId if either is missing.
-2. Call persistDevOpsAccountScanTool with role_arn and external_id. This tool performs the full AWS scan (assume role + multi-region inventory + hygiene checks) AND persists the normalized results into the database in one step. It is long-running (often 30s\u2013several minutes) and runs as a background task \u2014 tell the user the scan has started and wait for the tool result; do not treat a delayed response as failure.
-3. When the tool returns a runId, call verifyDevOpsAccountScanTool with the runId (and organizationId if required).
-4. Do not finish until verification has run.
+1. Prefer the organization's stored AWS integration (role ARN + External ID on /integrations). Call persistDevOpsAccountScanTool without role_arn/external_id when those are already configured.
+2. Only ask for the IAM role ARN and ExternalId if the tool reports they are missing.
+3. Call persistDevOpsAccountScanTool (optionally with role_arn and external_id overrides). This tool performs the full AWS scan (assume role + multi-region inventory + hygiene checks) AND persists the normalized results into the database in one step. It is long-running (often 30s\u2013several minutes) and runs as a background task \u2014 tell the user the scan has started and wait for the tool result; do not treat a delayed response as failure.
+4. When the tool returns a runId, call verifyDevOpsAccountScanTool with the runId (and organizationId if required).
+5. Do not finish until verification has run.
 - If verification fails, surface the failed check names returned by verifyDevOpsAccountScanTool.
 
 Final response must be a JSON object (no markdown) shaped like:
@@ -133,6 +144,7 @@ Report format (before the JSON):
 - Sections: Critical & high findings | Other findings | Inventory snapshot (by resource type) | Warnings (if any).
 - For each finding: severity, title, resource, and the recommendation.
 - Keep the chat summary concise; do not dump the full resource list unless asked.
+- Point operators to /devops for the persisted hygiene dashboard.
 
 Operator credentials (default AWS credential chain) must be able to sts:AssumeRole into the customer role. The customer role trust policy must allow this account and require the provided ExternalId.
 `,
@@ -339,6 +351,283 @@ const aidosAgents = {
   devopsAgent
 };
 
+function githubRepoUrl(fullName) {
+  return `https://github.com/${fullName}.git`;
+}
+function pickPrimaryRepo(meta) {
+  const fullName = meta.repoFullNames?.[0] ?? meta.repos?.[0]?.fullName ?? meta.githubSchemaSnapshot?.repos?.[0]?.fullName;
+  if (!fullName) return null;
+  const branch = meta.repos?.find((r) => r.fullName === fullName)?.defaultBranch ?? meta.githubSchemaSnapshot?.repos?.find((r) => r.fullName === fullName)?.defaultBranch ?? meta.githubSchemaSnapshot?.suggestions?.productionBranch?.value ?? "main";
+  return { fullName, branch };
+}
+async function resolveOrgAgentTargets(organizationId) {
+  const integrations = await asSystem().integration.findMany({
+    where: { organizationId, status: "CONNECTED" }
+  });
+  const jira = integrations.find((i) => i.provider === "JIRA");
+  const github = integrations.find((i) => i.provider === "GITHUB");
+  const aws = integrations.find((i) => i.provider === "AWS");
+  let qa = null;
+  if (jira && isJiraOAuthConnected(jira)) {
+    const meta = parseJiraMeta(jira.metadataJson);
+    const projectKeys = meta.projectKeys ?? [];
+    if (projectKeys.length > 0) {
+      qa = { projectKeys };
+    }
+  }
+  let devops = null;
+  if (isAwsTrulyConnected(aws)) {
+    devops = { configured: true };
+  }
+  let productivity = null;
+  let governance = null;
+  if (github?.status === "CONNECTED") {
+    const meta = parseIntegrationMeta(github.metadataJson);
+    const repo = pickPrimaryRepo(meta);
+    if (repo) {
+      const repoUrl = githubRepoUrl(repo.fullName);
+      productivity = { repoUrl, branch: repo.branch };
+      governance = {
+        repoUrl,
+        branch: repo.branch,
+        revspec: "HEAD~20..HEAD"
+      };
+    }
+  }
+  return { organizationId, qa, devops, productivity, governance };
+}
+async function listAgentAnalysisOrganizationIds(organizationId) {
+  const rows = await asSystem().deliveryDNA.findMany({
+    where: organizationId ? { organizationId } : void 0,
+    select: { organizationId: true },
+    orderBy: { organizationId: "asc" }
+  });
+  return rows.map((r) => r.organizationId);
+}
+
+const log$1 = createLogger({ component: "mastra/agent-analysis-refresh" });
+const AGENT_KEYS = {
+  qa: "qaAgent",
+  devops: "devopsAgent",
+  productivity: "productivityAgent",
+  governance: "governanceAgent"
+};
+function buildPrompt(domain, targets) {
+  switch (domain) {
+    case "qa": {
+      if (!targets.qa) return null;
+      return [
+        "Scheduled QA board health refresh for AIDOS.",
+        `organizationId=${targets.organizationId}`,
+        `Analyze Jira projects: ${targets.qa.projectKeys.join(", ")}.`,
+        "Run all four presets (open_bugs, blocked, open, done) with count then issues samples,",
+        "persist via persistQAReportTool, verify via verifyQAReportTool, then return the required JSON.",
+        "Do not ask clarifying questions \u2014 use the connected Jira integration."
+      ].join("\n");
+    }
+    case "devops": {
+      if (!targets.devops) return null;
+      return [
+        "Scheduled AWS account hygiene refresh for AIDOS.",
+        `organizationId=${targets.organizationId}`,
+        "Use the organization's stored AWS integration credentials (do not ask for role_arn/external_id).",
+        "Call persistDevOpsAccountScanTool, then verifyDevOpsAccountScanTool, then return the required JSON."
+      ].join("\n");
+    }
+    case "productivity": {
+      if (!targets.productivity) return null;
+      return [
+        "Scheduled engineering productivity refresh for AIDOS.",
+        `organizationId=${targets.organizationId}`,
+        `Repository: ${targets.productivity.repoUrl}`,
+        `Branch: ${targets.productivity.branch}`,
+        "Clone if needed, run analyze-git, persist via persistProductivityReportTool,",
+        "verify via verifyProductivityReportTool, then return the required JSON.",
+        "Do not ask clarifying questions."
+      ].join("\n");
+    }
+    case "governance": {
+      if (!targets.governance) return null;
+      return [
+        "Scheduled code-change risk / governance refresh for AIDOS.",
+        `organizationId=${targets.organizationId}`,
+        `Repository: ${targets.governance.repoUrl}`,
+        `Branch: ${targets.governance.branch}`,
+        `Revspec for risk: ${targets.governance.revspec}`,
+        "Clone, index with repowise, gather risk/health/dead-code, persist via persistGovernanceReportTool,",
+        "verify via verifyGovernanceReportTool, then return the required JSON.",
+        "Do not ask clarifying questions."
+      ].join("\n");
+    }
+    default:
+      return null;
+  }
+}
+async function runDomainAgent(mastra, targets, domain) {
+  const prompt = buildPrompt(domain, targets);
+  if (!prompt) {
+    return {
+      domain,
+      status: "skipped",
+      reason: "integration or selection missing"
+    };
+  }
+  const agentKey = AGENT_KEYS[domain];
+  const agent = mastra.getAgent(agentKey);
+  const requestContext = new RequestContext();
+  requestContext.set(ORGANIZATION_ID_KEY, targets.organizationId);
+  requestContext.set("organizationId", targets.organizationId);
+  try {
+    const result = await agent.generate(prompt, {
+      requestContext,
+      maxSteps: 48
+    });
+    const text = typeof result.text === "string" ? result.text : "";
+    return {
+      domain,
+      status: "ok",
+      textPreview: text.slice(0, 240)
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    log$1.error(
+      { organizationId: targets.organizationId, domain, err: message },
+      "domain agent refresh failed"
+    );
+    return { domain, status: "failed", error: message };
+  }
+}
+async function runAgentAnalysisForOrg(mastra, organizationId) {
+  const targets = await resolveOrgAgentTargets(organizationId);
+  const domains = ["qa", "devops", "productivity", "governance"];
+  const results = [];
+  for (const domain of domains) {
+    const result = await runDomainAgent(mastra, targets, domain);
+    results.push(result);
+    log$1.info(
+      { organizationId, domain, status: result.status, reason: result.reason },
+      "agent analysis domain complete"
+    );
+  }
+  return { organizationId, domains: results };
+}
+async function runAgentAnalysisRefresh(mastra, input) {
+  const organizationIds = await listAgentAnalysisOrganizationIds(
+    input?.organizationId
+  );
+  const results = [];
+  for (const organizationId of organizationIds) {
+    try {
+      results.push(await runAgentAnalysisForOrg(mastra, organizationId));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      log$1.error({ organizationId, err: message }, "org agent analysis failed");
+      results.push({
+        organizationId,
+        domains: [
+          {
+            domain: "qa",
+            status: "failed",
+            error: message
+          }
+        ]
+      });
+    }
+  }
+  return { attempted: organizationIds.length, results };
+}
+
+const inputSchema = z.object({
+  /** When set, only refresh this org; otherwise fan out to all orgs with Delivery DNA. */
+  organizationId: z.string().optional()
+});
+const domainResultSchema = z.object({
+  domain: z.enum(["qa", "devops", "productivity", "governance"]),
+  status: z.enum(["ok", "skipped", "failed"]),
+  reason: z.string().optional(),
+  error: z.string().optional()
+});
+const outputSchema = z.object({
+  attempted: z.number(),
+  ok: z.number(),
+  skipped: z.number(),
+  failed: z.number(),
+  results: z.array(
+    z.object({
+      organizationId: z.string(),
+      domains: z.array(domainResultSchema)
+    })
+  )
+});
+function resolveCron() {
+  return process.env.AGENT_ANALYSIS_CRON?.trim() || "0 */6 * * *";
+}
+function resolveTimezone() {
+  return process.env.AGENT_ANALYSIS_TIMEZONE?.trim() || "UTC";
+}
+function scheduleEnabled() {
+  return process.env.AGENT_ANALYSIS_SCHEDULE_ENABLED !== "false";
+}
+const refreshAllOrgsStep = createStep({
+  id: "refresh-all-org-agents",
+  description: "Run QA, DevOps, productivity, and governance agents for each org with Delivery DNA, using connected integration metadata.",
+  inputSchema,
+  outputSchema,
+  execute: async ({ inputData, mastra }) => {
+    if (!mastra) {
+      throw new Error("Mastra instance unavailable in agent-analysis-refresh workflow");
+    }
+    const { attempted, results } = await runAgentAnalysisRefresh(mastra, {
+      organizationId: inputData.organizationId
+    });
+    let ok = 0;
+    let skipped = 0;
+    let failed = 0;
+    for (const org of results) {
+      for (const domain of org.domains) {
+        if (domain.status === "ok") ok += 1;
+        else if (domain.status === "skipped") skipped += 1;
+        else failed += 1;
+      }
+    }
+    return {
+      attempted,
+      ok,
+      skipped,
+      failed,
+      results: results.map((r) => ({
+        organizationId: r.organizationId,
+        domains: r.domains.map((d) => ({
+          domain: d.domain,
+          status: d.status,
+          reason: d.reason,
+          error: d.error
+        }))
+      }))
+    };
+  }
+});
+const agentAnalysisRefreshWorkflow = createWorkflow({
+  id: "agent-analysis-refresh-workflow",
+  description: "Scheduled refresh of QA / DevOps / productivity / governance agents so dashboards stay current.",
+  inputSchema,
+  outputSchema,
+  ...scheduleEnabled() ? {
+    schedule: {
+      cron: resolveCron(),
+      timezone: resolveTimezone(),
+      inputData: {},
+      metadata: {
+        purpose: "agent-analysis-dashboard-refresh"
+      }
+    }
+  } : {}
+}).then(refreshAllOrgsStep).commit();
+
+const aidosWorkflows = {
+  agentAnalysisRefreshWorkflow
+};
+
 const DEFAULT_MASTRA_PG_SCHEMA = "mastra";
 function resolveMastraPostgresConnectionString() {
   const connectionString = process.env.DATABASE_URL?.trim();
@@ -354,6 +643,7 @@ function resolveMastraPgSchema() {
 function createMastraInstance(_options = {}) {
   return new Mastra({
     agents: { ...aidosAgents },
+    workflows: { ...aidosWorkflows },
     backgroundTasks: {
       enabled: true,
       globalConcurrency: 5,
@@ -647,590 +937,590 @@ var html = (strings, ...values) => {
 };
 
 // src/server/schemas/favorites.ts
-var favoriteToggleResponseSchema = z.object({
-  favorited: z.boolean().describe("Whether the entity is currently favorited by the caller"),
-  favoriteCount: z.number().int().nonnegative().describe("Total number of users who have favorited this entity")
+var favoriteToggleResponseSchema = z$1.object({
+  favorited: z$1.boolean().describe("Whether the entity is currently favorited by the caller"),
+  favoriteCount: z$1.number().int().nonnegative().describe("Total number of users who have favorited this entity")
 });
 
 // src/server/schemas/default-options.ts
-var defaultOptionsSchema = z.object({
+var defaultOptionsSchema = z$1.object({
   /** Unique identifier for this execution run */
-  runId: z.string().optional(),
+  runId: z$1.string().optional(),
   /** Save messages incrementally after each stream step completes (default: false) */
-  savePerStep: z.boolean().optional(),
+  savePerStep: z$1.boolean().optional(),
   /** Maximum number of steps to run */
-  maxSteps: z.number().optional(),
+  maxSteps: z$1.number().optional(),
   /** Provider-specific options passed to the language model */
   /** Tools that are active for this execution (stored as tool IDs) */
-  activeTools: z.array(z.string()).optional(),
+  activeTools: z$1.array(z$1.string()).optional(),
   /** Maximum number of times processors can trigger a retry */
-  maxProcessorRetries: z.number().optional(),
+  maxProcessorRetries: z$1.number().optional(),
   /** Tool selection strategy: 'auto', 'none', 'required', or specific tools */
-  toolChoice: z.union([
-    z.literal("auto"),
-    z.literal("none"),
-    z.literal("required"),
-    z.object({ type: z.literal("tool"), toolName: z.string() })
+  toolChoice: z$1.union([
+    z$1.literal("auto"),
+    z$1.literal("none"),
+    z$1.literal("required"),
+    z$1.object({ type: z$1.literal("tool"), toolName: z$1.string() })
   ]).optional(),
   /** Model-specific settings like temperature, maxTokens, topP, etc. */
-  modelSettings: z.object({
-    temperature: z.number().optional(),
-    maxTokens: z.number().optional(),
-    topP: z.number().optional(),
-    topK: z.number().optional(),
-    frequencyPenalty: z.number().optional(),
-    presencePenalty: z.number().optional(),
-    stopSequences: z.array(z.string()).optional(),
-    seed: z.number().optional(),
-    maxRetries: z.number().optional()
+  modelSettings: z$1.object({
+    temperature: z$1.number().optional(),
+    maxTokens: z$1.number().optional(),
+    topP: z$1.number().optional(),
+    topK: z$1.number().optional(),
+    frequencyPenalty: z$1.number().optional(),
+    presencePenalty: z$1.number().optional(),
+    stopSequences: z$1.array(z$1.string()).optional(),
+    seed: z$1.number().optional(),
+    maxRetries: z$1.number().optional()
   }).optional(),
   /** Whether to return detailed scoring data in the response */
-  returnScorerData: z.boolean().optional(),
+  returnScorerData: z$1.boolean().optional(),
   /** Tracing options for starting new traces */
-  tracingOptions: z.object({
-    traceName: z.string().optional(),
-    attributes: z.record(z.string(), z.unknown()).optional(),
-    spanId: z.string().optional(),
-    traceId: z.string().optional()
+  tracingOptions: z$1.object({
+    traceName: z$1.string().optional(),
+    attributes: z$1.record(z$1.string(), z$1.unknown()).optional(),
+    spanId: z$1.string().optional(),
+    traceId: z$1.string().optional()
   }).optional(),
   /** Require approval for all tool calls */
-  requireToolApproval: z.boolean().optional(),
+  requireToolApproval: z$1.boolean().optional(),
   /** Automatically resume suspended tools */
-  autoResumeSuspendedTools: z.boolean().optional(),
+  autoResumeSuspendedTools: z$1.boolean().optional(),
   /** Maximum number of tool calls to execute concurrently */
-  toolCallConcurrency: z.number().optional(),
+  toolCallConcurrency: z$1.number().optional(),
   /** Whether to include raw chunks in the stream output */
-  includeRawChunks: z.boolean().optional()
+  includeRawChunks: z$1.boolean().optional()
 }).passthrough().describe("Default options for agent execution");
 
 // src/server/schemas/common.ts
-var runIdSchema = z.object({
-  runId: z.string().describe("Unique identifier for the run")
+var runIdSchema = z$1.object({
+  runId: z$1.string().describe("Unique identifier for the run")
 });
-var optionalRunIdSchema = z.object({
-  runId: z.string().optional()
+var optionalRunIdSchema = z$1.object({
+  runId: z$1.string().optional()
 });
-var paginationInfoSchema$1 = z.object({
-  total: z.number(),
-  page: z.number(),
-  perPage: z.union([z.number(), z.literal(false)]),
-  hasMore: z.boolean()
+var paginationInfoSchema$1 = z$1.object({
+  total: z$1.number(),
+  page: z$1.number(),
+  perPage: z$1.union([z$1.number(), z$1.literal(false)]),
+  hasMore: z$1.boolean()
 });
 var createPagePaginationSchema = (defaultPerPage) => {
   const baseSchema = {
-    page: z.coerce.number().optional().default(0)
+    page: z$1.coerce.number().optional().default(0)
   };
   if (defaultPerPage !== void 0) {
-    return z.object({
+    return z$1.object({
       ...baseSchema,
-      perPage: z.coerce.number().optional().default(defaultPerPage)
+      perPage: z$1.coerce.number().optional().default(defaultPerPage)
     });
   } else {
-    return z.object({
+    return z$1.object({
       ...baseSchema,
-      perPage: z.coerce.number().optional()
+      perPage: z$1.coerce.number().optional()
     });
   }
 };
 var createCombinedPaginationSchema = () => {
-  return z.object({
-    page: z.coerce.number().optional(),
-    perPage: z.coerce.number().optional(),
+  return z$1.object({
+    page: z$1.coerce.number().optional(),
+    perPage: z$1.coerce.number().optional(),
     /**
      * @deprecated Use page and perPage instead
      */
-    offset: z.coerce.number().optional(),
+    offset: z$1.coerce.number().optional(),
     /**
      * @deprecated Use page and perPage instead
      */
-    limit: z.coerce.number().optional()
+    limit: z$1.coerce.number().optional()
   });
 };
-var tracingOptionsSchema = z.object({
-  metadata: z.record(z.string(), z.unknown()).optional(),
-  requestContextKeys: z.array(z.string()).optional(),
-  traceId: z.string().optional(),
-  parentSpanId: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-  hideInput: z.boolean().optional(),
-  hideOutput: z.boolean().optional()
+var tracingOptionsSchema = z$1.object({
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional(),
+  requestContextKeys: z$1.array(z$1.string()).optional(),
+  traceId: z$1.string().optional(),
+  parentSpanId: z$1.string().optional(),
+  tags: z$1.array(z$1.string()).optional(),
+  hideInput: z$1.boolean().optional(),
+  hideOutput: z$1.boolean().optional()
 });
-var coreMessageSchema = z.any();
-var successResponseSchema = z.object({
-  success: z.boolean()
+var coreMessageSchema = z$1.any();
+var successResponseSchema = z$1.object({
+  success: z$1.boolean()
 });
-var messageResponseSchema = z.object({
-  message: z.string()
+var messageResponseSchema = z$1.object({
+  message: z$1.string()
 });
-z.object({
-  partial: z.string().optional()
+z$1.object({
+  partial: z$1.string().optional()
 });
-var statusQuerySchema = z.object({
-  status: z.enum(["draft", "published", "archived"]).optional().default("published").describe("Which version to resolve: published (active version) or draft (latest version)")
+var statusQuerySchema = z$1.object({
+  status: z$1.enum(["draft", "published", "archived"]).optional().default("published").describe("Which version to resolve: published (active version) or draft (latest version)")
 });
-var baseLogMessageSchema = z.object({
-  level: z.enum(["debug", "info", "warn", "error", "silent"]),
-  msg: z.string(),
-  time: z.date(),
-  context: z.record(z.string(), z.unknown()).optional(),
-  runId: z.string().optional(),
-  pid: z.number(),
-  hostname: z.string(),
-  name: z.string()
+var baseLogMessageSchema = z$1.object({
+  level: z$1.enum(["debug", "info", "warn", "error", "silent"]),
+  msg: z$1.string(),
+  time: z$1.date(),
+  context: z$1.record(z$1.string(), z$1.unknown()).optional(),
+  runId: z$1.string().optional(),
+  pid: z$1.number(),
+  hostname: z$1.string(),
+  name: z$1.string()
 });
 
-var jsonValueSchema$1 = z.lazy(
-  () => z.union([
-    z.string(),
-    z.number(),
-    z.boolean(),
-    z.null(),
-    z.array(jsonValueSchema$1),
-    z.record(z.string(), jsonValueSchema$1)
+var jsonValueSchema$1 = z$1.lazy(
+  () => z$1.union([
+    z$1.string(),
+    z$1.number(),
+    z$1.boolean(),
+    z$1.null(),
+    z$1.array(jsonValueSchema$1),
+    z$1.record(z$1.string(), jsonValueSchema$1)
   ])
 );
-var jsonRecordSchema = z.record(z.string(), jsonValueSchema$1);
-var signalAttributesSchema = z.record(
-  z.string(),
-  z.union([z.string(), z.number(), z.boolean(), z.null(), z.undefined()])
+var jsonRecordSchema = z$1.record(z$1.string(), jsonValueSchema$1);
+var signalAttributesSchema = z$1.record(
+  z$1.string(),
+  z$1.union([z$1.string(), z$1.number(), z$1.boolean(), z$1.null(), z$1.undefined()])
 );
-var baseSignalSchema = z.object({
-  id: z.string().optional(),
-  createdAt: z.union([z.string(), z.date()]).optional(),
+var baseSignalSchema = z$1.object({
+  id: z$1.string().optional(),
+  createdAt: z$1.union([z$1.string(), z$1.date()]).optional(),
   metadata: jsonRecordSchema.optional(),
   attributes: signalAttributesSchema.optional()
 });
-var partProviderOptionsSchema = z.record(z.string(), z.record(z.string(), jsonValueSchema$1)).optional();
-var signalTextPartSchema = z.object({
-  type: z.literal("text"),
-  text: z.string(),
+var partProviderOptionsSchema = z$1.record(z$1.string(), z$1.record(z$1.string(), jsonValueSchema$1)).optional();
+var signalTextPartSchema = z$1.object({
+  type: z$1.literal("text"),
+  text: z$1.string(),
   providerOptions: partProviderOptionsSchema
 });
-var signalFilePartSchema = z.object({
-  type: z.literal("file"),
-  data: z.string(),
-  mediaType: z.string(),
-  filename: z.string().optional(),
+var signalFilePartSchema = z$1.object({
+  type: z$1.literal("file"),
+  data: z$1.string(),
+  mediaType: z$1.string(),
+  filename: z$1.string().optional(),
   providerOptions: partProviderOptionsSchema
 });
-var userMessageSignalContentsSchema = z.union([
-  z.string(),
-  z.array(z.union([signalTextPartSchema, signalFilePartSchema]))
+var userMessageSignalContentsSchema = z$1.union([
+  z$1.string(),
+  z$1.array(z$1.union([signalTextPartSchema, signalFilePartSchema]))
 ]);
-var agentMessageInputObjectSchema = z.object({
+var agentMessageInputObjectSchema = z$1.object({
   contents: userMessageSignalContentsSchema,
   attributes: signalAttributesSchema.optional(),
   metadata: jsonRecordSchema.optional(),
-  providerOptions: z.record(z.string(), z.record(z.string(), jsonValueSchema$1)).optional()
+  providerOptions: z$1.record(z$1.string(), z$1.record(z$1.string(), jsonValueSchema$1)).optional()
 });
-var agentMessageInputSchema = z.union([userMessageSignalContentsSchema, agentMessageInputObjectSchema]);
+var agentMessageInputSchema = z$1.union([userMessageSignalContentsSchema, agentMessageInputObjectSchema]);
 var agentSignalSchema = baseSignalSchema.extend({
-  type: z.enum(["user", "state", "reactive", "notification", "user-message", "system-reminder"]),
-  tagName: z.string().optional(),
+  type: z$1.enum(["user", "state", "reactive", "notification", "user-message", "system-reminder"]),
+  tagName: z$1.string().optional(),
   contents: userMessageSignalContentsSchema,
-  providerOptions: z.record(z.string(), z.record(z.string(), jsonValueSchema$1)).optional()
+  providerOptions: z$1.record(z$1.string(), z$1.record(z$1.string(), jsonValueSchema$1)).optional()
 });
-var agentIdPathParams$1 = z.object({
-  agentId: z.string().describe("Unique identifier for the agent")
+var agentIdPathParams$1 = z$1.object({
+  agentId: z$1.string().describe("Unique identifier for the agent")
 });
-var agentVersionQuerySchema = z.object({
-  status: z.enum(["draft", "published"]).optional().describe(
+var agentVersionQuerySchema = z$1.object({
+  status: z$1.enum(["draft", "published"]).optional().describe(
     "Which stored config version to resolve: draft (latest, default) or published (active version). Mutually exclusive with versionId."
   ),
-  versionId: z.string().optional().describe(
+  versionId: z$1.string().optional().describe(
     "Specific version ID to resolve. Mutually exclusive with status \u2014 if both are provided, versionId takes precedence."
   )
 });
-var toolIdPathParams = z.object({
-  toolId: z.string().describe("Unique identifier for the tool")
+var toolIdPathParams = z$1.object({
+  toolId: z$1.string().describe("Unique identifier for the tool")
 });
 var agentToolPathParams = agentIdPathParams$1.extend({
-  toolId: z.string().describe("Unique identifier for the tool")
+  toolId: z$1.string().describe("Unique identifier for the tool")
 });
 var agentSkillPathParams = agentIdPathParams$1.extend({
-  skillName: z.string().describe("Name of the skill")
+  skillName: z$1.string().describe("Name of the skill")
 });
 var modelConfigIdPathParams = agentIdPathParams$1.extend({
-  modelConfigId: z.string().describe("Unique identifier for the model configuration")
+  modelConfigId: z$1.string().describe("Unique identifier for the model configuration")
 });
-var serializedProcessorSchema$1 = z.object({
-  id: z.string(),
-  name: z.string().optional()
+var serializedProcessorSchema$1 = z$1.object({
+  id: z$1.string(),
+  name: z$1.string().optional()
 });
-var serializedToolSchema = z.object({
-  id: z.string(),
-  description: z.string().optional(),
-  inputSchema: z.string().optional(),
-  outputSchema: z.string().optional(),
-  requireApproval: z.boolean().optional()
+var serializedToolSchema = z$1.object({
+  id: z$1.string(),
+  description: z$1.string().optional(),
+  inputSchema: z$1.string().optional(),
+  outputSchema: z$1.string().optional(),
+  requireApproval: z$1.boolean().optional()
 });
-var serializedWorkflowSchema = z.object({
-  name: z.string(),
-  steps: z.record(
-    z.string(),
-    z.object({
-      id: z.string(),
-      description: z.string().optional()
+var serializedWorkflowSchema = z$1.object({
+  name: z$1.string(),
+  steps: z$1.record(
+    z$1.string(),
+    z$1.object({
+      id: z$1.string(),
+      description: z$1.string().optional()
     })
   ).optional()
 });
-var serializedAgentDefinitionSchema = z.object({
-  id: z.string(),
-  name: z.string()
+var serializedAgentDefinitionSchema = z$1.object({
+  id: z$1.string(),
+  name: z$1.string()
 });
-var systemMessageSchema = z.union([
-  z.string(),
-  z.array(z.string()),
-  z.any(),
+var systemMessageSchema = z$1.union([
+  z$1.string(),
+  z$1.array(z$1.string()),
+  z$1.any(),
   // CoreSystemMessage or SystemModelMessage
-  z.array(z.any())
+  z$1.array(z$1.any())
 ]);
-var modelConfigSchema$1 = z.object({
-  model: z.object({
-    modelId: z.string(),
-    provider: z.string(),
-    modelVersion: z.string()
+var modelConfigSchema$1 = z$1.object({
+  model: z$1.object({
+    modelId: z$1.string(),
+    provider: z$1.string(),
+    modelVersion: z$1.string()
   })
   // Additional fields from AgentModelManagerConfig can be added here
 });
-var agentEditorConfigSchema = z.union([
-  z.literal(false),
-  z.object({
-    instructions: z.boolean().optional(),
-    tools: z.union([z.boolean(), z.object({ description: z.boolean().optional() })]).optional()
+var agentEditorConfigSchema = z$1.union([
+  z$1.literal(false),
+  z$1.object({
+    instructions: z$1.boolean().optional(),
+    tools: z$1.union([z$1.boolean(), z$1.object({ description: z$1.boolean().optional() })]).optional()
   })
 ]);
-var serializedAgentSchema = z.object({
-  name: z.string(),
-  description: z.string().optional(),
-  metadata: z.record(z.string(), z.unknown()).optional(),
+var serializedAgentSchema = z$1.object({
+  name: z$1.string(),
+  description: z$1.string().optional(),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional(),
   instructions: systemMessageSchema.optional(),
-  tools: z.record(z.string(), serializedToolSchema),
-  agents: z.record(z.string(), serializedAgentDefinitionSchema),
-  workflows: z.record(z.string(), serializedWorkflowSchema),
-  inputProcessors: z.array(serializedProcessorSchema$1),
-  outputProcessors: z.array(serializedProcessorSchema$1),
-  provider: z.string().optional(),
-  modelId: z.string().optional(),
-  modelVersion: z.string().optional(),
-  supportsMemory: z.boolean().optional(),
-  modelList: z.array(modelConfigSchema$1).optional(),
+  tools: z$1.record(z$1.string(), serializedToolSchema),
+  agents: z$1.record(z$1.string(), serializedAgentDefinitionSchema),
+  workflows: z$1.record(z$1.string(), serializedWorkflowSchema),
+  inputProcessors: z$1.array(serializedProcessorSchema$1),
+  outputProcessors: z$1.array(serializedProcessorSchema$1),
+  provider: z$1.string().optional(),
+  modelId: z$1.string().optional(),
+  modelVersion: z$1.string().optional(),
+  supportsMemory: z$1.boolean().optional(),
+  modelList: z$1.array(modelConfigSchema$1).optional(),
   defaultOptions: defaultOptionsSchema.optional(),
-  defaultGenerateOptionsLegacy: z.record(z.string(), z.any()).optional(),
-  defaultStreamOptionsLegacy: z.record(z.string(), z.any()).optional(),
-  source: z.enum(["code", "stored"]).optional(),
-  status: z.enum(["draft", "published", "archived"]).optional(),
-  activeVersionId: z.string().optional(),
-  hasDraft: z.boolean().optional(),
+  defaultGenerateOptionsLegacy: z$1.record(z$1.string(), z$1.any()).optional(),
+  defaultStreamOptionsLegacy: z$1.record(z$1.string(), z$1.any()).optional(),
+  source: z$1.enum(["code", "stored"]).optional(),
+  status: z$1.enum(["draft", "published", "archived"]).optional(),
+  activeVersionId: z$1.string().optional(),
+  hasDraft: z$1.boolean().optional(),
   editor: agentEditorConfigSchema.optional()
 });
 serializedAgentSchema.extend({
-  id: z.string()
+  id: z$1.string()
 });
-var providerSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  label: z.string().optional(),
-  description: z.string().optional(),
-  envVar: z.union([z.string(), z.array(z.string())]),
-  connected: z.boolean(),
-  docUrl: z.string().optional(),
-  models: z.array(z.string())
+var providerSchema = z$1.object({
+  id: z$1.string(),
+  name: z$1.string(),
+  label: z$1.string().optional(),
+  description: z$1.string().optional(),
+  envVar: z$1.union([z$1.string(), z$1.array(z$1.string())]),
+  connected: z$1.boolean(),
+  docUrl: z$1.string().optional(),
+  models: z$1.array(z$1.string())
 });
-var providersResponseSchema = z.object({
-  providers: z.array(providerSchema)
+var providersResponseSchema = z$1.object({
+  providers: z$1.array(providerSchema)
 });
-var listAgentsResponseSchema = z.record(z.string(), serializedAgentSchema);
-var listToolsResponseSchema = z.record(z.string(), serializedToolSchema);
-var agentMemoryOptionSchema = z.object({
-  thread: z.union([z.string(), z.object({ id: z.string() }).passthrough()]),
-  resource: z.string(),
-  options: z.record(z.string(), z.any()).optional(),
-  readOnly: z.boolean().optional()
+var listAgentsResponseSchema = z$1.record(z$1.string(), serializedAgentSchema);
+var listToolsResponseSchema = z$1.record(z$1.string(), serializedToolSchema);
+var agentMemoryOptionSchema = z$1.object({
+  thread: z$1.union([z$1.string(), z$1.object({ id: z$1.string() }).passthrough()]),
+  resource: z$1.string(),
+  options: z$1.record(z$1.string(), z$1.any()).optional(),
+  readOnly: z$1.boolean().optional()
 });
-var toolChoiceSchema = z.union([
-  z.enum(["auto", "none", "required"]),
-  z.object({ type: z.literal("tool"), toolName: z.string() })
+var toolChoiceSchema = z$1.union([
+  z$1.enum(["auto", "none", "required"]),
+  z$1.object({ type: z$1.literal("tool"), toolName: z$1.string() })
 ]);
-var agentExecutionBodySchema$1 = z.object({
+var agentExecutionBodySchema$1 = z$1.object({
   // REQUIRED
-  messages: z.union([
-    z.array(coreMessageSchema),
+  messages: z$1.union([
+    z$1.array(coreMessageSchema),
     // Array of messages
-    z.string()
+    z$1.string()
     // Single user message shorthand
   ]),
   // Message Configuration
   instructions: systemMessageSchema.optional(),
   system: systemMessageSchema.optional(),
-  context: z.array(coreMessageSchema).optional(),
+  context: z$1.array(coreMessageSchema).optional(),
   // Memory & Persistence
   memory: agentMemoryOptionSchema.optional(),
-  runId: z.string().optional(),
-  savePerStep: z.boolean().optional(),
+  runId: z$1.string().optional(),
+  savePerStep: z$1.boolean().optional(),
   // Request Context (handler-specific field - merged with server's requestContext)
-  requestContext: z.record(z.string(), z.any()).optional(),
+  requestContext: z$1.record(z$1.string(), z$1.any()).optional(),
   // Version overrides for sub-agents (and future primitives)
-  versions: z.object({
-    agents: z.record(
-      z.string(),
-      z.union([z.object({ versionId: z.string() }), z.object({ status: z.enum(["draft", "published"]) })])
+  versions: z$1.object({
+    agents: z$1.record(
+      z$1.string(),
+      z$1.union([z$1.object({ versionId: z$1.string() }), z$1.object({ status: z$1.enum(["draft", "published"]) })])
     ).optional(),
-    defaultStatus: z.enum(["draft", "published"]).optional()
+    defaultStatus: z$1.enum(["draft", "published"]).optional()
   }).optional(),
   // Execution Control
-  maxSteps: z.number().optional(),
-  stopWhen: z.any().optional(),
+  maxSteps: z$1.number().optional(),
+  stopWhen: z$1.any().optional(),
   // Model Configuration
-  providerOptions: z.object({
-    anthropic: z.record(z.string(), z.any()).optional(),
-    google: z.record(z.string(), z.any()).optional(),
-    openai: z.record(z.string(), z.any()).optional(),
-    xai: z.record(z.string(), z.any()).optional()
+  providerOptions: z$1.object({
+    anthropic: z$1.record(z$1.string(), z$1.any()).optional(),
+    google: z$1.record(z$1.string(), z$1.any()).optional(),
+    openai: z$1.record(z$1.string(), z$1.any()).optional(),
+    xai: z$1.record(z$1.string(), z$1.any()).optional()
   }).optional(),
-  modelSettings: z.any().optional(),
+  modelSettings: z$1.any().optional(),
   // Tool Configuration
-  activeTools: z.array(z.string()).optional(),
-  toolsets: z.record(z.string(), z.any()).optional(),
-  clientTools: z.record(z.string(), z.any()).optional(),
+  activeTools: z$1.array(z$1.string()).optional(),
+  toolsets: z$1.record(z$1.string(), z$1.any()).optional(),
+  clientTools: z$1.record(z$1.string(), z$1.any()).optional(),
   toolChoice: toolChoiceSchema.optional(),
-  requireToolApproval: z.boolean().optional(),
+  requireToolApproval: z$1.boolean().optional(),
   // Evaluation
-  scorers: z.union([
-    z.record(z.string(), z.any()),
-    z.record(
-      z.string(),
-      z.object({
-        scorer: z.string(),
-        sampling: z.any().optional()
+  scorers: z$1.union([
+    z$1.record(z$1.string(), z$1.any()),
+    z$1.record(
+      z$1.string(),
+      z$1.object({
+        scorer: z$1.string(),
+        sampling: z$1.any().optional()
       })
     )
   ]).optional(),
-  returnScorerData: z.boolean().optional(),
+  returnScorerData: z$1.boolean().optional(),
   // Observability
   tracingOptions: tracingOptionsSchema.optional(),
   // Structured Output
-  output: z.any().optional(),
+  output: z$1.any().optional(),
   // Zod schema, JSON schema, or structured output object
-  structuredOutput: z.object({
-    schema: z.object({}).passthrough(),
-    model: z.union([z.string(), z.any()]).optional(),
-    instructions: z.string().optional(),
-    jsonPromptInjection: z.boolean().optional(),
-    errorStrategy: z.enum(["strict", "warn", "fallback"]).optional(),
-    fallbackValue: z.any().optional()
+  structuredOutput: z$1.object({
+    schema: z$1.object({}).passthrough(),
+    model: z$1.union([z$1.string(), z$1.any()]).optional(),
+    instructions: z$1.string().optional(),
+    jsonPromptInjection: z$1.boolean().optional(),
+    errorStrategy: z$1.enum(["strict", "warn", "fallback"]).optional(),
+    fallbackValue: z$1.any().optional()
   }).optional(),
   // Idle-loop streaming (collapses streamUntilIdle into stream)
-  untilIdle: z.union([z.boolean(), z.object({ maxIdleMs: z.number().int().positive().optional() })]).optional()
+  untilIdle: z$1.union([z$1.boolean(), z$1.object({ maxIdleMs: z$1.number().int().positive().optional() })]).optional()
 }).passthrough();
 var agentExecutionLegacyBodySchema = agentExecutionBodySchema$1.extend({
-  resourceId: z.string().optional(),
-  resourceid: z.string().optional(),
+  resourceId: z$1.string().optional(),
+  resourceid: z$1.string().optional(),
   // lowercase variant
-  threadId: z.string().optional()
+  threadId: z$1.string().optional()
 });
 var streamUntilIdleBodySchema = agentExecutionBodySchema$1.extend({
-  maxIdleMs: z.number().int().positive().optional(),
-  untilIdle: z.union([z.boolean(), z.object({ maxIdleMs: z.number().int().positive().optional() })]).optional()
+  maxIdleMs: z$1.number().int().positive().optional(),
+  untilIdle: z$1.union([z$1.boolean(), z$1.object({ maxIdleMs: z$1.number().int().positive().optional() })]).optional()
 });
 var resumeStreamUntilIdleBodySchema = agentExecutionBodySchema$1.omit({ messages: true }).extend({
-  runId: z.string(),
-  resumeData: z.unknown().refine((x) => x !== void 0, { message: "resumeData is required" }),
-  toolCallId: z.string().optional(),
-  maxIdleMs: z.number().int().positive().optional()
+  runId: z$1.string(),
+  resumeData: z$1.unknown().refine((x) => x !== void 0, { message: "resumeData is required" }),
+  toolCallId: z$1.string().optional(),
+  maxIdleMs: z$1.number().int().positive().optional()
 });
-var executeToolDataBodySchema = z.object({
-  data: z.unknown().refine((x) => x !== void 0, { message: "data is required" })
+var executeToolDataBodySchema = z$1.object({
+  data: z$1.unknown().refine((x) => x !== void 0, { message: "data is required" })
 });
 var executeToolBodySchema$1 = executeToolDataBodySchema.extend({
-  requestContext: z.record(z.string(), z.any()).optional()
+  requestContext: z$1.record(z$1.string(), z$1.any()).optional()
 });
 var executeToolContextBodySchema = executeToolDataBodySchema.extend({
-  requestContext: z.record(z.string(), z.any()).optional()
+  requestContext: z$1.record(z$1.string(), z$1.any()).optional()
 });
-var toolCallActionBodySchema = z.object({
-  runId: z.string(),
-  requestContext: z.record(z.string(), z.any()).optional(),
-  toolCallId: z.string(),
-  format: z.string().optional()
+var toolCallActionBodySchema = z$1.object({
+  runId: z$1.string(),
+  requestContext: z$1.record(z$1.string(), z$1.any()).optional(),
+  toolCallId: z$1.string(),
+  format: z$1.string().optional()
 });
-var networkToolCallActionBodySchema = z.object({
-  runId: z.string(),
-  requestContext: z.record(z.string(), z.any()).optional(),
-  format: z.string().optional()
+var networkToolCallActionBodySchema = z$1.object({
+  runId: z$1.string(),
+  requestContext: z$1.record(z$1.string(), z$1.any()).optional(),
+  format: z$1.string().optional()
 });
 var approveToolCallBodySchema = toolCallActionBodySchema;
 var declineToolCallBodySchema = toolCallActionBodySchema;
 var approveNetworkToolCallBodySchema = networkToolCallActionBodySchema;
 var declineNetworkToolCallBodySchema = networkToolCallActionBodySchema;
-var toolCallResponseSchema = z.object({
-  fullStream: z.any()
+var toolCallResponseSchema = z$1.object({
+  fullStream: z$1.any()
   // ReadableStream
 });
-var sendToolApprovalResponseSchema = z.object({
-  accepted: z.literal(true),
-  runId: z.string(),
-  toolCallId: z.string().optional()
+var sendToolApprovalResponseSchema = z$1.object({
+  accepted: z$1.literal(true),
+  runId: z$1.string(),
+  toolCallId: z$1.string().optional()
 });
 var resumeStreamBodySchema = agentExecutionBodySchema$1.omit({ messages: true }).extend({
-  runId: z.string(),
-  resumeData: z.unknown().refine((x) => x !== void 0, { message: "resumeData is required" }),
-  toolCallId: z.string().optional()
+  runId: z$1.string(),
+  resumeData: z$1.unknown().refine((x) => x !== void 0, { message: "resumeData is required" }),
+  toolCallId: z$1.string().optional()
 });
-var updateAgentModelBodySchema = z.object({
-  modelId: z.string(),
-  provider: z.string()
+var updateAgentModelBodySchema = z$1.object({
+  modelId: z$1.string(),
+  provider: z$1.string()
 });
-var reorderAgentModelListBodySchema = z.object({
-  reorderedModelIds: z.array(z.string())
+var reorderAgentModelListBodySchema = z$1.object({
+  reorderedModelIds: z$1.array(z$1.string())
 });
-var updateAgentModelInModelListBodySchema = z.object({
-  model: z.object({
-    modelId: z.string(),
-    provider: z.string()
+var updateAgentModelInModelListBodySchema = z$1.object({
+  model: z$1.object({
+    modelId: z$1.string(),
+    provider: z$1.string()
   }).optional(),
-  maxRetries: z.number().optional(),
-  enabled: z.boolean().optional()
+  maxRetries: z$1.number().optional(),
+  enabled: z$1.boolean().optional()
 });
 var modelManagementResponseSchema = messageResponseSchema;
-var generateResponseSchema = z.any();
-var streamResponseSchema = z.any();
-var executeToolResponseSchema$1 = z.any();
-var enhanceInstructionsBodySchema = z.object({
-  instructions: z.string().describe("The current agent instructions to enhance"),
-  comment: z.string().describe("User comment describing how to enhance the instructions")
+var generateResponseSchema = z$1.any();
+var streamResponseSchema = z$1.any();
+var executeToolResponseSchema$1 = z$1.any();
+var enhanceInstructionsBodySchema = z$1.object({
+  instructions: z$1.string().describe("The current agent instructions to enhance"),
+  comment: z$1.string().describe("User comment describing how to enhance the instructions")
 });
-var enhanceInstructionsResponseSchema = z.object({
-  explanation: z.string().describe("Explanation of the changes made"),
-  new_prompt: z.string().describe("The enhanced instructions")
+var enhanceInstructionsResponseSchema = z$1.object({
+  explanation: z$1.string().describe("Explanation of the changes made"),
+  new_prompt: z$1.string().describe("The enhanced instructions")
 });
-var observeAgentBodySchema = z.object({
-  runId: z.string().describe("The run ID to observe/reconnect to"),
-  offset: z.number().optional().describe("Resume from this event index (0-based). If omitted, replays all events.")
+var observeAgentBodySchema = z$1.object({
+  runId: z$1.string().describe("The run ID to observe/reconnect to"),
+  offset: z$1.number().optional().describe("Resume from this event index (0-based). If omitted, replays all events.")
 });
-var signalActiveBehaviorSchema = z.enum(["deliver", "persist", "discard"]);
-var signalIdleBehaviorSchema = z.enum(["wake", "persist", "discard"]);
-var signalTargetBaseBodySchema = z.object({
-  ifActive: z.object({
+var signalActiveBehaviorSchema = z$1.enum(["deliver", "persist", "discard"]);
+var signalIdleBehaviorSchema = z$1.enum(["wake", "persist", "discard"]);
+var signalTargetBaseBodySchema = z$1.object({
+  ifActive: z$1.object({
     behavior: signalActiveBehaviorSchema.optional(),
     attributes: signalAttributesSchema.optional()
   }).optional()
 });
-var signalTargetBodySchema = z.union([
+var signalTargetBodySchema = z$1.union([
   signalTargetBaseBodySchema.extend({
-    runId: z.string(),
-    resourceId: z.string().optional(),
-    threadId: z.string().optional(),
-    ifIdle: z.undefined().optional()
+    runId: z$1.string(),
+    resourceId: z$1.string().optional(),
+    threadId: z$1.string().optional(),
+    ifIdle: z$1.undefined().optional()
   }),
   signalTargetBaseBodySchema.extend({
-    runId: z.undefined().optional(),
-    resourceId: z.string(),
-    threadId: z.string(),
-    ifIdle: z.object({
+    runId: z$1.undefined().optional(),
+    resourceId: z$1.string(),
+    threadId: z$1.string(),
+    ifIdle: z$1.object({
       behavior: signalIdleBehaviorSchema.optional(),
       streamOptions: agentExecutionBodySchema$1.omit({ messages: true }).optional(),
       attributes: signalAttributesSchema.optional()
     }).optional()
   })
 ]);
-var sendAgentSignalBodySchema = z.union([
+var sendAgentSignalBodySchema = z$1.union([
   signalTargetBodySchema.options[0].extend({ signal: agentSignalSchema }),
   signalTargetBodySchema.options[1].extend({ signal: agentSignalSchema })
 ]);
-var sendAgentMessageBodySchema = z.union([
+var sendAgentMessageBodySchema = z$1.union([
   signalTargetBodySchema.options[0].extend({ message: agentMessageInputSchema }),
   signalTargetBodySchema.options[1].extend({ message: agentMessageInputSchema })
 ]);
 var queueAgentMessageBodySchema = sendAgentMessageBodySchema;
-var subscribeAgentThreadBodySchema = z.object({
-  resourceId: z.string().optional(),
-  threadId: z.string()
+var subscribeAgentThreadBodySchema = z$1.object({
+  resourceId: z$1.string().optional(),
+  threadId: z$1.string()
 });
 var abortAgentThreadBodySchema = subscribeAgentThreadBodySchema;
-var sendToolApprovalBodySchema = z.object({
-  resourceId: z.string(),
-  threadId: z.string(),
-  requestContext: z.record(z.string(), z.any()).optional(),
-  toolCallId: z.string(),
-  approved: z.boolean(),
-  format: z.string().optional(),
-  messages: z.array(coreMessageSchema).optional(),
-  streamOptions: z.any().optional()
+var sendToolApprovalBodySchema = z$1.object({
+  resourceId: z$1.string(),
+  threadId: z$1.string(),
+  requestContext: z$1.record(z$1.string(), z$1.any()).optional(),
+  toolCallId: z$1.string(),
+  approved: z$1.boolean(),
+  format: z$1.string().optional(),
+  messages: z$1.array(coreMessageSchema).optional(),
+  streamOptions: z$1.any().optional()
 });
-var abortAgentThreadResponseSchema = z.object({
-  aborted: z.boolean()
+var abortAgentThreadResponseSchema = z$1.object({
+  aborted: z$1.boolean()
 });
-var observeAgentResponseSchema = z.any();
+var observeAgentResponseSchema = z$1.any();
 
-var agentFeaturesSchema = z.object({
-  tools: z.boolean().optional(),
-  agents: z.boolean().optional(),
-  workflows: z.boolean().optional(),
-  scorers: z.boolean().optional(),
-  skills: z.boolean().optional(),
-  memory: z.boolean().optional(),
-  variables: z.boolean().optional(),
-  favorites: z.boolean().optional(),
-  avatarUpload: z.boolean().optional(),
-  browser: z.boolean().optional(),
+var agentFeaturesSchema = z$1.object({
+  tools: z$1.boolean().optional(),
+  agents: z$1.boolean().optional(),
+  workflows: z$1.boolean().optional(),
+  scorers: z$1.boolean().optional(),
+  skills: z$1.boolean().optional(),
+  memory: z$1.boolean().optional(),
+  variables: z$1.boolean().optional(),
+  favorites: z$1.boolean().optional(),
+  avatarUpload: z$1.boolean().optional(),
+  browser: z$1.boolean().optional(),
   /**
    * Whether the model picker is visible in the Agent Builder.
    * Omitted ⇒ picker visible (default-on). Explicit `false` ⇒ picker hidden
    * (locked mode); `models.default` is required and applied.
    */
-  model: z.boolean().optional()
+  model: z$1.boolean().optional()
 });
-var knownProviderEntrySchema = z.object({
-  provider: z.string().min(1),
-  modelId: z.string().min(1).optional()
+var knownProviderEntrySchema = z$1.object({
+  provider: z$1.string().min(1),
+  modelId: z$1.string().min(1).optional()
 }).strict();
-var customProviderEntrySchema = z.object({
-  kind: z.literal("custom"),
-  provider: z.string().min(1),
-  modelId: z.string().min(1).optional()
+var customProviderEntrySchema = z$1.object({
+  kind: z$1.literal("custom"),
+  provider: z$1.string().min(1),
+  modelId: z$1.string().min(1).optional()
 }).strict();
-var knownDefaultModelEntrySchema = z.object({
-  provider: z.string().min(1),
-  modelId: z.string().min(1)
+var knownDefaultModelEntrySchema = z$1.object({
+  provider: z$1.string().min(1),
+  modelId: z$1.string().min(1)
 }).strict();
-var customDefaultModelEntrySchema = z.object({
-  kind: z.literal("custom"),
-  provider: z.string().min(1),
-  modelId: z.string().min(1)
+var customDefaultModelEntrySchema = z$1.object({
+  kind: z$1.literal("custom"),
+  provider: z$1.string().min(1),
+  modelId: z$1.string().min(1)
 }).strict();
-var providerModelEntrySchema = z.union([customProviderEntrySchema, knownProviderEntrySchema]);
-var defaultModelEntrySchema = z.union([customDefaultModelEntrySchema, knownDefaultModelEntrySchema]);
-var agentModelsSchema = z.object({
-  allowed: z.array(providerModelEntrySchema).optional(),
+var providerModelEntrySchema = z$1.union([customProviderEntrySchema, knownProviderEntrySchema]);
+var defaultModelEntrySchema = z$1.union([customDefaultModelEntrySchema, knownDefaultModelEntrySchema]);
+var agentModelsSchema = z$1.object({
+  allowed: z$1.array(providerModelEntrySchema).optional(),
   default: defaultModelEntrySchema.optional()
 });
-var pickerAllowlistSchema = z.object({
-  allowed: z.array(z.string()).optional()
+var pickerAllowlistSchema = z$1.object({
+  allowed: z$1.array(z$1.string()).optional()
 }).strict();
-var agentConfigurationSchema = z.object({
+var agentConfigurationSchema = z$1.object({
   models: agentModelsSchema.optional(),
   tools: pickerAllowlistSchema.optional(),
   agents: pickerAllowlistSchema.optional(),
   workflows: pickerAllowlistSchema.optional()
-}).catchall(z.unknown());
-var builderPickerSchema = z.object({
-  visibleTools: z.array(z.string()).nullable(),
-  visibleAgents: z.array(z.string()).nullable(),
-  visibleWorkflows: z.array(z.string()).nullable()
+}).catchall(z$1.unknown());
+var builderPickerSchema = z$1.object({
+  visibleTools: z$1.array(z$1.string()).nullable(),
+  visibleAgents: z$1.array(z$1.string()).nullable(),
+  visibleWorkflows: z$1.array(z$1.string()).nullable()
 });
-var builderModelPolicySchema = z.object({
-  active: z.boolean(),
-  pickerVisible: z.boolean().optional(),
-  allowed: z.array(providerModelEntrySchema).optional(),
+var builderModelPolicySchema = z$1.object({
+  active: z$1.boolean(),
+  pickerVisible: z$1.boolean().optional(),
+  allowed: z$1.array(providerModelEntrySchema).optional(),
   default: defaultModelEntrySchema.optional()
 });
-var builderSettingsResponseSchema = z.object({
-  enabled: z.boolean(),
-  features: z.object({
+var builderSettingsResponseSchema = z$1.object({
+  enabled: z$1.boolean(),
+  features: z$1.object({
     agent: agentFeaturesSchema.optional()
   }).optional(),
-  configuration: z.object({
+  configuration: z$1.object({
     agent: agentConfigurationSchema.optional()
   }).optional(),
   modelPolicy: builderModelPolicySchema.optional(),
@@ -1245,47 +1535,47 @@ var builderSettingsResponseSchema = z.object({
    * picker allowlist entries that don't match a registered ID). UI surfaces
    * these as a banner in the Builder admin view.
    */
-  modelPolicyWarnings: z.array(z.string()).optional()
+  modelPolicyWarnings: z$1.array(z$1.string()).optional()
 });
-var infrastructureStatusResponseSchema = z.object({
-  channels: z.object({
-    providers: z.array(
-      z.object({
-        id: z.string(),
-        name: z.string(),
-        isConfigured: z.boolean(),
-        routeCount: z.number()
+var infrastructureStatusResponseSchema = z$1.object({
+  channels: z$1.object({
+    providers: z$1.array(
+      z$1.object({
+        id: z$1.string(),
+        name: z$1.string(),
+        isConfigured: z$1.boolean(),
+        routeCount: z$1.number()
       })
     )
   }),
-  browser: z.object({
-    type: z.string().nullable(),
-    provider: z.string().nullable(),
-    env: z.string().nullable(),
-    registered: z.boolean(),
-    availableProviders: z.array(z.string()),
-    config: z.array(z.object({ key: z.string(), value: z.string() }))
+  browser: z$1.object({
+    type: z$1.string().nullable(),
+    provider: z$1.string().nullable(),
+    env: z$1.string().nullable(),
+    registered: z$1.boolean(),
+    availableProviders: z$1.array(z$1.string()),
+    config: z$1.array(z$1.object({ key: z$1.string(), value: z$1.string() }))
   }),
-  workspace: z.object({
-    type: z.string().nullable(),
-    workspaceId: z.string().nullable(),
-    name: z.string().nullable(),
-    source: z.string().nullable(),
-    registered: z.boolean(),
-    hasFilesystem: z.boolean(),
-    hasSandbox: z.boolean(),
-    filesystemProvider: z.string().nullable(),
-    sandboxProvider: z.string().nullable(),
-    config: z.array(z.object({ key: z.string(), value: z.string() }))
+  workspace: z$1.object({
+    type: z$1.string().nullable(),
+    workspaceId: z$1.string().nullable(),
+    name: z$1.string().nullable(),
+    source: z$1.string().nullable(),
+    registered: z$1.boolean(),
+    hasFilesystem: z$1.boolean(),
+    hasSandbox: z$1.boolean(),
+    filesystemProvider: z$1.string().nullable(),
+    sandboxProvider: z$1.string().nullable(),
+    config: z$1.array(z$1.object({ key: z$1.string(), value: z$1.string() }))
   }),
-  registries: z.object({
-    skillsSh: z.object({
-      enabled: z.boolean()
+  registries: z$1.object({
+    skillsSh: z$1.object({
+      enabled: z$1.boolean()
     })
   })
 });
-var builderAvailableModelsResponseSchema = z.object({
-  providers: z.array(providerSchema)
+var builderAvailableModelsResponseSchema = z$1.object({
+  providers: z$1.array(providerSchema)
 });
 
 // src/server/http-exception.ts
@@ -14296,11 +14586,11 @@ var NoObjectGeneratedError = class extends AISDKError {
   }
 };
 _a42 = symbol42;
-var dataContentSchema = z$1.union([
-  z$1.string(),
-  z$1.instanceof(Uint8Array),
-  z$1.instanceof(ArrayBuffer),
-  z$1.custom(
+var dataContentSchema = z.union([
+  z.string(),
+  z.instanceof(Uint8Array),
+  z.instanceof(ArrayBuffer),
+  z.custom(
     // Buffer might not be available in some environments such as CloudFlare:
     (value) => {
       var _a17, _b;
@@ -14309,102 +14599,102 @@ var dataContentSchema = z$1.union([
     { message: "Must be a Buffer" }
   )
 ]);
-var jsonValueSchema = z$1.lazy(
-  () => z$1.union([
-    z$1.null(),
-    z$1.string(),
-    z$1.number(),
-    z$1.boolean(),
-    z$1.record(z$1.string(), jsonValueSchema),
-    z$1.array(jsonValueSchema)
+var jsonValueSchema = z.lazy(
+  () => z.union([
+    z.null(),
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.record(z.string(), jsonValueSchema),
+    z.array(jsonValueSchema)
   ])
 );
-var providerMetadataSchema = z$1.record(
-  z$1.string(),
-  z$1.record(z$1.string(), jsonValueSchema)
+var providerMetadataSchema = z.record(
+  z.string(),
+  z.record(z.string(), jsonValueSchema)
 );
-var toolResultContentSchema = z$1.array(
-  z$1.union([
-    z$1.object({ type: z$1.literal("text"), text: z$1.string() }),
-    z$1.object({
-      type: z$1.literal("image"),
-      data: z$1.string(),
-      mimeType: z$1.string().optional()
+var toolResultContentSchema = z.array(
+  z.union([
+    z.object({ type: z.literal("text"), text: z.string() }),
+    z.object({
+      type: z.literal("image"),
+      data: z.string(),
+      mimeType: z.string().optional()
     })
   ])
 );
-var textPartSchema$1 = z$1.object({
-  type: z$1.literal("text"),
-  text: z$1.string(),
+var textPartSchema$1 = z.object({
+  type: z.literal("text"),
+  text: z.string(),
   providerOptions: providerMetadataSchema.optional(),
   experimental_providerMetadata: providerMetadataSchema.optional()
 });
-var imagePartSchema = z$1.object({
-  type: z$1.literal("image"),
-  image: z$1.union([dataContentSchema, z$1.instanceof(URL)]),
-  mimeType: z$1.string().optional(),
+var imagePartSchema = z.object({
+  type: z.literal("image"),
+  image: z.union([dataContentSchema, z.instanceof(URL)]),
+  mimeType: z.string().optional(),
   providerOptions: providerMetadataSchema.optional(),
   experimental_providerMetadata: providerMetadataSchema.optional()
 });
-var filePartSchema$1 = z$1.object({
-  type: z$1.literal("file"),
-  data: z$1.union([dataContentSchema, z$1.instanceof(URL)]),
-  filename: z$1.string().optional(),
-  mimeType: z$1.string(),
+var filePartSchema$1 = z.object({
+  type: z.literal("file"),
+  data: z.union([dataContentSchema, z.instanceof(URL)]),
+  filename: z.string().optional(),
+  mimeType: z.string(),
   providerOptions: providerMetadataSchema.optional(),
   experimental_providerMetadata: providerMetadataSchema.optional()
 });
-var reasoningPartSchema = z$1.object({
-  type: z$1.literal("reasoning"),
-  text: z$1.string(),
+var reasoningPartSchema = z.object({
+  type: z.literal("reasoning"),
+  text: z.string(),
   providerOptions: providerMetadataSchema.optional(),
   experimental_providerMetadata: providerMetadataSchema.optional()
 });
-var redactedReasoningPartSchema = z$1.object({
-  type: z$1.literal("redacted-reasoning"),
-  data: z$1.string(),
+var redactedReasoningPartSchema = z.object({
+  type: z.literal("redacted-reasoning"),
+  data: z.string(),
   providerOptions: providerMetadataSchema.optional(),
   experimental_providerMetadata: providerMetadataSchema.optional()
 });
-var toolCallPartSchema = z$1.object({
-  type: z$1.literal("tool-call"),
-  toolCallId: z$1.string(),
-  toolName: z$1.string(),
-  args: z$1.unknown(),
+var toolCallPartSchema = z.object({
+  type: z.literal("tool-call"),
+  toolCallId: z.string(),
+  toolName: z.string(),
+  args: z.unknown(),
   providerOptions: providerMetadataSchema.optional(),
   experimental_providerMetadata: providerMetadataSchema.optional()
 });
-var toolResultPartSchema = z$1.object({
-  type: z$1.literal("tool-result"),
-  toolCallId: z$1.string(),
-  toolName: z$1.string(),
-  result: z$1.unknown(),
+var toolResultPartSchema = z.object({
+  type: z.literal("tool-result"),
+  toolCallId: z.string(),
+  toolName: z.string(),
+  result: z.unknown(),
   content: toolResultContentSchema.optional(),
-  isError: z$1.boolean().optional(),
+  isError: z.boolean().optional(),
   providerOptions: providerMetadataSchema.optional(),
   experimental_providerMetadata: providerMetadataSchema.optional()
 });
-var coreSystemMessageSchema = z$1.object({
-  role: z$1.literal("system"),
-  content: z$1.string(),
+var coreSystemMessageSchema = z.object({
+  role: z.literal("system"),
+  content: z.string(),
   providerOptions: providerMetadataSchema.optional(),
   experimental_providerMetadata: providerMetadataSchema.optional()
 });
-var coreUserMessageSchema = z$1.object({
-  role: z$1.literal("user"),
-  content: z$1.union([
-    z$1.string(),
-    z$1.array(z$1.union([textPartSchema$1, imagePartSchema, filePartSchema$1]))
+var coreUserMessageSchema = z.object({
+  role: z.literal("user"),
+  content: z.union([
+    z.string(),
+    z.array(z.union([textPartSchema$1, imagePartSchema, filePartSchema$1]))
   ]),
   providerOptions: providerMetadataSchema.optional(),
   experimental_providerMetadata: providerMetadataSchema.optional()
 });
-var coreAssistantMessageSchema = z$1.object({
-  role: z$1.literal("assistant"),
-  content: z$1.union([
-    z$1.string(),
-    z$1.array(
-      z$1.union([
+var coreAssistantMessageSchema = z.object({
+  role: z.literal("assistant"),
+  content: z.union([
+    z.string(),
+    z.array(
+      z.union([
         textPartSchema$1,
         filePartSchema$1,
         reasoningPartSchema,
@@ -14416,13 +14706,13 @@ var coreAssistantMessageSchema = z$1.object({
   providerOptions: providerMetadataSchema.optional(),
   experimental_providerMetadata: providerMetadataSchema.optional()
 });
-var coreToolMessageSchema = z$1.object({
-  role: z$1.literal("tool"),
-  content: z$1.array(toolResultPartSchema),
+var coreToolMessageSchema = z.object({
+  role: z.literal("tool"),
+  content: z.array(toolResultPartSchema),
   providerOptions: providerMetadataSchema.optional(),
   experimental_providerMetadata: providerMetadataSchema.optional()
 });
-z$1.union([
+z.union([
   coreSystemMessageSchema,
   coreUserMessageSchema,
   coreAssistantMessageSchema,
@@ -14632,125 +14922,125 @@ createIdGenerator({
   prefix: "msg",
   size: 24
 });
-var ClientOrServerImplementationSchema = z$1.object({
-  name: z$1.string(),
-  version: z$1.string()
+var ClientOrServerImplementationSchema = z.object({
+  name: z.string(),
+  version: z.string()
 }).passthrough();
-var BaseParamsSchema = z$1.object({
-  _meta: z$1.optional(z$1.object({}).passthrough())
+var BaseParamsSchema = z.object({
+  _meta: z.optional(z.object({}).passthrough())
 }).passthrough();
 var ResultSchema = BaseParamsSchema;
-var RequestSchema = z$1.object({
-  method: z$1.string(),
-  params: z$1.optional(BaseParamsSchema)
+var RequestSchema = z.object({
+  method: z.string(),
+  params: z.optional(BaseParamsSchema)
 });
-var ServerCapabilitiesSchema = z$1.object({
-  experimental: z$1.optional(z$1.object({}).passthrough()),
-  logging: z$1.optional(z$1.object({}).passthrough()),
-  prompts: z$1.optional(
-    z$1.object({
-      listChanged: z$1.optional(z$1.boolean())
+var ServerCapabilitiesSchema = z.object({
+  experimental: z.optional(z.object({}).passthrough()),
+  logging: z.optional(z.object({}).passthrough()),
+  prompts: z.optional(
+    z.object({
+      listChanged: z.optional(z.boolean())
     }).passthrough()
   ),
-  resources: z$1.optional(
-    z$1.object({
-      subscribe: z$1.optional(z$1.boolean()),
-      listChanged: z$1.optional(z$1.boolean())
+  resources: z.optional(
+    z.object({
+      subscribe: z.optional(z.boolean()),
+      listChanged: z.optional(z.boolean())
     }).passthrough()
   ),
-  tools: z$1.optional(
-    z$1.object({
-      listChanged: z$1.optional(z$1.boolean())
+  tools: z.optional(
+    z.object({
+      listChanged: z.optional(z.boolean())
     }).passthrough()
   )
 }).passthrough();
 ResultSchema.extend({
-  protocolVersion: z$1.string(),
+  protocolVersion: z.string(),
   capabilities: ServerCapabilitiesSchema,
   serverInfo: ClientOrServerImplementationSchema,
-  instructions: z$1.optional(z$1.string())
+  instructions: z.optional(z.string())
 });
 var PaginatedResultSchema = ResultSchema.extend({
-  nextCursor: z$1.optional(z$1.string())
+  nextCursor: z.optional(z.string())
 });
-var ToolSchema = z$1.object({
-  name: z$1.string(),
-  description: z$1.optional(z$1.string()),
-  inputSchema: z$1.object({
-    type: z$1.literal("object"),
-    properties: z$1.optional(z$1.object({}).passthrough())
+var ToolSchema = z.object({
+  name: z.string(),
+  description: z.optional(z.string()),
+  inputSchema: z.object({
+    type: z.literal("object"),
+    properties: z.optional(z.object({}).passthrough())
   }).passthrough()
 }).passthrough();
 PaginatedResultSchema.extend({
-  tools: z$1.array(ToolSchema)
+  tools: z.array(ToolSchema)
 });
-var TextContentSchema = z$1.object({
-  type: z$1.literal("text"),
-  text: z$1.string()
+var TextContentSchema = z.object({
+  type: z.literal("text"),
+  text: z.string()
 }).passthrough();
-var ImageContentSchema = z$1.object({
-  type: z$1.literal("image"),
-  data: z$1.string().base64(),
-  mimeType: z$1.string()
+var ImageContentSchema = z.object({
+  type: z.literal("image"),
+  data: z.string().base64(),
+  mimeType: z.string()
 }).passthrough();
-var ResourceContentsSchema = z$1.object({
+var ResourceContentsSchema = z.object({
   /**
    * The URI of this resource.
    */
-  uri: z$1.string(),
+  uri: z.string(),
   /**
    * The MIME type of this resource, if known.
    */
-  mimeType: z$1.optional(z$1.string())
+  mimeType: z.optional(z.string())
 }).passthrough();
 var TextResourceContentsSchema = ResourceContentsSchema.extend({
-  text: z$1.string()
+  text: z.string()
 });
 var BlobResourceContentsSchema = ResourceContentsSchema.extend({
-  blob: z$1.string().base64()
+  blob: z.string().base64()
 });
-var EmbeddedResourceSchema = z$1.object({
-  type: z$1.literal("resource"),
-  resource: z$1.union([TextResourceContentsSchema, BlobResourceContentsSchema])
+var EmbeddedResourceSchema = z.object({
+  type: z.literal("resource"),
+  resource: z.union([TextResourceContentsSchema, BlobResourceContentsSchema])
 }).passthrough();
 ResultSchema.extend({
-  content: z$1.array(
-    z$1.union([TextContentSchema, ImageContentSchema, EmbeddedResourceSchema])
+  content: z.array(
+    z.union([TextContentSchema, ImageContentSchema, EmbeddedResourceSchema])
   ),
-  isError: z$1.boolean().default(false).optional()
+  isError: z.boolean().default(false).optional()
 }).or(
   ResultSchema.extend({
-    toolResult: z$1.unknown()
+    toolResult: z.unknown()
   })
 );
 var JSONRPC_VERSION = "2.0";
-var JSONRPCRequestSchema = z$1.object({
-  jsonrpc: z$1.literal(JSONRPC_VERSION),
-  id: z$1.union([z$1.string(), z$1.number().int()])
+var JSONRPCRequestSchema = z.object({
+  jsonrpc: z.literal(JSONRPC_VERSION),
+  id: z.union([z.string(), z.number().int()])
 }).merge(RequestSchema).strict();
-var JSONRPCResponseSchema = z$1.object({
-  jsonrpc: z$1.literal(JSONRPC_VERSION),
-  id: z$1.union([z$1.string(), z$1.number().int()]),
+var JSONRPCResponseSchema = z.object({
+  jsonrpc: z.literal(JSONRPC_VERSION),
+  id: z.union([z.string(), z.number().int()]),
   result: ResultSchema
 }).strict();
-var JSONRPCErrorSchema = z$1.object({
-  jsonrpc: z$1.literal(JSONRPC_VERSION),
-  id: z$1.union([z$1.string(), z$1.number().int()]),
-  error: z$1.object({
-    code: z$1.number().int(),
-    message: z$1.string(),
-    data: z$1.optional(z$1.unknown())
+var JSONRPCErrorSchema = z.object({
+  jsonrpc: z.literal(JSONRPC_VERSION),
+  id: z.union([z.string(), z.number().int()]),
+  error: z.object({
+    code: z.number().int(),
+    message: z.string(),
+    data: z.optional(z.unknown())
   })
 }).strict();
-var JSONRPCNotificationSchema = z$1.object({
-  jsonrpc: z$1.literal(JSONRPC_VERSION)
+var JSONRPCNotificationSchema = z.object({
+  jsonrpc: z.literal(JSONRPC_VERSION)
 }).merge(
-  z$1.object({
-    method: z$1.string(),
-    params: z$1.optional(BaseParamsSchema)
+  z.object({
+    method: z.string(),
+    params: z.optional(BaseParamsSchema)
   })
 ).strict();
-z$1.union([
+z.union([
   JSONRPCRequestSchema,
   JSONRPCNotificationSchema,
   JSONRPCResponseSchema,
@@ -15157,30 +15447,30 @@ function pickParams(schema, params) {
   return result;
 }
 function jsonQueryParam(schema) {
-  return z.union([
+  return z$1.union([
     schema,
     // Already the expected type (non-string input)
-    z.string().transform((val, ctx) => {
+    z$1.string().transform((val, ctx) => {
       try {
         const parsed = JSON.parse(val);
         const result = schema.safeParse(parsed);
         if (!result.success) {
           for (const issue of result.error.issues) {
             ctx.addIssue({
-              code: z.ZodIssueCode.custom,
+              code: z$1.ZodIssueCode.custom,
               message: issue.message,
               path: issue.path
             });
           }
-          return z.NEVER;
+          return z$1.NEVER;
         }
         return result.data;
       } catch (e) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: z$1.ZodIssueCode.custom,
           message: `Invalid JSON: ${e instanceof Error ? e.message : "parse error"}`
         });
-        return z.NEVER;
+        return z$1.NEVER;
       }
     })
   ]);
@@ -15202,7 +15492,7 @@ function wrapSchemaForQueryParams(schema) {
       newShape[key] = fieldSchema;
     }
   }
-  return z.object(newShape);
+  return z$1.object(newShape);
 }
 function createRoute$1(config) {
   const { summary, description, tags, deprecated, requiresAuth, requiresPermission, onValidationError, ...baseRoute } = config;
@@ -15234,129 +15524,129 @@ function createPublicRoute(config) {
   });
 }
 
-var storedWorkspaceIdPathParams = z.object({
-  storedWorkspaceId: z.string().describe("Unique identifier for the stored workspace")
+var storedWorkspaceIdPathParams = z$1.object({
+  storedWorkspaceId: z$1.string().describe("Unique identifier for the stored workspace")
 });
-var storageOrderBySchema$6 = z.object({
-  field: z.enum(["createdAt", "updatedAt"]).optional(),
-  direction: z.enum(["ASC", "DESC"]).optional()
+var storageOrderBySchema$6 = z$1.object({
+  field: z$1.enum(["createdAt", "updatedAt"]).optional(),
+  direction: z$1.enum(["ASC", "DESC"]).optional()
 });
 var listStoredWorkspacesQuerySchema = createPagePaginationSchema(100).extend({
   orderBy: storageOrderBySchema$6.optional(),
-  authorId: z.string().optional().describe("Filter workspaces by author identifier"),
-  metadata: z.record(z.string(), z.unknown()).optional().describe("Filter workspaces by metadata key-value pairs")
+  authorId: z$1.string().optional().describe("Filter workspaces by author identifier"),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Filter workspaces by metadata key-value pairs")
 });
-var filesystemConfigSchema = z.object({
-  provider: z.string().describe("Filesystem provider name"),
-  config: z.record(z.string(), z.unknown()).describe("Filesystem provider configuration")
+var filesystemConfigSchema = z$1.object({
+  provider: z$1.string().describe("Filesystem provider name"),
+  config: z$1.record(z$1.string(), z$1.unknown()).describe("Filesystem provider configuration")
 });
-var sandboxConfigSchema = z.object({
-  provider: z.string().describe("Sandbox provider name"),
-  config: z.record(z.string(), z.unknown()).describe("Sandbox provider configuration")
+var sandboxConfigSchema = z$1.object({
+  provider: z$1.string().describe("Sandbox provider name"),
+  config: z$1.record(z$1.string(), z$1.unknown()).describe("Sandbox provider configuration")
 });
-var searchConfigSchema = z.object({
-  vectorProvider: z.string().optional().describe("Vector store provider identifier"),
-  vectorConfig: z.record(z.string(), z.unknown()).optional().describe("Vector store provider-specific configuration"),
-  embedderProvider: z.string().optional().describe("Embedder provider identifier"),
-  embedderModel: z.string().optional().describe("Embedder model name"),
-  embedderConfig: z.record(z.string(), z.unknown()).optional().describe("Embedder provider-specific configuration"),
-  bm25: z.union([z.boolean(), z.object({ k1: z.number().optional(), b: z.number().optional() })]).optional().describe("BM25 keyword search config"),
-  searchIndexName: z.string().optional().describe("Custom index name for the vector store"),
-  autoIndexPaths: z.array(z.string()).optional().describe("Paths to auto-index on init")
+var searchConfigSchema = z$1.object({
+  vectorProvider: z$1.string().optional().describe("Vector store provider identifier"),
+  vectorConfig: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Vector store provider-specific configuration"),
+  embedderProvider: z$1.string().optional().describe("Embedder provider identifier"),
+  embedderModel: z$1.string().optional().describe("Embedder model name"),
+  embedderConfig: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Embedder provider-specific configuration"),
+  bm25: z$1.union([z$1.boolean(), z$1.object({ k1: z$1.number().optional(), b: z$1.number().optional() })]).optional().describe("BM25 keyword search config"),
+  searchIndexName: z$1.string().optional().describe("Custom index name for the vector store"),
+  autoIndexPaths: z$1.array(z$1.string()).optional().describe("Paths to auto-index on init")
 });
-var workspaceToolConfigSchema = z.object({
-  enabled: z.boolean().optional().describe("Whether the tool is enabled"),
-  requireApproval: z.boolean().optional().describe("Whether the tool requires user approval before execution"),
-  requireReadBeforeWrite: z.boolean().optional().describe("For write tools: require reading a file before writing to it")
+var workspaceToolConfigSchema = z$1.object({
+  enabled: z$1.boolean().optional().describe("Whether the tool is enabled"),
+  requireApproval: z$1.boolean().optional().describe("Whether the tool requires user approval before execution"),
+  requireReadBeforeWrite: z$1.boolean().optional().describe("For write tools: require reading a file before writing to it")
 });
-var workspaceToolsConfigSchema = z.object({
-  enabled: z.boolean().optional().describe("Default: whether all tools are enabled"),
-  requireApproval: z.boolean().optional().describe("Default: whether all tools require user approval"),
-  tools: z.record(z.string(), workspaceToolConfigSchema).optional().describe("Per-tool overrides keyed by workspace tool name")
+var workspaceToolsConfigSchema = z$1.object({
+  enabled: z$1.boolean().optional().describe("Default: whether all tools are enabled"),
+  requireApproval: z$1.boolean().optional().describe("Default: whether all tools require user approval"),
+  tools: z$1.record(z$1.string(), workspaceToolConfigSchema).optional().describe("Per-tool overrides keyed by workspace tool name")
 });
-var snapshotConfigSchema$4 = z.object({
-  name: z.string().describe("Name of the workspace"),
-  description: z.string().optional().describe("Description of the workspace"),
+var snapshotConfigSchema$4 = z$1.object({
+  name: z$1.string().describe("Name of the workspace"),
+  description: z$1.string().optional().describe("Description of the workspace"),
   filesystem: filesystemConfigSchema.optional().describe("Filesystem configuration"),
   sandbox: sandboxConfigSchema.optional().describe("Sandbox configuration"),
-  mounts: z.record(z.string(), filesystemConfigSchema).optional().describe("Mounted filesystems keyed by mount path"),
+  mounts: z$1.record(z$1.string(), filesystemConfigSchema).optional().describe("Mounted filesystems keyed by mount path"),
   search: searchConfigSchema.optional().describe("Search configuration"),
-  skills: z.array(z.string()).optional().describe("Array of skill IDs"),
+  skills: z$1.array(z$1.string()).optional().describe("Array of skill IDs"),
   tools: workspaceToolsConfigSchema.optional().describe("Workspace tool configuration"),
-  autoSync: z.boolean().optional().describe("Whether to automatically sync the workspace"),
-  operationTimeout: z.number().optional().describe("Operation timeout in milliseconds")
+  autoSync: z$1.boolean().optional().describe("Whether to automatically sync the workspace"),
+  operationTimeout: z$1.number().optional().describe("Operation timeout in milliseconds")
 });
-var createStoredWorkspaceBodySchema = z.object({
-  id: z.string().optional().describe("Unique identifier. If not provided, derived from name."),
-  authorId: z.string().optional().describe("Author identifier for multi-tenant filtering"),
-  metadata: z.record(z.string(), z.unknown()).optional().describe("Additional metadata for the workspace")
+var createStoredWorkspaceBodySchema = z$1.object({
+  id: z$1.string().optional().describe("Unique identifier. If not provided, derived from name."),
+  authorId: z$1.string().optional().describe("Author identifier for multi-tenant filtering"),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Additional metadata for the workspace")
 }).merge(snapshotConfigSchema$4);
-var updateStoredWorkspaceBodySchema = z.object({
+var updateStoredWorkspaceBodySchema = z$1.object({
   // Note: authorId is intentionally not accepted. Ownership cannot be
   // transferred via PATCH.
-  metadata: z.record(z.string(), z.unknown()).optional()
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional()
 }).partial().merge(snapshotConfigSchema$4.partial());
-var storedWorkspaceSchema = z.object({
-  id: z.string(),
-  status: z.string().describe("Workspace status: draft, published, or archived"),
-  activeVersionId: z.string().optional(),
-  authorId: z.string().optional(),
-  metadata: z.record(z.string(), z.unknown()).optional(),
-  createdAt: z.coerce.date(),
-  updatedAt: z.coerce.date(),
-  name: z.string().describe("Name of the workspace"),
-  description: z.string().optional().describe("Description of the workspace"),
+var storedWorkspaceSchema = z$1.object({
+  id: z$1.string(),
+  status: z$1.string().describe("Workspace status: draft, published, or archived"),
+  activeVersionId: z$1.string().optional(),
+  authorId: z$1.string().optional(),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional(),
+  createdAt: z$1.coerce.date(),
+  updatedAt: z$1.coerce.date(),
+  name: z$1.string().describe("Name of the workspace"),
+  description: z$1.string().optional().describe("Description of the workspace"),
   filesystem: filesystemConfigSchema.optional().describe("Filesystem configuration"),
   sandbox: sandboxConfigSchema.optional().describe("Sandbox configuration"),
-  mounts: z.record(z.string(), filesystemConfigSchema).optional().describe("Mounted filesystems keyed by mount path"),
+  mounts: z$1.record(z$1.string(), filesystemConfigSchema).optional().describe("Mounted filesystems keyed by mount path"),
   search: searchConfigSchema.optional().describe("Search configuration"),
-  skills: z.array(z.string()).optional().describe("Array of skill IDs"),
+  skills: z$1.array(z$1.string()).optional().describe("Array of skill IDs"),
   tools: workspaceToolsConfigSchema.optional().describe("Workspace tool configuration"),
-  autoSync: z.boolean().optional().describe("Whether to automatically sync the workspace"),
-  operationTimeout: z.number().optional().describe("Operation timeout in milliseconds")
+  autoSync: z$1.boolean().optional().describe("Whether to automatically sync the workspace"),
+  operationTimeout: z$1.number().optional().describe("Operation timeout in milliseconds")
 });
 var listedWorkspaceSchema = storedWorkspaceSchema.extend({
-  runtimeRegistered: z.boolean().optional().describe("Whether this workspace is registered at runtime")
+  runtimeRegistered: z$1.boolean().optional().describe("Whether this workspace is registered at runtime")
 });
 var listStoredWorkspacesResponseSchema = paginationInfoSchema$1.extend({
-  workspaces: z.array(listedWorkspaceSchema)
+  workspaces: z$1.array(listedWorkspaceSchema)
 });
 var getStoredWorkspaceResponseSchema = storedWorkspaceSchema;
 var createStoredWorkspaceResponseSchema = storedWorkspaceSchema;
-var updateStoredWorkspaceResponseSchema = z.union([
-  z.object({
-    id: z.string(),
-    status: z.string(),
-    activeVersionId: z.string().optional(),
-    authorId: z.string().optional(),
-    metadata: z.record(z.string(), z.unknown()).optional(),
-    createdAt: z.coerce.date(),
-    updatedAt: z.coerce.date()
+var updateStoredWorkspaceResponseSchema = z$1.union([
+  z$1.object({
+    id: z$1.string(),
+    status: z$1.string(),
+    activeVersionId: z$1.string().optional(),
+    authorId: z$1.string().optional(),
+    metadata: z$1.record(z$1.string(), z$1.unknown()).optional(),
+    createdAt: z$1.coerce.date(),
+    updatedAt: z$1.coerce.date()
   }),
   storedWorkspaceSchema
 ]);
-var deleteStoredWorkspaceResponseSchema = z.object({
-  success: z.boolean(),
-  message: z.string()
+var deleteStoredWorkspaceResponseSchema = z$1.object({
+  success: z$1.boolean(),
+  message: z$1.string()
 });
 
 // src/server/schemas/tool-providers.ts
-var labelSchema = z.string().min(1, "Connection label is required").max(32, "Connection label must be \u2264 32 characters").regex(/^[A-Za-z0-9 _-]+$/, "Connection label may only contain letters, digits, spaces, _ and -");
-var connectionScopeSchema = z.enum(["shared", "per-author", "caller-supplied"]);
-var connectionSchema = z.object({
-  kind: z.enum(["author", "invoker", "platform"]),
-  toolkit: z.string().min(1),
-  connectionId: z.string(),
+var labelSchema = z$1.string().min(1, "Connection label is required").max(32, "Connection label must be \u2264 32 characters").regex(/^[A-Za-z0-9 _-]+$/, "Connection label may only contain letters, digits, spaces, _ and -");
+var connectionScopeSchema = z$1.enum(["shared", "per-author", "caller-supplied"]);
+var connectionSchema = z$1.object({
+  kind: z$1.enum(["author", "invoker", "platform"]),
+  toolkit: z$1.string().min(1),
+  connectionId: z$1.string(),
   label: labelSchema.optional(),
   scope: connectionScopeSchema.optional()
 });
-var toolMetaSchema = z.object({
-  toolkit: z.string().min(1).optional(),
-  description: z.string().optional()
+var toolMetaSchema = z$1.object({
+  toolkit: z$1.string().min(1).optional(),
+  description: z$1.string().optional()
 });
-var toolProviderConfigSchema = z.object({
-  tools: z.record(z.string(), toolMetaSchema),
-  connections: z.record(z.string(), z.array(connectionSchema))
+var toolProviderConfigSchema = z$1.object({
+  tools: z$1.record(z$1.string(), toolMetaSchema),
+  connections: z$1.record(z$1.string(), z$1.array(connectionSchema))
 }).superRefine((value, ctx) => {
   for (const [toolkit, connections] of Object.entries(value.connections)) {
     if (connections.length < 2) continue;
@@ -15386,172 +15676,172 @@ var toolProviderConfigSchema = z.object({
     }
   }
 });
-var toolProvidersSchema = z.record(z.string(), toolProviderConfigSchema);
-var toolProviderIdPathParams = z.object({
-  providerId: z.string().describe("Unique identifier for the tool provider")
+var toolProvidersSchema = z$1.record(z$1.string(), toolProviderConfigSchema);
+var toolProviderIdPathParams = z$1.object({
+  providerId: z$1.string().describe("Unique identifier for the tool provider")
 });
 var toolSlugPathParams = toolProviderIdPathParams.extend({
-  toolSlug: z.string().describe("Slug identifier for the tool")
+  toolSlug: z$1.string().describe("Slug identifier for the tool")
 });
 var toolProviderAuthStatusPathParams = toolProviderIdPathParams.extend({
-  authId: z.string().describe("Opaque auth handle returned by authorize")
+  authId: z$1.string().describe("Opaque auth handle returned by authorize")
 });
 var toolProviderConnectionPathParams = toolProviderIdPathParams.extend({
-  connectionId: z.string().describe("Adapter-native connection id (e.g. Composio ca_...)")
+  connectionId: z$1.string().describe("Adapter-native connection id (e.g. Composio ca_...)")
 });
-var listToolProviderToolsQuerySchema = z.object({
-  toolkit: z.string().optional().describe("Filter tools by toolkit slug"),
-  search: z.string().optional().describe("Search tools by name or description"),
-  page: z.coerce.number().optional().describe("Page number for pagination (1-indexed)"),
-  perPage: z.coerce.number().optional().describe("Number of items per page")
+var listToolProviderToolsQuerySchema = z$1.object({
+  toolkit: z$1.string().optional().describe("Filter tools by toolkit slug"),
+  search: z$1.string().optional().describe("Search tools by name or description"),
+  page: z$1.coerce.number().optional().describe("Page number for pagination (1-indexed)"),
+  perPage: z$1.coerce.number().optional().describe("Number of items per page")
 });
-var listConnectionFieldsQuerySchema = z.object({
-  toolkit: z.string().describe("Toolkit slug whose connection field schema to list")
+var listConnectionFieldsQuerySchema = z$1.object({
+  toolkit: z$1.string().describe("Toolkit slug whose connection field schema to list")
 });
-var listConnectionsQuerySchema = z.object({
-  toolkit: z.string().describe("Toolkit slug whose connections to list"),
-  authorId: z.string().optional().describe("Admin-only: restrict listing to a specific author. Silently ignored for non-admin callers."),
+var listConnectionsQuerySchema = z$1.object({
+  toolkit: z$1.string().describe("Toolkit slug whose connections to list"),
+  authorId: z$1.string().optional().describe("Admin-only: restrict listing to a specific author. Silently ignored for non-admin callers."),
   scope: connectionScopeSchema.optional().describe("Filter results by scope. Omit to include shared + per-author pins for the caller."),
-  page: z.coerce.number().int().positive().optional().describe("Page number for pagination (1-indexed)"),
-  perPage: z.coerce.number().int().positive().max(200).optional().describe("Number of items per page (default 50, max 200)")
+  page: z$1.coerce.number().int().positive().optional().describe("Page number for pagination (1-indexed)"),
+  perPage: z$1.coerce.number().int().positive().max(200).optional().describe("Number of items per page (default 50, max 200)")
 });
-var disconnectConnectionQuerySchema = z.object({
-  force: z.union([z.boolean(), z.enum(["true", "false"])]).optional().describe("When true, revoke at the provider and drop the row even if pinned by agents"),
-  toolkit: z.string().optional().describe("Toolkit slug for the connection (used when the row was upserted with one)")
+var disconnectConnectionQuerySchema = z$1.object({
+  force: z$1.union([z$1.boolean(), z$1.enum(["true", "false"])]).optional().describe("When true, revoke at the provider and drop the row even if pinned by agents"),
+  toolkit: z$1.string().optional().describe("Toolkit slug for the connection (used when the row was upserted with one)")
 });
-var connectionUsageQuerySchema = z.object({
-  toolkit: z.string().optional().describe("Optional toolkit slug to scope the usage scan")
+var connectionUsageQuerySchema = z$1.object({
+  toolkit: z$1.string().optional().describe("Optional toolkit slug to scope the usage scan")
 });
-var authorizeToolProviderBodySchema = z.object({
-  toolkit: z.string().describe("Toolkit slug being authorized"),
-  connectionId: z.string().optional().describe("Existing connection bucket id when re-authorizing; omit for a brand-new connection"),
-  toolName: z.string().optional().describe("Optional tool slug for tool-scoped authorization"),
-  config: z.record(z.string(), z.unknown()).optional().describe("Provider-specific user-supplied connection fields (e.g. subdomain)"),
-  label: z.string().min(1, "Connection label is required").max(32, "Connection label must be \u2264 32 characters").regex(/^[A-Za-z0-9 _-]+$/, "Connection label may only contain letters, digits, spaces, _ and -").nullish().describe(
+var authorizeToolProviderBodySchema = z$1.object({
+  toolkit: z$1.string().describe("Toolkit slug being authorized"),
+  connectionId: z$1.string().optional().describe("Existing connection bucket id when re-authorizing; omit for a brand-new connection"),
+  toolName: z$1.string().optional().describe("Optional tool slug for tool-scoped authorization"),
+  config: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Provider-specific user-supplied connection fields (e.g. subdomain)"),
+  label: z$1.string().min(1, "Connection label is required").max(32, "Connection label must be \u2264 32 characters").regex(/^[A-Za-z0-9 _-]+$/, "Connection label may only contain letters, digits, spaces, _ and -").nullish().describe(
     "Optional human label to persist on the resulting tool_provider_connections row. Must match the stored connection label rules (\u2264 32 chars, [A-Za-z0-9 _-]+)."
   ),
   scope: connectionScopeSchema.optional().describe(
     'Identity bucket. "shared" pins under SHARED_BUCKET_ID. "caller-supplied" pins under the request-context resourceId (returns 400 when missing). Defaults to "per-author".'
   )
 });
-var connectionStatusToolProviderBodySchema = z.object({
-  items: z.array(
-    z.object({
-      connectionId: z.string(),
-      toolkit: z.string()
+var connectionStatusToolProviderBodySchema = z$1.object({
+  items: z$1.array(
+    z$1.object({
+      connectionId: z$1.string(),
+      toolkit: z$1.string()
     })
   ).describe("Connection tuples to batch-check")
 });
-var paginationSchema = z.object({
-  total: z.number().optional(),
-  page: z.number().optional(),
-  perPage: z.number().optional(),
-  hasMore: z.boolean()
+var paginationSchema = z$1.object({
+  total: z$1.number().optional(),
+  page: z$1.number().optional(),
+  perPage: z$1.number().optional(),
+  hasMore: z$1.boolean()
 }).optional();
-var capabilitiesSchema = z.object({
-  multipleConnectionsPerToolkit: z.boolean(),
-  batchConnectionStatus: z.boolean(),
-  reauthorizeReusesConnectionId: z.boolean(),
-  supportsRevoke: z.boolean().optional()
+var capabilitiesSchema = z$1.object({
+  multipleConnectionsPerToolkit: z$1.boolean(),
+  batchConnectionStatus: z$1.boolean(),
+  reauthorizeReusesConnectionId: z$1.boolean(),
+  supportsRevoke: z$1.boolean().optional()
 });
-var listToolProvidersResponseSchema = z.object({
-  providers: z.array(
-    z.object({
-      id: z.string(),
-      name: z.string(),
-      description: z.string().optional(),
-      displayName: z.string().optional(),
+var listToolProvidersResponseSchema = z$1.object({
+  providers: z$1.array(
+    z$1.object({
+      id: z$1.string(),
+      name: z$1.string(),
+      description: z$1.string().optional(),
+      displayName: z$1.string().optional(),
       capabilities: capabilitiesSchema.optional()
     })
   )
 });
-var listToolProviderToolkitsResponseSchema = z.object({
-  data: z.array(
-    z.object({
-      slug: z.string(),
-      name: z.string(),
-      description: z.string().optional(),
-      icon: z.string().optional()
+var listToolProviderToolkitsResponseSchema = z$1.object({
+  data: z$1.array(
+    z$1.object({
+      slug: z$1.string(),
+      name: z$1.string(),
+      description: z$1.string().optional(),
+      icon: z$1.string().optional()
     })
   ),
   pagination: paginationSchema
 });
-var listToolProviderToolsResponseSchema = z.object({
-  data: z.array(
-    z.object({
-      slug: z.string(),
-      name: z.string(),
-      description: z.string().optional(),
-      toolkit: z.string().optional()
+var listToolProviderToolsResponseSchema = z$1.object({
+  data: z$1.array(
+    z$1.object({
+      slug: z$1.string(),
+      name: z$1.string(),
+      description: z$1.string().optional(),
+      toolkit: z$1.string().optional()
     })
   ),
   pagination: paginationSchema
 });
-var getToolProviderToolSchemaResponseSchema = z.record(z.string(), z.unknown());
-var authorizeToolProviderResponseSchema = z.object({
-  url: z.string(),
-  authId: z.string()
+var getToolProviderToolSchemaResponseSchema = z$1.record(z$1.string(), z$1.unknown());
+var authorizeToolProviderResponseSchema = z$1.object({
+  url: z$1.string(),
+  authId: z$1.string()
 });
-var authStatusToolProviderResponseSchema = z.object({
-  status: z.enum(["pending", "completed", "failed"])
+var authStatusToolProviderResponseSchema = z$1.object({
+  status: z$1.enum(["pending", "completed", "failed"])
 });
-var connectionStatusToolProviderResponseSchema = z.object({
-  items: z.record(z.string(), z.object({ connected: z.boolean() }))
+var connectionStatusToolProviderResponseSchema = z$1.object({
+  items: z$1.record(z$1.string(), z$1.object({ connected: z$1.boolean() }))
 });
-var listConnectionsResponseSchema = z.object({
-  items: z.array(
-    z.object({
-      connectionId: z.string(),
-      status: z.enum(["active", "pending", "failed", "inactive"]),
-      createdAt: z.string().optional(),
-      label: z.string().nullish().describe("Persisted display label from tool_provider_connections, if any"),
-      authorId: z.string().optional().describe("Owner of the connection (when known)"),
+var listConnectionsResponseSchema = z$1.object({
+  items: z$1.array(
+    z$1.object({
+      connectionId: z$1.string(),
+      status: z$1.enum(["active", "pending", "failed", "inactive"]),
+      createdAt: z$1.string().optional(),
+      label: z$1.string().nullish().describe("Persisted display label from tool_provider_connections, if any"),
+      authorId: z$1.string().optional().describe("Owner of the connection (when known)"),
       scope: connectionScopeSchema.optional().describe("Persisted scope from tool_provider_connections. Missing for rows that predate the scope field.")
     })
   ),
   pagination: paginationSchema
 });
-var listConnectionFieldsResponseSchema = z.object({
-  fields: z.array(
-    z.object({
-      name: z.string(),
-      displayName: z.string().optional(),
-      description: z.string().optional(),
-      type: z.enum(["string", "number", "boolean"]),
-      required: z.boolean(),
-      default: z.unknown().optional()
+var listConnectionFieldsResponseSchema = z$1.object({
+  fields: z$1.array(
+    z$1.object({
+      name: z$1.string(),
+      displayName: z$1.string().optional(),
+      description: z$1.string().optional(),
+      type: z$1.enum(["string", "number", "boolean"]),
+      required: z$1.boolean(),
+      default: z$1.unknown().optional()
     })
   )
 });
-var disconnectConnectionResponseSchema = z.object({
-  ok: z.literal(true),
-  revoked: z.boolean().describe("Whether the provider-side connection was revoked")
+var disconnectConnectionResponseSchema = z$1.object({
+  ok: z$1.literal(true),
+  revoked: z$1.boolean().describe("Whether the provider-side connection was revoked")
 });
-var updateConnectionBodySchema = z.object({
-  label: z.union([labelSchema, z.literal(""), z.null()]).describe("New display label for the connection. Pass null (or empty string) to clear the existing label.")
+var updateConnectionBodySchema = z$1.object({
+  label: z$1.union([labelSchema, z$1.literal(""), z$1.null()]).describe("New display label for the connection. Pass null (or empty string) to clear the existing label.")
 });
-var updateConnectionResponseSchema = z.object({
-  ok: z.literal(true),
-  label: z.string().nullable().describe("The persisted label after the update (null when cleared)")
+var updateConnectionResponseSchema = z$1.object({
+  ok: z$1.literal(true),
+  label: z$1.string().nullable().describe("The persisted label after the update (null when cleared)")
 });
-var connectionUsageResponseSchema = z.object({
-  agents: z.array(
-    z.object({
-      id: z.string(),
-      name: z.string()
+var connectionUsageResponseSchema = z$1.object({
+  agents: z$1.array(
+    z$1.object({
+      id: z$1.string(),
+      name: z$1.string()
     })
   )
 });
-var toolProviderHealthResponseSchema = z.object({
-  ok: z.boolean(),
-  message: z.string().optional(),
-  details: z.record(z.string(), z.unknown()).optional()
+var toolProviderHealthResponseSchema = z$1.object({
+  ok: z$1.boolean(),
+  message: z$1.string().optional(),
+  details: z$1.record(z$1.string(), z$1.unknown()).optional()
 });
 
 // src/server/schemas/rule-group.ts
-var ruleSchema = z.object({
-  field: z.string(),
-  operator: z.enum([
+var ruleSchema = z$1.object({
+  field: z$1.string(),
+  operator: z$1.enum([
     "equals",
     "not_equals",
     "contains",
@@ -15565,80 +15855,80 @@ var ruleSchema = z.object({
     "exists",
     "not_exists"
   ]),
-  value: z.unknown().optional()
+  value: z$1.unknown().optional()
 });
-var ruleGroupDepth2 = z.object({
-  operator: z.enum(["AND", "OR"]),
-  conditions: z.array(ruleSchema)
+var ruleGroupDepth2 = z$1.object({
+  operator: z$1.enum(["AND", "OR"]),
+  conditions: z$1.array(ruleSchema)
 });
-var ruleGroupDepth1 = z.object({
-  operator: z.enum(["AND", "OR"]),
-  conditions: z.array(z.union([ruleSchema, ruleGroupDepth2]))
+var ruleGroupDepth1 = z$1.object({
+  operator: z$1.enum(["AND", "OR"]),
+  conditions: z$1.array(z$1.union([ruleSchema, ruleGroupDepth2]))
 });
-var ruleGroupSchema = z.object({
-  operator: z.enum(["AND", "OR"]),
-  conditions: z.array(z.union([ruleSchema, ruleGroupDepth1]))
+var ruleGroupSchema = z$1.object({
+  operator: z$1.enum(["AND", "OR"]),
+  conditions: z$1.array(z$1.union([ruleSchema, ruleGroupDepth1]))
 });
 
-var semanticRecallSchema = z.object({
-  topK: z.number().describe("Number of semantically similar messages to retrieve"),
-  messageRange: z.union([
-    z.number(),
-    z.object({
-      before: z.number(),
-      after: z.number()
+var semanticRecallSchema = z$1.object({
+  topK: z$1.number().describe("Number of semantically similar messages to retrieve"),
+  messageRange: z$1.union([
+    z$1.number(),
+    z$1.object({
+      before: z$1.number(),
+      after: z$1.number()
     })
   ]).describe("Amount of surrounding context to include with each retrieved message"),
-  scope: z.enum(["thread", "resource"]).optional().describe("Scope for semantic search queries"),
-  threshold: z.number().min(0).max(1).optional().describe("Minimum similarity score threshold"),
-  indexName: z.string().optional().describe("Index name for the vector store")
+  scope: z$1.enum(["thread", "resource"]).optional().describe("Scope for semantic search queries"),
+  threshold: z$1.number().min(0).max(1).optional().describe("Minimum similarity score threshold"),
+  indexName: z$1.string().optional().describe("Index name for the vector store")
 });
-var titleGenerationSchema = z.union([
-  z.boolean(),
-  z.object({
-    model: z.string().describe("Model ID in format provider/model-name (ModelRouterModelId)"),
-    instructions: z.string().optional().describe("Custom instructions for title generation")
+var titleGenerationSchema = z$1.union([
+  z$1.boolean(),
+  z$1.object({
+    model: z$1.string().describe("Model ID in format provider/model-name (ModelRouterModelId)"),
+    instructions: z$1.string().optional().describe("Custom instructions for title generation")
   })
 ]);
-var serializedObservationConfigSchema = z.object({
-  model: z.string().optional().describe("Observer model ID"),
-  messageTokens: z.number().optional().describe("Token threshold that triggers observation"),
-  modelSettings: z.record(z.string(), z.unknown()).optional().describe("Model settings (temperature, etc.)"),
-  providerOptions: z.record(z.string(), z.record(z.string(), z.unknown()).optional()).optional().describe("Provider-specific options"),
-  maxTokensPerBatch: z.number().optional().describe("Maximum tokens per batch"),
-  bufferTokens: z.union([z.number(), z.literal(false)]).optional().describe("Async buffering interval or false"),
-  bufferActivation: z.number().optional().describe("Ratio of buffered observations to activate"),
-  blockAfter: z.number().optional().describe("Token threshold for synchronous blocking")
+var serializedObservationConfigSchema = z$1.object({
+  model: z$1.string().optional().describe("Observer model ID"),
+  messageTokens: z$1.number().optional().describe("Token threshold that triggers observation"),
+  modelSettings: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Model settings (temperature, etc.)"),
+  providerOptions: z$1.record(z$1.string(), z$1.record(z$1.string(), z$1.unknown()).optional()).optional().describe("Provider-specific options"),
+  maxTokensPerBatch: z$1.number().optional().describe("Maximum tokens per batch"),
+  bufferTokens: z$1.union([z$1.number(), z$1.literal(false)]).optional().describe("Async buffering interval or false"),
+  bufferActivation: z$1.number().optional().describe("Ratio of buffered observations to activate"),
+  blockAfter: z$1.number().optional().describe("Token threshold for synchronous blocking")
 });
-var serializedReflectionConfigSchema = z.object({
-  model: z.string().optional().describe("Reflector model ID"),
-  observationTokens: z.number().optional().describe("Token threshold that triggers reflection"),
-  modelSettings: z.record(z.string(), z.unknown()).optional().describe("Model settings (temperature, etc.)"),
-  providerOptions: z.record(z.string(), z.record(z.string(), z.unknown()).optional()).optional().describe("Provider-specific options"),
-  blockAfter: z.number().optional().describe("Token threshold for synchronous blocking"),
-  bufferActivation: z.number().optional().describe("Ratio for async reflection buffering")
+var serializedReflectionConfigSchema = z$1.object({
+  model: z$1.string().optional().describe("Reflector model ID"),
+  observationTokens: z$1.number().optional().describe("Token threshold that triggers reflection"),
+  modelSettings: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Model settings (temperature, etc.)"),
+  providerOptions: z$1.record(z$1.string(), z$1.record(z$1.string(), z$1.unknown()).optional()).optional().describe("Provider-specific options"),
+  blockAfter: z$1.number().optional().describe("Token threshold for synchronous blocking"),
+  bufferActivation: z$1.number().optional().describe("Ratio for async reflection buffering")
 });
-var serializedObservationalMemoryConfigObjectSchema = z.object({
-  model: z.string().optional().describe("Model ID for both Observer and Reflector"),
-  scope: z.enum(["resource", "thread"]).optional().describe("Memory scope"),
-  shareTokenBudget: z.boolean().optional().describe("Share token budget between messages and observations"),
+var serializedObservationalMemoryConfigObjectSchema = z$1.object({
+  model: z$1.string().optional().describe("Model ID for both Observer and Reflector"),
+  scope: z$1.enum(["resource", "thread"]).optional().describe("Memory scope"),
+  shareTokenBudget: z$1.boolean().optional().describe("Share token budget between messages and observations"),
   observation: serializedObservationConfigSchema.optional().describe("Observation step configuration"),
   reflection: serializedReflectionConfigSchema.optional().describe("Reflection step configuration")
 });
-var serializedObservationalMemoryConfigSchema = z.union([
-  z.boolean(),
+var serializedObservationalMemoryConfigSchema = z$1.union([
+  z$1.boolean(),
   serializedObservationalMemoryConfigObjectSchema
 ]);
-var serializedMemoryConfigSchema = z.object({
-  vector: z.union([z.string(), z.literal(false)]).optional().describe("Vector database identifier or false to disable"),
-  options: z.object({
-    readOnly: z.boolean().optional(),
-    lastMessages: z.union([z.number(), z.literal(false)]).optional(),
-    semanticRecall: z.union([z.boolean(), semanticRecallSchema]).optional(),
+var serializedMemoryConfigSchema = z$1.object({
+  vector: z$1.union([z$1.string(), z$1.literal(false)]).optional().describe("Vector database identifier or false to disable"),
+  options: z$1.object({
+    readOnly: z$1.boolean().optional(),
+    lastMessages: z$1.union([z$1.number(), z$1.literal(false)]).optional(),
+    semanticRecall: z$1.union([z$1.boolean(), semanticRecallSchema]).optional(),
     generateTitle: titleGenerationSchema.optional()
   }).optional().describe("Memory behavior configuration, excluding workingMemory and threads"),
-  embedder: z.string().optional().describe('Embedding model ID in the format "provider/model" (e.g., "openai/text-embedding-3-small")'),
-  embedderOptions: z.record(z.string(), z.unknown()).optional().describe("Options to pass to the embedder, omitting telemetry"),
+  embedder: z$1.string().optional().describe('Embedding model ID in the format "provider/model" (e.g., "openai/text-embedding-3-small")'),
+  embedderOptions: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Options to pass to the embedder, omitting telemetry"),
   observationalMemory: serializedObservationalMemoryConfigSchema.optional().describe("Serialized observational memory configuration")
 }).refine(
   (data) => {
@@ -15656,313 +15946,313 @@ var serializedMemoryConfigSchema = z.object({
     path: ["options", "semanticRecall"]
   }
 );
-var storedAgentIdPathParams = z.object({
-  storedAgentId: z.string().describe("Unique identifier for the stored agent")
+var storedAgentIdPathParams = z$1.object({
+  storedAgentId: z$1.string().describe("Unique identifier for the stored agent")
 });
-var storageOrderBySchema$5 = z.object({
-  field: z.enum(["createdAt", "updatedAt"]).optional(),
-  direction: z.enum(["ASC", "DESC"]).optional()
+var storageOrderBySchema$5 = z$1.object({
+  field: z$1.enum(["createdAt", "updatedAt"]).optional(),
+  direction: z$1.enum(["ASC", "DESC"]).optional()
 });
 var listStoredAgentsQuerySchema = createPagePaginationSchema(100).extend({
   orderBy: storageOrderBySchema$5.optional(),
-  status: z.enum(["draft", "published", "archived"]).optional().default("published").describe("Filter agents by status (defaults to published)"),
-  authorId: z.string().optional().describe("Filter agents by author identifier"),
-  visibility: z.enum(["public"]).optional().describe("Filter to only public agents"),
-  metadata: z.record(z.string(), z.unknown()).optional().describe("Filter agents by metadata key-value pairs"),
-  favoritedOnly: z.stringbool().optional().describe("When true, return only agents favorited by the caller (requires the `favorites` EE feature)"),
-  pinFavoritedFor: z.string().optional().describe(
+  status: z$1.enum(["draft", "published", "archived"]).optional().default("published").describe("Filter agents by status (defaults to published)"),
+  authorId: z$1.string().optional().describe("Filter agents by author identifier"),
+  visibility: z$1.enum(["public"]).optional().describe("Filter to only public agents"),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Filter agents by metadata key-value pairs"),
+  favoritedOnly: z$1.stringbool().optional().describe("When true, return only agents favorited by the caller (requires the `favorites` EE feature)"),
+  pinFavoritedFor: z$1.string().optional().describe(
     "When set, treat the given subject (user/role) as the favoriting principal for `favoritedOnly` instead of the caller"
   )
 });
-var scorerConfigSchema = z.object({
-  description: z.string().optional(),
-  sampling: z.union([
-    z.object({ type: z.literal("none") }),
-    z.object({ type: z.literal("ratio"), rate: z.number().min(0).max(1) })
+var scorerConfigSchema = z$1.object({
+  description: z$1.string().optional(),
+  sampling: z$1.union([
+    z$1.object({ type: z$1.literal("none") }),
+    z$1.object({ type: z$1.literal("ratio"), rate: z$1.number().min(0).max(1) })
   ]).optional(),
   rules: ruleGroupSchema.optional()
 });
-var agentInstructionBlockSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("text"), content: z.string() }),
-  z.object({ type: z.literal("prompt_block_ref"), id: z.string() }),
-  z.object({ type: z.literal("prompt_block"), content: z.string(), rules: ruleGroupSchema.optional() })
+var agentInstructionBlockSchema = z$1.discriminatedUnion("type", [
+  z$1.object({ type: z$1.literal("text"), content: z$1.string() }),
+  z$1.object({ type: z$1.literal("prompt_block_ref"), id: z$1.string() }),
+  z$1.object({ type: z$1.literal("prompt_block"), content: z$1.string(), rules: ruleGroupSchema.optional() })
 ]);
 function conditionalFieldSchema(valueSchema) {
-  const variantSchema = z.object({
+  const variantSchema = z$1.object({
     value: valueSchema,
     rules: ruleGroupSchema.optional()
   });
-  return z.union([valueSchema, z.array(variantSchema)]);
+  return z$1.union([valueSchema, z$1.array(variantSchema)]);
 }
-var instructionsSchema = z.union([z.string(), z.array(agentInstructionBlockSchema)]).describe("System instructions for the agent (string or array of instruction blocks)");
-var modelConfigSchema = z.object({
-  provider: z.string().describe("Model provider (e.g., openai, anthropic)"),
-  name: z.string().describe("Model name (e.g., gpt-4o, claude-3-opus)")
+var instructionsSchema = z$1.union([z$1.string(), z$1.array(agentInstructionBlockSchema)]).describe("System instructions for the agent (string or array of instruction blocks)");
+var modelConfigSchema = z$1.object({
+  provider: z$1.string().describe("Model provider (e.g., openai, anthropic)"),
+  name: z$1.string().describe("Model name (e.g., gpt-4o, claude-3-opus)")
 }).passthrough();
-var toolConfigSchema = z.object({ description: z.string().optional(), rules: ruleGroupSchema.optional() });
-var toolsConfigSchema = z.record(z.string(), toolConfigSchema);
-var mcpClientToolsConfigSchema$1 = z.object({
-  tools: z.record(z.string(), toolConfigSchema).optional()
+var toolConfigSchema = z$1.object({ description: z$1.string().optional(), rules: ruleGroupSchema.optional() });
+var toolsConfigSchema = z$1.record(z$1.string(), toolConfigSchema);
+var mcpClientToolsConfigSchema$1 = z$1.object({
+  tools: z$1.record(z$1.string(), toolConfigSchema).optional()
 });
-var skillConfigSchema = z.object({
-  description: z.string().optional(),
-  instructions: z.string().optional(),
-  pin: z.string().optional(),
-  strategy: z.enum(["latest", "live"]).optional()
+var skillConfigSchema = z$1.object({
+  description: z$1.string().optional(),
+  instructions: z$1.string().optional(),
+  pin: z$1.string().optional(),
+  strategy: z$1.enum(["latest", "live"]).optional()
 });
-var skillsConfigSchema = z.record(z.string(), skillConfigSchema);
-var workspaceRefSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("id"), workspaceId: z.string() }),
-  z.object({ type: z.literal("inline"), config: snapshotConfigSchema$4 })
+var skillsConfigSchema = z$1.record(z$1.string(), skillConfigSchema);
+var workspaceRefSchema = z$1.discriminatedUnion("type", [
+  z$1.object({ type: z$1.literal("id"), workspaceId: z$1.string() }),
+  z$1.object({ type: z$1.literal("inline"), config: snapshotConfigSchema$4 })
 ]);
-var screencastOptionsSchema = z.object({
-  format: z.enum(["jpeg", "png"]).optional().describe("Image format (default: jpeg)"),
-  quality: z.number().min(0).max(100).optional().describe("JPEG quality 0-100 (default: 80)"),
-  maxWidth: z.number().optional().describe("Max width in pixels (default: 1280)"),
-  maxHeight: z.number().optional().describe("Max height in pixels (default: 720)"),
-  everyNthFrame: z.number().optional().describe("Capture every Nth frame (default: 1)")
+var screencastOptionsSchema = z$1.object({
+  format: z$1.enum(["jpeg", "png"]).optional().describe("Image format (default: jpeg)"),
+  quality: z$1.number().min(0).max(100).optional().describe("JPEG quality 0-100 (default: 80)"),
+  maxWidth: z$1.number().optional().describe("Max width in pixels (default: 1280)"),
+  maxHeight: z$1.number().optional().describe("Max height in pixels (default: 720)"),
+  everyNthFrame: z$1.number().optional().describe("Capture every Nth frame (default: 1)")
 });
-var browserConfigSchema = z.object({
-  provider: z.string().describe("Browser provider type (e.g., stagehand, playwright)"),
-  headless: z.boolean().optional().describe("Run browser in headless mode (default: true)"),
-  viewport: z.object({
-    width: z.number().describe("Viewport width in pixels"),
-    height: z.number().describe("Viewport height in pixels")
+var browserConfigSchema = z$1.object({
+  provider: z$1.string().describe("Browser provider type (e.g., stagehand, playwright)"),
+  headless: z$1.boolean().optional().describe("Run browser in headless mode (default: true)"),
+  viewport: z$1.object({
+    width: z$1.number().describe("Viewport width in pixels"),
+    height: z$1.number().describe("Viewport height in pixels")
   }).optional().describe("Browser viewport dimensions"),
-  timeout: z.number().optional().describe("Default timeout in milliseconds (default: 10000)"),
+  timeout: z$1.number().optional().describe("Default timeout in milliseconds (default: 10000)"),
   screencast: screencastOptionsSchema.optional().describe("Screencast options for streaming browser frames")
 });
-var browserRefSchema = z.object({
-  type: z.literal("inline"),
+var browserRefSchema = z$1.object({
+  type: z$1.literal("inline"),
   config: browserConfigSchema
 });
-var processorPhaseSchema$1 = z.enum([
+var processorPhaseSchema$1 = z$1.enum([
   "processInput",
   "processInputStep",
   "processOutputStream",
   "processOutputResult",
   "processOutputStep"
 ]);
-var processorGraphStepSchema = z.object({
-  id: z.string().describe("Unique ID for this step within the graph"),
-  providerId: z.string().describe("ProcessorProvider ID that creates this processor"),
-  config: z.record(z.string(), z.unknown()).describe("Configuration matching the provider configSchema"),
-  enabledPhases: z.array(processorPhaseSchema$1).min(1).describe("Which processor phases to enable")
+var processorGraphStepSchema = z$1.object({
+  id: z$1.string().describe("Unique ID for this step within the graph"),
+  providerId: z$1.string().describe("ProcessorProvider ID that creates this processor"),
+  config: z$1.record(z$1.string(), z$1.unknown()).describe("Configuration matching the provider configSchema"),
+  enabledPhases: z$1.array(processorPhaseSchema$1).min(1).describe("Which processor phases to enable")
 });
-var processorGraphEntryDepth3 = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("step"), step: processorGraphStepSchema })
+var processorGraphEntryDepth3 = z$1.discriminatedUnion("type", [
+  z$1.object({ type: z$1.literal("step"), step: processorGraphStepSchema })
 ]);
-var processorGraphEntryDepth2 = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("step"), step: processorGraphStepSchema }),
-  z.object({ type: z.literal("parallel"), branches: z.array(z.array(processorGraphEntryDepth3)) }),
-  z.object({
-    type: z.literal("conditional"),
-    conditions: z.array(
-      z.object({
-        steps: z.array(processorGraphEntryDepth3),
+var processorGraphEntryDepth2 = z$1.discriminatedUnion("type", [
+  z$1.object({ type: z$1.literal("step"), step: processorGraphStepSchema }),
+  z$1.object({ type: z$1.literal("parallel"), branches: z$1.array(z$1.array(processorGraphEntryDepth3)) }),
+  z$1.object({
+    type: z$1.literal("conditional"),
+    conditions: z$1.array(
+      z$1.object({
+        steps: z$1.array(processorGraphEntryDepth3),
         rules: ruleGroupSchema.optional()
       })
     )
   })
 ]);
-var processorGraphEntrySchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("step"), step: processorGraphStepSchema }),
-  z.object({ type: z.literal("parallel"), branches: z.array(z.array(processorGraphEntryDepth2)) }),
-  z.object({
-    type: z.literal("conditional"),
-    conditions: z.array(
-      z.object({
-        steps: z.array(processorGraphEntryDepth2),
+var processorGraphEntrySchema = z$1.discriminatedUnion("type", [
+  z$1.object({ type: z$1.literal("step"), step: processorGraphStepSchema }),
+  z$1.object({ type: z$1.literal("parallel"), branches: z$1.array(z$1.array(processorGraphEntryDepth2)) }),
+  z$1.object({
+    type: z$1.literal("conditional"),
+    conditions: z$1.array(
+      z$1.object({
+        steps: z$1.array(processorGraphEntryDepth2),
         rules: ruleGroupSchema.optional()
       })
     )
   })
 ]);
-var storedProcessorGraphSchema = z.object({
-  steps: z.array(processorGraphEntrySchema).describe("Ordered list of processor graph entries")
+var storedProcessorGraphSchema = z$1.object({
+  steps: z$1.array(processorGraphEntrySchema).describe("Ordered list of processor graph entries")
 });
-var snapshotConfigSchema2 = z.object({
-  name: z.string().describe("Name of the agent"),
-  description: z.string().optional().describe("Description of the agent"),
+var snapshotConfigSchema2 = z$1.object({
+  name: z$1.string().describe("Name of the agent"),
+  description: z$1.string().optional().describe("Description of the agent"),
   instructions: instructionsSchema,
   model: conditionalFieldSchema(modelConfigSchema).describe(
     "Model configuration \u2014 static value or array of conditional variants"
   ),
   tools: conditionalFieldSchema(toolsConfigSchema).optional().describe("Tool keys mapped to per-tool config \u2014 static or conditional"),
   defaultOptions: conditionalFieldSchema(defaultOptionsSchema).optional().describe("Default options for generate/stream calls \u2014 static or conditional"),
-  workflows: conditionalFieldSchema(z.record(z.string(), toolConfigSchema)).optional().describe("Workflow keys with optional per-workflow config \u2014 static or conditional"),
-  agents: conditionalFieldSchema(z.record(z.string(), toolConfigSchema)).optional().describe("Agent keys with optional per-agent config \u2014 static or conditional"),
-  integrationTools: conditionalFieldSchema(z.record(z.string(), mcpClientToolsConfigSchema$1)).optional().describe("Map of tool provider IDs to their tool configurations \u2014 static or conditional"),
+  workflows: conditionalFieldSchema(z$1.record(z$1.string(), toolConfigSchema)).optional().describe("Workflow keys with optional per-workflow config \u2014 static or conditional"),
+  agents: conditionalFieldSchema(z$1.record(z$1.string(), toolConfigSchema)).optional().describe("Agent keys with optional per-agent config \u2014 static or conditional"),
+  integrationTools: conditionalFieldSchema(z$1.record(z$1.string(), mcpClientToolsConfigSchema$1)).optional().describe("Map of tool provider IDs to their tool configurations \u2014 static or conditional"),
   toolProviders: conditionalFieldSchema(toolProvidersSchema).optional().describe(
     "Tool provider connections and per-tool config (provider-agnostic). Coexists with the deprecated `integrationTools` field."
   ),
-  mcpClients: conditionalFieldSchema(z.record(z.string(), mcpClientToolsConfigSchema$1)).optional().describe("Map of stored MCP client IDs to their tool configurations \u2014 static or conditional"),
+  mcpClients: conditionalFieldSchema(z$1.record(z$1.string(), mcpClientToolsConfigSchema$1)).optional().describe("Map of stored MCP client IDs to their tool configurations \u2014 static or conditional"),
   inputProcessors: conditionalFieldSchema(storedProcessorGraphSchema).optional().describe("Input processor graph \u2014 static or conditional"),
   outputProcessors: conditionalFieldSchema(storedProcessorGraphSchema).optional().describe("Output processor graph \u2014 static or conditional"),
   memory: conditionalFieldSchema(serializedMemoryConfigSchema).optional().describe("Memory configuration \u2014 static or conditional"),
-  scorers: conditionalFieldSchema(z.record(z.string(), scorerConfigSchema)).optional().describe("Scorer keys with optional sampling config \u2014 static or conditional"),
+  scorers: conditionalFieldSchema(z$1.record(z$1.string(), scorerConfigSchema)).optional().describe("Scorer keys with optional sampling config \u2014 static or conditional"),
   skills: conditionalFieldSchema(skillsConfigSchema).optional().describe("Skill IDs mapped to per-skill config \u2014 static or conditional"),
   workspace: conditionalFieldSchema(workspaceRefSchema).optional().describe("Workspace reference (stored ID or inline config) \u2014 static or conditional"),
-  browser: z.union([conditionalFieldSchema(browserRefSchema), z.boolean(), z.null()]).optional().describe("Browser configuration \u2014 object config, true (apply default), false/null (disable)"),
-  requestContextSchema: z.record(z.string(), z.unknown()).optional().describe("JSON Schema defining valid request context variables for conditional rule evaluation")
+  browser: z$1.union([conditionalFieldSchema(browserRefSchema), z$1.boolean(), z$1.null()]).optional().describe("Browser configuration \u2014 object config, true (apply default), false/null (disable)"),
+  requestContextSchema: z$1.record(z$1.string(), z$1.unknown()).optional().describe("JSON Schema defining valid request context variables for conditional rule evaluation")
 });
-var agentMetadataSchema = z.object({
-  authorId: z.string().optional().describe("Author identifier for multi-tenant filtering"),
-  metadata: z.record(z.string(), z.unknown()).optional().describe("Additional metadata for the agent"),
-  visibility: z.enum(["private", "public"]).optional().describe("Agent visibility: private (owner/admin only) or public (any reader)")
+var agentMetadataSchema = z$1.object({
+  authorId: z$1.string().optional().describe("Author identifier for multi-tenant filtering"),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Additional metadata for the agent"),
+  visibility: z$1.enum(["private", "public"]).optional().describe("Agent visibility: private (owner/admin only) or public (any reader)")
 });
 var snapshotConfigCreateSchema = snapshotConfigSchema2.extend({
   model: conditionalFieldSchema(modelConfigSchema).optional().describe(
     "Model configuration \u2014 static value or array of conditional variants. When omitted, the builder default model is applied server-side."
   )
 });
-var createStoredAgentBodySchema = z.object({
-  id: z.string().optional().describe("Unique identifier for the agent. If not provided, derived from name."),
-  authorId: z.string().optional().describe("Author identifier for multi-tenant filtering"),
-  metadata: z.record(z.string(), z.unknown()).optional().describe("Additional metadata for the agent"),
-  visibility: z.enum(["private", "public"]).optional().describe("Agent visibility: private (owner/admin only) or public (any reader)")
+var createStoredAgentBodySchema = z$1.object({
+  id: z$1.string().optional().describe("Unique identifier for the agent. If not provided, derived from name."),
+  authorId: z$1.string().optional().describe("Author identifier for multi-tenant filtering"),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Additional metadata for the agent"),
+  visibility: z$1.enum(["private", "public"]).optional().describe("Agent visibility: private (owner/admin only) or public (any reader)")
 }).merge(snapshotConfigCreateSchema);
 var snapshotConfigUpdateSchema = snapshotConfigSchema2.extend({
-  memory: z.union([conditionalFieldSchema(serializedMemoryConfigSchema), z.null()]).optional().describe("Memory configuration \u2014 static, conditional, or null to disable memory")
+  memory: z$1.union([conditionalFieldSchema(serializedMemoryConfigSchema), z$1.null()]).optional().describe("Memory configuration \u2014 static, conditional, or null to disable memory")
 });
 var updateStoredAgentBodySchema = agentMetadataSchema.partial().merge(snapshotConfigUpdateSchema.partial()).extend({
-  changeMessage: z.string().trim().max(500).optional().describe("Optional message describing the changes for the auto-created version")
+  changeMessage: z$1.string().trim().max(500).optional().describe("Optional message describing the changes for the auto-created version")
 });
 var exportStoredAgentBodySchema = snapshotConfigUpdateSchema.partial();
-var resolvedAuthorSchema = z.object({
-  id: z.string(),
-  name: z.string().optional(),
-  email: z.string().optional(),
-  avatarUrl: z.string().optional()
+var resolvedAuthorSchema = z$1.object({
+  id: z$1.string(),
+  name: z$1.string().optional(),
+  email: z$1.string().optional(),
+  avatarUrl: z$1.string().optional()
 });
-var storedAgentSchema = z.object({
+var storedAgentSchema = z$1.object({
   // Thin agent record fields
-  id: z.string(),
-  status: z.string().describe("Agent status: draft or published"),
-  activeVersionId: z.string().optional(),
-  authorId: z.string().optional(),
+  id: z$1.string(),
+  status: z$1.string().describe("Agent status: draft or published"),
+  activeVersionId: z$1.string().optional(),
+  authorId: z$1.string().optional(),
   author: resolvedAuthorSchema.optional().describe("Resolved author identity (when an auth provider is configured)"),
-  metadata: z.record(z.string(), z.unknown()).optional(),
-  visibility: z.enum(["private", "public"]).optional(),
-  favoriteCount: z.number().int().nonnegative().optional().describe("Number of users who have favorited this agent"),
-  isFavorited: z.boolean().optional().describe("Whether the requesting user has favorited this agent"),
-  createdAt: z.coerce.date(),
-  updatedAt: z.coerce.date(),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional(),
+  visibility: z$1.enum(["private", "public"]).optional(),
+  favoriteCount: z$1.number().int().nonnegative().optional().describe("Number of users who have favorited this agent"),
+  isFavorited: z$1.boolean().optional().describe("Whether the requesting user has favorited this agent"),
+  createdAt: z$1.coerce.date(),
+  updatedAt: z$1.coerce.date(),
   // Version snapshot config fields (resolved from active version)
-  name: z.string().describe("Name of the agent"),
-  description: z.string().optional().describe("Description of the agent"),
+  name: z$1.string().describe("Name of the agent"),
+  description: z$1.string().optional().describe("Description of the agent"),
   instructions: instructionsSchema,
   model: conditionalFieldSchema(modelConfigSchema).describe(
     "Model configuration \u2014 static value or array of conditional variants"
   ),
   tools: conditionalFieldSchema(toolsConfigSchema).optional().describe("Tool keys mapped to per-tool config \u2014 static or conditional"),
   defaultOptions: conditionalFieldSchema(defaultOptionsSchema).optional().describe("Default options for generate/stream calls \u2014 static or conditional"),
-  workflows: conditionalFieldSchema(z.record(z.string(), toolConfigSchema)).optional().describe("Workflow keys with optional per-workflow config \u2014 static or conditional"),
-  agents: conditionalFieldSchema(z.record(z.string(), toolConfigSchema)).optional().describe("Agent keys with optional per-agent config \u2014 static or conditional"),
-  integrationTools: conditionalFieldSchema(z.record(z.string(), mcpClientToolsConfigSchema$1)).optional().describe("Map of tool provider IDs to their tool configurations \u2014 static or conditional"),
+  workflows: conditionalFieldSchema(z$1.record(z$1.string(), toolConfigSchema)).optional().describe("Workflow keys with optional per-workflow config \u2014 static or conditional"),
+  agents: conditionalFieldSchema(z$1.record(z$1.string(), toolConfigSchema)).optional().describe("Agent keys with optional per-agent config \u2014 static or conditional"),
+  integrationTools: conditionalFieldSchema(z$1.record(z$1.string(), mcpClientToolsConfigSchema$1)).optional().describe("Map of tool provider IDs to their tool configurations \u2014 static or conditional"),
   toolProviders: conditionalFieldSchema(toolProvidersSchema).optional().describe(
     "Tool provider connections and per-tool config (provider-agnostic). Coexists with the deprecated `integrationTools` field."
   ),
-  mcpClients: conditionalFieldSchema(z.record(z.string(), mcpClientToolsConfigSchema$1)).optional().describe("Map of stored MCP client IDs to their tool configurations \u2014 static or conditional"),
+  mcpClients: conditionalFieldSchema(z$1.record(z$1.string(), mcpClientToolsConfigSchema$1)).optional().describe("Map of stored MCP client IDs to their tool configurations \u2014 static or conditional"),
   inputProcessors: conditionalFieldSchema(storedProcessorGraphSchema).optional().describe("Input processor graph \u2014 static or conditional"),
   outputProcessors: conditionalFieldSchema(storedProcessorGraphSchema).optional().describe("Output processor graph \u2014 static or conditional"),
   memory: conditionalFieldSchema(serializedMemoryConfigSchema).optional().describe("Memory configuration \u2014 static or conditional"),
-  scorers: conditionalFieldSchema(z.record(z.string(), scorerConfigSchema)).optional().describe("Scorer keys with optional sampling config \u2014 static or conditional"),
+  scorers: conditionalFieldSchema(z$1.record(z$1.string(), scorerConfigSchema)).optional().describe("Scorer keys with optional sampling config \u2014 static or conditional"),
   skills: conditionalFieldSchema(skillsConfigSchema).optional().describe("Skill IDs mapped to per-skill config \u2014 static or conditional"),
   workspace: conditionalFieldSchema(workspaceRefSchema).optional().describe("Workspace reference (stored ID or inline config) \u2014 static or conditional"),
-  browser: z.union([conditionalFieldSchema(browserRefSchema), z.boolean(), z.null()]).optional().describe("Browser configuration \u2014 object config, true (apply default), false/null (disable)"),
-  requestContextSchema: z.record(z.string(), z.unknown()).optional().describe("JSON Schema defining valid request context variables")
+  browser: z$1.union([conditionalFieldSchema(browserRefSchema), z$1.boolean(), z$1.null()]).optional().describe("Browser configuration \u2014 object config, true (apply default), false/null (disable)"),
+  requestContextSchema: z$1.record(z$1.string(), z$1.unknown()).optional().describe("JSON Schema defining valid request context variables")
 });
 var listStoredAgentsResponseSchema = paginationInfoSchema$1.extend({
-  agents: z.array(storedAgentSchema)
+  agents: z$1.array(storedAgentSchema)
 });
 var getStoredAgentResponseSchema = storedAgentSchema;
 var createStoredAgentResponseSchema = storedAgentSchema;
-var updateStoredAgentResponseSchema = z.union([
+var updateStoredAgentResponseSchema = z$1.union([
   // Thin agent record (no version config)
-  z.object({
-    id: z.string(),
-    status: z.string(),
-    activeVersionId: z.string().optional(),
-    authorId: z.string().optional(),
-    metadata: z.record(z.string(), z.unknown()).optional(),
-    visibility: z.enum(["private", "public"]).optional(),
-    createdAt: z.coerce.date(),
-    updatedAt: z.coerce.date()
+  z$1.object({
+    id: z$1.string(),
+    status: z$1.string(),
+    activeVersionId: z$1.string().optional(),
+    authorId: z$1.string().optional(),
+    metadata: z$1.record(z$1.string(), z$1.unknown()).optional(),
+    visibility: z$1.enum(["private", "public"]).optional(),
+    createdAt: z$1.coerce.date(),
+    updatedAt: z$1.coerce.date()
   }),
   // Resolved agent (thin record + version config)
   storedAgentSchema
 ]);
-var deleteStoredAgentResponseSchema = z.object({
-  success: z.boolean(),
-  message: z.string()
+var deleteStoredAgentResponseSchema = z$1.object({
+  success: z$1.boolean(),
+  message: z$1.string()
 });
-var getStoredAgentDependentsResponseSchema = z.object({
-  dependents: z.array(
-    z.object({
-      id: z.string(),
-      name: z.string()
+var getStoredAgentDependentsResponseSchema = z$1.object({
+  dependents: z$1.array(
+    z$1.object({
+      id: z$1.string(),
+      name: z$1.string()
     })
   ),
-  hiddenCount: z.number().int().nonnegative()
+  hiddenCount: z$1.number().int().nonnegative()
 });
-var exportStoredAgentResponseSchema = z.object({
-  agentId: z.string(),
-  fileName: z.string(),
-  content: z.string(),
-  config: z.record(z.string(), z.unknown())
+var exportStoredAgentResponseSchema = z$1.object({
+  agentId: z$1.string(),
+  fileName: z$1.string(),
+  content: z$1.string(),
+  config: z$1.record(z$1.string(), z$1.unknown())
 });
-var previewInstructionsBodySchema = z.object({
-  blocks: z.array(agentInstructionBlockSchema).describe("Array of instruction blocks to resolve"),
-  context: z.record(z.string(), z.unknown()).optional().default({}).describe("Request context for variable interpolation and rule evaluation")
+var previewInstructionsBodySchema = z$1.object({
+  blocks: z$1.array(agentInstructionBlockSchema).describe("Array of instruction blocks to resolve"),
+  context: z$1.record(z$1.string(), z$1.unknown()).optional().default({}).describe("Request context for variable interpolation and rule evaluation")
 });
-var previewInstructionsResponseSchema = z.object({
-  result: z.string().describe("The resolved instructions string")
+var previewInstructionsResponseSchema = z$1.object({
+  result: z$1.string().describe("The resolved instructions string")
 });
 
 // src/server/schemas/workspace.ts
-z.object({
-  path: z.string().describe("File or directory path (URL encoded)")
+z$1.object({
+  path: z$1.string().describe("File or directory path (URL encoded)")
 });
-var workspaceIdPathParams = z.object({
-  workspaceId: z.string().describe("Workspace ID")
+var workspaceIdPathParams = z$1.object({
+  workspaceId: z$1.string().describe("Workspace ID")
 });
-var fsReadQuerySchema = z.object({
-  path: z.string().describe("Path to the file to read"),
-  encoding: z.string().optional().describe("Encoding for text files (default: utf-8)")
+var fsReadQuerySchema = z$1.object({
+  path: z$1.string().describe("Path to the file to read"),
+  encoding: z$1.string().optional().describe("Encoding for text files (default: utf-8)")
 });
-var fsListQuerySchema = z.object({
-  path: z.string().describe("Path to the directory to list"),
-  recursive: z.coerce.boolean().optional().describe("Include subdirectories")
+var fsListQuerySchema = z$1.object({
+  path: z$1.string().describe("Path to the directory to list"),
+  recursive: z$1.coerce.boolean().optional().describe("Include subdirectories")
 });
-var fsStatQuerySchema = z.object({
-  path: z.string().describe("Path to get info about")
+var fsStatQuerySchema = z$1.object({
+  path: z$1.string().describe("Path to get info about")
 });
-var fsDeleteQuerySchema = z.object({
-  path: z.string().describe("Path to delete"),
-  recursive: z.coerce.boolean().optional().describe("Delete directories recursively"),
-  force: z.coerce.boolean().optional().describe("Don't error if path doesn't exist")
+var fsDeleteQuerySchema = z$1.object({
+  path: z$1.string().describe("Path to delete"),
+  recursive: z$1.coerce.boolean().optional().describe("Delete directories recursively"),
+  force: z$1.coerce.boolean().optional().describe("Don't error if path doesn't exist")
 });
-var fsWriteBodySchema = z.object({
-  path: z.string().describe("Path to write to"),
-  content: z.string().describe("Content to write (text or base64-encoded binary)"),
-  encoding: z.enum(["utf-8", "base64"]).optional().default("utf-8").describe("Content encoding"),
-  recursive: z.coerce.boolean().optional().describe("Create parent directories if needed")
+var fsWriteBodySchema = z$1.object({
+  path: z$1.string().describe("Path to write to"),
+  content: z$1.string().describe("Content to write (text or base64-encoded binary)"),
+  encoding: z$1.enum(["utf-8", "base64"]).optional().default("utf-8").describe("Content encoding"),
+  recursive: z$1.coerce.boolean().optional().describe("Create parent directories if needed")
 });
-var fsMkdirBodySchema = z.object({
-  path: z.string().describe("Directory path to create"),
-  recursive: z.coerce.boolean().optional().describe("Create parent directories if needed")
+var fsMkdirBodySchema = z$1.object({
+  path: z$1.string().describe("Directory path to create"),
+  recursive: z$1.coerce.boolean().optional().describe("Create parent directories if needed")
 });
-var fileEntrySchema = z.object({
-  name: z.string(),
-  type: z.enum(["file", "directory"]),
-  size: z.number().optional(),
-  mount: z.object({
-    provider: z.string(),
-    icon: z.string().optional(),
-    displayName: z.string().optional(),
-    description: z.string().optional(),
-    status: z.enum([
+var fileEntrySchema = z$1.object({
+  name: z$1.string(),
+  type: z$1.enum(["file", "directory"]),
+  size: z$1.number().optional(),
+  mount: z$1.object({
+    provider: z$1.string(),
+    icon: z$1.string().optional(),
+    displayName: z$1.string().optional(),
+    description: z$1.string().optional(),
+    status: z$1.enum([
       "pending",
       "initializing",
       "ready",
@@ -15974,280 +16264,280 @@ var fileEntrySchema = z.object({
       "destroyed",
       "error"
     ]).optional(),
-    error: z.string().optional()
+    error: z$1.string().optional()
   }).optional()
 });
-var fsReadResponseSchema = z.object({
-  path: z.string(),
-  content: z.string(),
-  type: z.enum(["file", "directory"]),
-  size: z.number().optional(),
-  mimeType: z.string().optional()
+var fsReadResponseSchema = z$1.object({
+  path: z$1.string(),
+  content: z$1.string(),
+  type: z$1.enum(["file", "directory"]),
+  size: z$1.number().optional(),
+  mimeType: z$1.string().optional()
 });
-var fsWriteResponseSchema = z.object({
-  success: z.boolean(),
-  path: z.string()
+var fsWriteResponseSchema = z$1.object({
+  success: z$1.boolean(),
+  path: z$1.string()
 });
-var fsListResponseSchema = z.object({
-  path: z.string(),
-  entries: z.array(fileEntrySchema)
+var fsListResponseSchema = z$1.object({
+  path: z$1.string(),
+  entries: z$1.array(fileEntrySchema)
 });
-var fsDeleteResponseSchema = z.object({
-  success: z.boolean(),
-  path: z.string()
+var fsDeleteResponseSchema = z$1.object({
+  success: z$1.boolean(),
+  path: z$1.string()
 });
-var fsMkdirResponseSchema = z.object({
-  success: z.boolean(),
-  path: z.string()
+var fsMkdirResponseSchema = z$1.object({
+  success: z$1.boolean(),
+  path: z$1.string()
 });
-var fsStatResponseSchema = z.object({
-  path: z.string(),
-  type: z.enum(["file", "directory"]),
-  size: z.number().optional(),
-  createdAt: z.string().optional(),
-  modifiedAt: z.string().optional(),
-  mimeType: z.string().optional()
+var fsStatResponseSchema = z$1.object({
+  path: z$1.string(),
+  type: z$1.enum(["file", "directory"]),
+  size: z$1.number().optional(),
+  createdAt: z$1.string().optional(),
+  modifiedAt: z$1.string().optional(),
+  mimeType: z$1.string().optional()
 });
-var searchQuerySchema = z.object({
-  query: z.string().describe("Search query text"),
-  topK: z.coerce.number().optional().default(5).describe("Maximum number of results"),
-  mode: z.enum(["bm25", "vector", "hybrid"]).optional().describe("Search mode"),
-  minScore: z.coerce.number().optional().describe("Minimum relevance score threshold")
+var searchQuerySchema = z$1.object({
+  query: z$1.string().describe("Search query text"),
+  topK: z$1.coerce.number().optional().default(5).describe("Maximum number of results"),
+  mode: z$1.enum(["bm25", "vector", "hybrid"]).optional().describe("Search mode"),
+  minScore: z$1.coerce.number().optional().describe("Minimum relevance score threshold")
 });
-var searchResultSchema = z.object({
-  id: z.string().describe("Document ID (file path)"),
-  content: z.string(),
-  score: z.number(),
-  lineRange: z.object({
-    start: z.number(),
-    end: z.number()
+var searchResultSchema = z$1.object({
+  id: z$1.string().describe("Document ID (file path)"),
+  content: z$1.string(),
+  score: z$1.number(),
+  lineRange: z$1.object({
+    start: z$1.number(),
+    end: z$1.number()
   }).optional(),
-  scoreDetails: z.object({
-    vector: z.number().optional(),
-    bm25: z.number().optional()
+  scoreDetails: z$1.object({
+    vector: z$1.number().optional(),
+    bm25: z$1.number().optional()
   }).optional()
 });
-var searchResponseSchema = z.object({
-  results: z.array(searchResultSchema),
-  query: z.string(),
-  mode: z.enum(["bm25", "vector", "hybrid"])
+var searchResponseSchema = z$1.object({
+  results: z$1.array(searchResultSchema),
+  query: z$1.string(),
+  mode: z$1.enum(["bm25", "vector", "hybrid"])
 });
-var indexBodySchema = z.object({
-  path: z.string().describe("Path to use as document ID"),
-  content: z.string().describe("Content to index"),
-  metadata: z.record(z.string(), z.unknown()).optional().describe("Optional metadata")
+var indexBodySchema = z$1.object({
+  path: z$1.string().describe("Path to use as document ID"),
+  content: z$1.string().describe("Content to index"),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Optional metadata")
 });
-var indexResponseSchema = z.object({
-  success: z.boolean(),
-  path: z.string()
+var indexResponseSchema = z$1.object({
+  success: z$1.boolean(),
+  path: z$1.string()
 });
-var mountInfoSchema = z.object({
-  path: z.string().describe("Mount path"),
-  provider: z.string().describe("Filesystem provider type"),
-  readOnly: z.boolean().describe("Whether the mount is read-only"),
-  displayName: z.string().optional().describe("Human-readable name"),
-  icon: z.string().optional().describe("UI icon identifier"),
-  name: z.string().optional().describe("Filesystem instance name")
+var mountInfoSchema = z$1.object({
+  path: z$1.string().describe("Mount path"),
+  provider: z$1.string().describe("Filesystem provider type"),
+  readOnly: z$1.boolean().describe("Whether the mount is read-only"),
+  displayName: z$1.string().optional().describe("Human-readable name"),
+  icon: z$1.string().optional().describe("UI icon identifier"),
+  name: z$1.string().optional().describe("Filesystem instance name")
 });
-var workspaceInfoResponseSchema = z.object({
-  isWorkspaceConfigured: z.boolean(),
-  id: z.string().optional(),
-  name: z.string().optional(),
-  status: z.string().optional(),
-  capabilities: z.object({
-    hasFilesystem: z.boolean(),
-    hasSandbox: z.boolean(),
-    canBM25: z.boolean(),
-    canVector: z.boolean(),
-    canHybrid: z.boolean(),
-    hasSkills: z.boolean()
+var workspaceInfoResponseSchema = z$1.object({
+  isWorkspaceConfigured: z$1.boolean(),
+  id: z$1.string().optional(),
+  name: z$1.string().optional(),
+  status: z$1.string().optional(),
+  capabilities: z$1.object({
+    hasFilesystem: z$1.boolean(),
+    hasSandbox: z$1.boolean(),
+    canBM25: z$1.boolean(),
+    canVector: z$1.boolean(),
+    canHybrid: z$1.boolean(),
+    hasSkills: z$1.boolean()
   }).optional(),
-  safety: z.object({
-    readOnly: z.boolean()
+  safety: z$1.object({
+    readOnly: z$1.boolean()
   }).optional(),
-  filesystem: z.object({
-    id: z.string(),
-    name: z.string(),
-    provider: z.string(),
-    status: z.string().optional(),
-    error: z.string().optional(),
-    readOnly: z.boolean().optional(),
-    icon: z.string().optional(),
-    metadata: z.record(z.string(), z.unknown()).optional()
+  filesystem: z$1.object({
+    id: z$1.string(),
+    name: z$1.string(),
+    provider: z$1.string(),
+    status: z$1.string().optional(),
+    error: z$1.string().optional(),
+    readOnly: z$1.boolean().optional(),
+    icon: z$1.string().optional(),
+    metadata: z$1.record(z$1.string(), z$1.unknown()).optional()
   }).optional(),
-  mounts: z.array(mountInfoSchema).optional().describe("Mount points (only present for CompositeFilesystem)")
+  mounts: z$1.array(mountInfoSchema).optional().describe("Mount points (only present for CompositeFilesystem)")
 });
-var workspaceItemSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  status: z.string(),
-  source: z.enum(["mastra", "agent"]),
-  agentId: z.string().optional(),
-  agentName: z.string().optional(),
-  capabilities: z.object({
-    hasFilesystem: z.boolean(),
-    hasSandbox: z.boolean(),
-    canBM25: z.boolean(),
-    canVector: z.boolean(),
-    canHybrid: z.boolean(),
-    hasSkills: z.boolean()
+var workspaceItemSchema = z$1.object({
+  id: z$1.string(),
+  name: z$1.string(),
+  status: z$1.string(),
+  source: z$1.enum(["mastra", "agent"]),
+  agentId: z$1.string().optional(),
+  agentName: z$1.string().optional(),
+  capabilities: z$1.object({
+    hasFilesystem: z$1.boolean(),
+    hasSandbox: z$1.boolean(),
+    canBM25: z$1.boolean(),
+    canVector: z$1.boolean(),
+    canHybrid: z$1.boolean(),
+    hasSkills: z$1.boolean()
   }),
-  safety: z.object({
-    readOnly: z.boolean()
+  safety: z$1.object({
+    readOnly: z$1.boolean()
   })
 });
-var listWorkspacesResponseSchema = z.object({
-  workspaces: z.array(workspaceItemSchema)
+var listWorkspacesResponseSchema = z$1.object({
+  workspaces: z$1.array(workspaceItemSchema)
 });
 var skillNamePathParams = workspaceIdPathParams.extend({
-  skillName: z.string().describe("Skill name identifier")
+  skillName: z$1.string().describe("Skill name identifier")
 });
 var skillReferencePathParams = skillNamePathParams.extend({
-  referencePath: z.string().describe("Reference file path (URL encoded)")
+  referencePath: z$1.string().describe("Reference file path (URL encoded)")
 });
-var skillDisambiguationQuerySchema = z.object({
-  path: z.string().optional().describe("Skill path for disambiguation when multiple skills share the same name")
+var skillDisambiguationQuerySchema = z$1.object({
+  path: z$1.string().optional().describe("Skill path for disambiguation when multiple skills share the same name")
 });
-var searchSkillsQuerySchema = z.object({
-  query: z.string().describe("Search query text"),
-  topK: z.coerce.number().optional().default(5).describe("Maximum number of results"),
-  minScore: z.coerce.number().optional().describe("Minimum relevance score threshold"),
-  skillNames: z.string().optional().describe("Comma-separated list of skill names to search within"),
-  includeReferences: z.coerce.boolean().optional().default(true).describe("Include reference files in search")
+var searchSkillsQuerySchema = z$1.object({
+  query: z$1.string().describe("Search query text"),
+  topK: z$1.coerce.number().optional().default(5).describe("Maximum number of results"),
+  minScore: z$1.coerce.number().optional().describe("Minimum relevance score threshold"),
+  skillNames: z$1.string().optional().describe("Comma-separated list of skill names to search within"),
+  includeReferences: z$1.coerce.boolean().optional().default(true).describe("Include reference files in search")
 });
-var skillMetadataSchema = z.object({
-  name: z.string(),
-  description: z.string(),
-  license: z.string().optional(),
-  compatibility: z.unknown().optional(),
-  metadata: z.record(z.string(), z.unknown()).optional(),
-  path: z.string()
+var skillMetadataSchema = z$1.object({
+  name: z$1.string(),
+  description: z$1.string(),
+  license: z$1.string().optional(),
+  compatibility: z$1.unknown().optional(),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional(),
+  path: z$1.string()
 });
-var skillSourceSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("external"), packagePath: z.string() }),
-  z.object({ type: z.literal("local"), projectPath: z.string() }),
-  z.object({ type: z.literal("managed"), mastraPath: z.string() })
+var skillSourceSchema = z$1.discriminatedUnion("type", [
+  z$1.object({ type: z$1.literal("external"), packagePath: z$1.string() }),
+  z$1.object({ type: z$1.literal("local"), projectPath: z$1.string() }),
+  z$1.object({ type: z$1.literal("managed"), mastraPath: z$1.string() })
 ]);
 var skillSchema = skillMetadataSchema.extend({
-  instructions: z.string(),
+  instructions: z$1.string(),
   source: skillSourceSchema,
-  references: z.array(z.string()),
-  scripts: z.array(z.string()),
-  assets: z.array(z.string())
+  references: z$1.array(z$1.string()),
+  scripts: z$1.array(z$1.string()),
+  assets: z$1.array(z$1.string())
 });
-var skillsShSourceSchema = z.object({
-  owner: z.string().describe("GitHub owner/org"),
-  repo: z.string().describe("GitHub repository")
+var skillsShSourceSchema = z$1.object({
+  owner: z$1.string().describe("GitHub owner/org"),
+  repo: z$1.string().describe("GitHub repository")
 });
 var skillMetadataWithPathSchema = skillMetadataSchema.extend({
   /** Source info for skills installed via skills.sh (from .meta.json) */
   skillsShSource: skillsShSourceSchema.optional()
 });
-var listSkillsResponseSchema = z.object({
-  skills: z.array(skillMetadataWithPathSchema),
-  isSkillsConfigured: z.boolean().describe("Whether skills are configured in the workspace")
+var listSkillsResponseSchema = z$1.object({
+  skills: z$1.array(skillMetadataWithPathSchema),
+  isSkillsConfigured: z$1.boolean().describe("Whether skills are configured in the workspace")
 });
 var getSkillResponseSchema = skillSchema;
 var getAgentSkillResponseSchema = skillMetadataSchema.extend({
-  path: z.string().optional(),
-  instructions: z.string().optional(),
+  path: z$1.string().optional(),
+  instructions: z$1.string().optional(),
   source: skillSourceSchema.optional(),
-  references: z.array(z.string()).optional(),
-  scripts: z.array(z.string()).optional(),
-  assets: z.array(z.string()).optional()
+  references: z$1.array(z$1.string()).optional(),
+  scripts: z$1.array(z$1.string()).optional(),
+  assets: z$1.array(z$1.string()).optional()
 });
-var skillReferenceResponseSchema = z.object({
-  skillName: z.string(),
-  referencePath: z.string(),
-  content: z.string()
+var skillReferenceResponseSchema = z$1.object({
+  skillName: z$1.string(),
+  referencePath: z$1.string(),
+  content: z$1.string()
 });
-var listReferencesResponseSchema = z.object({
-  skillName: z.string(),
-  references: z.array(z.string())
+var listReferencesResponseSchema = z$1.object({
+  skillName: z$1.string(),
+  references: z$1.array(z$1.string())
 });
-var skillSearchResultSchema = z.object({
-  skillName: z.string(),
-  skillPath: z.string(),
-  source: z.string(),
-  content: z.string(),
-  score: z.number(),
-  lineRange: z.object({
-    start: z.number(),
-    end: z.number()
+var skillSearchResultSchema = z$1.object({
+  skillName: z$1.string(),
+  skillPath: z$1.string(),
+  source: z$1.string(),
+  content: z$1.string(),
+  score: z$1.number(),
+  lineRange: z$1.object({
+    start: z$1.number(),
+    end: z$1.number()
   }).optional(),
-  scoreDetails: z.object({
-    vector: z.number().optional(),
-    bm25: z.number().optional()
+  scoreDetails: z$1.object({
+    vector: z$1.number().optional(),
+    bm25: z$1.number().optional()
   }).optional()
 });
-var searchSkillsResponseSchema = z.object({
-  results: z.array(skillSearchResultSchema),
-  query: z.string()
+var searchSkillsResponseSchema = z$1.object({
+  results: z$1.array(skillSearchResultSchema),
+  query: z$1.string()
 });
-var skillsShSearchQuerySchema = z.object({
-  q: z.string().describe("Search query"),
-  limit: z.coerce.number().optional().default(10).describe("Maximum number of results")
+var skillsShSearchQuerySchema = z$1.object({
+  q: z$1.string().describe("Search query"),
+  limit: z$1.coerce.number().optional().default(10).describe("Maximum number of results")
 });
-var skillsShPopularQuerySchema = z.object({
-  limit: z.coerce.number().optional().default(10).describe("Maximum number of results"),
-  offset: z.coerce.number().optional().default(0).describe("Offset for pagination")
+var skillsShPopularQuerySchema = z$1.object({
+  limit: z$1.coerce.number().optional().default(10).describe("Maximum number of results"),
+  offset: z$1.coerce.number().optional().default(0).describe("Offset for pagination")
 });
-var skillsShSkillSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  installs: z.number(),
-  topSource: z.string()
+var skillsShSkillSchema = z$1.object({
+  id: z$1.string(),
+  name: z$1.string(),
+  installs: z$1.number(),
+  topSource: z$1.string()
 });
-var skillsShSearchResponseSchema = z.object({
-  query: z.string(),
-  searchType: z.string(),
-  skills: z.array(skillsShSkillSchema),
-  count: z.number()
+var skillsShSearchResponseSchema = z$1.object({
+  query: z$1.string(),
+  searchType: z$1.string(),
+  skills: z$1.array(skillsShSkillSchema),
+  count: z$1.number()
 });
-var skillsShListResponseSchema = z.object({
-  skills: z.array(skillsShSkillSchema),
-  count: z.number(),
-  limit: z.number(),
-  offset: z.number()
+var skillsShListResponseSchema = z$1.object({
+  skills: z$1.array(skillsShSkillSchema),
+  count: z$1.number(),
+  limit: z$1.number(),
+  offset: z$1.number()
 });
-var skillsShPreviewQuerySchema = z.object({
-  owner: z.string().describe("GitHub repository owner"),
-  repo: z.string().describe("GitHub repository name"),
-  path: z.string().describe("Path to skill within repo")
+var skillsShPreviewQuerySchema = z$1.object({
+  owner: z$1.string().describe("GitHub repository owner"),
+  repo: z$1.string().describe("GitHub repository name"),
+  path: z$1.string().describe("Path to skill within repo")
 });
-var skillsShPreviewResponseSchema = z.object({
-  content: z.string()
+var skillsShPreviewResponseSchema = z$1.object({
+  content: z$1.string()
 });
-var skillsShInstallBodySchema = z.object({
-  owner: z.string().describe("GitHub repository owner"),
-  repo: z.string().describe("GitHub repository name"),
-  skillName: z.string().describe("Skill name from skills.sh"),
-  mount: z.string().optional().describe("Mount path to install into (for CompositeFilesystem)")
+var skillsShInstallBodySchema = z$1.object({
+  owner: z$1.string().describe("GitHub repository owner"),
+  repo: z$1.string().describe("GitHub repository name"),
+  skillName: z$1.string().describe("Skill name from skills.sh"),
+  mount: z$1.string().optional().describe("Mount path to install into (for CompositeFilesystem)")
 });
-var skillsShInstallResponseSchema = z.object({
-  success: z.boolean(),
-  skillName: z.string(),
-  installedPath: z.string(),
-  filesWritten: z.number()
+var skillsShInstallResponseSchema = z$1.object({
+  success: z$1.boolean(),
+  skillName: z$1.string(),
+  installedPath: z$1.string(),
+  filesWritten: z$1.number()
 });
-var skillsShRemoveBodySchema = z.object({
-  skillName: z.string().describe("Name of the installed skill to remove")
+var skillsShRemoveBodySchema = z$1.object({
+  skillName: z$1.string().describe("Name of the installed skill to remove")
 });
-var skillsShRemoveResponseSchema = z.object({
-  success: z.boolean(),
-  skillName: z.string(),
-  removedPath: z.string()
+var skillsShRemoveResponseSchema = z$1.object({
+  success: z$1.boolean(),
+  skillName: z$1.string(),
+  removedPath: z$1.string()
 });
-var skillsShUpdateBodySchema = z.object({
-  skillName: z.string().optional().describe("Specific skill to update, or omit to update all")
+var skillsShUpdateBodySchema = z$1.object({
+  skillName: z$1.string().optional().describe("Specific skill to update, or omit to update all")
 });
-var skillsShUpdateResponseSchema = z.object({
-  updated: z.array(
-    z.object({
-      skillName: z.string(),
-      success: z.boolean(),
-      filesWritten: z.number().optional(),
-      error: z.string().optional()
+var skillsShUpdateResponseSchema = z$1.object({
+  updated: z$1.array(
+    z$1.object({
+      skillName: z$1.string(),
+      success: z$1.boolean(),
+      filesWritten: z$1.number().optional(),
+      error: z$1.string().optional()
     })
   )
 });
@@ -16934,8 +17224,8 @@ var LIST_AGENTS_ROUTE = createRoute$1({
   method: "GET",
   path: "/agents",
   responseType: "json",
-  queryParamSchema: z.object({
-    partial: z.string().optional()
+  queryParamSchema: z$1.object({
+    partial: z$1.string().optional()
   }),
   responseSchema: listAgentsResponseSchema,
   summary: "List all agents",
@@ -17069,11 +17359,11 @@ var CLONE_AGENT_ROUTE = createRoute$1({
   path: "/agents/:agentId/clone",
   responseType: "json",
   pathParamSchema: agentIdPathParams$1,
-  bodySchema: z.object({
-    newId: z.string().optional().describe("ID for the cloned agent. If not provided, derived from agent ID."),
-    newName: z.string().optional().describe('Name for the cloned agent. Defaults to "{name} (Clone)".'),
-    metadata: z.record(z.string(), z.unknown()).optional(),
-    authorId: z.string().optional()
+  bodySchema: z$1.object({
+    newId: z$1.string().optional().describe("ID for the cloned agent. If not provided, derived from agent ID."),
+    newName: z$1.string().optional().describe('Name for the cloned agent. Defaults to "{name} (Clone)".'),
+    metadata: z$1.record(z$1.string(), z$1.unknown()).optional(),
+    authorId: z$1.string().optional()
   }),
   responseSchema: createStoredAgentResponseSchema,
   summary: "Clone agent",
@@ -17443,10 +17733,10 @@ var STREAM_GENERATE_ROUTE = createRoute$1({
     }
   }
 });
-var sendAgentSignalResponseSchema = z.object({
-  accepted: z.literal(true),
-  runId: z.string(),
-  signal: z.any().optional()
+var sendAgentSignalResponseSchema = z$1.object({
+  accepted: z$1.literal(true),
+  runId: z$1.string(),
+  signal: z$1.any().optional()
 });
 var sendAgentMessageResponseSchema = sendAgentSignalResponseSchema;
 var SEND_AGENT_SIGNAL_ROUTE = createRoute$1({
@@ -19102,128 +19392,128 @@ function assertWriteAccess(args) {
   throw new HTTPException$2(404, { message: "Not found" });
 }
 
-var storedSkillIdPathParams = z.object({
-  storedSkillId: z.string().describe("Unique identifier for the stored skill")
+var storedSkillIdPathParams = z$1.object({
+  storedSkillId: z$1.string().describe("Unique identifier for the stored skill")
 });
-var storageOrderBySchema$4 = z.object({
-  field: z.enum(["createdAt", "updatedAt"]).optional(),
-  direction: z.enum(["ASC", "DESC"]).optional()
+var storageOrderBySchema$4 = z$1.object({
+  field: z$1.enum(["createdAt", "updatedAt"]).optional(),
+  direction: z$1.enum(["ASC", "DESC"]).optional()
 });
 var listStoredSkillsQuerySchema = createPagePaginationSchema(100).extend({
   orderBy: storageOrderBySchema$4.optional(),
-  status: z.enum(["draft", "published", "archived"]).optional().describe("Filter skills by status"),
-  authorId: z.string().optional().describe("Filter skills by author identifier"),
-  visibility: z.enum(["public"]).optional().describe("Filter to only public skills"),
-  metadata: z.record(z.string(), z.unknown()).optional().describe("Filter skills by metadata key-value pairs"),
-  favoritedOnly: z.stringbool().optional().describe("When true, return only skills favorited by the caller (requires the `favorites` EE feature)"),
-  pinFavoritedFor: z.string().optional().describe(
+  status: z$1.enum(["draft", "published", "archived"]).optional().describe("Filter skills by status"),
+  authorId: z$1.string().optional().describe("Filter skills by author identifier"),
+  visibility: z$1.enum(["public"]).optional().describe("Filter to only public skills"),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Filter skills by metadata key-value pairs"),
+  favoritedOnly: z$1.stringbool().optional().describe("When true, return only skills favorited by the caller (requires the `favorites` EE feature)"),
+  pinFavoritedFor: z$1.string().optional().describe(
     "When set, treat the given subject (user/role) as the favoriting principal for `favoritedOnly` instead of the caller"
   )
 });
-var sourceSchema = z.discriminatedUnion("type", [
-  z.object({
-    type: z.literal("external"),
-    packagePath: z.string().describe("Package path for external source")
+var sourceSchema = z$1.discriminatedUnion("type", [
+  z$1.object({
+    type: z$1.literal("external"),
+    packagePath: z$1.string().describe("Package path for external source")
   }),
-  z.object({
-    type: z.literal("local"),
-    projectPath: z.string().describe("Project path for local source")
+  z$1.object({
+    type: z$1.literal("local"),
+    projectPath: z$1.string().describe("Project path for local source")
   }),
-  z.object({
-    type: z.literal("managed"),
-    mastraPath: z.string().describe("Mastra path for managed source")
+  z$1.object({
+    type: z$1.literal("managed"),
+    mastraPath: z$1.string().describe("Mastra path for managed source")
   })
 ]);
-var fileNodeSchema = z.object({
-  id: z.string().optional(),
-  name: z.string(),
-  type: z.enum(["file", "folder"]),
-  content: z.string().optional(),
-  children: z.lazy(() => z.array(fileNodeSchema)).optional()
+var fileNodeSchema = z$1.object({
+  id: z$1.string().optional(),
+  name: z$1.string(),
+  type: z$1.enum(["file", "folder"]),
+  content: z$1.string().optional(),
+  children: z$1.lazy(() => z$1.array(fileNodeSchema)).optional()
 });
-z.discriminatedUnion("type", [
-  z.object({
-    type: z.literal("skills-sh"),
-    owner: z.string().describe("Repository owner on skills.sh"),
-    repo: z.string().describe("Repository name on skills.sh"),
-    skillName: z.string().describe("Original skill name on skills.sh"),
-    installedAt: z.string().describe("ISO-8601 timestamp of the install")
+z$1.discriminatedUnion("type", [
+  z$1.object({
+    type: z$1.literal("skills-sh"),
+    owner: z$1.string().describe("Repository owner on skills.sh"),
+    repo: z$1.string().describe("Repository name on skills.sh"),
+    skillName: z$1.string().describe("Original skill name on skills.sh"),
+    installedAt: z$1.string().describe("ISO-8601 timestamp of the install")
   }),
-  z.object({
-    type: z.literal("library-copy"),
-    sourceSkillId: z.string().describe("ID of the public Library skill this was copied from"),
-    sourceSkillName: z.string().describe("Name of the source skill at copy time"),
-    sourceAuthorId: z.string().optional().describe("Author of the source skill at copy time, when known"),
-    copiedAt: z.string().describe("ISO-8601 timestamp of the copy")
+  z$1.object({
+    type: z$1.literal("library-copy"),
+    sourceSkillId: z$1.string().describe("ID of the public Library skill this was copied from"),
+    sourceSkillName: z$1.string().describe("Name of the source skill at copy time"),
+    sourceAuthorId: z$1.string().optional().describe("Author of the source skill at copy time, when known"),
+    copiedAt: z$1.string().describe("ISO-8601 timestamp of the copy")
   })
 ]);
-var snapshotConfigSchema$3 = z.object({
-  name: z.string().describe("Name of the skill"),
-  description: z.string().describe("Description of what the skill does and when to use it"),
-  instructions: z.string().describe("Markdown instructions for the skill"),
-  license: z.string().optional().describe("License identifier for the skill"),
-  compatibility: z.unknown().optional().describe("Compatibility requirements"),
+var snapshotConfigSchema$3 = z$1.object({
+  name: z$1.string().describe("Name of the skill"),
+  description: z$1.string().describe("Description of what the skill does and when to use it"),
+  instructions: z$1.string().describe("Markdown instructions for the skill"),
+  license: z$1.string().optional().describe("License identifier for the skill"),
+  compatibility: z$1.unknown().optional().describe("Compatibility requirements"),
   source: sourceSchema.optional().describe("Source location of the skill"),
-  references: z.array(z.string()).optional().describe("List of reference file paths"),
-  scripts: z.array(z.string()).optional().describe("List of script file paths"),
-  assets: z.array(z.string()).optional().describe("List of asset file paths"),
-  files: z.array(fileNodeSchema).optional().describe("Full file tree structure for the skill"),
-  metadata: z.record(z.string(), z.unknown()).optional().describe("Additional metadata for the skill")
+  references: z$1.array(z$1.string()).optional().describe("List of reference file paths"),
+  scripts: z$1.array(z$1.string()).optional().describe("List of script file paths"),
+  assets: z$1.array(z$1.string()).optional().describe("List of asset file paths"),
+  files: z$1.array(fileNodeSchema).optional().describe("Full file tree structure for the skill"),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Additional metadata for the skill")
 });
-var createStoredSkillBodySchema = z.object({
-  id: z.string().optional().describe("Unique identifier. If not provided, derived from name."),
-  authorId: z.string().optional().describe("Author identifier for multi-tenant filtering"),
-  visibility: z.enum(["private", "public"]).optional().describe("Skill visibility: private (owner/admin only) or public (any reader)")
+var createStoredSkillBodySchema = z$1.object({
+  id: z$1.string().optional().describe("Unique identifier. If not provided, derived from name."),
+  authorId: z$1.string().optional().describe("Author identifier for multi-tenant filtering"),
+  visibility: z$1.enum(["private", "public"]).optional().describe("Skill visibility: private (owner/admin only) or public (any reader)")
 }).merge(snapshotConfigSchema$3);
-var updateStoredSkillBodySchema = z.object({
-  authorId: z.string().optional(),
-  visibility: z.enum(["private", "public"]).optional().describe("Skill visibility: private (owner/admin only) or public (any reader)")
+var updateStoredSkillBodySchema = z$1.object({
+  authorId: z$1.string().optional(),
+  visibility: z$1.enum(["private", "public"]).optional().describe("Skill visibility: private (owner/admin only) or public (any reader)")
 }).partial().merge(snapshotConfigSchema$3.partial());
-var storedSkillSchema = z.object({
-  id: z.string(),
-  status: z.string().describe("Skill status: draft, published, or archived"),
-  activeVersionId: z.string().optional(),
-  authorId: z.string().optional(),
-  visibility: z.enum(["private", "public"]).optional(),
-  favoriteCount: z.number().int().nonnegative().optional().describe("Number of users who have favorited this skill"),
-  isFavorited: z.boolean().optional().describe("Whether the requesting user has favorited this skill"),
-  createdAt: z.coerce.date(),
-  updatedAt: z.coerce.date(),
-  name: z.string().describe("Name of the skill"),
-  description: z.string().describe("Description of what the skill does and when to use it"),
-  instructions: z.string().describe("Markdown instructions for the skill"),
-  license: z.string().optional().describe("License identifier for the skill"),
-  compatibility: z.unknown().optional().describe("Compatibility requirements"),
+var storedSkillSchema = z$1.object({
+  id: z$1.string(),
+  status: z$1.string().describe("Skill status: draft, published, or archived"),
+  activeVersionId: z$1.string().optional(),
+  authorId: z$1.string().optional(),
+  visibility: z$1.enum(["private", "public"]).optional(),
+  favoriteCount: z$1.number().int().nonnegative().optional().describe("Number of users who have favorited this skill"),
+  isFavorited: z$1.boolean().optional().describe("Whether the requesting user has favorited this skill"),
+  createdAt: z$1.coerce.date(),
+  updatedAt: z$1.coerce.date(),
+  name: z$1.string().describe("Name of the skill"),
+  description: z$1.string().describe("Description of what the skill does and when to use it"),
+  instructions: z$1.string().describe("Markdown instructions for the skill"),
+  license: z$1.string().optional().describe("License identifier for the skill"),
+  compatibility: z$1.unknown().optional().describe("Compatibility requirements"),
   source: sourceSchema.optional().describe("Source location of the skill"),
-  references: z.array(z.string()).optional().describe("List of reference file paths"),
-  scripts: z.array(z.string()).optional().describe("List of script file paths"),
-  assets: z.array(z.string()).optional().describe("List of asset file paths"),
-  files: z.array(fileNodeSchema).optional().describe("Full file tree structure for the skill"),
-  metadata: z.record(z.string(), z.unknown()).optional().describe("Additional metadata for the skill")
+  references: z$1.array(z$1.string()).optional().describe("List of reference file paths"),
+  scripts: z$1.array(z$1.string()).optional().describe("List of script file paths"),
+  assets: z$1.array(z$1.string()).optional().describe("List of asset file paths"),
+  files: z$1.array(fileNodeSchema).optional().describe("Full file tree structure for the skill"),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Additional metadata for the skill")
 });
 var listStoredSkillsResponseSchema = paginationInfoSchema$1.extend({
-  skills: z.array(storedSkillSchema)
+  skills: z$1.array(storedSkillSchema)
 });
 var getStoredSkillResponseSchema = storedSkillSchema;
 var createStoredSkillResponseSchema = storedSkillSchema;
-var updateStoredSkillResponseSchema = z.union([
-  z.object({
-    id: z.string(),
-    status: z.string(),
-    activeVersionId: z.string().optional(),
-    authorId: z.string().optional(),
-    visibility: z.enum(["private", "public"]).optional(),
-    createdAt: z.coerce.date(),
-    updatedAt: z.coerce.date()
+var updateStoredSkillResponseSchema = z$1.union([
+  z$1.object({
+    id: z$1.string(),
+    status: z$1.string(),
+    activeVersionId: z$1.string().optional(),
+    authorId: z$1.string().optional(),
+    visibility: z$1.enum(["private", "public"]).optional(),
+    createdAt: z$1.coerce.date(),
+    updatedAt: z$1.coerce.date()
   }),
   storedSkillSchema
 ]);
-var deleteStoredSkillResponseSchema = z.object({
-  success: z.boolean(),
-  message: z.string()
+var deleteStoredSkillResponseSchema = z$1.object({
+  success: z$1.boolean(),
+  message: z$1.string()
 });
-var publishStoredSkillBodySchema = z.object({
-  skillPath: z.string().describe("Path to the skill directory on the server filesystem (containing SKILL.md)")
+var publishStoredSkillBodySchema = z$1.object({
+  skillPath: z$1.string().describe("Path to the skill directory on the server filesystem (containing SKILL.md)")
 });
 var publishStoredSkillResponseSchema = storedSkillSchema;
 
@@ -20105,51 +20395,51 @@ var DELETE_STORED_WORKSPACE_ROUTE = createRoute$1({
 });
 
 // src/server/schemas/system.ts
-var mastraPackageSchema = z.object({
-  name: z.string(),
-  version: z.string()
+var mastraPackageSchema = z$1.object({
+  name: z$1.string(),
+  version: z$1.string()
 });
-var observabilityRuntimeStrategySchema = z.enum([
+var observabilityRuntimeStrategySchema = z$1.enum([
   "realtime",
   "batch-with-updates",
   "insert-only",
   "event-sourced"
 ]);
-var editorSourceSchema = z.enum(["code", "db"]);
-var systemPackagesResponseSchema = z.object({
-  packages: z.array(mastraPackageSchema),
-  isDev: z.boolean(),
-  cmsEnabled: z.boolean(),
+var editorSourceSchema = z$1.enum(["code", "db"]);
+var systemPackagesResponseSchema = z$1.object({
+  packages: z$1.array(mastraPackageSchema),
+  isDev: z$1.boolean(),
+  cmsEnabled: z$1.boolean(),
   /**
    * The editor's configured source, when set. `'code'` swaps Studio's
    * Save/Publish UI for Download JSON + Open PR. `'db'` keeps the standard
    * Save/Publish flow. Omitted when the editor has no explicit source.
    */
   editorSource: editorSourceSchema.optional(),
-  observabilityEnabled: z.boolean(),
-  storageType: z.string().optional(),
-  observabilityStorageType: z.string().optional(),
+  observabilityEnabled: z$1.boolean(),
+  storageType: z$1.string().optional(),
+  observabilityStorageType: z$1.string().optional(),
   observabilityRuntimeStrategy: observabilityRuntimeStrategySchema.optional()
 });
-var jsonSchemaRecordSchema = z.record(z.string(), z.unknown());
-var apiSchemaResponseShapeSchema = z.object({
-  kind: z.enum(["array", "record", "object-property", "single", "unknown"]),
-  listProperty: z.string().optional(),
-  paginationProperty: z.string().optional()
+var jsonSchemaRecordSchema = z$1.record(z$1.string(), z$1.unknown());
+var apiSchemaResponseShapeSchema = z$1.object({
+  kind: z$1.enum(["array", "record", "object-property", "single", "unknown"]),
+  listProperty: z$1.string().optional(),
+  paginationProperty: z$1.string().optional()
 });
-var apiSchemaManifestRouteSchema = z.object({
-  method: z.string(),
-  path: z.string(),
-  responseType: z.string(),
+var apiSchemaManifestRouteSchema = z$1.object({
+  method: z$1.string(),
+  path: z$1.string(),
+  responseType: z$1.string(),
   pathParamSchema: jsonSchemaRecordSchema.optional(),
   queryParamSchema: jsonSchemaRecordSchema.optional(),
   bodySchema: jsonSchemaRecordSchema.optional(),
   responseSchema: jsonSchemaRecordSchema.optional(),
   responseShape: apiSchemaResponseShapeSchema
 });
-var apiSchemaManifestResponseSchema = z.object({
-  version: z.literal(1),
-  routes: z.array(apiSchemaManifestRouteSchema)
+var apiSchemaManifestResponseSchema = z$1.object({
+  version: z$1.literal(1),
+  routes: z$1.array(apiSchemaManifestRouteSchema)
 });
 
 var GET_API_SCHEMA_ROUTE = createRoute$1({
@@ -20998,42 +21288,42 @@ async function handleAutoVersioning(store, parentId, parentIdField, snapshotConf
   return { entity: updatedEntity, versionCreated: true };
 }
 
-var versionOrderBySchema = z.object({
-  field: z.enum(["versionNumber", "createdAt"]).optional(),
-  direction: z.enum(["ASC", "DESC"]).optional()
+var versionOrderBySchema = z$1.object({
+  field: z$1.enum(["versionNumber", "createdAt"]).optional(),
+  direction: z$1.enum(["ASC", "DESC"]).optional()
 });
 var listVersionsQuerySchema = createPagePaginationSchema(20).extend({
   orderBy: versionOrderBySchema.optional()
 });
-var compareVersionsQuerySchema = z.object({
-  from: z.string().describe("Version ID (UUID) to compare from"),
-  to: z.string().describe("Version ID (UUID) to compare to")
+var compareVersionsQuerySchema = z$1.object({
+  from: z$1.string().describe("Version ID (UUID) to compare from"),
+  to: z$1.string().describe("Version ID (UUID) to compare to")
 });
-var createVersionBodySchema = z.object({
-  changeMessage: z.string().max(500).optional().describe("Optional message describing the changes")
+var createVersionBodySchema = z$1.object({
+  changeMessage: z$1.string().max(500).optional().describe("Optional message describing the changes")
 });
-var activateVersionResponseSchema = z.object({
-  success: z.boolean(),
-  message: z.string(),
-  activeVersionId: z.string()
+var activateVersionResponseSchema = z$1.object({
+  success: z$1.boolean(),
+  message: z$1.string(),
+  activeVersionId: z$1.string()
 });
-var deleteVersionResponseSchema = z.object({
-  success: z.boolean(),
-  message: z.string()
+var deleteVersionResponseSchema = z$1.object({
+  success: z$1.boolean(),
+  message: z$1.string()
 });
-var versionDiffEntrySchema = z.object({
-  field: z.string().describe("The field path that changed"),
-  previousValue: z.unknown().describe('The value in the "from" version'),
-  currentValue: z.unknown().describe('The value in the "to" version')
+var versionDiffEntrySchema = z$1.object({
+  field: z$1.string().describe("The field path that changed"),
+  previousValue: z$1.unknown().describe('The value in the "from" version'),
+  currentValue: z$1.unknown().describe('The value in the "to" version')
 });
 function createListVersionsResponseSchema(versionSchema) {
   return paginationInfoSchema$1.extend({
-    versions: z.array(versionSchema)
+    versions: z$1.array(versionSchema)
   });
 }
 function createCompareVersionsResponseSchema(versionSchema) {
-  return z.object({
-    diffs: z.array(versionDiffEntrySchema).describe("List of differences between versions"),
+  return z$1.object({
+    diffs: z$1.array(versionDiffEntrySchema).describe("List of differences between versions"),
     fromVersion: versionSchema.describe("The source version"),
     toVersion: versionSchema.describe("The target version")
   });
@@ -21042,18 +21332,18 @@ function createCompareVersionsResponseSchema(versionSchema) {
 var listScorerVersionsQuerySchema = listVersionsQuerySchema;
 var compareScorerVersionsQuerySchema = compareVersionsQuerySchema;
 var createScorerVersionBodySchema = createVersionBodySchema;
-var scorerVersionPathParams = z.object({
-  scorerId: z.string().describe("Unique identifier for the stored scorer definition")
+var scorerVersionPathParams = z$1.object({
+  scorerId: z$1.string().describe("Unique identifier for the stored scorer definition")
 });
-var scorerVersionIdPathParams = z.object({
-  scorerId: z.string().describe("Unique identifier for the stored scorer definition"),
-  versionId: z.string().describe("Unique identifier for the version (UUID)")
+var scorerVersionIdPathParams = z$1.object({
+  scorerId: z$1.string().describe("Unique identifier for the stored scorer definition"),
+  versionId: z$1.string().describe("Unique identifier for the version (UUID)")
 });
-var samplingConfigSchema$1 = z.union([
-  z.object({ type: z.literal("none") }),
-  z.object({ type: z.literal("ratio"), rate: z.number().min(0).max(1) })
+var samplingConfigSchema$1 = z$1.union([
+  z$1.object({ type: z$1.literal("none") }),
+  z$1.object({ type: z$1.literal("ratio"), rate: z$1.number().min(0).max(1) })
 ]);
-var scorerTypeEnum$1 = z.enum([
+var scorerTypeEnum$1 = z$1.enum([
   "llm-judge",
   "answer-relevancy",
   "answer-similarity",
@@ -21067,35 +21357,35 @@ var scorerTypeEnum$1 = z.enum([
   "tool-call-accuracy",
   "toxicity"
 ]);
-var scorerVersionSchema = z.object({
-  id: z.string().describe("Unique identifier for the version (UUID)"),
-  scorerDefinitionId: z.string().describe("ID of the scorer this version belongs to"),
-  versionNumber: z.number().describe("Sequential version number (1, 2, 3, ...)"),
+var scorerVersionSchema = z$1.object({
+  id: z$1.string().describe("Unique identifier for the version (UUID)"),
+  scorerDefinitionId: z$1.string().describe("ID of the scorer this version belongs to"),
+  versionNumber: z$1.number().describe("Sequential version number (1, 2, 3, ...)"),
   // Snapshot config fields
-  name: z.string().describe("Name of the scorer"),
-  description: z.string().optional().describe("Description of the scorer"),
+  name: z$1.string().describe("Name of the scorer"),
+  description: z$1.string().optional().describe("Description of the scorer"),
   type: scorerTypeEnum$1,
   model: modelConfigSchema.optional(),
-  instructions: z.string().optional(),
-  scoreRange: z.object({
-    min: z.number().optional(),
-    max: z.number().optional()
+  instructions: z$1.string().optional(),
+  scoreRange: z$1.object({
+    min: z$1.number().optional(),
+    max: z$1.number().optional()
   }).optional(),
-  presetConfig: z.record(z.string(), z.unknown()).optional(),
+  presetConfig: z$1.record(z$1.string(), z$1.unknown()).optional(),
   defaultSampling: samplingConfigSchema$1.optional(),
   // Version metadata
-  changedFields: z.array(z.string()).optional().describe("Array of field names that changed from the previous version"),
-  changeMessage: z.string().optional().describe("Optional message describing the changes"),
-  createdAt: z.coerce.date().describe("When this version was created")
+  changedFields: z$1.array(z$1.string()).optional().describe("Array of field names that changed from the previous version"),
+  changeMessage: z$1.string().optional().describe("Optional message describing the changes"),
+  createdAt: z$1.coerce.date().describe("When this version was created")
 });
 var listScorerVersionsResponseSchema = createListVersionsResponseSchema(scorerVersionSchema);
 var getScorerVersionResponseSchema = scorerVersionSchema;
 var createScorerVersionResponseSchema = scorerVersionSchema.partial().merge(
-  z.object({
-    id: z.string(),
-    scorerDefinitionId: z.string(),
-    versionNumber: z.number(),
-    createdAt: z.coerce.date()
+  z$1.object({
+    id: z$1.string(),
+    scorerDefinitionId: z$1.string(),
+    versionNumber: z$1.number(),
+    createdAt: z$1.coerce.date()
   })
 );
 var activateScorerVersionResponseSchema = activateVersionResponseSchema;
@@ -22381,73 +22671,73 @@ var PREVIEW_INSTRUCTIONS_ROUTE = createRoute$1({
   }
 });
 
-var storedMCPClientIdPathParams = z.object({
-  storedMCPClientId: z.string().describe("Unique identifier for the stored MCP client")
+var storedMCPClientIdPathParams = z$1.object({
+  storedMCPClientId: z$1.string().describe("Unique identifier for the stored MCP client")
 });
-var storageOrderBySchema$3 = z.object({
-  field: z.enum(["createdAt", "updatedAt"]).optional(),
-  direction: z.enum(["ASC", "DESC"]).optional()
+var storageOrderBySchema$3 = z$1.object({
+  field: z$1.enum(["createdAt", "updatedAt"]).optional(),
+  direction: z$1.enum(["ASC", "DESC"]).optional()
 });
 var listStoredMCPClientsQuerySchema = createPagePaginationSchema(100).extend({
   orderBy: storageOrderBySchema$3.optional(),
-  status: z.enum(["draft", "published", "archived"]).optional().default("published").describe("Filter MCP clients by status (defaults to published)"),
-  authorId: z.string().optional().describe("Filter MCP clients by author identifier"),
-  metadata: z.record(z.string(), z.unknown()).optional().describe("Filter MCP clients by metadata key-value pairs")
+  status: z$1.enum(["draft", "published", "archived"]).optional().default("published").describe("Filter MCP clients by status (defaults to published)"),
+  authorId: z$1.string().optional().describe("Filter MCP clients by author identifier"),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Filter MCP clients by metadata key-value pairs")
 });
-var mcpServerConfigSchema$1 = z.object({
-  type: z.enum(["stdio", "http"]).describe("Transport type: stdio for local processes, http for remote servers"),
-  command: z.string().optional().describe("Command to run (stdio only)"),
-  args: z.array(z.string()).optional().describe("Command arguments (stdio only)"),
-  env: z.record(z.string(), z.string()).optional().describe("Environment variables (stdio only)"),
-  url: z.string().optional().describe("Server URL (http only)"),
-  timeout: z.number().optional().describe("Connection timeout in milliseconds")
+var mcpServerConfigSchema$1 = z$1.object({
+  type: z$1.enum(["stdio", "http"]).describe("Transport type: stdio for local processes, http for remote servers"),
+  command: z$1.string().optional().describe("Command to run (stdio only)"),
+  args: z$1.array(z$1.string()).optional().describe("Command arguments (stdio only)"),
+  env: z$1.record(z$1.string(), z$1.string()).optional().describe("Environment variables (stdio only)"),
+  url: z$1.string().optional().describe("Server URL (http only)"),
+  timeout: z$1.number().optional().describe("Connection timeout in milliseconds")
 });
-var snapshotConfigSchema$2 = z.object({
-  name: z.string().describe("Name of the MCP client"),
-  description: z.string().optional().describe("Description of the MCP client"),
-  servers: z.record(z.string(), mcpServerConfigSchema$1).describe("Map of server name to server configuration")
+var snapshotConfigSchema$2 = z$1.object({
+  name: z$1.string().describe("Name of the MCP client"),
+  description: z$1.string().optional().describe("Description of the MCP client"),
+  servers: z$1.record(z$1.string(), mcpServerConfigSchema$1).describe("Map of server name to server configuration")
 });
-var createStoredMCPClientBodySchema = z.object({
-  id: z.string().optional().describe("Unique identifier. If not provided, derived from name."),
-  authorId: z.string().optional().describe("Author identifier for multi-tenant filtering"),
-  metadata: z.record(z.string(), z.unknown()).optional().describe("Additional metadata for the MCP client")
+var createStoredMCPClientBodySchema = z$1.object({
+  id: z$1.string().optional().describe("Unique identifier. If not provided, derived from name."),
+  authorId: z$1.string().optional().describe("Author identifier for multi-tenant filtering"),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Additional metadata for the MCP client")
 }).merge(snapshotConfigSchema$2);
-var updateStoredMCPClientBodySchema = z.object({
-  authorId: z.string().optional(),
-  metadata: z.record(z.string(), z.unknown()).optional()
+var updateStoredMCPClientBodySchema = z$1.object({
+  authorId: z$1.string().optional(),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional()
 }).partial().merge(snapshotConfigSchema$2.partial());
-var storedMCPClientSchema = z.object({
-  id: z.string(),
-  status: z.string().describe("MCP client status: draft, published, or archived"),
-  activeVersionId: z.string().optional(),
-  authorId: z.string().optional(),
-  metadata: z.record(z.string(), z.unknown()).optional(),
-  createdAt: z.coerce.date(),
-  updatedAt: z.coerce.date(),
-  name: z.string().describe("Name of the MCP client"),
-  description: z.string().optional().describe("Description of the MCP client"),
-  servers: z.record(z.string(), mcpServerConfigSchema$1).describe("Map of server name to server configuration")
+var storedMCPClientSchema = z$1.object({
+  id: z$1.string(),
+  status: z$1.string().describe("MCP client status: draft, published, or archived"),
+  activeVersionId: z$1.string().optional(),
+  authorId: z$1.string().optional(),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional(),
+  createdAt: z$1.coerce.date(),
+  updatedAt: z$1.coerce.date(),
+  name: z$1.string().describe("Name of the MCP client"),
+  description: z$1.string().optional().describe("Description of the MCP client"),
+  servers: z$1.record(z$1.string(), mcpServerConfigSchema$1).describe("Map of server name to server configuration")
 });
 var listStoredMCPClientsResponseSchema = paginationInfoSchema$1.extend({
-  mcpClients: z.array(storedMCPClientSchema)
+  mcpClients: z$1.array(storedMCPClientSchema)
 });
 var getStoredMCPClientResponseSchema = storedMCPClientSchema;
 var createStoredMCPClientResponseSchema = storedMCPClientSchema;
-var updateStoredMCPClientResponseSchema = z.union([
-  z.object({
-    id: z.string(),
-    status: z.string(),
-    activeVersionId: z.string().optional(),
-    authorId: z.string().optional(),
-    metadata: z.record(z.string(), z.unknown()).optional(),
-    createdAt: z.coerce.date(),
-    updatedAt: z.coerce.date()
+var updateStoredMCPClientResponseSchema = z$1.union([
+  z$1.object({
+    id: z$1.string(),
+    status: z$1.string(),
+    activeVersionId: z$1.string().optional(),
+    authorId: z$1.string().optional(),
+    metadata: z$1.record(z$1.string(), z$1.unknown()).optional(),
+    createdAt: z$1.coerce.date(),
+    updatedAt: z$1.coerce.date()
   }),
   storedMCPClientSchema
 ]);
-var deleteStoredMCPClientResponseSchema = z.object({
-  success: z.boolean(),
-  message: z.string()
+var deleteStoredMCPClientResponseSchema = z$1.object({
+  success: z$1.boolean(),
+  message: z$1.string()
 });
 
 // src/server/handlers/stored-mcp-clients.ts
@@ -22672,70 +22962,70 @@ var DELETE_STORED_MCP_CLIENT_ROUTE = createRoute$1({
   }
 });
 
-var storedPromptBlockIdPathParams = z.object({
-  storedPromptBlockId: z.string().describe("Unique identifier for the stored prompt block")
+var storedPromptBlockIdPathParams = z$1.object({
+  storedPromptBlockId: z$1.string().describe("Unique identifier for the stored prompt block")
 });
-var storageOrderBySchema$2 = z.object({
-  field: z.enum(["createdAt", "updatedAt"]).optional(),
-  direction: z.enum(["ASC", "DESC"]).optional()
+var storageOrderBySchema$2 = z$1.object({
+  field: z$1.enum(["createdAt", "updatedAt"]).optional(),
+  direction: z$1.enum(["ASC", "DESC"]).optional()
 });
 var listStoredPromptBlocksQuerySchema = createPagePaginationSchema(100).extend({
   orderBy: storageOrderBySchema$2.optional(),
-  status: z.enum(["draft", "published", "archived"]).optional().describe("Filter prompt blocks by status. When omitted, returns all prompt blocks regardless of status"),
-  authorId: z.string().optional().describe("Filter prompt blocks by author identifier"),
-  metadata: z.record(z.string(), z.unknown()).optional().describe("Filter prompt blocks by metadata key-value pairs")
+  status: z$1.enum(["draft", "published", "archived"]).optional().describe("Filter prompt blocks by status. When omitted, returns all prompt blocks regardless of status"),
+  authorId: z$1.string().optional().describe("Filter prompt blocks by author identifier"),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Filter prompt blocks by metadata key-value pairs")
 });
-var snapshotConfigSchema$1 = z.object({
-  name: z.string().describe("Display name of the prompt block"),
-  description: z.string().optional().describe("Purpose description"),
-  content: z.string().describe("Template content with {{variable}} interpolation"),
+var snapshotConfigSchema$1 = z$1.object({
+  name: z$1.string().describe("Display name of the prompt block"),
+  description: z$1.string().optional().describe("Purpose description"),
+  content: z$1.string().describe("Template content with {{variable}} interpolation"),
   rules: ruleGroupSchema.optional().describe("Rules for conditional inclusion"),
-  requestContextSchema: z.record(z.string(), z.unknown()).optional().describe("JSON Schema defining available variables for {{variableName}} interpolation and conditions")
+  requestContextSchema: z$1.record(z$1.string(), z$1.unknown()).optional().describe("JSON Schema defining available variables for {{variableName}} interpolation and conditions")
 });
-var createStoredPromptBlockBodySchema = z.object({
-  id: z.string().optional().describe("Unique identifier. If not provided, derived from name."),
-  authorId: z.string().optional().describe("Author identifier for multi-tenant filtering"),
-  metadata: z.record(z.string(), z.unknown()).optional().describe("Additional metadata for the prompt block")
+var createStoredPromptBlockBodySchema = z$1.object({
+  id: z$1.string().optional().describe("Unique identifier. If not provided, derived from name."),
+  authorId: z$1.string().optional().describe("Author identifier for multi-tenant filtering"),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Additional metadata for the prompt block")
 }).merge(snapshotConfigSchema$1);
-var updateStoredPromptBlockBodySchema = z.object({
-  authorId: z.string().optional(),
-  metadata: z.record(z.string(), z.unknown()).optional()
+var updateStoredPromptBlockBodySchema = z$1.object({
+  authorId: z$1.string().optional(),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional()
 }).merge(snapshotConfigSchema$1.partial());
-var storedPromptBlockSchema = z.object({
-  id: z.string(),
-  status: z.string().describe("Prompt block status: draft, published, or archived"),
-  activeVersionId: z.string().optional(),
-  hasDraft: z.boolean().optional().describe("Whether the prompt block has unpublished draft changes"),
-  authorId: z.string().optional(),
-  metadata: z.record(z.string(), z.unknown()).optional(),
-  createdAt: z.coerce.date(),
-  updatedAt: z.coerce.date(),
-  name: z.string().describe("Display name of the prompt block"),
-  description: z.string().optional().describe("Purpose description"),
-  content: z.string().describe("Template content with {{variable}} interpolation"),
+var storedPromptBlockSchema = z$1.object({
+  id: z$1.string(),
+  status: z$1.string().describe("Prompt block status: draft, published, or archived"),
+  activeVersionId: z$1.string().optional(),
+  hasDraft: z$1.boolean().optional().describe("Whether the prompt block has unpublished draft changes"),
+  authorId: z$1.string().optional(),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional(),
+  createdAt: z$1.coerce.date(),
+  updatedAt: z$1.coerce.date(),
+  name: z$1.string().describe("Display name of the prompt block"),
+  description: z$1.string().optional().describe("Purpose description"),
+  content: z$1.string().describe("Template content with {{variable}} interpolation"),
   rules: ruleGroupSchema.optional().describe("Rules for conditional inclusion"),
-  requestContextSchema: z.record(z.string(), z.unknown()).optional().describe("JSON Schema defining available variables for {{variableName}} interpolation and conditions")
+  requestContextSchema: z$1.record(z$1.string(), z$1.unknown()).optional().describe("JSON Schema defining available variables for {{variableName}} interpolation and conditions")
 });
 var listStoredPromptBlocksResponseSchema = paginationInfoSchema$1.extend({
-  promptBlocks: z.array(storedPromptBlockSchema)
+  promptBlocks: z$1.array(storedPromptBlockSchema)
 });
 var getStoredPromptBlockResponseSchema = storedPromptBlockSchema;
 var createStoredPromptBlockResponseSchema = storedPromptBlockSchema;
-var updateStoredPromptBlockResponseSchema = z.union([
-  z.object({
-    id: z.string(),
-    status: z.string(),
-    activeVersionId: z.string().optional(),
-    authorId: z.string().optional(),
-    metadata: z.record(z.string(), z.unknown()).optional(),
-    createdAt: z.coerce.date(),
-    updatedAt: z.coerce.date()
+var updateStoredPromptBlockResponseSchema = z$1.union([
+  z$1.object({
+    id: z$1.string(),
+    status: z$1.string(),
+    activeVersionId: z$1.string().optional(),
+    authorId: z$1.string().optional(),
+    metadata: z$1.record(z$1.string(), z$1.unknown()).optional(),
+    createdAt: z$1.coerce.date(),
+    updatedAt: z$1.coerce.date()
   }),
   storedPromptBlockSchema
 ]);
-var deleteStoredPromptBlockResponseSchema = z.object({
-  success: z.boolean(),
-  message: z.string()
+var deleteStoredPromptBlockResponseSchema = z$1.object({
+  success: z$1.boolean(),
+  message: z$1.string()
 });
 
 // src/server/handlers/stored-prompt-blocks.ts
@@ -22998,24 +23288,24 @@ var DELETE_STORED_PROMPT_BLOCK_ROUTE = createRoute$1({
   }
 });
 
-var storedScorerIdPathParams = z.object({
-  storedScorerId: z.string().describe("Unique identifier for the stored scorer definition")
+var storedScorerIdPathParams = z$1.object({
+  storedScorerId: z$1.string().describe("Unique identifier for the stored scorer definition")
 });
-var storageOrderBySchema$1 = z.object({
-  field: z.enum(["createdAt", "updatedAt"]).optional(),
-  direction: z.enum(["ASC", "DESC"]).optional()
+var storageOrderBySchema$1 = z$1.object({
+  field: z$1.enum(["createdAt", "updatedAt"]).optional(),
+  direction: z$1.enum(["ASC", "DESC"]).optional()
 });
 var listStoredScorersQuerySchema = createPagePaginationSchema(100).extend({
   orderBy: storageOrderBySchema$1.optional(),
-  status: z.enum(["draft", "published", "archived"]).optional().default("published").describe("Filter scorers by status (defaults to published)"),
-  authorId: z.string().optional().describe("Filter scorers by author identifier"),
-  metadata: z.record(z.string(), z.unknown()).optional().describe("Filter scorers by metadata key-value pairs")
+  status: z$1.enum(["draft", "published", "archived"]).optional().default("published").describe("Filter scorers by status (defaults to published)"),
+  authorId: z$1.string().optional().describe("Filter scorers by author identifier"),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Filter scorers by metadata key-value pairs")
 });
-var samplingConfigSchema = z.union([
-  z.object({ type: z.literal("none") }),
-  z.object({ type: z.literal("ratio"), rate: z.number().min(0).max(1) })
+var samplingConfigSchema = z$1.union([
+  z$1.object({ type: z$1.literal("none") }),
+  z$1.object({ type: z$1.literal("ratio"), rate: z$1.number().min(0).max(1) })
 ]);
-var scorerTypeEnum = z.enum([
+var scorerTypeEnum = z$1.enum([
   "llm-judge",
   "answer-relevancy",
   "answer-similarity",
@@ -23029,68 +23319,68 @@ var scorerTypeEnum = z.enum([
   "tool-call-accuracy",
   "toxicity"
 ]).describe("Scorer type: llm-judge for custom, or a preset type name");
-var snapshotConfigSchema = z.object({
-  name: z.string().describe("Name of the scorer"),
-  description: z.string().optional().describe("Description of the scorer"),
+var snapshotConfigSchema = z$1.object({
+  name: z$1.string().describe("Name of the scorer"),
+  description: z$1.string().optional().describe("Description of the scorer"),
   type: scorerTypeEnum,
   model: modelConfigSchema.optional().describe("Model configuration for LLM judge"),
-  instructions: z.string().optional().describe("System instructions for the judge LLM (used when type is llm-judge)"),
-  scoreRange: z.object({
-    min: z.number().optional().describe("Minimum score value (default: 0)"),
-    max: z.number().optional().describe("Maximum score value (default: 1)")
+  instructions: z$1.string().optional().describe("System instructions for the judge LLM (used when type is llm-judge)"),
+  scoreRange: z$1.object({
+    min: z$1.number().optional().describe("Minimum score value (default: 0)"),
+    max: z$1.number().optional().describe("Maximum score value (default: 1)")
   }).optional().describe("Score range configuration (used when type is llm-judge)"),
-  presetConfig: z.record(z.string(), z.unknown()).optional().describe("Serializable config options for preset scorers"),
+  presetConfig: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Serializable config options for preset scorers"),
   defaultSampling: samplingConfigSchema.optional().describe("Default sampling configuration")
 });
-var createStoredScorerBodySchema = z.object({
-  id: z.string().optional().describe("Unique identifier. If not provided, derived from name."),
-  authorId: z.string().optional().describe("Author identifier for multi-tenant filtering"),
-  metadata: z.record(z.string(), z.unknown()).optional().describe("Additional metadata for the scorer")
+var createStoredScorerBodySchema = z$1.object({
+  id: z$1.string().optional().describe("Unique identifier. If not provided, derived from name."),
+  authorId: z$1.string().optional().describe("Author identifier for multi-tenant filtering"),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Additional metadata for the scorer")
 }).merge(snapshotConfigSchema);
-var updateStoredScorerBodySchema = z.object({
-  authorId: z.string().optional(),
-  metadata: z.record(z.string(), z.unknown()).optional()
+var updateStoredScorerBodySchema = z$1.object({
+  authorId: z$1.string().optional(),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional()
 }).partial().merge(snapshotConfigSchema.partial());
-var storedScorerSchema = z.object({
-  id: z.string(),
-  status: z.string().describe("Scorer status: draft, published, or archived"),
-  activeVersionId: z.string().optional(),
-  authorId: z.string().optional(),
-  metadata: z.record(z.string(), z.unknown()).optional(),
-  createdAt: z.coerce.date(),
-  updatedAt: z.coerce.date(),
-  name: z.string().describe("Name of the scorer"),
-  description: z.string().optional().describe("Description of the scorer"),
+var storedScorerSchema = z$1.object({
+  id: z$1.string(),
+  status: z$1.string().describe("Scorer status: draft, published, or archived"),
+  activeVersionId: z$1.string().optional(),
+  authorId: z$1.string().optional(),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional(),
+  createdAt: z$1.coerce.date(),
+  updatedAt: z$1.coerce.date(),
+  name: z$1.string().describe("Name of the scorer"),
+  description: z$1.string().optional().describe("Description of the scorer"),
   type: scorerTypeEnum,
   model: modelConfigSchema.optional(),
-  instructions: z.string().optional().describe("System instructions for the judge LLM"),
-  scoreRange: z.object({
-    min: z.number().optional(),
-    max: z.number().optional()
+  instructions: z$1.string().optional().describe("System instructions for the judge LLM"),
+  scoreRange: z$1.object({
+    min: z$1.number().optional(),
+    max: z$1.number().optional()
   }).optional(),
-  presetConfig: z.record(z.string(), z.unknown()).optional(),
+  presetConfig: z$1.record(z$1.string(), z$1.unknown()).optional(),
   defaultSampling: samplingConfigSchema.optional()
 });
 var listStoredScorersResponseSchema = paginationInfoSchema$1.extend({
-  scorerDefinitions: z.array(storedScorerSchema)
+  scorerDefinitions: z$1.array(storedScorerSchema)
 });
 var getStoredScorerResponseSchema = storedScorerSchema;
 var createStoredScorerResponseSchema = storedScorerSchema;
-var updateStoredScorerResponseSchema = z.union([
-  z.object({
-    id: z.string(),
-    status: z.string(),
-    activeVersionId: z.string().optional(),
-    authorId: z.string().optional(),
-    metadata: z.record(z.string(), z.unknown()).optional(),
-    createdAt: z.coerce.date(),
-    updatedAt: z.coerce.date()
+var updateStoredScorerResponseSchema = z$1.union([
+  z$1.object({
+    id: z$1.string(),
+    status: z$1.string(),
+    activeVersionId: z$1.string().optional(),
+    authorId: z$1.string().optional(),
+    metadata: z$1.record(z$1.string(), z$1.unknown()).optional(),
+    createdAt: z$1.coerce.date(),
+    updatedAt: z$1.coerce.date()
   }),
   storedScorerSchema
 ]);
-var deleteStoredScorerResponseSchema = z.object({
-  success: z.boolean(),
-  message: z.string()
+var deleteStoredScorerResponseSchema = z$1.object({
+  success: z$1.boolean(),
+  message: z$1.string()
 });
 
 // src/server/handlers/stored-scorers.ts
@@ -23366,32 +23656,32 @@ var DELETE_STORED_SCORER_ROUTE = createRoute$1({
 });
 
 // src/server/schemas/processor-providers.ts
-var processorProviderIdPathParams = z.object({
-  providerId: z.string().describe("Unique identifier for the processor provider")
+var processorProviderIdPathParams = z$1.object({
+  providerId: z$1.string().describe("Unique identifier for the processor provider")
 });
-var processorPhaseSchema = z.enum([
+var processorPhaseSchema = z$1.enum([
   "processInput",
   "processInputStep",
   "processOutputStream",
   "processOutputResult",
   "processOutputStep"
 ]);
-var getProcessorProvidersResponseSchema = z.object({
-  providers: z.array(
-    z.object({
-      id: z.string(),
-      name: z.string(),
-      description: z.string().optional(),
-      availablePhases: z.array(processorPhaseSchema)
+var getProcessorProvidersResponseSchema = z$1.object({
+  providers: z$1.array(
+    z$1.object({
+      id: z$1.string(),
+      name: z$1.string(),
+      description: z$1.string().optional(),
+      availablePhases: z$1.array(processorPhaseSchema)
     })
   )
 });
-var getProcessorProviderResponseSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  description: z.string().optional(),
-  availablePhases: z.array(processorPhaseSchema),
-  configSchema: z.record(z.string(), z.unknown())
+var getProcessorProviderResponseSchema = z$1.object({
+  id: z$1.string(),
+  name: z$1.string(),
+  description: z$1.string().optional(),
+  availablePhases: z$1.array(processorPhaseSchema),
+  configSchema: z$1.record(z$1.string(), z$1.unknown())
 });
 
 var LIST_PROCESSOR_PROVIDERS_ROUTE = createRoute$1({
@@ -23453,67 +23743,67 @@ var GET_PROCESSOR_PROVIDER_ROUTE = createRoute$1({
 });
 
 // src/server/schemas/processors.ts
-var processorIdPathParams = z.object({
-  processorId: z.string().describe("Unique identifier for the processor")
+var processorIdPathParams = z$1.object({
+  processorId: z$1.string().describe("Unique identifier for the processor")
 });
-var processorConfigurationSchema = z.object({
-  agentId: z.string(),
-  agentName: z.string(),
-  type: z.enum(["input", "output"])
+var processorConfigurationSchema = z$1.object({
+  agentId: z$1.string(),
+  agentName: z$1.string(),
+  type: z$1.enum(["input", "output"])
 });
-var processorListConfigurationSchema = z.object({
-  agentId: z.string(),
-  type: z.enum(["input", "output"])
+var processorListConfigurationSchema = z$1.object({
+  agentId: z$1.string(),
+  type: z$1.enum(["input", "output"])
 });
-var serializedProcessorSchema = z.object({
-  id: z.string(),
-  name: z.string().optional(),
-  description: z.string().optional(),
-  phases: z.array(z.enum(["input", "inputStep", "outputStream", "outputResult", "outputStep"])),
-  agentIds: z.array(z.string()),
-  configurations: z.array(processorListConfigurationSchema),
-  isWorkflow: z.boolean()
+var serializedProcessorSchema = z$1.object({
+  id: z$1.string(),
+  name: z$1.string().optional(),
+  description: z$1.string().optional(),
+  phases: z$1.array(z$1.enum(["input", "inputStep", "outputStream", "outputResult", "outputStep"])),
+  agentIds: z$1.array(z$1.string()),
+  configurations: z$1.array(processorListConfigurationSchema),
+  isWorkflow: z$1.boolean()
 });
-var serializedProcessorDetailSchema = z.object({
-  id: z.string(),
-  name: z.string().optional(),
-  description: z.string().optional(),
-  phases: z.array(z.enum(["input", "inputStep", "outputStream", "outputResult", "outputStep"])),
-  configurations: z.array(processorConfigurationSchema),
-  isWorkflow: z.boolean()
+var serializedProcessorDetailSchema = z$1.object({
+  id: z$1.string(),
+  name: z$1.string().optional(),
+  description: z$1.string().optional(),
+  phases: z$1.array(z$1.enum(["input", "inputStep", "outputStream", "outputResult", "outputStep"])),
+  configurations: z$1.array(processorConfigurationSchema),
+  isWorkflow: z$1.boolean()
 });
-var listProcessorsResponseSchema = z.record(z.string(), serializedProcessorSchema);
-var messageContentSchema = z.object({
-  format: z.literal(2).optional(),
-  parts: z.array(z.any()).optional(),
-  content: z.string().optional()
+var listProcessorsResponseSchema = z$1.record(z$1.string(), serializedProcessorSchema);
+var messageContentSchema = z$1.object({
+  format: z$1.literal(2).optional(),
+  parts: z$1.array(z$1.any()).optional(),
+  content: z$1.string().optional()
 }).passthrough();
-var processorMessageSchema = z.object({
-  id: z.string(),
-  role: z.enum(["user", "assistant", "system", "tool", "signal"]),
-  createdAt: z.coerce.date().optional(),
-  content: z.union([messageContentSchema, z.string()])
+var processorMessageSchema = z$1.object({
+  id: z$1.string(),
+  role: z$1.enum(["user", "assistant", "system", "tool", "signal"]),
+  createdAt: z$1.coerce.date().optional(),
+  content: z$1.union([messageContentSchema, z$1.string()])
 }).passthrough();
-var executeProcessorBodySchema = z.object({
-  phase: z.enum(["input", "inputStep", "outputStream", "outputResult", "outputStep"]),
-  messages: z.array(processorMessageSchema),
-  agentId: z.string().optional(),
-  requestContext: z.record(z.string(), z.any()).optional()
+var executeProcessorBodySchema = z$1.object({
+  phase: z$1.enum(["input", "inputStep", "outputStream", "outputResult", "outputStep"]),
+  messages: z$1.array(processorMessageSchema),
+  agentId: z$1.string().optional(),
+  requestContext: z$1.record(z$1.string(), z$1.any()).optional()
 });
-var tripwireSchema = z.object({
-  triggered: z.boolean(),
-  reason: z.string().optional(),
-  metadata: z.any().optional()
+var tripwireSchema = z$1.object({
+  triggered: z$1.boolean(),
+  reason: z$1.string().optional(),
+  metadata: z$1.any().optional()
 });
-var executeProcessorResponseSchema = z.object({
-  success: z.boolean(),
-  phase: z.string(),
-  messages: z.array(processorMessageSchema).optional(),
-  messageList: z.object({
-    messages: z.array(processorMessageSchema)
+var executeProcessorResponseSchema = z$1.object({
+  success: z$1.boolean(),
+  phase: z$1.string(),
+  messages: z$1.array(processorMessageSchema).optional(),
+  messageList: z$1.object({
+    messages: z$1.array(processorMessageSchema)
   }).optional(),
   tripwire: tripwireSchema.optional(),
-  error: z.string().optional()
+  error: z$1.string().optional()
 });
 
 function extractTextFromMessages(messages) {
@@ -23908,36 +24198,36 @@ var EXECUTE_PROCESSOR_ROUTE = createRoute$1({
 var listPromptBlockVersionsQuerySchema = listVersionsQuerySchema;
 var comparePromptBlockVersionsQuerySchema = compareVersionsQuerySchema;
 var createPromptBlockVersionBodySchema = createVersionBodySchema;
-var promptBlockVersionPathParams = z.object({
-  promptBlockId: z.string().describe("Unique identifier for the stored prompt block")
+var promptBlockVersionPathParams = z$1.object({
+  promptBlockId: z$1.string().describe("Unique identifier for the stored prompt block")
 });
-var promptBlockVersionIdPathParams = z.object({
-  promptBlockId: z.string().describe("Unique identifier for the stored prompt block"),
-  versionId: z.string().describe("Unique identifier for the version (UUID)")
+var promptBlockVersionIdPathParams = z$1.object({
+  promptBlockId: z$1.string().describe("Unique identifier for the stored prompt block"),
+  versionId: z$1.string().describe("Unique identifier for the version (UUID)")
 });
-var promptBlockVersionSchema = z.object({
-  id: z.string().describe("Unique identifier for the version (UUID)"),
-  blockId: z.string().describe("ID of the prompt block this version belongs to"),
-  versionNumber: z.number().describe("Sequential version number (1, 2, 3, ...)"),
+var promptBlockVersionSchema = z$1.object({
+  id: z$1.string().describe("Unique identifier for the version (UUID)"),
+  blockId: z$1.string().describe("ID of the prompt block this version belongs to"),
+  versionNumber: z$1.number().describe("Sequential version number (1, 2, 3, ...)"),
   // Snapshot config fields
-  name: z.string().describe("Display name of the prompt block"),
-  description: z.string().optional().describe("Purpose description"),
-  content: z.string().describe("Template content with {{variable}} interpolation"),
+  name: z$1.string().describe("Display name of the prompt block"),
+  description: z$1.string().optional().describe("Purpose description"),
+  content: z$1.string().describe("Template content with {{variable}} interpolation"),
   rules: ruleGroupSchema.optional().describe("Rules for conditional inclusion"),
-  requestContextSchema: z.record(z.string(), z.unknown()).optional().describe("JSON Schema defining available variables for {{variableName}} interpolation and conditions"),
+  requestContextSchema: z$1.record(z$1.string(), z$1.unknown()).optional().describe("JSON Schema defining available variables for {{variableName}} interpolation and conditions"),
   // Version metadata
-  changedFields: z.array(z.string()).optional().describe("Array of field names that changed from the previous version"),
-  changeMessage: z.string().optional().describe("Optional message describing the changes"),
-  createdAt: z.coerce.date().describe("When this version was created")
+  changedFields: z$1.array(z$1.string()).optional().describe("Array of field names that changed from the previous version"),
+  changeMessage: z$1.string().optional().describe("Optional message describing the changes"),
+  createdAt: z$1.coerce.date().describe("When this version was created")
 });
 var listPromptBlockVersionsResponseSchema = createListVersionsResponseSchema(promptBlockVersionSchema);
 var getPromptBlockVersionResponseSchema = promptBlockVersionSchema;
 var createPromptBlockVersionResponseSchema = promptBlockVersionSchema.partial().merge(
-  z.object({
-    id: z.string(),
-    blockId: z.string(),
-    versionNumber: z.number(),
-    createdAt: z.coerce.date()
+  z$1.object({
+    id: z$1.string(),
+    blockId: z$1.string(),
+    versionNumber: z$1.number(),
+    createdAt: z$1.coerce.date()
   })
 );
 var activatePromptBlockVersionResponseSchema = activateVersionResponseSchema;
@@ -24332,15 +24622,15 @@ var computeNextFireAt2 = exported ?? (() => {
   );
 });
 
-var scheduleStatusSchema = z$1.enum(["active", "paused"]);
-var scheduleTargetSchema = z$1.object({
-  type: z$1.literal("workflow"),
-  workflowId: z$1.string(),
-  inputData: z$1.unknown().optional(),
-  initialState: z$1.unknown().optional(),
-  requestContext: z$1.record(z$1.string(), z$1.unknown()).optional()
+var scheduleStatusSchema = z.enum(["active", "paused"]);
+var scheduleTargetSchema = z.object({
+  type: z.literal("workflow"),
+  workflowId: z.string(),
+  inputData: z.unknown().optional(),
+  initialState: z.unknown().optional(),
+  requestContext: z.record(z.string(), z.unknown()).optional()
 });
-var workflowRunStatusSchema$1 = z$1.enum([
+var workflowRunStatusSchema$1 = z.enum([
   "running",
   "success",
   "failed",
@@ -24352,30 +24642,30 @@ var workflowRunStatusSchema$1 = z$1.enum([
   "bailed",
   "paused"
 ]);
-var scheduleRunSummarySchema = z$1.object({
+var scheduleRunSummarySchema = z.object({
   status: workflowRunStatusSchema$1,
-  startedAt: z$1.number().optional(),
-  completedAt: z$1.number().optional(),
-  durationMs: z$1.number().optional(),
-  error: z$1.string().optional()
+  startedAt: z.number().optional(),
+  completedAt: z.number().optional(),
+  durationMs: z.number().optional(),
+  error: z.string().optional()
 });
-var scheduleResponseSchema = z$1.object({
-  id: z$1.string(),
+var scheduleResponseSchema = z.object({
+  id: z.string(),
   target: scheduleTargetSchema,
-  cron: z$1.string(),
-  timezone: z$1.string().optional(),
+  cron: z.string(),
+  timezone: z.string().optional(),
   status: scheduleStatusSchema,
-  nextFireAt: z$1.number(),
-  lastFireAt: z$1.number().optional(),
-  lastRunId: z$1.string().optional(),
+  nextFireAt: z.number(),
+  lastFireAt: z.number().optional(),
+  lastRunId: z.string().optional(),
   lastRun: scheduleRunSummarySchema.optional(),
-  metadata: z$1.record(z$1.string(), z$1.unknown()).optional(),
-  ownerType: z$1.string().optional(),
-  ownerId: z$1.string().optional(),
-  createdAt: z$1.number(),
-  updatedAt: z$1.number()
+  metadata: z.record(z.string(), z.unknown()).optional(),
+  ownerType: z.string().optional(),
+  ownerId: z.string().optional(),
+  createdAt: z.number(),
+  updatedAt: z.number()
 });
-var scheduleTriggerOutcomeSchema = z$1.enum([
+var scheduleTriggerOutcomeSchema = z.enum([
   "published",
   "failed",
   "skipped",
@@ -24387,42 +24677,42 @@ var scheduleTriggerOutcomeSchema = z$1.enum([
   "dropped-superseded",
   "dropped-busy"
 ]);
-var scheduleTriggerKindSchema = z$1.enum(["schedule-fire", "queue-drain"]);
-var scheduleTriggerResponseSchema = z$1.object({
-  id: z$1.string().optional(),
-  scheduleId: z$1.string(),
-  runId: z$1.string().nullable(),
-  scheduledFireAt: z$1.number(),
-  actualFireAt: z$1.number(),
+var scheduleTriggerKindSchema = z.enum(["schedule-fire", "queue-drain"]);
+var scheduleTriggerResponseSchema = z.object({
+  id: z.string().optional(),
+  scheduleId: z.string(),
+  runId: z.string().nullable(),
+  scheduledFireAt: z.number(),
+  actualFireAt: z.number(),
   outcome: scheduleTriggerOutcomeSchema,
-  error: z$1.string().optional(),
+  error: z.string().optional(),
   triggerKind: scheduleTriggerKindSchema.optional(),
-  parentTriggerId: z$1.string().optional(),
-  metadata: z$1.record(z$1.string(), z$1.unknown()).optional(),
+  parentTriggerId: z.string().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
   run: scheduleRunSummarySchema.optional()
 });
-var listSchedulesQuerySchema = z$1.object({
-  workflowId: z$1.string().optional(),
+var listSchedulesQuerySchema = z.object({
+  workflowId: z.string().optional(),
   status: scheduleStatusSchema.optional(),
-  ownerType: z$1.string().optional(),
-  ownerId: z$1.string().optional()
+  ownerType: z.string().optional(),
+  ownerId: z.string().optional()
 }).refine((data) => data.ownerId === void 0 || data.ownerType !== void 0, {
   message: "ownerId can only be used together with ownerType",
   path: ["ownerId"]
 });
-var listSchedulesResponseSchema = z$1.object({
-  schedules: z$1.array(scheduleResponseSchema)
+var listSchedulesResponseSchema = z.object({
+  schedules: z.array(scheduleResponseSchema)
 });
-var scheduleIdPathParams = z$1.object({
-  scheduleId: z$1.string()
+var scheduleIdPathParams = z.object({
+  scheduleId: z.string()
 });
-var listScheduleTriggersQuerySchema = z$1.object({
-  limit: z$1.coerce.number().int().positive().optional(),
-  fromActualFireAt: z$1.coerce.number().int().nonnegative().optional(),
-  toActualFireAt: z$1.coerce.number().int().nonnegative().optional()
+var listScheduleTriggersQuerySchema = z.object({
+  limit: z.coerce.number().int().positive().optional(),
+  fromActualFireAt: z.coerce.number().int().nonnegative().optional(),
+  toActualFireAt: z.coerce.number().int().nonnegative().optional()
 });
-var listScheduleTriggersResponseSchema = z$1.object({
-  triggers: z$1.array(scheduleTriggerResponseSchema)
+var listScheduleTriggersResponseSchema = z.object({
+  triggers: z.array(scheduleTriggerResponseSchema)
 });
 
 // src/server/handlers/schedules.ts
@@ -24601,42 +24891,42 @@ var RESUME_SCHEDULE_ROUTE = createRoute$1({
 var listMCPClientVersionsQuerySchema = listVersionsQuerySchema;
 var compareMCPClientVersionsQuerySchema = compareVersionsQuerySchema;
 var createMCPClientVersionBodySchema = createVersionBodySchema;
-var mcpClientVersionPathParams = z.object({
-  mcpClientId: z.string().describe("Unique identifier for the stored MCP client")
+var mcpClientVersionPathParams = z$1.object({
+  mcpClientId: z$1.string().describe("Unique identifier for the stored MCP client")
 });
-var mcpClientVersionIdPathParams = z.object({
-  mcpClientId: z.string().describe("Unique identifier for the stored MCP client"),
-  versionId: z.string().describe("Unique identifier for the version (UUID)")
+var mcpClientVersionIdPathParams = z$1.object({
+  mcpClientId: z$1.string().describe("Unique identifier for the stored MCP client"),
+  versionId: z$1.string().describe("Unique identifier for the version (UUID)")
 });
-var mcpServerConfigSchema = z.object({
-  type: z.enum(["stdio", "http"]),
-  command: z.string().optional(),
-  args: z.array(z.string()).optional(),
-  env: z.record(z.string(), z.string()).optional(),
-  url: z.string().optional(),
-  timeout: z.number().optional()
+var mcpServerConfigSchema = z$1.object({
+  type: z$1.enum(["stdio", "http"]),
+  command: z$1.string().optional(),
+  args: z$1.array(z$1.string()).optional(),
+  env: z$1.record(z$1.string(), z$1.string()).optional(),
+  url: z$1.string().optional(),
+  timeout: z$1.number().optional()
 });
-var mcpClientVersionSchema = z.object({
-  id: z.string().describe("Unique identifier for the version (UUID)"),
-  mcpClientId: z.string().describe("ID of the MCP client this version belongs to"),
-  versionNumber: z.number().describe("Sequential version number (1, 2, 3, ...)"),
+var mcpClientVersionSchema = z$1.object({
+  id: z$1.string().describe("Unique identifier for the version (UUID)"),
+  mcpClientId: z$1.string().describe("ID of the MCP client this version belongs to"),
+  versionNumber: z$1.number().describe("Sequential version number (1, 2, 3, ...)"),
   // Snapshot config fields
-  name: z.string().describe("Name of the MCP client"),
-  description: z.string().optional().describe("Description of the MCP client"),
-  servers: z.record(z.string(), mcpServerConfigSchema),
+  name: z$1.string().describe("Name of the MCP client"),
+  description: z$1.string().optional().describe("Description of the MCP client"),
+  servers: z$1.record(z$1.string(), mcpServerConfigSchema),
   // Version metadata
-  changedFields: z.array(z.string()).optional().describe("Array of field names that changed from the previous version"),
-  changeMessage: z.string().optional().describe("Optional message describing the changes"),
-  createdAt: z.coerce.date().describe("When this version was created")
+  changedFields: z$1.array(z$1.string()).optional().describe("Array of field names that changed from the previous version"),
+  changeMessage: z$1.string().optional().describe("Optional message describing the changes"),
+  createdAt: z$1.coerce.date().describe("When this version was created")
 });
 var listMCPClientVersionsResponseSchema = createListVersionsResponseSchema(mcpClientVersionSchema);
 var getMCPClientVersionResponseSchema = mcpClientVersionSchema;
 var createMCPClientVersionResponseSchema = mcpClientVersionSchema.partial().merge(
-  z.object({
-    id: z.string(),
-    mcpClientId: z.string(),
-    versionNumber: z.number(),
-    createdAt: z.coerce.date()
+  z$1.object({
+    id: z$1.string(),
+    mcpClientId: z$1.string(),
+    versionNumber: z$1.number(),
+    createdAt: z$1.coerce.date()
   })
 );
 var activateMCPClientVersionResponseSchema = activateVersionResponseSchema;
@@ -25028,55 +25318,55 @@ var COMPARE_MCP_CLIENT_VERSIONS_ROUTE = createRoute$1({
   }
 });
 
-var channelPlatformPathParams = z.object({
-  platform: z.string().describe('Channel platform identifier (e.g., "slack")')
+var channelPlatformPathParams = z$1.object({
+  platform: z$1.string().describe('Channel platform identifier (e.g., "slack")')
 });
-var channelAgentPathParams = z.object({
-  platform: z.string().describe('Channel platform identifier (e.g., "slack")'),
-  agentId: z.string().describe("Agent identifier")
+var channelAgentPathParams = z$1.object({
+  platform: z$1.string().describe('Channel platform identifier (e.g., "slack")'),
+  agentId: z$1.string().describe("Agent identifier")
 });
-var connectChannelBodySchema = z.object({
-  agentId: z.string().describe("Agent identifier to connect"),
-  options: z.record(z.string(), z.unknown()).optional().describe("Platform-specific connection options")
+var connectChannelBodySchema = z$1.object({
+  agentId: z$1.string().describe("Agent identifier to connect"),
+  options: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Platform-specific connection options")
 });
-var channelPlatformInfoSchema = z.object({
-  id: z.string().describe("Platform identifier"),
-  name: z.string().describe("Human-readable platform name"),
-  isConfigured: z.boolean().describe("Whether the platform is ready to connect agents"),
-  connectOptionsSchema: z.record(z.string(), z.unknown()).optional().describe("JSON Schema for connect options")
+var channelPlatformInfoSchema = z$1.object({
+  id: z$1.string().describe("Platform identifier"),
+  name: z$1.string().describe("Human-readable platform name"),
+  isConfigured: z$1.boolean().describe("Whether the platform is ready to connect agents"),
+  connectOptionsSchema: z$1.record(z$1.string(), z$1.unknown()).optional().describe("JSON Schema for connect options")
 });
-var channelInstallationInfoSchema = z.object({
-  id: z.string().describe("Installation identifier"),
-  platform: z.string().describe("Platform identifier"),
-  agentId: z.string().describe("Connected agent identifier"),
-  status: z.enum(["active", "pending"]).describe("Installation status"),
-  displayName: z.string().optional().describe("Platform-specific display name"),
-  installedAt: z.coerce.date().optional().describe("Installation timestamp")
+var channelInstallationInfoSchema = z$1.object({
+  id: z$1.string().describe("Installation identifier"),
+  platform: z$1.string().describe("Platform identifier"),
+  agentId: z$1.string().describe("Connected agent identifier"),
+  status: z$1.enum(["active", "pending"]).describe("Installation status"),
+  displayName: z$1.string().optional().describe("Platform-specific display name"),
+  installedAt: z$1.coerce.date().optional().describe("Installation timestamp")
 });
-var channelConnectOAuthSchema = z.object({
-  type: z.literal("oauth").describe("OAuth-based connection requiring browser redirect"),
-  authorizationUrl: z.string().describe("OAuth authorization URL for user redirect"),
-  installationId: z.string().describe("Installation identifier")
+var channelConnectOAuthSchema = z$1.object({
+  type: z$1.literal("oauth").describe("OAuth-based connection requiring browser redirect"),
+  authorizationUrl: z$1.string().describe("OAuth authorization URL for user redirect"),
+  installationId: z$1.string().describe("Installation identifier")
 });
-var channelConnectDeepLinkSchema = z.object({
-  type: z.literal("deep_link").describe("Deep-link connection requiring native app interaction"),
-  url: z.string().describe("Deep link URL to open in platform app"),
-  installationId: z.string().describe("Installation identifier")
+var channelConnectDeepLinkSchema = z$1.object({
+  type: z$1.literal("deep_link").describe("Deep-link connection requiring native app interaction"),
+  url: z$1.string().describe("Deep link URL to open in platform app"),
+  installationId: z$1.string().describe("Installation identifier")
 });
-var channelConnectImmediateSchema = z.object({
-  type: z.literal("immediate").describe("Immediate connection with no user interaction needed"),
-  installationId: z.string().describe("Installation identifier")
+var channelConnectImmediateSchema = z$1.object({
+  type: z$1.literal("immediate").describe("Immediate connection with no user interaction needed"),
+  installationId: z$1.string().describe("Installation identifier")
 });
-var channelConnectResultSchema = z.discriminatedUnion("type", [
+var channelConnectResultSchema = z$1.discriminatedUnion("type", [
   channelConnectOAuthSchema,
   channelConnectDeepLinkSchema,
   channelConnectImmediateSchema
 ]);
-var listChannelPlatformsResponseSchema = z.array(channelPlatformInfoSchema);
-var listChannelInstallationsResponseSchema = z.array(channelInstallationInfoSchema);
+var listChannelPlatformsResponseSchema = z$1.array(channelPlatformInfoSchema);
+var listChannelInstallationsResponseSchema = z$1.array(channelInstallationInfoSchema);
 var connectChannelResponseSchema = channelConnectResultSchema;
-var disconnectChannelResponseSchema = z.object({
-  success: z.boolean()
+var disconnectChannelResponseSchema = z$1.object({
+  success: z$1.boolean()
 });
 
 // src/server/handlers/channels.ts
@@ -25229,96 +25519,96 @@ var DISCONNECT_CHANNEL_ROUTE = createRoute$1({
   }
 });
 
-var jsonSchemaObject = z.lazy(() => z.record(z.string(), z.unknown()));
-var jsonSchemaField = z.union([jsonSchemaObject, z.null()]).optional();
+var jsonSchemaObject = z$1.lazy(() => z$1.record(z$1.string(), z$1.unknown()));
+var jsonSchemaField = z$1.union([jsonSchemaObject, z$1.null()]).optional();
 var expectedStepBase = {
-  name: z.string().describe("Step name to match"),
-  durationMs: z.number().optional(),
-  metadata: z.record(z.string(), z.unknown()).optional(),
-  children: z.any().optional().describe("Nested trajectory expectation (untyped at this depth)")
+  name: z$1.string().describe("Step name to match"),
+  durationMs: z$1.number().optional(),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional(),
+  children: z$1.any().optional().describe("Nested trajectory expectation (untyped at this depth)")
 };
-var expectedToolCallStepSchema = z.object({
+var expectedToolCallStepSchema = z$1.object({
   ...expectedStepBase,
-  stepType: z.literal("tool_call"),
-  toolArgs: z.record(z.string(), z.unknown()).optional(),
-  toolResult: z.record(z.string(), z.unknown()).optional(),
-  success: z.boolean().optional()
+  stepType: z$1.literal("tool_call"),
+  toolArgs: z$1.record(z$1.string(), z$1.unknown()).optional(),
+  toolResult: z$1.record(z$1.string(), z$1.unknown()).optional(),
+  success: z$1.boolean().optional()
 });
-var expectedMcpToolCallStepSchema = z.object({
+var expectedMcpToolCallStepSchema = z$1.object({
   ...expectedStepBase,
-  stepType: z.literal("mcp_tool_call"),
-  toolArgs: z.record(z.string(), z.unknown()).optional(),
-  toolResult: z.record(z.string(), z.unknown()).optional(),
-  mcpServer: z.string().optional(),
-  success: z.boolean().optional()
+  stepType: z$1.literal("mcp_tool_call"),
+  toolArgs: z$1.record(z$1.string(), z$1.unknown()).optional(),
+  toolResult: z$1.record(z$1.string(), z$1.unknown()).optional(),
+  mcpServer: z$1.string().optional(),
+  success: z$1.boolean().optional()
 });
-var expectedModelGenerationStepSchema = z.object({
+var expectedModelGenerationStepSchema = z$1.object({
   ...expectedStepBase,
-  stepType: z.literal("model_generation"),
-  modelId: z.string().optional(),
-  promptTokens: z.number().optional(),
-  completionTokens: z.number().optional(),
-  finishReason: z.string().optional()
+  stepType: z$1.literal("model_generation"),
+  modelId: z$1.string().optional(),
+  promptTokens: z$1.number().optional(),
+  completionTokens: z$1.number().optional(),
+  finishReason: z$1.string().optional()
 });
-var expectedAgentRunStepSchema = z.object({
+var expectedAgentRunStepSchema = z$1.object({
   ...expectedStepBase,
-  stepType: z.literal("agent_run"),
-  agentId: z.string().optional()
+  stepType: z$1.literal("agent_run"),
+  agentId: z$1.string().optional()
 });
-var expectedWorkflowStepStepSchema = z.object({
+var expectedWorkflowStepStepSchema = z$1.object({
   ...expectedStepBase,
-  stepType: z.literal("workflow_step"),
-  stepId: z.string().optional(),
-  status: z.string().optional(),
-  output: z.record(z.string(), z.unknown()).optional()
+  stepType: z$1.literal("workflow_step"),
+  stepId: z$1.string().optional(),
+  status: z$1.string().optional(),
+  output: z$1.record(z$1.string(), z$1.unknown()).optional()
 });
-var expectedWorkflowRunStepSchema = z.object({
+var expectedWorkflowRunStepSchema = z$1.object({
   ...expectedStepBase,
-  stepType: z.literal("workflow_run"),
-  workflowId: z.string().optional(),
-  status: z.string().optional()
+  stepType: z$1.literal("workflow_run"),
+  workflowId: z$1.string().optional(),
+  status: z$1.string().optional()
 });
-var expectedWorkflowConditionalStepSchema = z.object({
+var expectedWorkflowConditionalStepSchema = z$1.object({
   ...expectedStepBase,
-  stepType: z.literal("workflow_conditional"),
-  conditionCount: z.number().optional(),
-  selectedSteps: z.array(z.string()).optional()
+  stepType: z$1.literal("workflow_conditional"),
+  conditionCount: z$1.number().optional(),
+  selectedSteps: z$1.array(z$1.string()).optional()
 });
-var expectedWorkflowParallelStepSchema = z.object({
+var expectedWorkflowParallelStepSchema = z$1.object({
   ...expectedStepBase,
-  stepType: z.literal("workflow_parallel"),
-  branchCount: z.number().optional(),
-  parallelSteps: z.array(z.string()).optional()
+  stepType: z$1.literal("workflow_parallel"),
+  branchCount: z$1.number().optional(),
+  parallelSteps: z$1.array(z$1.string()).optional()
 });
-var expectedWorkflowLoopStepSchema = z.object({
+var expectedWorkflowLoopStepSchema = z$1.object({
   ...expectedStepBase,
-  stepType: z.literal("workflow_loop"),
-  loopType: z.string().optional(),
-  totalIterations: z.number().optional()
+  stepType: z$1.literal("workflow_loop"),
+  loopType: z$1.string().optional(),
+  totalIterations: z$1.number().optional()
 });
-var expectedWorkflowSleepStepSchema = z.object({
+var expectedWorkflowSleepStepSchema = z$1.object({
   ...expectedStepBase,
-  stepType: z.literal("workflow_sleep"),
-  sleepDurationMs: z.number().optional(),
-  sleepType: z.string().optional()
+  stepType: z$1.literal("workflow_sleep"),
+  sleepDurationMs: z$1.number().optional(),
+  sleepType: z$1.string().optional()
 });
-var expectedWorkflowWaitEventStepSchema = z.object({
+var expectedWorkflowWaitEventStepSchema = z$1.object({
   ...expectedStepBase,
-  stepType: z.literal("workflow_wait_event"),
-  eventName: z.string().optional(),
-  eventReceived: z.boolean().optional()
+  stepType: z$1.literal("workflow_wait_event"),
+  eventName: z$1.string().optional(),
+  eventReceived: z$1.boolean().optional()
 });
-var expectedProcessorRunStepSchema = z.object({
+var expectedProcessorRunStepSchema = z$1.object({
   ...expectedStepBase,
-  stepType: z.literal("processor_run"),
-  processorId: z.string().optional()
+  stepType: z$1.literal("processor_run"),
+  processorId: z$1.string().optional()
 });
-var expectedGenericStepSchema = z.object({
+var expectedGenericStepSchema = z$1.object({
   ...expectedStepBase,
-  stepType: z.undefined().optional()
+  stepType: z$1.undefined().optional()
 });
-var expectedStepSchema = z.union([
-  z.discriminatedUnion("stepType", [
+var expectedStepSchema = z$1.union([
+  z$1.discriminatedUnion("stepType", [
     expectedToolCallStepSchema,
     expectedMcpToolCallStepSchema,
     expectedModelGenerationStepSchema,
@@ -25334,373 +25624,373 @@ var expectedStepSchema = z.union([
   ]),
   expectedGenericStepSchema
 ]);
-var trajectoryExpectationSchema = z.object({
+var trajectoryExpectationSchema = z$1.object({
   // Accuracy
-  steps: z.array(expectedStepSchema).optional().describe("Expected steps for accuracy checking"),
-  ordering: z.enum(["strict", "relaxed", "unordered"]).optional().describe("How to compare step ordering (default: relaxed)"),
-  allowRepeatedSteps: z.boolean().optional().describe("Whether to allow repeated steps (default: true)"),
+  steps: z$1.array(expectedStepSchema).optional().describe("Expected steps for accuracy checking"),
+  ordering: z$1.enum(["strict", "relaxed", "unordered"]).optional().describe("How to compare step ordering (default: relaxed)"),
+  allowRepeatedSteps: z$1.boolean().optional().describe("Whether to allow repeated steps (default: true)"),
   // Efficiency
-  maxSteps: z.number().int().optional().describe("Maximum number of steps allowed"),
-  maxTotalTokens: z.number().int().optional().describe("Maximum total tokens across all model_generation steps"),
-  maxTotalDurationMs: z.number().optional().describe("Maximum total duration in milliseconds"),
-  noRedundantCalls: z.boolean().optional().describe("Whether to penalize redundant calls (same tool + same args consecutively, default: true)"),
+  maxSteps: z$1.number().int().optional().describe("Maximum number of steps allowed"),
+  maxTotalTokens: z$1.number().int().optional().describe("Maximum total tokens across all model_generation steps"),
+  maxTotalDurationMs: z$1.number().optional().describe("Maximum total duration in milliseconds"),
+  noRedundantCalls: z$1.boolean().optional().describe("Whether to penalize redundant calls (same tool + same args consecutively, default: true)"),
   // Blacklist
-  blacklistedTools: z.array(z.string()).optional().describe("Tool names that should never appear"),
-  blacklistedSequences: z.array(z.array(z.string())).optional().describe("Tool name sequences that should never appear"),
+  blacklistedTools: z$1.array(z$1.string()).optional().describe("Tool names that should never appear"),
+  blacklistedSequences: z$1.array(z$1.array(z$1.string())).optional().describe("Tool name sequences that should never appear"),
   // Tool failure tolerance
-  maxRetriesPerTool: z.number().int().optional().describe("Maximum retries per tool before penalizing (default: 2)")
+  maxRetriesPerTool: z$1.number().int().optional().describe("Maximum retries per tool before penalizing (default: 2)")
 }).optional().nullable().describe("Expected trajectory configuration for trajectory scoring");
-var datasetItemSourceSchema = z.object({
-  type: z.enum(["csv", "json", "trace", "llm", "experiment-result"]).describe("How this item was created"),
-  referenceId: z.string().optional().describe("Reference identifier (e.g., trace id, csv filename)")
+var datasetItemSourceSchema = z$1.object({
+  type: z$1.enum(["csv", "json", "trace", "llm", "experiment-result"]).describe("How this item was created"),
+  referenceId: z$1.string().optional().describe("Reference identifier (e.g., trace id, csv filename)")
 }).optional().describe("Source/provenance of this dataset item");
-var datasetIdPathParams = z.object({
-  datasetId: z.string().describe("Unique identifier for the dataset")
+var datasetIdPathParams = z$1.object({
+  datasetId: z$1.string().describe("Unique identifier for the dataset")
 });
-z.object({
-  experimentId: z.string().describe("Unique identifier for the experiment")
+z$1.object({
+  experimentId: z$1.string().describe("Unique identifier for the experiment")
 });
-z.object({
-  itemId: z.string().describe("Unique identifier for the dataset item")
+z$1.object({
+  itemId: z$1.string().describe("Unique identifier for the dataset item")
 });
-var datasetAndExperimentIdPathParams = z.object({
-  datasetId: z.string().describe("Unique identifier for the dataset"),
-  experimentId: z.string().describe("Unique identifier for the experiment")
+var datasetAndExperimentIdPathParams = z$1.object({
+  datasetId: z$1.string().describe("Unique identifier for the dataset"),
+  experimentId: z$1.string().describe("Unique identifier for the experiment")
 });
-var experimentResultIdPathParams = z.object({
-  datasetId: z.string().describe("Unique identifier for the dataset"),
-  experimentId: z.string().describe("Unique identifier for the experiment"),
-  resultId: z.string().describe("Unique identifier for the experiment result")
+var experimentResultIdPathParams = z$1.object({
+  datasetId: z$1.string().describe("Unique identifier for the dataset"),
+  experimentId: z$1.string().describe("Unique identifier for the experiment"),
+  resultId: z$1.string().describe("Unique identifier for the experiment result")
 });
-var datasetAndItemIdPathParams = z.object({
-  datasetId: z.string().describe("Unique identifier for the dataset"),
-  itemId: z.string().describe("Unique identifier for the dataset item")
+var datasetAndItemIdPathParams = z$1.object({
+  datasetId: z$1.string().describe("Unique identifier for the dataset"),
+  itemId: z$1.string().describe("Unique identifier for the dataset item")
 });
-var paginationQuerySchema = z.object({
-  page: z.coerce.number().optional().default(0),
-  perPage: z.coerce.number().optional().default(10)
+var paginationQuerySchema = z$1.object({
+  page: z$1.coerce.number().optional().default(0),
+  perPage: z$1.coerce.number().optional().default(10)
 });
-var listItemsQuerySchema = z.object({
-  page: z.coerce.number().optional().default(0),
-  perPage: z.coerce.number().optional().default(10),
-  version: z.coerce.number().int().optional(),
+var listItemsQuerySchema = z$1.object({
+  page: z$1.coerce.number().optional().default(0),
+  perPage: z$1.coerce.number().optional().default(10),
+  version: z$1.coerce.number().int().optional(),
   // Optional version filter for snapshot semantics
-  search: z.string().optional()
+  search: z$1.string().optional()
 });
-var createDatasetBodySchema = z.object({
-  name: z.string().describe("Name of the dataset"),
-  description: z.string().optional().describe("Description of the dataset"),
-  metadata: z.record(z.string(), z.unknown()).optional().describe("Additional metadata"),
+var createDatasetBodySchema = z$1.object({
+  name: z$1.string().describe("Name of the dataset"),
+  description: z$1.string().optional().describe("Description of the dataset"),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Additional metadata"),
   inputSchema: jsonSchemaField.describe("JSON Schema for validating item input"),
   groundTruthSchema: jsonSchemaField.describe("JSON Schema for validating item groundTruth"),
   requestContextSchema: jsonSchemaField.describe("JSON Schema describing expected request context shape"),
-  targetType: z.string().optional().describe("Target entity type (e.g. agent, workflow, scorer)"),
-  targetIds: z.array(z.string()).optional().describe("IDs of target entities this dataset is attached to"),
-  scorerIds: z.array(z.string()).optional().describe("IDs of scorers attached to this dataset")
+  targetType: z$1.string().optional().describe("Target entity type (e.g. agent, workflow, scorer)"),
+  targetIds: z$1.array(z$1.string()).optional().describe("IDs of target entities this dataset is attached to"),
+  scorerIds: z$1.array(z$1.string()).optional().describe("IDs of scorers attached to this dataset")
 });
-var updateDatasetBodySchema = z.object({
-  name: z.string().optional().describe("Name of the dataset"),
-  description: z.string().optional().describe("Description of the dataset"),
-  metadata: z.record(z.string(), z.unknown()).optional().describe("Additional metadata"),
+var updateDatasetBodySchema = z$1.object({
+  name: z$1.string().optional().describe("Name of the dataset"),
+  description: z$1.string().optional().describe("Description of the dataset"),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Additional metadata"),
   inputSchema: jsonSchemaField.describe("JSON Schema for validating item input"),
   groundTruthSchema: jsonSchemaField.describe("JSON Schema for validating item groundTruth"),
   requestContextSchema: jsonSchemaField.describe("JSON Schema describing expected request context shape"),
-  tags: z.array(z.string()).optional().describe("Tag definitions for categorizing experiment results"),
-  targetType: z.string().optional().describe("Target entity type (e.g. agent, workflow, scorer)"),
-  targetIds: z.array(z.string()).optional().describe("IDs of target entities this dataset is attached to"),
-  scorerIds: z.array(z.string()).optional().nullable().describe("IDs of scorers attached to this dataset")
+  tags: z$1.array(z$1.string()).optional().describe("Tag definitions for categorizing experiment results"),
+  targetType: z$1.string().optional().describe("Target entity type (e.g. agent, workflow, scorer)"),
+  targetIds: z$1.array(z$1.string()).optional().describe("IDs of target entities this dataset is attached to"),
+  scorerIds: z$1.array(z$1.string()).optional().nullable().describe("IDs of scorers attached to this dataset")
 });
-var addItemBodySchema = z.object({
-  input: z.unknown().describe("Input data for the dataset item"),
-  groundTruth: z.unknown().optional().describe("Expected output for comparison"),
+var addItemBodySchema = z$1.object({
+  input: z$1.unknown().describe("Input data for the dataset item"),
+  groundTruth: z$1.unknown().optional().describe("Expected output for comparison"),
   expectedTrajectory: trajectoryExpectationSchema,
-  requestContext: z.record(z.string(), z.unknown()).optional().describe("Request context preset for this item"),
-  metadata: z.record(z.string(), z.unknown()).optional().describe("Additional metadata"),
+  requestContext: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Request context preset for this item"),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Additional metadata"),
   source: datasetItemSourceSchema
 });
-var updateItemBodySchema = z.object({
-  input: z.unknown().optional().describe("Input data for the dataset item"),
-  groundTruth: z.unknown().optional().describe("Expected output for comparison"),
+var updateItemBodySchema = z$1.object({
+  input: z$1.unknown().optional().describe("Input data for the dataset item"),
+  groundTruth: z$1.unknown().optional().describe("Expected output for comparison"),
   expectedTrajectory: trajectoryExpectationSchema,
-  requestContext: z.record(z.string(), z.unknown()).optional().describe("Request context preset for this item"),
-  metadata: z.record(z.string(), z.unknown()).optional().describe("Additional metadata"),
+  requestContext: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Request context preset for this item"),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Additional metadata"),
   source: datasetItemSourceSchema
 });
-var triggerExperimentBodySchema = z.object({
-  targetType: z.enum(["agent", "workflow", "scorer"]).describe("Type of target to run against"),
-  targetId: z.string().describe("ID of the target"),
-  scorerIds: z.array(z.string()).optional().describe("IDs of scorers to apply"),
-  version: z.coerce.number().int().optional().describe("Pin to specific dataset version"),
-  agentVersion: z.string().optional().describe("Agent version ID to use for experiment"),
-  maxConcurrency: z.number().optional().describe("Maximum concurrent executions"),
-  requestContext: z.record(z.string(), z.unknown()).optional().describe("Global request context passed to the target"),
-  versions: z.object({
-    agents: z.record(
-      z.string(),
-      z.union([z.object({ versionId: z.string() }), z.object({ status: z.enum(["draft", "published"]) })])
+var triggerExperimentBodySchema = z$1.object({
+  targetType: z$1.enum(["agent", "workflow", "scorer"]).describe("Type of target to run against"),
+  targetId: z$1.string().describe("ID of the target"),
+  scorerIds: z$1.array(z$1.string()).optional().describe("IDs of scorers to apply"),
+  version: z$1.coerce.number().int().optional().describe("Pin to specific dataset version"),
+  agentVersion: z$1.string().optional().describe("Agent version ID to use for experiment"),
+  maxConcurrency: z$1.number().optional().describe("Maximum concurrent executions"),
+  requestContext: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Global request context passed to the target"),
+  versions: z$1.object({
+    agents: z$1.record(
+      z$1.string(),
+      z$1.union([z$1.object({ versionId: z$1.string() }), z$1.object({ status: z$1.enum(["draft", "published"]) })])
     ).optional(),
-    defaultStatus: z.enum(["draft", "published"]).optional()
+    defaultStatus: z$1.enum(["draft", "published"]).optional()
   }).optional().describe("Version overrides for sub-agent delegation during experiment execution")
 });
-var compareExperimentsBodySchema = z.object({
-  experimentIdA: z.string().describe("ID of baseline experiment"),
-  experimentIdB: z.string().describe("ID of candidate experiment")
+var compareExperimentsBodySchema = z$1.object({
+  experimentIdA: z$1.string().describe("ID of baseline experiment"),
+  experimentIdB: z$1.string().describe("ID of candidate experiment")
 });
-var datasetResponseSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  description: z.string().optional().nullable(),
-  metadata: z.record(z.string(), z.unknown()).optional().nullable(),
-  inputSchema: z.record(z.string(), z.unknown()).optional(),
-  groundTruthSchema: z.record(z.string(), z.unknown()).optional(),
-  requestContextSchema: z.record(z.string(), z.unknown()).optional(),
-  tags: z.array(z.string()).optional().nullable(),
-  targetType: z.string().optional().nullable(),
-  targetIds: z.array(z.string()).optional().nullable(),
-  scorerIds: z.array(z.string()).optional().nullable(),
-  version: z.number().int(),
-  createdAt: z.coerce.date(),
-  updatedAt: z.coerce.date()
+var datasetResponseSchema = z$1.object({
+  id: z$1.string(),
+  name: z$1.string(),
+  description: z$1.string().optional().nullable(),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional().nullable(),
+  inputSchema: z$1.record(z$1.string(), z$1.unknown()).optional(),
+  groundTruthSchema: z$1.record(z$1.string(), z$1.unknown()).optional(),
+  requestContextSchema: z$1.record(z$1.string(), z$1.unknown()).optional(),
+  tags: z$1.array(z$1.string()).optional().nullable(),
+  targetType: z$1.string().optional().nullable(),
+  targetIds: z$1.array(z$1.string()).optional().nullable(),
+  scorerIds: z$1.array(z$1.string()).optional().nullable(),
+  version: z$1.number().int(),
+  createdAt: z$1.coerce.date(),
+  updatedAt: z$1.coerce.date()
 });
-var datasetItemResponseSchema = z.object({
-  id: z.string(),
-  datasetId: z.string(),
-  datasetVersion: z.number().int(),
-  input: z.unknown(),
-  groundTruth: z.unknown().optional(),
-  expectedTrajectory: z.unknown().optional(),
-  requestContext: z.record(z.string(), z.unknown()).optional(),
-  metadata: z.record(z.string(), z.unknown()).optional(),
+var datasetItemResponseSchema = z$1.object({
+  id: z$1.string(),
+  datasetId: z$1.string(),
+  datasetVersion: z$1.number().int(),
+  input: z$1.unknown(),
+  groundTruth: z$1.unknown().optional(),
+  expectedTrajectory: z$1.unknown().optional(),
+  requestContext: z$1.record(z$1.string(), z$1.unknown()).optional(),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional(),
   source: datasetItemSourceSchema,
-  createdAt: z.coerce.date(),
-  updatedAt: z.coerce.date()
+  createdAt: z$1.coerce.date(),
+  updatedAt: z$1.coerce.date()
 });
-var experimentResponseSchema = z.object({
-  id: z.string(),
-  datasetId: z.string().nullable(),
-  datasetVersion: z.number().int().nullable(),
-  agentVersion: z.string().nullable().optional(),
-  targetType: z.enum(["agent", "workflow", "scorer", "processor"]),
-  targetId: z.string(),
-  name: z.string().optional(),
-  description: z.string().optional(),
-  metadata: z.record(z.string(), z.unknown()).optional(),
-  status: z.enum(["pending", "running", "completed", "failed"]),
-  totalItems: z.number(),
-  succeededCount: z.number(),
-  failedCount: z.number(),
-  skippedCount: z.number(),
-  startedAt: z.coerce.date().nullable(),
-  completedAt: z.coerce.date().nullable(),
-  createdAt: z.coerce.date(),
-  updatedAt: z.coerce.date()
+var experimentResponseSchema = z$1.object({
+  id: z$1.string(),
+  datasetId: z$1.string().nullable(),
+  datasetVersion: z$1.number().int().nullable(),
+  agentVersion: z$1.string().nullable().optional(),
+  targetType: z$1.enum(["agent", "workflow", "scorer", "processor"]),
+  targetId: z$1.string(),
+  name: z$1.string().optional(),
+  description: z$1.string().optional(),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional(),
+  status: z$1.enum(["pending", "running", "completed", "failed"]),
+  totalItems: z$1.number(),
+  succeededCount: z$1.number(),
+  failedCount: z$1.number(),
+  skippedCount: z$1.number(),
+  startedAt: z$1.coerce.date().nullable(),
+  completedAt: z$1.coerce.date().nullable(),
+  createdAt: z$1.coerce.date(),
+  updatedAt: z$1.coerce.date()
 });
-z.object({
-  scorerId: z.string(),
-  scorerName: z.string(),
-  score: z.number().nullable(),
-  reason: z.string().nullable(),
-  error: z.string().nullable()
+z$1.object({
+  scorerId: z$1.string(),
+  scorerName: z$1.string(),
+  score: z$1.number().nullable(),
+  reason: z$1.string().nullable(),
+  error: z$1.string().nullable()
 });
-var experimentResultResponseSchema = z.object({
-  id: z.string(),
-  experimentId: z.string(),
-  itemId: z.string(),
-  itemDatasetVersion: z.number().int().nullable(),
-  input: z.unknown(),
-  output: z.unknown().nullable(),
-  groundTruth: z.unknown().nullable(),
-  expectedTrajectory: z.unknown().optional(),
-  error: z.object({
-    message: z.string(),
-    stack: z.string().optional(),
-    code: z.string().optional()
+var experimentResultResponseSchema = z$1.object({
+  id: z$1.string(),
+  experimentId: z$1.string(),
+  itemId: z$1.string(),
+  itemDatasetVersion: z$1.number().int().nullable(),
+  input: z$1.unknown(),
+  output: z$1.unknown().nullable(),
+  groundTruth: z$1.unknown().nullable(),
+  expectedTrajectory: z$1.unknown().optional(),
+  error: z$1.object({
+    message: z$1.string(),
+    stack: z$1.string().optional(),
+    code: z$1.string().optional()
   }).nullable(),
-  startedAt: z.coerce.date(),
-  completedAt: z.coerce.date(),
-  retryCount: z.number(),
-  traceId: z.string().nullable(),
-  status: z.enum(["needs-review", "reviewed", "complete"]).nullable().optional(),
-  tags: z.array(z.string()).nullable().optional(),
-  createdAt: z.coerce.date()
+  startedAt: z$1.coerce.date(),
+  completedAt: z$1.coerce.date(),
+  retryCount: z$1.number(),
+  traceId: z$1.string().nullable(),
+  status: z$1.enum(["needs-review", "reviewed", "complete"]).nullable().optional(),
+  tags: z$1.array(z$1.string()).nullable().optional(),
+  createdAt: z$1.coerce.date()
 });
-var updateExperimentResultBodySchema = z.object({
-  status: z.enum(["needs-review", "reviewed", "complete"]).nullable().optional(),
-  tags: z.array(z.string()).optional()
+var updateExperimentResultBodySchema = z$1.object({
+  status: z$1.enum(["needs-review", "reviewed", "complete"]).nullable().optional(),
+  tags: z$1.array(z$1.string()).optional()
 });
-var comparisonItemSchema = z.object({
-  itemId: z.string(),
-  input: z.unknown().nullable(),
-  groundTruth: z.unknown().nullable(),
-  results: z.record(
-    z.string(),
-    z.object({
-      output: z.unknown().nullable(),
-      scores: z.record(z.string(), z.number().nullable())
+var comparisonItemSchema = z$1.object({
+  itemId: z$1.string(),
+  input: z$1.unknown().nullable(),
+  groundTruth: z$1.unknown().nullable(),
+  results: z$1.record(
+    z$1.string(),
+    z$1.object({
+      output: z$1.unknown().nullable(),
+      scores: z$1.record(z$1.string(), z$1.number().nullable())
     }).nullable()
   )
 });
-var comparisonResponseSchema = z.object({
-  baselineId: z.string(),
-  items: z.array(comparisonItemSchema)
+var comparisonResponseSchema = z$1.object({
+  baselineId: z$1.string(),
+  items: z$1.array(comparisonItemSchema)
 });
-var experimentSummaryResponseSchema = z.object({
-  experimentId: z.string(),
-  status: z.enum(["pending", "running", "completed", "failed"]),
-  totalItems: z.number(),
-  succeededCount: z.number(),
-  failedCount: z.number(),
-  startedAt: z.coerce.date(),
-  completedAt: z.coerce.date().nullable(),
-  results: z.array(
-    z.object({
-      itemId: z.string(),
-      itemDatasetVersion: z.number().int().nullable(),
-      input: z.unknown(),
-      output: z.unknown().nullable(),
-      groundTruth: z.unknown().nullable(),
-      error: z.string().nullable(),
-      startedAt: z.coerce.date(),
-      completedAt: z.coerce.date(),
-      retryCount: z.number(),
-      scores: z.array(
-        z.object({
-          scorerId: z.string(),
-          scorerName: z.string(),
-          score: z.number().nullable(),
-          reason: z.string().nullable(),
-          error: z.string().nullable()
+var experimentSummaryResponseSchema = z$1.object({
+  experimentId: z$1.string(),
+  status: z$1.enum(["pending", "running", "completed", "failed"]),
+  totalItems: z$1.number(),
+  succeededCount: z$1.number(),
+  failedCount: z$1.number(),
+  startedAt: z$1.coerce.date(),
+  completedAt: z$1.coerce.date().nullable(),
+  results: z$1.array(
+    z$1.object({
+      itemId: z$1.string(),
+      itemDatasetVersion: z$1.number().int().nullable(),
+      input: z$1.unknown(),
+      output: z$1.unknown().nullable(),
+      groundTruth: z$1.unknown().nullable(),
+      error: z$1.string().nullable(),
+      startedAt: z$1.coerce.date(),
+      completedAt: z$1.coerce.date(),
+      retryCount: z$1.number(),
+      scores: z$1.array(
+        z$1.object({
+          scorerId: z$1.string(),
+          scorerName: z$1.string(),
+          score: z$1.number().nullable(),
+          reason: z$1.string().nullable(),
+          error: z$1.string().nullable()
         })
       )
     })
   )
 });
-var listDatasetsResponseSchema = z.object({
-  datasets: z.array(datasetResponseSchema),
+var listDatasetsResponseSchema = z$1.object({
+  datasets: z$1.array(datasetResponseSchema),
   pagination: paginationInfoSchema$1
 });
-var listItemsResponseSchema = z.object({
-  items: z.array(datasetItemResponseSchema),
+var listItemsResponseSchema = z$1.object({
+  items: z$1.array(datasetItemResponseSchema),
   pagination: paginationInfoSchema$1
 });
-var listExperimentsResponseSchema = z.object({
-  experiments: z.array(experimentResponseSchema),
+var listExperimentsResponseSchema = z$1.object({
+  experiments: z$1.array(experimentResponseSchema),
   pagination: paginationInfoSchema$1
 });
-var listExperimentResultsResponseSchema = z.object({
-  results: z.array(experimentResultResponseSchema),
+var listExperimentResultsResponseSchema = z$1.object({
+  results: z$1.array(experimentResultResponseSchema),
   pagination: paginationInfoSchema$1
 });
-var experimentReviewCountsSchema = z.object({
-  experimentId: z.string(),
-  total: z.number().int(),
-  needsReview: z.number().int(),
-  reviewed: z.number().int(),
-  complete: z.number().int()
+var experimentReviewCountsSchema = z$1.object({
+  experimentId: z$1.string(),
+  total: z$1.number().int(),
+  needsReview: z$1.number().int(),
+  reviewed: z$1.number().int(),
+  complete: z$1.number().int()
 });
-var reviewSummaryResponseSchema = z.object({
-  counts: z.array(experimentReviewCountsSchema)
+var reviewSummaryResponseSchema = z$1.object({
+  counts: z$1.array(experimentReviewCountsSchema)
 });
-var datasetItemVersionPathParams = z.object({
-  datasetId: z.string().describe("Unique identifier for the dataset"),
-  itemId: z.string().describe("Unique identifier for the dataset item"),
-  datasetVersion: z.coerce.number().int().describe("Dataset version number")
+var datasetItemVersionPathParams = z$1.object({
+  datasetId: z$1.string().describe("Unique identifier for the dataset"),
+  itemId: z$1.string().describe("Unique identifier for the dataset item"),
+  datasetVersion: z$1.coerce.number().int().describe("Dataset version number")
 });
-var itemVersionResponseSchema = z.object({
-  id: z.string(),
-  datasetId: z.string(),
-  datasetVersion: z.number().int(),
-  input: z.unknown(),
-  groundTruth: z.unknown().optional(),
-  expectedTrajectory: z.unknown().optional(),
-  metadata: z.record(z.string(), z.unknown()).optional(),
-  validTo: z.number().int().nullable(),
-  isDeleted: z.boolean(),
-  createdAt: z.coerce.date(),
-  updatedAt: z.coerce.date()
+var itemVersionResponseSchema = z$1.object({
+  id: z$1.string(),
+  datasetId: z$1.string(),
+  datasetVersion: z$1.number().int(),
+  input: z$1.unknown(),
+  groundTruth: z$1.unknown().optional(),
+  expectedTrajectory: z$1.unknown().optional(),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional(),
+  validTo: z$1.number().int().nullable(),
+  isDeleted: z$1.boolean(),
+  createdAt: z$1.coerce.date(),
+  updatedAt: z$1.coerce.date()
 });
-var listItemVersionsResponseSchema = z.object({
-  history: z.array(itemVersionResponseSchema)
+var listItemVersionsResponseSchema = z$1.object({
+  history: z$1.array(itemVersionResponseSchema)
 });
-var datasetVersionResponseSchema = z.object({
-  id: z.string(),
-  datasetId: z.string(),
-  version: z.number().int(),
-  createdAt: z.coerce.date()
+var datasetVersionResponseSchema = z$1.object({
+  id: z$1.string(),
+  datasetId: z$1.string(),
+  version: z$1.number().int(),
+  createdAt: z$1.coerce.date()
 });
-var listDatasetVersionsResponseSchema = z.object({
-  versions: z.array(datasetVersionResponseSchema),
+var listDatasetVersionsResponseSchema = z$1.object({
+  versions: z$1.array(datasetVersionResponseSchema),
   pagination: paginationInfoSchema$1
 });
-var batchInsertItemsBodySchema = z.object({
-  items: z.array(
-    z.object({
-      input: z.unknown(),
-      groundTruth: z.unknown().optional(),
+var batchInsertItemsBodySchema = z$1.object({
+  items: z$1.array(
+    z$1.object({
+      input: z$1.unknown(),
+      groundTruth: z$1.unknown().optional(),
       expectedTrajectory: trajectoryExpectationSchema,
-      requestContext: z.record(z.string(), z.unknown()).optional(),
-      metadata: z.record(z.string(), z.unknown()).optional(),
+      requestContext: z$1.record(z$1.string(), z$1.unknown()).optional(),
+      metadata: z$1.record(z$1.string(), z$1.unknown()).optional(),
       source: datasetItemSourceSchema
     })
   )
 });
-var batchInsertItemsResponseSchema = z.object({
-  items: z.array(datasetItemResponseSchema),
-  count: z.number()
+var batchInsertItemsResponseSchema = z$1.object({
+  items: z$1.array(datasetItemResponseSchema),
+  count: z$1.number()
 });
-var batchDeleteItemsBodySchema = z.object({
-  itemIds: z.array(z.string())
+var batchDeleteItemsBodySchema = z$1.object({
+  itemIds: z$1.array(z$1.string())
 });
-var batchDeleteItemsResponseSchema = z.object({
-  success: z.boolean(),
-  deletedCount: z.number()
+var batchDeleteItemsResponseSchema = z$1.object({
+  success: z$1.boolean(),
+  deletedCount: z$1.number()
 });
-var generateItemsBodySchema = z.object({
-  modelId: z.string().describe('Model identifier in "provider/model" format (e.g., "openai/gpt-4o")'),
-  prompt: z.string().describe("Description of the kind of test data to generate"),
-  count: z.number().int().min(1).max(50).default(5).describe("Number of items to generate"),
-  agentContext: z.object({
-    description: z.string().optional(),
-    instructions: z.string().optional(),
-    tools: z.array(z.string()).optional()
+var generateItemsBodySchema = z$1.object({
+  modelId: z$1.string().describe('Model identifier in "provider/model" format (e.g., "openai/gpt-4o")'),
+  prompt: z$1.string().describe("Description of the kind of test data to generate"),
+  count: z$1.number().int().min(1).max(50).default(5).describe("Number of items to generate"),
+  agentContext: z$1.object({
+    description: z$1.string().optional(),
+    instructions: z$1.string().optional(),
+    tools: z$1.array(z$1.string()).optional()
   }).optional().describe("Context about the agent to generate relevant test data")
 });
-var generatedItemSchema = z.object({
-  input: z.unknown(),
-  groundTruth: z.unknown().optional()
+var generatedItemSchema = z$1.object({
+  input: z$1.unknown(),
+  groundTruth: z$1.unknown().optional()
 });
-var generateItemsResponseSchema = z.object({
-  items: z.array(generatedItemSchema)
+var generateItemsResponseSchema = z$1.object({
+  items: z$1.array(generatedItemSchema)
 });
-var clusterFailuresBodySchema = z.object({
-  modelId: z.string().describe('Model identifier in "provider/model" format (e.g., "openai/gpt-4o")'),
-  items: z.array(
-    z.object({
-      id: z.string(),
-      input: z.unknown(),
-      output: z.unknown().optional(),
-      error: z.string().optional(),
-      scores: z.record(z.string(), z.number()).optional(),
-      existingTags: z.array(z.string()).optional().describe("Tags already applied to this item")
+var clusterFailuresBodySchema = z$1.object({
+  modelId: z$1.string().describe('Model identifier in "provider/model" format (e.g., "openai/gpt-4o")'),
+  items: z$1.array(
+    z$1.object({
+      id: z$1.string(),
+      input: z$1.unknown(),
+      output: z$1.unknown().optional(),
+      error: z$1.string().optional(),
+      scores: z$1.record(z$1.string(), z$1.number()).optional(),
+      existingTags: z$1.array(z$1.string()).optional().describe("Tags already applied to this item")
     })
   ).min(1).max(200).describe("Failure items to cluster"),
-  availableTags: z.array(z.string()).optional().describe("Existing tag vocabulary from the dataset. The LLM should prefer reusing these tags when applicable."),
-  prompt: z.string().optional().describe('Optional user instructions to guide the analysis (e.g., "focus on tool usage failures")')
+  availableTags: z$1.array(z$1.string()).optional().describe("Existing tag vocabulary from the dataset. The LLM should prefer reusing these tags when applicable."),
+  prompt: z$1.string().optional().describe('Optional user instructions to guide the analysis (e.g., "focus on tool usage failures")')
 });
-var failureClusterSchema = z.object({
-  id: z.string().describe("A unique cluster identifier"),
-  label: z.string().describe("Short label for this failure pattern"),
-  description: z.string().describe("Description of the common pattern"),
-  itemIds: z.array(z.string()).describe("IDs of items belonging to this cluster")
+var failureClusterSchema = z$1.object({
+  id: z$1.string().describe("A unique cluster identifier"),
+  label: z$1.string().describe("Short label for this failure pattern"),
+  description: z$1.string().describe("Description of the common pattern"),
+  itemIds: z$1.array(z$1.string()).describe("IDs of items belonging to this cluster")
 });
-var clusterFailuresResponseSchema = z.object({
-  clusters: z.array(failureClusterSchema),
+var clusterFailuresResponseSchema = z$1.object({
+  clusters: z$1.array(failureClusterSchema),
   /** Per-item proposed tag assignments. Each entry maps an item ID to the tags the LLM suggests adding. */
-  proposedTags: z.array(
-    z.object({
-      itemId: z.string(),
-      tags: z.array(z.string()),
-      reason: z.string().describe("Brief explanation of why these tags were assigned to this item")
+  proposedTags: z$1.array(
+    z$1.object({
+      itemId: z$1.string(),
+      tags: z$1.array(z$1.string()),
+      reason: z$1.string().describe("Brief explanation of why these tags were assigned to this item")
     })
   ).optional()
 });
@@ -26514,12 +26804,12 @@ ${JSON.stringify(dataset.groundTruthSchema, null, 2)}` : null
         instructions: GENERATE_ITEMS_SYSTEM_PROMPT,
         model
       });
-      const itemSchema = z$1.object({
-        input: z$1.string().describe("The input data as a JSON string matching the input schema, or a plain text string if no schema"),
-        groundTruth: z$1.string().optional().describe("The expected output as a JSON string matching the ground truth schema")
+      const itemSchema = z.object({
+        input: z.string().describe("The input data as a JSON string matching the input schema, or a plain text string if no schema"),
+        groundTruth: z.string().optional().describe("The expected output as a JSON string matching the ground truth schema")
       });
-      const outputSchema = z$1.object({
-        items: z$1.array(itemSchema).min(1).max(count)
+      const outputSchema = z.object({
+        items: z.array(itemSchema).min(1).max(count)
       });
       const agentContextParts = [];
       if (agentContext?.description) {
@@ -26608,20 +26898,20 @@ var CLUSTER_FAILURES_ROUTE = createRoute$1({
         instructions: CLUSTER_FAILURES_SYSTEM_PROMPT,
         model
       });
-      const outputSchema = z$1.object({
-        clusters: z$1.array(
-          z$1.object({
-            id: z$1.string(),
-            label: z$1.string(),
-            description: z$1.string(),
-            itemIds: z$1.array(z$1.string())
+      const outputSchema = z.object({
+        clusters: z.array(
+          z.object({
+            id: z.string(),
+            label: z.string(),
+            description: z.string(),
+            itemIds: z.array(z.string())
           })
         ),
-        proposedTags: z$1.array(
-          z$1.object({
-            itemId: z$1.string(),
-            tags: z$1.array(z$1.string()),
-            reason: z$1.string().describe("Brief explanation of why these tags were assigned")
+        proposedTags: z.array(
+          z.object({
+            itemId: z.string(),
+            tags: z.array(z.string()),
+            reason: z.string().describe("Brief explanation of why these tags were assigned")
           })
         )
       });
@@ -26670,52 +26960,52 @@ Return both "clusters" (grouping items by pattern) and "proposedTags" (a list ma
   }
 });
 
-var mcpClientToolsConfigSchema = z.object({
-  tools: z.record(z.string(), toolConfigSchema).optional()
+var mcpClientToolsConfigSchema = z$1.object({
+  tools: z$1.record(z$1.string(), toolConfigSchema).optional()
 });
-var agentVersionPathParams = z.object({
-  agentId: z.string().describe("Unique identifier for the stored agent")
+var agentVersionPathParams = z$1.object({
+  agentId: z$1.string().describe("Unique identifier for the stored agent")
 });
-var versionIdPathParams = z.object({
-  agentId: z.string().describe("Unique identifier for the stored agent"),
-  versionId: z.string().describe("Unique identifier for the version (UUID)")
+var versionIdPathParams = z$1.object({
+  agentId: z$1.string().describe("Unique identifier for the stored agent"),
+  versionId: z$1.string().describe("Unique identifier for the version (UUID)")
 });
-var agentVersionSchema = z.object({
-  id: z.string().describe("Unique identifier for the version (UUID)"),
-  agentId: z.string().describe("ID of the agent this version belongs to"),
-  versionNumber: z.number().describe("Sequential version number (1, 2, 3, ...)"),
+var agentVersionSchema = z$1.object({
+  id: z$1.string().describe("Unique identifier for the version (UUID)"),
+  agentId: z$1.string().describe("ID of the agent this version belongs to"),
+  versionNumber: z$1.number().describe("Sequential version number (1, 2, 3, ...)"),
   // Top-level config fields (from StorageAgentSnapshotType)
-  name: z.string().describe("Name of the agent"),
-  description: z.string().optional().describe("Description of the agent"),
+  name: z$1.string().describe("Name of the agent"),
+  description: z$1.string().optional().describe("Description of the agent"),
   instructions: instructionsSchema,
   model: conditionalFieldSchema(modelConfigSchema).describe(
     "Model configuration \u2014 static value or array of conditional variants"
   ),
   tools: conditionalFieldSchema(toolsConfigSchema).optional().describe("Tool keys mapped to per-tool config \u2014 static or conditional"),
   defaultOptions: conditionalFieldSchema(defaultOptionsSchema).optional().describe("Default options for generate/stream calls \u2014 static or conditional"),
-  workflows: conditionalFieldSchema(z.record(z.string(), toolConfigSchema)).optional().describe("Workflow keys with optional per-workflow config \u2014 static or conditional"),
-  agents: conditionalFieldSchema(z.record(z.string(), toolConfigSchema)).optional().describe("Agent keys with optional per-agent config \u2014 static or conditional"),
-  integrationTools: conditionalFieldSchema(z.record(z.string(), mcpClientToolsConfigSchema)).optional().describe("Map of tool provider IDs to their tool configurations \u2014 static or conditional"),
-  mcpClients: conditionalFieldSchema(z.record(z.string(), mcpClientToolsConfigSchema)).optional().describe("Map of stored MCP client IDs to their tool configurations \u2014 static or conditional"),
+  workflows: conditionalFieldSchema(z$1.record(z$1.string(), toolConfigSchema)).optional().describe("Workflow keys with optional per-workflow config \u2014 static or conditional"),
+  agents: conditionalFieldSchema(z$1.record(z$1.string(), toolConfigSchema)).optional().describe("Agent keys with optional per-agent config \u2014 static or conditional"),
+  integrationTools: conditionalFieldSchema(z$1.record(z$1.string(), mcpClientToolsConfigSchema)).optional().describe("Map of tool provider IDs to their tool configurations \u2014 static or conditional"),
+  mcpClients: conditionalFieldSchema(z$1.record(z$1.string(), mcpClientToolsConfigSchema)).optional().describe("Map of stored MCP client IDs to their tool configurations \u2014 static or conditional"),
   inputProcessors: conditionalFieldSchema(storedProcessorGraphSchema).optional().describe("Input processor graph \u2014 static or conditional"),
   outputProcessors: conditionalFieldSchema(storedProcessorGraphSchema).optional().describe("Output processor graph \u2014 static or conditional"),
   memory: conditionalFieldSchema(serializedMemoryConfigSchema).optional().describe("Memory configuration \u2014 static or conditional"),
-  scorers: conditionalFieldSchema(z.record(z.string(), scorerConfigSchema)).optional().describe("Scorer keys with optional sampling config \u2014 static or conditional"),
-  requestContextSchema: z.record(z.string(), z.unknown()).optional().describe("JSON Schema defining valid request context variables"),
+  scorers: conditionalFieldSchema(z$1.record(z$1.string(), scorerConfigSchema)).optional().describe("Scorer keys with optional sampling config \u2014 static or conditional"),
+  requestContextSchema: z$1.record(z$1.string(), z$1.unknown()).optional().describe("JSON Schema defining valid request context variables"),
   // Version metadata fields
-  changedFields: z.array(z.string()).optional().describe("Array of field names that changed from the previous version"),
-  changeMessage: z.string().optional().describe("Optional message describing the changes"),
-  createdAt: z.coerce.date().describe("When this version was created")
+  changedFields: z$1.array(z$1.string()).optional().describe("Array of field names that changed from the previous version"),
+  changeMessage: z$1.string().optional().describe("Optional message describing the changes"),
+  createdAt: z$1.coerce.date().describe("When this version was created")
 });
 var listVersionsResponseSchema = createListVersionsResponseSchema(agentVersionSchema);
 var getVersionResponseSchema = agentVersionSchema;
 var createVersionResponseSchema = agentVersionSchema.partial().merge(
-  z.object({
+  z$1.object({
     // These fields are always present in a version response
-    id: z.string().describe("Unique identifier for the version (UUID)"),
-    agentId: z.string().describe("ID of the agent this version belongs to"),
-    versionNumber: z.number().describe("Sequential version number (1, 2, 3, ...)"),
-    createdAt: z.coerce.date().describe("When this version was created")
+    id: z$1.string().describe("Unique identifier for the version (UUID)"),
+    agentId: z$1.string().describe("ID of the agent this version belongs to"),
+    versionNumber: z$1.number().describe("Sequential version number (1, 2, 3, ...)"),
+    createdAt: z$1.coerce.date().describe("When this version was created")
   })
 );
 var restoreVersionResponseSchema = agentVersionSchema.describe(
@@ -27112,7 +27402,7 @@ var COMPARE_AGENT_VERSIONS_ROUTE = createRoute$1({
   }
 });
 
-var backgroundTaskStatusSchema = z$1.enum([
+var backgroundTaskStatusSchema = z.enum([
   "pending",
   "running",
   "suspended",
@@ -27121,58 +27411,58 @@ var backgroundTaskStatusSchema = z$1.enum([
   "cancelled",
   "timed_out"
 ]);
-var backgroundTaskStreamQuerySchema = z$1.object({
-  agentId: z$1.string().optional(),
-  runId: z$1.string().optional(),
-  threadId: z$1.string().optional(),
-  resourceId: z$1.string().optional(),
-  taskId: z$1.string().optional()
+var backgroundTaskStreamQuerySchema = z.object({
+  agentId: z.string().optional(),
+  runId: z.string().optional(),
+  threadId: z.string().optional(),
+  resourceId: z.string().optional(),
+  taskId: z.string().optional()
 });
-var backgroundTaskDateColumnSchema = z$1.enum(["createdAt", "startedAt", "suspendedAt", "completedAt"]);
-var listBackgroundTasksQuerySchema = z$1.object({
-  agentId: z$1.string().optional(),
+var backgroundTaskDateColumnSchema = z.enum(["createdAt", "startedAt", "suspendedAt", "completedAt"]);
+var listBackgroundTasksQuerySchema = z.object({
+  agentId: z.string().optional(),
   status: backgroundTaskStatusSchema.optional(),
-  runId: z$1.string().optional(),
-  threadId: z$1.string().optional(),
-  resourceId: z$1.string().optional(),
-  toolName: z$1.string().optional(),
-  toolCallId: z$1.string().optional(),
-  fromDate: z$1.coerce.date().optional(),
-  toDate: z$1.coerce.date().optional(),
+  runId: z.string().optional(),
+  threadId: z.string().optional(),
+  resourceId: z.string().optional(),
+  toolName: z.string().optional(),
+  toolCallId: z.string().optional(),
+  fromDate: z.coerce.date().optional(),
+  toDate: z.coerce.date().optional(),
   dateFilterBy: backgroundTaskDateColumnSchema.optional(),
   orderBy: backgroundTaskDateColumnSchema.optional(),
-  orderDirection: z$1.enum(["asc", "desc"]).optional(),
-  page: z$1.coerce.number().optional(),
-  perPage: z$1.coerce.number().optional()
+  orderDirection: z.enum(["asc", "desc"]).optional(),
+  page: z.coerce.number().optional(),
+  perPage: z.coerce.number().optional()
 });
-var backgroundTaskIdPathParams = z$1.object({
-  backgroundTaskId: z$1.string()
+var backgroundTaskIdPathParams = z.object({
+  backgroundTaskId: z.string()
 });
-var backgroundTaskResponseSchema = z$1.object({
-  id: z$1.string(),
+var backgroundTaskResponseSchema = z.object({
+  id: z.string(),
   status: backgroundTaskStatusSchema,
-  toolName: z$1.string(),
-  toolCallId: z$1.string(),
-  args: z$1.record(z$1.string(), z$1.unknown()),
-  agentId: z$1.string(),
-  threadId: z$1.string().optional(),
-  resourceId: z$1.string().optional(),
-  runId: z$1.string(),
-  result: z$1.unknown().optional(),
-  error: z$1.object({ message: z$1.string(), stack: z$1.string().optional() }).optional(),
-  createdAt: z$1.date(),
-  startedAt: z$1.date().optional(),
-  completedAt: z$1.date().optional(),
-  retryCount: z$1.number(),
-  maxRetries: z$1.number(),
-  timeoutMs: z$1.number(),
-  suspendPayload: z$1.unknown().optional()
+  toolName: z.string(),
+  toolCallId: z.string(),
+  args: z.record(z.string(), z.unknown()),
+  agentId: z.string(),
+  threadId: z.string().optional(),
+  resourceId: z.string().optional(),
+  runId: z.string(),
+  result: z.unknown().optional(),
+  error: z.object({ message: z.string(), stack: z.string().optional() }).optional(),
+  createdAt: z.date(),
+  startedAt: z.date().optional(),
+  completedAt: z.date().optional(),
+  retryCount: z.number(),
+  maxRetries: z.number(),
+  timeoutMs: z.number(),
+  suspendPayload: z.unknown().optional()
 });
-var listBackgroundTaskResponseSchema = z$1.object({
-  tasks: z$1.array(backgroundTaskResponseSchema),
-  total: z$1.number()
+var listBackgroundTaskResponseSchema = z.object({
+  tasks: z.array(backgroundTaskResponseSchema),
+  total: z.number()
 });
-var backgroundTaskStreamResponseSchema = z$1.any();
+var backgroundTaskStreamResponseSchema = z.any();
 
 // src/server/handlers/background-tasks.ts
 var BACKGROUND_TASK_STREAM_ROUTE = createRoute$1({
@@ -27372,43 +27662,43 @@ async function fetchSkillFiles$1(owner, repo, skillName) {
   }
 }
 
-var builderRegistryEntrySchema = z.object({
-  id: z.literal("skills-sh").describe("Stable registry identifier"),
-  enabled: z.boolean().describe("Whether this registry is enabled in the running deployment"),
-  label: z.string().describe("Human-readable registry name")
+var builderRegistryEntrySchema = z$1.object({
+  id: z$1.literal("skills-sh").describe("Stable registry identifier"),
+  enabled: z$1.boolean().describe("Whether this registry is enabled in the running deployment"),
+  label: z$1.string().describe("Human-readable registry name")
 });
-var builderRegistriesResponseSchema = z.object({
-  registries: z.array(builderRegistryEntrySchema)
+var builderRegistriesResponseSchema = z$1.object({
+  registries: z$1.array(builderRegistryEntrySchema)
 });
-var builderRegistryPathParams = z.object({
-  registryId: z.string().describe('Registry identifier (e.g. "skills-sh")')
+var builderRegistryPathParams = z$1.object({
+  registryId: z$1.string().describe('Registry identifier (e.g. "skills-sh")')
 });
-var builderRegistrySearchQuerySchema = z.object({
-  q: z.string().describe("Search query"),
-  limit: z.coerce.number().int().min(1).max(100).optional().default(10).describe("Maximum number of results (1-100)")
+var builderRegistrySearchQuerySchema = z$1.object({
+  q: z$1.string().describe("Search query"),
+  limit: z$1.coerce.number().int().min(1).max(100).optional().default(10).describe("Maximum number of results (1-100)")
 });
-var builderRegistryPopularQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(100).optional().default(10).describe("Maximum number of results (1-100)"),
-  offset: z.coerce.number().int().min(0).optional().default(0).describe("Offset for pagination (must be a multiple of `limit`)")
+var builderRegistryPopularQuerySchema = z$1.object({
+  limit: z$1.coerce.number().int().min(1).max(100).optional().default(10).describe("Maximum number of results (1-100)"),
+  offset: z$1.coerce.number().int().min(0).optional().default(0).describe("Offset for pagination (must be a multiple of `limit`)")
 }).refine((args) => args.offset % args.limit === 0, {
   message: "offset must be a multiple of limit (the upstream registry pages by `limit`)",
   path: ["offset"]
 });
-var builderRegistryPreviewQuerySchema = z.object({
-  owner: z.string().describe("GitHub repository owner"),
-  repo: z.string().describe("GitHub repository name"),
-  path: z.string().describe("Skill name within repo")
+var builderRegistryPreviewQuerySchema = z$1.object({
+  owner: z$1.string().describe("GitHub repository owner"),
+  repo: z$1.string().describe("GitHub repository name"),
+  path: z$1.string().describe("Skill name within repo")
 });
-var builderRegistryInstallBodySchema = z.object({
-  owner: z.string().describe("GitHub repository owner"),
-  repo: z.string().describe("GitHub repository name"),
-  skillName: z.string().describe("Skill name from the registry"),
-  visibility: z.enum(["private", "public"]).optional().describe("Visibility for the new stored skill")
+var builderRegistryInstallBodySchema = z$1.object({
+  owner: z$1.string().describe("GitHub repository owner"),
+  repo: z$1.string().describe("GitHub repository name"),
+  skillName: z$1.string().describe("Skill name from the registry"),
+  visibility: z$1.enum(["private", "public"]).optional().describe("Visibility for the new stored skill")
 });
-var builderRegistryInstallResponseSchema = z.object({
-  storedSkillId: z.string().describe("Id of the newly created stored skill"),
-  name: z.string().describe("Resolved skill name"),
-  filesWritten: z.number().describe("Number of files materialized into the skill version snapshot")
+var builderRegistryInstallResponseSchema = z$1.object({
+  storedSkillId: z$1.string().describe("Id of the newly created stored skill"),
+  name: z$1.string().describe("Resolved skill name"),
+  filesWritten: z$1.number().describe("Number of files materialized into the skill version snapshot")
 });
 
 // src/server/handlers/builder-registry.ts
@@ -27652,61 +27942,61 @@ var BUILDER_REGISTRY_INSTALL_ROUTE = createRoute$1({
   }
 });
 
-var vectorNamePathParams = z.object({
-  vectorName: z.string().describe("Name of the vector store")
+var vectorNamePathParams = z$1.object({
+  vectorName: z$1.string().describe("Name of the vector store")
 });
 var vectorIndexPathParams = vectorNamePathParams.extend({
-  indexName: z.string().describe("Name of the index")
+  indexName: z$1.string().describe("Name of the index")
 });
-var indexBodyBaseSchema = z.object({
-  indexName: z.string()
+var indexBodyBaseSchema = z$1.object({
+  indexName: z$1.string()
 });
 var upsertVectorsBodySchema = indexBodyBaseSchema.extend({
-  vectors: z.array(z.array(z.number())),
-  metadata: z.array(z.record(z.string(), z.any())).optional(),
-  ids: z.array(z.string()).optional()
+  vectors: z$1.array(z$1.array(z$1.number())),
+  metadata: z$1.array(z$1.record(z$1.string(), z$1.any())).optional(),
+  ids: z$1.array(z$1.string()).optional()
 });
 var createIndexBodySchema = indexBodyBaseSchema.extend({
-  dimension: z.number(),
-  metric: z.enum(["cosine", "euclidean", "dotproduct"]).optional()
+  dimension: z$1.number(),
+  metric: z$1.enum(["cosine", "euclidean", "dotproduct"]).optional()
 });
 var queryVectorsBodySchema = indexBodyBaseSchema.extend({
-  queryVector: z.array(z.number()),
-  topK: z.number().optional(),
-  filter: z.record(z.string(), z.any()).optional(),
-  includeVector: z.boolean().optional()
+  queryVector: z$1.array(z$1.number()),
+  topK: z$1.number().optional(),
+  filter: z$1.record(z$1.string(), z$1.any()).optional(),
+  includeVector: z$1.boolean().optional()
 });
-var upsertVectorsResponseSchema = z.object({
-  ids: z.array(z.string())
+var upsertVectorsResponseSchema = z$1.object({
+  ids: z$1.array(z$1.string())
 });
 var createIndexResponseSchema = successResponseSchema;
-var queryVectorsResponseSchema = z.array(z.unknown());
-var listIndexesResponseSchema = z.array(z.string());
-var describeIndexResponseSchema = z.object({
-  dimension: z.number(),
-  count: z.number(),
-  metric: z.string().optional()
+var queryVectorsResponseSchema = z$1.array(z$1.unknown());
+var listIndexesResponseSchema = z$1.array(z$1.string());
+var describeIndexResponseSchema = z$1.object({
+  dimension: z$1.number(),
+  count: z$1.number(),
+  metric: z$1.string().optional()
 });
 var deleteIndexResponseSchema = successResponseSchema;
-var listVectorsResponseSchema = z.object({
-  vectors: z.array(
-    z.object({
-      id: z.string(),
-      name: z.string(),
-      type: z.string(),
-      description: z.string().optional()
+var listVectorsResponseSchema = z$1.object({
+  vectors: z$1.array(
+    z$1.object({
+      id: z$1.string(),
+      name: z$1.string(),
+      type: z$1.string(),
+      description: z$1.string().optional()
     })
   )
 });
-var listEmbeddersResponseSchema = z.object({
-  embedders: z.array(
-    z.object({
-      id: z.string(),
-      provider: z.string(),
-      name: z.string(),
-      description: z.string(),
-      dimensions: z.number(),
-      maxInputTokens: z.number()
+var listEmbeddersResponseSchema = z$1.object({
+  embedders: z$1.array(
+    z$1.object({
+      id: z$1.string(),
+      provider: z$1.string(),
+      name: z$1.string(),
+      description: z$1.string(),
+      dimensions: z$1.number(),
+      maxInputTokens: z$1.number()
     })
   )
 });
@@ -28308,26 +28598,26 @@ function createRoute(config) {
     onValidationError
   };
 }
-var voiceSpeakersResponseSchema = z.array(
-  z.object({
-    voiceId: z.string()
+var voiceSpeakersResponseSchema = z$1.array(
+  z$1.object({
+    voiceId: z$1.string()
   }).passthrough()
 );
-var generateSpeechBodySchema = z.object({
-  text: z.string(),
-  speakerId: z.string().optional()
+var generateSpeechBodySchema = z$1.object({
+  text: z$1.string(),
+  speakerId: z$1.string().optional()
 });
-var transcribeSpeechBodySchema = z.object({
-  audio: z.any(),
-  options: z.record(z.string(), z.any()).optional()
+var transcribeSpeechBodySchema = z$1.object({
+  audio: z$1.any(),
+  options: z$1.record(z$1.string(), z$1.any()).optional()
 });
-var transcribeSpeechResponseSchema = z.object({
-  text: z.string()
+var transcribeSpeechResponseSchema = z$1.object({
+  text: z$1.string()
 });
-var getListenerResponseSchema = z.any();
-var speakResponseSchema = z.any();
-var agentIdPathParams = z.object({
-  agentId: z.string().describe("Agent ID")
+var getListenerResponseSchema = z$1.any();
+var speakResponseSchema = z$1.any();
+var agentIdPathParams = z$1.object({
+  agentId: z$1.string().describe("Agent ID")
 });
 var HTTPException$1 = class HTTPException extends Error {
   status;
@@ -30188,59 +30478,59 @@ var EXECUTE_AGENT_TOOL_ROUTE = createRoute$1({
   }
 });
 
-var scoringSamplingConfigSchema = z.object({});
-var mastraScorerConfigSchema = z.object({
-  id: z.string(),
-  name: z.string().optional(),
-  description: z.string(),
-  type: z.unknown().optional(),
-  judge: z.unknown().optional()
+var scoringSamplingConfigSchema = z$1.object({});
+var mastraScorerConfigSchema = z$1.object({
+  id: z$1.string(),
+  name: z$1.string().optional(),
+  description: z$1.string(),
+  type: z$1.unknown().optional(),
+  judge: z$1.unknown().optional()
 });
-var mastraScorerSchema = z.object({
+var mastraScorerSchema = z$1.object({
   config: mastraScorerConfigSchema
 });
-var scorerEntrySchema = z.object({
+var scorerEntrySchema = z$1.object({
   scorer: mastraScorerSchema,
   sampling: scoringSamplingConfigSchema.optional(),
-  agentIds: z.array(z.string()),
-  agentNames: z.array(z.string()),
-  workflowIds: z.array(z.string()),
-  isRegistered: z.boolean(),
-  source: z.enum(["code", "stored"])
+  agentIds: z$1.array(z$1.string()),
+  agentNames: z$1.array(z$1.string()),
+  workflowIds: z$1.array(z$1.string()),
+  isRegistered: z$1.boolean(),
+  source: z$1.enum(["code", "stored"])
 });
-var listScorersResponseSchema = z.record(z.string(), scorerEntrySchema);
-var scorerIdPathParams = z.object({
-  scorerId: z.string().describe("Unique identifier for the scorer")
+var listScorersResponseSchema = z$1.record(z$1.string(), scorerEntrySchema);
+var scorerIdPathParams = z$1.object({
+  scorerId: z$1.string().describe("Unique identifier for the scorer")
 });
-var entityPathParams = z.object({
-  entityType: z.string().describe("Type of the entity (AGENT or WORKFLOW)"),
-  entityId: z.string().describe("Unique identifier for the entity")
+var entityPathParams = z$1.object({
+  entityType: z$1.string().describe("Type of the entity (AGENT or WORKFLOW)"),
+  entityId: z$1.string().describe("Unique identifier for the entity")
 });
-var listScoresByRunIdQuerySchema = z.object({
-  page: z.coerce.number().optional().default(0),
-  perPage: z.coerce.number().optional().default(10)
+var listScoresByRunIdQuerySchema = z$1.object({
+  page: z$1.coerce.number().optional().default(0),
+  perPage: z$1.coerce.number().optional().default(10)
 });
-var listScoresByScorerIdQuerySchema = z.object({
-  page: z.coerce.number().optional().default(0),
-  perPage: z.coerce.number().optional().default(10),
-  entityId: z.string().optional(),
-  entityType: z.string().optional()
+var listScoresByScorerIdQuerySchema = z$1.object({
+  page: z$1.coerce.number().optional().default(0),
+  perPage: z$1.coerce.number().optional().default(10),
+  entityId: z$1.string().optional(),
+  entityType: z$1.string().optional()
 });
-var listScoresByEntityIdQuerySchema = z.object({
-  page: z.coerce.number().optional().default(0),
-  perPage: z.coerce.number().optional().default(10)
+var listScoresByEntityIdQuerySchema = z$1.object({
+  page: z$1.coerce.number().optional().default(0),
+  perPage: z$1.coerce.number().optional().default(10)
 });
-var saveScoreBodySchema = z.object({
-  score: z.unknown()
+var saveScoreBodySchema = z$1.object({
+  score: z$1.unknown()
   // ScoreRowData - complex type
 });
-var scoresWithPaginationResponseSchema = z.object({
+var scoresWithPaginationResponseSchema = z$1.object({
   pagination: paginationInfoSchema$1,
-  scores: z.array(z.unknown())
+  scores: z$1.array(z$1.unknown())
   // Array of score records
 });
-var saveScoreResponseSchema = z.object({
-  score: z.unknown()
+var saveScoreResponseSchema = z$1.object({
+  score: z$1.unknown()
   // ScoreRowData
 });
 
@@ -32941,92 +33231,92 @@ var DELETE_RESPONSE_ROUTE = createRoute$1({
   }
 });
 
-var mcpServerIdPathParams = z.object({
-  serverId: z.string().describe("MCP server ID")
+var mcpServerIdPathParams = z$1.object({
+  serverId: z$1.string().describe("MCP server ID")
 });
-var mcpServerDetailPathParams = z.object({
-  id: z.string().describe("MCP server ID")
+var mcpServerDetailPathParams = z$1.object({
+  id: z$1.string().describe("MCP server ID")
 });
-var mcpServerToolPathParams = z.object({
-  serverId: z.string().describe("MCP server ID"),
-  toolId: z.string().describe("Tool ID")
+var mcpServerToolPathParams = z$1.object({
+  serverId: z$1.string().describe("MCP server ID"),
+  toolId: z$1.string().describe("Tool ID")
 });
-var executeToolBodySchema = z.object({
-  data: z.unknown().optional()
+var executeToolBodySchema = z$1.object({
+  data: z$1.unknown().optional()
 });
 var listMcpServersQuerySchema = createCombinedPaginationSchema();
-var getMcpServerDetailQuerySchema = z.object({
-  version: z.string().optional()
+var getMcpServerDetailQuerySchema = z$1.object({
+  version: z$1.string().optional()
 });
-var versionDetailSchema = z.object({
-  version: z.string(),
-  release_date: z.string(),
-  is_latest: z.boolean()
+var versionDetailSchema = z$1.object({
+  version: z$1.string(),
+  release_date: z$1.string(),
+  is_latest: z$1.boolean()
 });
-var serverInfoSchema = z.object({
-  id: z.string(),
-  name: z.string(),
+var serverInfoSchema = z$1.object({
+  id: z$1.string(),
+  name: z$1.string(),
   version_detail: versionDetailSchema
 });
-var listMcpServersResponseSchema = z.object({
-  servers: z.array(serverInfoSchema),
-  total_count: z.number(),
-  next: z.string().nullable()
+var listMcpServersResponseSchema = z$1.object({
+  servers: z$1.array(serverInfoSchema),
+  total_count: z$1.number(),
+  next: z$1.string().nullable()
 });
-var serverDetailSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  description: z.string().optional(),
+var serverDetailSchema = z$1.object({
+  id: z$1.string(),
+  name: z$1.string(),
+  description: z$1.string().optional(),
   version_detail: versionDetailSchema,
-  package_canonical: z.string().optional(),
-  packages: z.array(z.unknown()).optional(),
-  remotes: z.array(z.unknown()).optional()
+  package_canonical: z$1.string().optional(),
+  packages: z$1.array(z$1.unknown()).optional(),
+  remotes: z$1.array(z$1.unknown()).optional()
 });
-var mcpToolInfoSchema = z.object({
-  name: z.string(),
-  description: z.string().optional(),
-  inputSchema: z.unknown(),
-  outputSchema: z.unknown().optional(),
-  toolType: z.string().optional(),
-  _meta: z.record(z.string(), z.unknown()).optional()
+var mcpToolInfoSchema = z$1.object({
+  name: z$1.string(),
+  description: z$1.string().optional(),
+  inputSchema: z$1.unknown(),
+  outputSchema: z$1.unknown().optional(),
+  toolType: z$1.string().optional(),
+  _meta: z$1.record(z$1.string(), z$1.unknown()).optional()
 });
-var listMcpServerToolsResponseSchema = z.object({
-  tools: z.array(mcpToolInfoSchema)
+var listMcpServerToolsResponseSchema = z$1.object({
+  tools: z$1.array(mcpToolInfoSchema)
 });
-var executeToolResponseSchema = z.object({
-  result: z.unknown()
+var executeToolResponseSchema = z$1.object({
+  result: z$1.unknown()
 });
-var mcpServerResourcePathParams = z.object({
-  serverId: z.string().describe("MCP server ID")
+var mcpServerResourcePathParams = z$1.object({
+  serverId: z$1.string().describe("MCP server ID")
 });
-var readResourceBodySchema = z.object({
-  uri: z.string().describe("Resource URI to read")
+var readResourceBodySchema = z$1.object({
+  uri: z$1.string().describe("Resource URI to read")
 });
-var resourceContentSchema = z.object({
-  uri: z.string(),
-  text: z.string().optional(),
-  blob: z.string().optional()
+var resourceContentSchema = z$1.object({
+  uri: z$1.string(),
+  text: z$1.string().optional(),
+  blob: z$1.string().optional()
 });
-var readResourceResponseSchema = z.object({
-  contents: z.array(resourceContentSchema)
+var readResourceResponseSchema = z$1.object({
+  contents: z$1.array(resourceContentSchema)
 });
-var resourceInfoSchema = z.object({
-  uri: z.string(),
-  name: z.string(),
-  description: z.string().optional(),
-  mimeType: z.string().optional(),
-  _meta: z.record(z.string(), z.unknown()).optional()
+var resourceInfoSchema = z$1.object({
+  uri: z$1.string(),
+  name: z$1.string(),
+  description: z$1.string().optional(),
+  mimeType: z$1.string().optional(),
+  _meta: z$1.record(z$1.string(), z$1.unknown()).optional()
 });
-var listResourcesResponseSchema = z.object({
-  resources: z.array(resourceInfoSchema)
+var listResourcesResponseSchema = z$1.object({
+  resources: z$1.array(resourceInfoSchema)
 });
-z.object({
-  jsonrpc: z.literal("2.0"),
-  error: z.object({
-    code: z.number(),
-    message: z.string()
+z$1.object({
+  jsonrpc: z$1.literal("2.0"),
+  error: z$1.object({
+    code: z$1.number(),
+    message: z$1.string()
   }),
-  id: z.null()
+  id: z$1.null()
 });
 
 // src/server/handlers/mcp.ts
@@ -33538,16 +33828,16 @@ async function isGatewayAgentAsync(agent) {
   return false;
 }
 
-var threadIdPathParams = z.object({
-  threadId: z.string().describe("Unique identifier for the conversation thread")
+var threadIdPathParams = z$1.object({
+  threadId: z$1.string().describe("Unique identifier for the conversation thread")
 });
-var agentIdQuerySchema = z.object({
-  agentId: z.string()
+var agentIdQuerySchema = z$1.object({
+  agentId: z$1.string()
 });
-var optionalAgentIdQuerySchema = z.object({
-  agentId: z.string().optional()
+var optionalAgentIdQuerySchema = z$1.object({
+  agentId: z$1.string().optional()
 });
-var storageOrderBySchema = z.preprocess(
+var storageOrderBySchema = z$1.preprocess(
   (val) => {
     if (val === void 0) return val;
     if (typeof val === "string") {
@@ -33559,12 +33849,12 @@ var storageOrderBySchema = z.preprocess(
     }
     return val;
   },
-  z.object({
-    field: z.enum(["createdAt", "updatedAt"]).optional(),
-    direction: z.enum(["ASC", "DESC"]).optional()
+  z$1.object({
+    field: z$1.enum(["createdAt", "updatedAt"]).optional(),
+    direction: z$1.enum(["ASC", "DESC"]).optional()
   }).optional()
 ).optional();
-var messageOrderBySchema = z.preprocess(
+var messageOrderBySchema = z$1.preprocess(
   (val) => {
     if (val === void 0) return val;
     if (typeof val === "string") {
@@ -33576,12 +33866,12 @@ var messageOrderBySchema = z.preprocess(
     }
     return val;
   },
-  z.object({
-    field: z.enum(["createdAt"]).optional(),
-    direction: z.enum(["ASC", "DESC"]).optional()
+  z$1.object({
+    field: z$1.enum(["createdAt"]).optional(),
+    direction: z$1.enum(["ASC", "DESC"]).optional()
   }).optional()
 ).optional();
-var includeSchema = z.preprocess(
+var includeSchema = z$1.preprocess(
   (val) => {
     if (val === void 0) return val;
     if (typeof val === "string") {
@@ -33593,16 +33883,16 @@ var includeSchema = z.preprocess(
     }
     return val;
   },
-  z.array(
-    z.object({
-      id: z.string(),
-      threadId: z.string().optional(),
-      withPreviousMessages: z.number().optional(),
-      withNextMessages: z.number().optional()
+  z$1.array(
+    z$1.object({
+      id: z$1.string(),
+      threadId: z$1.string().optional(),
+      withPreviousMessages: z$1.number().optional(),
+      withNextMessages: z$1.number().optional()
     })
   )
 ).optional();
-var filterSchema = z.preprocess(
+var filterSchema = z$1.preprocess(
   (val) => {
     if (val === void 0) return val;
     if (typeof val === "string") {
@@ -33614,17 +33904,17 @@ var filterSchema = z.preprocess(
     }
     return val;
   },
-  z.object({
-    dateRange: z.object({
-      start: z.coerce.date().optional(),
-      end: z.coerce.date().optional(),
-      startExclusive: z.boolean().optional(),
-      endExclusive: z.boolean().optional()
+  z$1.object({
+    dateRange: z$1.object({
+      start: z$1.coerce.date().optional(),
+      end: z$1.coerce.date().optional(),
+      startExclusive: z$1.boolean().optional(),
+      endExclusive: z$1.boolean().optional()
     }).optional(),
-    roles: z.array(z.string()).optional()
+    roles: z$1.array(z$1.string()).optional()
   })
 ).optional();
-var memoryConfigSchema = z.preprocess(
+var memoryConfigSchema = z$1.preprocess(
   (val) => {
     if (val === void 0) return val;
     if (typeof val === "string") {
@@ -33636,26 +33926,26 @@ var memoryConfigSchema = z.preprocess(
     }
     return val;
   },
-  z.record(z.string(), z.unknown())
+  z$1.record(z$1.string(), z$1.unknown())
 ).optional();
-var threadSchema = z.object({
-  id: z.string(),
-  title: z.string().optional(),
-  resourceId: z.string(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-  metadata: z.record(z.string(), z.unknown()).optional()
+var threadSchema = z$1.object({
+  id: z$1.string(),
+  title: z$1.string().optional(),
+  resourceId: z$1.string(),
+  createdAt: z$1.date(),
+  updatedAt: z$1.date(),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional()
 });
-var messageSchema$1 = z.any();
+var messageSchema$1 = z$1.any();
 var getMemoryStatusQuerySchema = agentIdQuerySchema.extend({
-  resourceId: z.string().optional(),
-  threadId: z.string().optional()
+  resourceId: z$1.string().optional(),
+  threadId: z$1.string().optional()
 });
 var getMemoryConfigQuerySchema = agentIdQuerySchema;
 var listThreadsQueryInnerSchema = createPagePaginationSchema(100).extend({
-  agentId: z.string().optional(),
-  resourceId: z.string().optional(),
-  metadata: z.preprocess(
+  agentId: z$1.string().optional(),
+  resourceId: z$1.string().optional(),
+  metadata: z$1.preprocess(
     (val) => {
       if (val === void 0) return val;
       if (typeof val === "string") {
@@ -33667,11 +33957,11 @@ var listThreadsQueryInnerSchema = createPagePaginationSchema(100).extend({
       }
       return val;
     },
-    z.record(z.string(), z.any())
+    z$1.record(z$1.string(), z$1.any())
   ).optional(),
   orderBy: storageOrderBySchema
 });
-var listThreadsQuerySchema = z.preprocess((val) => {
+var listThreadsQuerySchema = z$1.preprocess((val) => {
   if (val === null || typeof val !== "object" || Array.isArray(val)) return val;
   const record = val;
   const rawOrderBy = record.orderBy;
@@ -33689,37 +33979,37 @@ var listThreadsQuerySchema = z.preprocess((val) => {
   };
 }, listThreadsQueryInnerSchema);
 var getThreadByIdQuerySchema = optionalAgentIdQuerySchema.extend({
-  resourceId: z.string().optional()
+  resourceId: z$1.string().optional()
 });
 var listMessagesQuerySchema = createPagePaginationSchema(40).extend({
-  agentId: z.string().optional(),
-  resourceId: z.string().optional(),
+  agentId: z$1.string().optional(),
+  resourceId: z$1.string().optional(),
   orderBy: messageOrderBySchema,
   include: includeSchema,
   filter: filterSchema,
-  includeSystemReminders: z.preprocess((val) => {
+  includeSystemReminders: z$1.preprocess((val) => {
     if (val === void 0) return val;
     if (val === "true") return true;
     if (val === "false") return false;
     return val;
-  }, z.boolean()).optional()
+  }, z$1.boolean()).optional()
 });
-var getWorkingMemoryQuerySchema = z.object({
-  agentId: z.string(),
-  resourceId: z.string().optional(),
+var getWorkingMemoryQuerySchema = z$1.object({
+  agentId: z$1.string(),
+  resourceId: z$1.string().optional(),
   memoryConfig: memoryConfigSchema
 });
 var deleteThreadQuerySchema = agentIdQuerySchema.extend({
-  resourceId: z.string().optional()
+  resourceId: z$1.string().optional()
 });
 var deleteMessagesQuerySchema = agentIdQuerySchema.extend({
-  resourceId: z.string().optional()
+  resourceId: z$1.string().optional()
 });
 var getMemoryStatusNetworkQuerySchema = agentIdQuerySchema;
 var listThreadsNetworkQuerySchema = createPagePaginationSchema(100).extend({
-  agentId: z.string().optional(),
-  resourceId: z.string().optional(),
-  metadata: z.preprocess(
+  agentId: z$1.string().optional(),
+  resourceId: z$1.string().optional(),
+  metadata: z$1.preprocess(
     (val) => {
       if (val === void 0) return val;
       if (typeof val === "string") {
@@ -33731,16 +34021,16 @@ var listThreadsNetworkQuerySchema = createPagePaginationSchema(100).extend({
       }
       return val;
     },
-    z.record(z.string(), z.any())
+    z$1.record(z$1.string(), z$1.any())
   ).optional(),
   orderBy: storageOrderBySchema
 });
 var getThreadByIdNetworkQuerySchema = optionalAgentIdQuerySchema.extend({
-  resourceId: z.string().optional()
+  resourceId: z$1.string().optional()
 });
 var listMessagesNetworkQuerySchema = createPagePaginationSchema(40).extend({
-  agentId: z.string().optional(),
-  resourceId: z.string().optional(),
+  agentId: z$1.string().optional(),
+  resourceId: z$1.string().optional(),
   orderBy: messageOrderBySchema,
   include: includeSchema,
   filter: filterSchema
@@ -33749,178 +34039,178 @@ var saveMessagesNetworkQuerySchema = agentIdQuerySchema;
 var createThreadNetworkQuerySchema = agentIdQuerySchema;
 var updateThreadNetworkQuerySchema = agentIdQuerySchema;
 var deleteThreadNetworkQuerySchema = agentIdQuerySchema.extend({
-  resourceId: z.string().optional()
+  resourceId: z$1.string().optional()
 });
 var deleteMessagesNetworkQuerySchema = agentIdQuerySchema.extend({
-  resourceId: z.string().optional()
+  resourceId: z$1.string().optional()
 });
-var memoryStatusResponseSchema = z.object({
-  result: z.boolean(),
-  memoryType: z.enum(["local", "gateway"]).optional(),
-  observationalMemory: z.object({
-    enabled: z.boolean(),
-    hasRecord: z.boolean().optional(),
-    originType: z.string().optional(),
-    lastObservedAt: z.date().optional(),
-    tokenCount: z.number().optional(),
-    observationTokenCount: z.number().optional(),
-    isObserving: z.boolean().optional(),
-    isReflecting: z.boolean().optional()
+var memoryStatusResponseSchema = z$1.object({
+  result: z$1.boolean(),
+  memoryType: z$1.enum(["local", "gateway"]).optional(),
+  observationalMemory: z$1.object({
+    enabled: z$1.boolean(),
+    hasRecord: z$1.boolean().optional(),
+    originType: z$1.string().optional(),
+    lastObservedAt: z$1.date().optional(),
+    tokenCount: z$1.number().optional(),
+    observationTokenCount: z$1.number().optional(),
+    isObserving: z$1.boolean().optional(),
+    isReflecting: z$1.boolean().optional()
   }).optional()
 });
-var observationalMemoryModelRoutingSchema = z.array(
-  z.object({
-    upTo: z.number(),
-    model: z.string()
+var observationalMemoryModelRoutingSchema = z$1.array(
+  z$1.object({
+    upTo: z$1.number(),
+    model: z$1.string()
   })
 );
-var observationalMemoryConfigSchema = z.object({
-  enabled: z.boolean(),
-  scope: z.enum(["thread", "resource"]).optional(),
-  shareTokenBudget: z.boolean().optional(),
-  messageTokens: z.union([z.number(), z.object({ min: z.number(), max: z.number() })]).optional(),
-  observationTokens: z.union([z.number(), z.object({ min: z.number(), max: z.number() })]).optional(),
-  observationModel: z.string().optional(),
-  reflectionModel: z.string().optional(),
+var observationalMemoryConfigSchema = z$1.object({
+  enabled: z$1.boolean(),
+  scope: z$1.enum(["thread", "resource"]).optional(),
+  shareTokenBudget: z$1.boolean().optional(),
+  messageTokens: z$1.union([z$1.number(), z$1.object({ min: z$1.number(), max: z$1.number() })]).optional(),
+  observationTokens: z$1.union([z$1.number(), z$1.object({ min: z$1.number(), max: z$1.number() })]).optional(),
+  observationModel: z$1.string().optional(),
+  reflectionModel: z$1.string().optional(),
   observationModelRouting: observationalMemoryModelRoutingSchema.optional(),
   reflectionModelRouting: observationalMemoryModelRoutingSchema.optional()
 });
-var memoryConfigResponseSchema = z.object({
-  memoryType: z.enum(["local", "gateway"]).optional(),
-  config: z.object({
-    lastMessages: z.union([z.number(), z.literal(false)]).optional(),
-    semanticRecall: z.union([z.boolean(), z.any()]).optional(),
-    workingMemory: z.any().optional(),
+var memoryConfigResponseSchema = z$1.object({
+  memoryType: z$1.enum(["local", "gateway"]).optional(),
+  config: z$1.object({
+    lastMessages: z$1.union([z$1.number(), z$1.literal(false)]).optional(),
+    semanticRecall: z$1.union([z$1.boolean(), z$1.any()]).optional(),
+    workingMemory: z$1.any().optional(),
     observationalMemory: observationalMemoryConfigSchema.optional()
   }).nullable()
 });
 var listThreadsResponseSchema = paginationInfoSchema$1.extend({
-  threads: z.array(threadSchema)
+  threads: z$1.array(threadSchema)
 });
 var getThreadByIdResponseSchema = threadSchema;
-var listMessagesResponseSchema = z.object({
-  messages: z.array(messageSchema$1),
-  uiMessages: z.array(z.any()).nullable()
+var listMessagesResponseSchema = z$1.object({
+  messages: z$1.array(messageSchema$1),
+  uiMessages: z$1.array(z$1.any()).nullable()
   // Converted messages in UI format
 });
-var getWorkingMemoryResponseSchema = z.object({
-  workingMemory: z.unknown().nullable(),
+var getWorkingMemoryResponseSchema = z$1.object({
+  workingMemory: z$1.unknown().nullable(),
   // Can be string or structured object depending on template
-  source: z.enum(["thread", "resource"]),
-  workingMemoryTemplate: z.unknown().nullable(),
+  source: z$1.enum(["thread", "resource"]),
+  workingMemoryTemplate: z$1.unknown().nullable(),
   // Template structure varies
-  threadExists: z.boolean()
+  threadExists: z$1.boolean()
 });
-var saveMessagesBodySchema = z.object({
-  messages: z.array(messageSchema$1)
+var saveMessagesBodySchema = z$1.object({
+  messages: z$1.array(messageSchema$1)
 });
-var createThreadBodySchema = z.object({
-  resourceId: z.string(),
-  title: z.string().optional(),
-  metadata: z.record(z.string(), z.unknown()).optional(),
-  threadId: z.string().optional()
+var createThreadBodySchema = z$1.object({
+  resourceId: z$1.string(),
+  title: z$1.string().optional(),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional(),
+  threadId: z$1.string().optional()
 });
-var updateThreadBodySchema = z.object({
-  title: z.string().optional(),
-  metadata: z.record(z.string(), z.unknown()).optional(),
-  resourceId: z.string().optional()
+var updateThreadBodySchema = z$1.object({
+  title: z$1.string().optional(),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional(),
+  resourceId: z$1.string().optional()
 });
-var updateWorkingMemoryBodySchema = z.object({
-  workingMemory: z.string(),
-  resourceId: z.string().optional(),
-  memoryConfig: z.record(z.string(), z.unknown()).optional()
+var updateWorkingMemoryBodySchema = z$1.object({
+  workingMemory: z$1.string(),
+  resourceId: z$1.string().optional(),
+  memoryConfig: z$1.record(z$1.string(), z$1.unknown()).optional()
 });
-var deleteMessagesBodySchema = z.object({
-  messageIds: z.union([
-    z.string(),
-    z.array(z.string()),
-    z.object({ id: z.string() }),
-    z.array(z.object({ id: z.string() }))
+var deleteMessagesBodySchema = z$1.object({
+  messageIds: z$1.union([
+    z$1.string(),
+    z$1.array(z$1.string()),
+    z$1.object({ id: z$1.string() }),
+    z$1.array(z$1.object({ id: z$1.string() }))
   ])
 });
-var searchMemoryQuerySchema = z.object({
-  agentId: z.string(),
-  searchQuery: z.string(),
-  resourceId: z.string(),
-  threadId: z.string().optional(),
-  limit: z.coerce.number().optional().default(20),
+var searchMemoryQuerySchema = z$1.object({
+  agentId: z$1.string(),
+  searchQuery: z$1.string(),
+  resourceId: z$1.string(),
+  threadId: z$1.string().optional(),
+  limit: z$1.coerce.number().optional().default(20),
   memoryConfig: memoryConfigSchema
 });
-var saveMessagesResponseSchema = z.object({
-  messages: z.array(messageSchema$1)
+var saveMessagesResponseSchema = z$1.object({
+  messages: z$1.array(messageSchema$1)
 });
-var deleteThreadResponseSchema = z.object({
-  result: z.string()
+var deleteThreadResponseSchema = z$1.object({
+  result: z$1.string()
 });
 var updateWorkingMemoryResponseSchema = successResponseSchema;
 var deleteMessagesResponseSchema = successResponseSchema.extend({
-  message: z.string()
+  message: z$1.string()
 });
-var searchMemoryResponseSchema = z.object({
-  results: z.array(z.unknown()),
-  count: z.number(),
-  query: z.string(),
-  searchScope: z.string().optional(),
-  searchType: z.string().optional()
+var searchMemoryResponseSchema = z$1.object({
+  results: z$1.array(z$1.unknown()),
+  count: z$1.number(),
+  query: z$1.string(),
+  searchScope: z$1.string().optional(),
+  searchType: z$1.string().optional()
 });
-var cloneThreadBodySchema = z.object({
-  newThreadId: z.string().optional(),
-  resourceId: z.string().optional(),
-  title: z.string().optional(),
-  metadata: z.record(z.string(), z.unknown()).optional(),
-  options: z.object({
-    messageLimit: z.number().optional(),
-    messageFilter: z.object({
-      startDate: z.coerce.date().optional(),
-      endDate: z.coerce.date().optional(),
-      messageIds: z.array(z.string()).optional()
+var cloneThreadBodySchema = z$1.object({
+  newThreadId: z$1.string().optional(),
+  resourceId: z$1.string().optional(),
+  title: z$1.string().optional(),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional(),
+  options: z$1.object({
+    messageLimit: z$1.number().optional(),
+    messageFilter: z$1.object({
+      startDate: z$1.coerce.date().optional(),
+      endDate: z$1.coerce.date().optional(),
+      messageIds: z$1.array(z$1.string()).optional()
     }).optional()
   }).optional()
 });
-var cloneThreadResponseSchema = z.object({
+var cloneThreadResponseSchema = z$1.object({
   thread: threadSchema,
-  clonedMessages: z.array(messageSchema$1)
+  clonedMessages: z$1.array(messageSchema$1)
 });
-var getObservationalMemoryQuerySchema = z.object({
-  agentId: z.string(),
-  resourceId: z.string().optional(),
-  threadId: z.string().optional(),
-  from: z.coerce.date().optional(),
-  to: z.coerce.date().optional(),
-  offset: z.coerce.number().int().min(0).optional(),
-  limit: z.coerce.number().int().min(1).optional()
+var getObservationalMemoryQuerySchema = z$1.object({
+  agentId: z$1.string(),
+  resourceId: z$1.string().optional(),
+  threadId: z$1.string().optional(),
+  from: z$1.coerce.date().optional(),
+  to: z$1.coerce.date().optional(),
+  offset: z$1.coerce.number().int().min(0).optional(),
+  limit: z$1.coerce.number().int().min(1).optional()
 });
-var observationalMemoryRecordSchema = z.object({
-  id: z.string(),
-  scope: z.enum(["thread", "resource"]),
-  resourceId: z.string(),
-  threadId: z.string().nullable(),
-  activeObservations: z.string(),
-  bufferedObservations: z.string().optional(),
-  bufferedReflection: z.string().optional(),
-  originType: z.enum(["initial", "observation", "reflection"]),
-  generationCount: z.number(),
-  lastObservedAt: z.date().optional(),
-  totalTokensObserved: z.number(),
-  observationTokenCount: z.number(),
-  pendingMessageTokens: z.number(),
-  isObserving: z.boolean(),
-  isReflecting: z.boolean(),
-  config: z.record(z.string(), z.unknown()),
-  metadata: z.record(z.string(), z.unknown()).optional(),
-  createdAt: z.date(),
-  updatedAt: z.date()
+var observationalMemoryRecordSchema = z$1.object({
+  id: z$1.string(),
+  scope: z$1.enum(["thread", "resource"]),
+  resourceId: z$1.string(),
+  threadId: z$1.string().nullable(),
+  activeObservations: z$1.string(),
+  bufferedObservations: z$1.string().optional(),
+  bufferedReflection: z$1.string().optional(),
+  originType: z$1.enum(["initial", "observation", "reflection"]),
+  generationCount: z$1.number(),
+  lastObservedAt: z$1.date().optional(),
+  totalTokensObserved: z$1.number(),
+  observationTokenCount: z$1.number(),
+  pendingMessageTokens: z$1.number(),
+  isObserving: z$1.boolean(),
+  isReflecting: z$1.boolean(),
+  config: z$1.record(z$1.string(), z$1.unknown()),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional(),
+  createdAt: z$1.date(),
+  updatedAt: z$1.date()
 });
-var getObservationalMemoryResponseSchema = z.object({
+var getObservationalMemoryResponseSchema = z$1.object({
   record: observationalMemoryRecordSchema.nullable(),
-  history: z.array(observationalMemoryRecordSchema).optional()
+  history: z$1.array(observationalMemoryRecordSchema).optional()
 });
-var awaitBufferStatusBodySchema = z.object({
-  agentId: z.string(),
-  resourceId: z.string().optional(),
-  threadId: z.string().optional()
+var awaitBufferStatusBodySchema = z$1.object({
+  agentId: z$1.string(),
+  resourceId: z$1.string().optional(),
+  threadId: z$1.string().optional()
 });
-var awaitBufferStatusResponseSchema = z.object({
+var awaitBufferStatusResponseSchema = z$1.object({
   record: observationalMemoryRecordSchema.nullable()
 });
 
@@ -35632,13 +35922,13 @@ var DELETE_MESSAGES_NETWORK_ROUTE = createRoute$1({
 });
 
 // src/server/handlers/observability-list-query-schemas.ts
-var paginationArgsSchema = z.object({
-  page: z.coerce.number().int().min(0).optional().default(0).describe("Zero-indexed page number"),
-  perPage: z.coerce.number().int().min(1).max(100).optional().default(10).describe("Number of items per page")
+var paginationArgsSchema = z$1.object({
+  page: z$1.coerce.number().int().min(0).optional().default(0).describe("Zero-indexed page number"),
+  perPage: z$1.coerce.number().int().min(1).max(100).optional().default(10).describe("Number of items per page")
 }).describe("Pagination options for list queries");
-var deltaCursorSchema$1 = z.string().min(1).describe("Opaque cursor value for incremental polling");
-var listModeSchema$1 = z.enum(["page", "delta"]).describe("List mode: 'page' | 'delta', defaults to 'page' when omitted.");
-var deltaLimitSchema$1 = z.coerce.number().int().min(1).max(100).optional().describe("Maximum number of updates to return in one delta poll");
+var deltaCursorSchema$1 = z$1.string().min(1).describe("Opaque cursor value for incremental polling");
+var listModeSchema$1 = z$1.enum(["page", "delta"]).describe("List mode: 'page' | 'delta', defaults to 'page' when omitted.");
+var deltaLimitSchema$1 = z$1.coerce.number().int().min(1).max(100).optional().describe("Maximum number of updates to return in one delta poll");
 
 var OBSERVABILITY_DELTA_POLLING_FEATURE = "observability-delta-polling";
 var OBSERVABILITY_DELTA_POLLING_UPGRADE_MESSAGE = "Delta polling requires a newer @mastra/core with observability delta polling support. Please upgrade.";
@@ -35862,16 +36152,16 @@ var NEW_ROUTE_DEFS = {
 function createObservabilityListQuerySchema(filterSchema, orderBySchema) {
   const unwrapDefault = (schema) => {
     const zodSchema = schema;
-    return zodSchema instanceof z.ZodDefault ? zodSchema.unwrap() : zodSchema;
+    return zodSchema instanceof z$1.ZodDefault ? zodSchema.unwrap() : zodSchema;
   };
   const paginationShape = paginationArgsSchema.shape;
   const orderByShape = orderBySchema.shape;
   const pageSchema = unwrapDefault(paginationShape.page);
   const perPageSchema = unwrapDefault(paginationShape.perPage);
-  const fieldSchema = orderByShape.field ? unwrapDefault(orderByShape.field) : z.never().optional();
-  const directionSchema = orderByShape.direction ? unwrapDefault(orderByShape.direction) : z.never().optional();
+  const fieldSchema = orderByShape.field ? unwrapDefault(orderByShape.field) : z$1.never().optional();
+  const directionSchema = orderByShape.direction ? unwrapDefault(orderByShape.direction) : z$1.never().optional();
   return wrapSchemaForQueryParams(
-    z.object({
+    z$1.object({
       ...filterSchema.shape,
       page: pageSchema,
       perPage: perPageSchema,
@@ -35891,14 +36181,14 @@ function createObservabilityListQuerySchema(filterSchema, orderBySchema) {
       if (hasPagination) {
         if (value.page !== void 0) {
           ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: z$1.ZodIssueCode.custom,
             path: ["page"],
             message: "`page` is not allowed when `mode=delta`"
           });
         }
         if (value.perPage !== void 0) {
           ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: z$1.ZodIssueCode.custom,
             path: ["perPage"],
             message: "`perPage` is not allowed when `mode=delta`"
           });
@@ -35907,14 +36197,14 @@ function createObservabilityListQuerySchema(filterSchema, orderBySchema) {
       if (hasOrderBy) {
         if (value.field !== void 0) {
           ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: z$1.ZodIssueCode.custom,
             path: ["field"],
             message: "`field` is not allowed when `mode=delta`"
           });
         }
         if (value.direction !== void 0) {
           ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: z$1.ZodIssueCode.custom,
             path: ["direction"],
             message: "`direction` is not allowed when `mode=delta`"
           });
@@ -35924,14 +36214,14 @@ function createObservabilityListQuerySchema(filterSchema, orderBySchema) {
     }
     if (hasAfter) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: z$1.ZodIssueCode.custom,
         path: ["after"],
         message: "`after` is only allowed when `mode=delta`"
       });
     }
     if (hasLimit) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: z$1.ZodIssueCode.custom,
         path: ["limit"],
         message: "`limit` is only allowed when `mode=delta`"
       });
@@ -35954,24 +36244,24 @@ var EntityType = /* @__PURE__ */ ((EntityType2) => {
   EntityType2["MEMORY"] = "memory";
   return EntityType2;
 })(EntityType || {});
-z.date().describe("Database record creation time");
-var updatedAtField = z.date().describe("Database record last update time");
+z$1.date().describe("Database record creation time");
+var updatedAtField = z$1.date().describe("Database record last update time");
 ({
   updatedAt: updatedAtField.nullable()
 });
-var paginationArgsSchema2 = z.object({
-  page: z.coerce.number().int().min(0).optional().default(0).describe("Zero-indexed page number"),
-  perPage: z.coerce.number().int().min(1).max(100).optional().default(10).describe("Number of items per page")
+var paginationArgsSchema2 = z$1.object({
+  page: z$1.coerce.number().int().min(0).optional().default(0).describe("Zero-indexed page number"),
+  perPage: z$1.coerce.number().int().min(1).max(100).optional().default(10).describe("Number of items per page")
 }).describe("Pagination options for list queries");
-var paginationInfoSchema = z.object({
-  total: z.number().describe("Total number of items available"),
-  page: z.number().describe("Current page"),
-  perPage: z.union([z.number(), z.literal(false)]).describe("Number of items per page, or false if pagination is disabled"),
-  hasMore: z.boolean().describe("True if more pages are available")
+var paginationInfoSchema = z$1.object({
+  total: z$1.number().describe("Total number of items available"),
+  page: z$1.number().describe("Current page"),
+  perPage: z$1.union([z$1.number(), z$1.literal(false)]).describe("Number of items per page, or false if pagination is disabled"),
+  hasMore: z$1.boolean().describe("True if more pages are available")
 });
-var deltaCursorSchema = z.string().min(1).describe("Opaque cursor value for incremental polling");
-var listModeSchema = z.enum(["page", "delta"]).describe("List mode: 'page' | 'delta', defaults to 'page' when omitted.");
-var deltaLimitSchema = z.coerce.number().int().min(1).max(100).optional().describe("Maximum number of updates to return in one delta poll");
+var deltaCursorSchema = z$1.string().min(1).describe("Opaque cursor value for incremental polling");
+var listModeSchema = z$1.enum(["page", "delta"]).describe("List mode: 'page' | 'delta', defaults to 'page' when omitted.");
+var deltaLimitSchema = z$1.coerce.number().int().min(1).max(100).optional().describe("Maximum number of updates to return in one delta poll");
 var defaultPaginationArgs = {
   page: 0,
   perPage: 10
@@ -36004,59 +36294,59 @@ function normalizeObservabilityListArgs(value, defaults) {
     limit: value.limit ?? defaults.limit ?? defaultDeltaLimit
   };
 }
-var deltaInfoSchema = z.object({
-  limit: z.number().describe("Maximum number of updates requested for this delta poll"),
-  hasMore: z.boolean().describe("True when more matching updates remain after this response")
+var deltaInfoSchema = z$1.object({
+  limit: z$1.number().describe("Maximum number of updates requested for this delta poll"),
+  hasMore: z$1.boolean().describe("True when more matching updates remain after this response")
 }).describe("Incremental polling metadata");
-var dateRangeSchema = z.object({
-  start: z.coerce.date().optional().describe("Start of date range (inclusive by default)"),
-  end: z.coerce.date().optional().describe("End of date range (inclusive by default)"),
-  startExclusive: z.boolean().optional().describe("When true, excludes the start date from results (uses > instead of >=)"),
-  endExclusive: z.boolean().optional().describe("When true, excludes the end date from results (uses < instead of <=)")
+var dateRangeSchema = z$1.object({
+  start: z$1.coerce.date().optional().describe("Start of date range (inclusive by default)"),
+  end: z$1.coerce.date().optional().describe("End of date range (inclusive by default)"),
+  startExclusive: z$1.boolean().optional().describe("When true, excludes the start date from results (uses > instead of >=)"),
+  endExclusive: z$1.boolean().optional().describe("When true, excludes the end date from results (uses < instead of <=)")
 }).describe("Date range filter for timestamps");
-var sortDirectionSchema = z.enum(["ASC", "DESC"]).describe("Sort direction: 'ASC' | 'DESC'");
-var aggregationTypeSchema = z.enum(["sum", "avg", "min", "max", "count", "count_distinct", "last"]).describe("Aggregation function");
-var aggregationIntervalSchema = z.enum(["1m", "5m", "15m", "1h", "1d"]).describe("Time bucket interval");
-var comparePeriodSchema = z.enum(["previous_period", "previous_day", "previous_week"]).describe("Comparison period for aggregate queries");
-var groupBySchema = z.array(z.string()).min(1).describe("Fields to group by");
-var percentilesSchema = z.array(z.number().min(0).max(1)).min(1).describe("Percentile values (0-1)");
+var sortDirectionSchema = z$1.enum(["ASC", "DESC"]).describe("Sort direction: 'ASC' | 'DESC'");
+var aggregationTypeSchema = z$1.enum(["sum", "avg", "min", "max", "count", "count_distinct", "last"]).describe("Aggregation function");
+var aggregationIntervalSchema = z$1.enum(["1m", "5m", "15m", "1h", "1d"]).describe("Time bucket interval");
+var comparePeriodSchema = z$1.enum(["previous_period", "previous_day", "previous_week"]).describe("Comparison period for aggregate queries");
+var groupBySchema = z$1.array(z$1.string()).min(1).describe("Fields to group by");
+var percentilesSchema = z$1.array(z$1.number().min(0).max(1)).min(1).describe("Percentile values (0-1)");
 var aggregateResponseFields = {
-  value: z.number().nullable().describe("Aggregated value"),
-  previousValue: z.number().nullable().optional().describe("Value from comparison period"),
-  changePercent: z.number().nullable().optional().describe("Percentage change from comparison period")
+  value: z$1.number().nullable().describe("Aggregated value"),
+  previousValue: z$1.number().nullable().optional().describe("Value from comparison period"),
+  changePercent: z$1.number().nullable().optional().describe("Percentage change from comparison period")
 };
-var dimensionsField = z.record(z.string(), z.string().nullable()).describe("Dimension values for this group");
-var aggregatedValueField = z.number().describe("Aggregated value");
-var bucketTimestampField = z.date().describe("Bucket timestamp");
-var percentileField = z.number().describe("Percentile value");
-var percentileBucketValueField = z.number().describe("Percentile value at this bucket");
-var entityTypeField = z.nativeEnum(EntityType).describe(`Entity type (e.g., 'agent' | 'processor' | 'tool' | 'workflow')`);
-var entityIdField = z.string().describe('ID of the entity (e.g., "weatherAgent", "orderWorkflow")');
-var entityNameField = z.string().describe("Name of the entity");
-var userIdField = z.string().describe("Human end-user who triggered execution");
-var organizationIdField = z.string().describe("Multi-tenant organization/account");
-var resourceIdField = z.string().describe("Broader resource context (Mastra memory compatibility)");
-var runIdField = z.string().describe("Unique execution run identifier");
-var sessionIdField = z.string().describe("Session identifier for grouping traces");
-var threadIdField = z.string().describe("Conversation thread identifier");
-var requestIdField = z.string().describe("HTTP request ID for log correlation");
-var environmentField = z.string().describe(`Environment (e.g., "production" | "staging" | "development")`);
-var sourceField = z.string().describe(`Source of execution (e.g., "local" | "cloud" | "ci")`);
-var executionSourceField = z.string().describe(`Source of execution (e.g., "local" | "cloud" | "ci")`);
-var serviceNameField = z.string().describe("Name of the service");
-var parentEntityTypeField = z.nativeEnum(EntityType).describe("Entity type of the parent entity");
-var parentEntityIdField = z.string().describe("ID of the parent entity");
-var parentEntityNameField = z.string().describe("Name of the parent entity");
-var rootEntityTypeField = z.nativeEnum(EntityType).describe("Entity type of the root entity");
-var rootEntityIdField = z.string().describe("ID of the root entity");
-var rootEntityNameField = z.string().describe("Name of the root entity");
-var entityVersionIdField = z.string().describe("Version ID of the entity that produced this signal (e.g., agent version, workflow version)");
-var parentEntityVersionIdField = z.string().describe("Version ID of the parent entity that produced this signal");
-var rootEntityVersionIdField = z.string().describe("Version ID of the root entity that produced this signal");
-var experimentIdField = z.string().describe("Experiment or eval run identifier");
-var scopeField = z.record(z.string(), z.unknown()).describe('Arbitrary package/app version info (e.g., {"core": "1.0.0", "memory": "1.0.0", "gitSha": "abcd1234"})');
-var metadataField = z.record(z.string(), z.unknown()).describe("User-defined metadata for custom filtering");
-var tagsField = z.array(z.string()).describe("Labels for filtering");
+var dimensionsField = z$1.record(z$1.string(), z$1.string().nullable()).describe("Dimension values for this group");
+var aggregatedValueField = z$1.number().describe("Aggregated value");
+var bucketTimestampField = z$1.date().describe("Bucket timestamp");
+var percentileField = z$1.number().describe("Percentile value");
+var percentileBucketValueField = z$1.number().describe("Percentile value at this bucket");
+var entityTypeField = z$1.nativeEnum(EntityType).describe(`Entity type (e.g., 'agent' | 'processor' | 'tool' | 'workflow')`);
+var entityIdField = z$1.string().describe('ID of the entity (e.g., "weatherAgent", "orderWorkflow")');
+var entityNameField = z$1.string().describe("Name of the entity");
+var userIdField = z$1.string().describe("Human end-user who triggered execution");
+var organizationIdField = z$1.string().describe("Multi-tenant organization/account");
+var resourceIdField = z$1.string().describe("Broader resource context (Mastra memory compatibility)");
+var runIdField = z$1.string().describe("Unique execution run identifier");
+var sessionIdField = z$1.string().describe("Session identifier for grouping traces");
+var threadIdField = z$1.string().describe("Conversation thread identifier");
+var requestIdField = z$1.string().describe("HTTP request ID for log correlation");
+var environmentField = z$1.string().describe(`Environment (e.g., "production" | "staging" | "development")`);
+var sourceField = z$1.string().describe(`Source of execution (e.g., "local" | "cloud" | "ci")`);
+var executionSourceField = z$1.string().describe(`Source of execution (e.g., "local" | "cloud" | "ci")`);
+var serviceNameField = z$1.string().describe("Name of the service");
+var parentEntityTypeField = z$1.nativeEnum(EntityType).describe("Entity type of the parent entity");
+var parentEntityIdField = z$1.string().describe("ID of the parent entity");
+var parentEntityNameField = z$1.string().describe("Name of the parent entity");
+var rootEntityTypeField = z$1.nativeEnum(EntityType).describe("Entity type of the root entity");
+var rootEntityIdField = z$1.string().describe("ID of the root entity");
+var rootEntityNameField = z$1.string().describe("Name of the root entity");
+var entityVersionIdField = z$1.string().describe("Version ID of the entity that produced this signal (e.g., agent version, workflow version)");
+var parentEntityVersionIdField = z$1.string().describe("Version ID of the parent entity that produced this signal");
+var rootEntityVersionIdField = z$1.string().describe("Version ID of the root entity that produced this signal");
+var experimentIdField = z$1.string().describe("Experiment or eval run identifier");
+var scopeField = z$1.record(z$1.string(), z$1.unknown()).describe('Arbitrary package/app version info (e.g., {"core": "1.0.0", "memory": "1.0.0", "gitSha": "abcd1234"})');
+var metadataField = z$1.record(z$1.string(), z$1.unknown()).describe("User-defined metadata for custom filtering");
+var tagsField = z$1.array(z$1.string()).describe("Labels for filtering");
 var contextFieldsBase = {
   // Entity identification
   entityType: entityTypeField.nullish(),
@@ -36100,8 +36390,8 @@ var contextFields = {
 });
 var commonFilterFields = {
   timestamp: dateRangeSchema.optional().describe("Filter by timestamp range"),
-  traceId: z.string().optional().describe("Filter by trace ID"),
-  spanId: z.string().optional().describe("Filter by span ID"),
+  traceId: z$1.string().optional().describe("Filter by trace ID"),
+  spanId: z$1.string().optional().describe("Filter by span ID"),
   entityType: entityTypeField.optional(),
   entityName: entityNameField.optional(),
   entityVersionId: entityVersionIdField.optional(),
@@ -36122,16 +36412,16 @@ var commonFilterFields = {
   threadId: threadIdField.optional(),
   requestId: requestIdField.optional(),
   executionSource: executionSourceField.optional(),
-  tags: z.array(z.string()).optional().describe("Filter by tags (must have all specified tags)")
+  tags: z$1.array(z$1.string()).optional().describe("Filter by tags (must have all specified tags)")
 };
-var traceIdField = z.string().describe("Unique trace identifier");
-var spanIdField = z.string().describe("Unique span identifier within a trace");
-var logLevelSchema = z.enum(["debug", "info", "warn", "error", "fatal"]);
-var messageField = z.string().describe("Log message");
-var logDataField = z.record(z.string(), z.unknown()).describe("Structured data attached to the log");
-var logRecordSchema = z.object({
-  logId: z.string().nullish().describe("Unique id for this log event"),
-  timestamp: z.date().describe("When the log was created"),
+var traceIdField = z$1.string().describe("Unique trace identifier");
+var spanIdField = z$1.string().describe("Unique span identifier within a trace");
+var logLevelSchema = z$1.enum(["debug", "info", "warn", "error", "fatal"]);
+var messageField = z$1.string().describe("Log message");
+var logDataField = z$1.record(z$1.string(), z$1.unknown()).describe("Structured data attached to the log");
+var logRecordSchema = z$1.object({
+  logId: z$1.string().nullish().describe("Unique id for this log event"),
+  timestamp: z$1.date().describe("When the log was created"),
   level: logLevelSchema.describe("Log severity level"),
   message: messageField,
   data: logDataField.nullish(),
@@ -36143,34 +36433,34 @@ var logRecordSchema = z.object({
   /**
    * @deprecated Use `executionSource` instead.
    */
-  source: z.string().nullish().describe("Execution source"),
+  source: z$1.string().nullish().describe("Execution source"),
   metadata: metadataField.nullish()
 }).describe("Log record as stored in the database");
-z.object({
+z$1.object({
   level: logLevelSchema,
   message: messageField,
   data: logDataField.optional(),
   tags: tagsField.optional()
 }).describe("User-provided log input");
 var createLogRecordSchema = logRecordSchema;
-z.object({
-  logs: z.array(createLogRecordSchema)
+z$1.object({
+  logs: z$1.array(createLogRecordSchema)
 }).describe("Arguments for batch creating logs");
-var logsFilterSchema = z.object({
+var logsFilterSchema = z$1.object({
   ...commonFilterFields,
   // Log-specific filters
   /**
    * @deprecated Use `executionSource` instead.
    */
-  source: z.string().optional().describe("Filter by execution source"),
-  level: z.union([logLevelSchema, z.array(logLevelSchema)]).optional().describe("Filter by log level(s)")
+  source: z$1.string().optional().describe("Filter by execution source"),
+  level: z$1.union([logLevelSchema, z$1.array(logLevelSchema)]).optional().describe("Filter by log level(s)")
 }).describe("Filters for querying logs");
-var logsOrderByFieldSchema = z.enum(["timestamp"]).describe("Field to order by: 'timestamp'");
-var logsOrderBySchema = z.object({
+var logsOrderByFieldSchema = z$1.enum(["timestamp"]).describe("Field to order by: 'timestamp'");
+var logsOrderBySchema = z$1.object({
   field: logsOrderByFieldSchema.default("timestamp").describe("Field to order by"),
   direction: sortDirectionSchema.default("DESC").describe("Sort direction")
 }).describe("Order by configuration");
-z.object({
+z$1.object({
   mode: listModeSchema.optional(),
   filters: logsFilterSchema.optional().describe("Optional filters to apply"),
   pagination: paginationArgsSchema2.optional(),
@@ -36182,21 +36472,21 @@ z.object({
     orderBy: { field: "timestamp", direction: "DESC" }
   })
 ).describe("Arguments for listing logs");
-var listLogsResponseSchema$1 = z.object({
+var listLogsResponseSchema$1 = z$1.object({
   pagination: paginationInfoSchema.optional(),
   delta: deltaInfoSchema.optional(),
   deltaCursor: deltaCursorSchema.optional(),
-  logs: z.array(logRecordSchema)
+  logs: z$1.array(logRecordSchema)
 }).describe("Response from listing logs");
-var scorerIdField = z.string().describe("Identifier of the scorer (e.g., relevance, accuracy)");
-var scorerNameField = z.string().describe("Display name of the scorer");
-var scorerVersionField = z.string().describe("Version of the scorer");
-var scoreSourceField = z.string().describe("How the score was produced (e.g., manual, automated, experiment)");
-var scoreValueField = z.number().describe("Score value (range defined by scorer)");
-var scoreReasonField = z.string().describe("Explanation for the score");
-var scoreRecordSchema = z.object({
-  scoreId: z.string().nullish().describe("Unique id for this score event"),
-  timestamp: z.date().describe("When the score was recorded"),
+var scorerIdField = z$1.string().describe("Identifier of the scorer (e.g., relevance, accuracy)");
+var scorerNameField = z$1.string().describe("Display name of the scorer");
+var scorerVersionField = z$1.string().describe("Version of the scorer");
+var scoreSourceField = z$1.string().describe("How the score was produced (e.g., manual, automated, experiment)");
+var scoreValueField = z$1.number().describe("Score value (range defined by scorer)");
+var scoreReasonField = z$1.string().describe("Explanation for the score");
+var scoreRecordSchema = z$1.object({
+  scoreId: z$1.string().nullish().describe("Unique id for this score event"),
+  timestamp: z$1.date().describe("When the score was recorded"),
   // Target
   traceId: traceIdField.nullish().describe("Trace that anchors the scored target when available"),
   spanId: spanIdField.nullish().describe("Span ID this score applies to"),
@@ -36214,11 +36504,11 @@ var scoreRecordSchema = z.object({
   // Context (entity hierarchy, identity, correlation, deployment, experimentation)
   ...contextFields,
   /** Trace ID of the scoring run (links to trace that generated this score) */
-  scoreTraceId: z.string().nullish().describe("Trace ID of the scoring run for debugging score generation"),
+  scoreTraceId: z$1.string().nullish().describe("Trace ID of the scoring run for debugging score generation"),
   // User-defined metadata (context fields stored here)
-  metadata: z.record(z.string(), z.unknown()).nullish().describe("User-defined metadata")
+  metadata: z$1.record(z$1.string(), z$1.unknown()).nullish().describe("User-defined metadata")
 }).describe("Score record as stored in the database");
-z.object({
+z$1.object({
   scorerId: scorerIdField,
   scorerName: scorerNameField.optional(),
   scorerVersion: scorerVersionField.optional(),
@@ -36229,38 +36519,38 @@ z.object({
   source: scoreSourceField.optional(),
   score: scoreValueField,
   reason: scoreReasonField.optional(),
-  metadata: z.record(z.string(), z.unknown()).optional().describe("Additional scorer-specific metadata"),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Additional scorer-specific metadata"),
   experimentId: experimentIdField.optional(),
-  scoreTraceId: z.string().optional().describe("Trace ID of the scoring run for debugging score generation"),
+  scoreTraceId: z$1.string().optional().describe("Trace ID of the scoring run for debugging score generation"),
   targetEntityType: entityTypeField.optional().describe("Entity type the scorer evaluated when known")
 }).describe("User-provided score input");
 var createScoreRecordSchema = scoreRecordSchema;
-z.object({
+z$1.object({
   score: createScoreRecordSchema
 }).describe("Arguments for creating a score");
-var createScoreBodySchema = z.object({
+var createScoreBodySchema = z$1.object({
   score: createScoreRecordSchema.omit({ timestamp: true })
 }).describe("Arguments for creating a score");
-var createScoreResponseSchema = z.object({ success: z.boolean() }).describe("Response from creating a score");
-z.object({
-  scores: z.array(createScoreRecordSchema)
+var createScoreResponseSchema = z$1.object({ success: z$1.boolean() }).describe("Response from creating a score");
+z$1.object({
+  scores: z$1.array(createScoreRecordSchema)
 }).describe("Arguments for batch recording scores");
-var scoresFilterSchema = z.object({
+var scoresFilterSchema = z$1.object({
   ...commonFilterFields,
   // Score-specific filters
-  scorerId: z.union([z.string(), z.array(z.string())]).optional().describe("Filter by scorer ID(s)"),
+  scorerId: z$1.union([z$1.string(), z$1.array(z$1.string())]).optional().describe("Filter by scorer ID(s)"),
   scoreSource: scoreSourceField.optional().describe("Filter by how the score was produced"),
   /**
    * @deprecated Use `scoreSource` instead.
    */
   source: scoreSourceField.optional().describe("Filter by how the score was produced")
 }).describe("Filters for querying scores");
-var scoresOrderByFieldSchema = z.enum(["timestamp", "score"]).describe("Field to order by: 'timestamp' | 'score'");
-var scoresOrderBySchema = z.object({
+var scoresOrderByFieldSchema = z$1.enum(["timestamp", "score"]).describe("Field to order by: 'timestamp' | 'score'");
+var scoresOrderBySchema = z$1.object({
   field: scoresOrderByFieldSchema.default("timestamp").describe("Field to order by"),
   direction: sortDirectionSchema.default("DESC").describe("Sort direction")
 }).describe("Order by configuration");
-z.object({
+z$1.object({
   mode: listModeSchema.optional(),
   filters: scoresFilterSchema.optional(),
   pagination: paginationArgsSchema2.optional(),
@@ -36272,36 +36562,36 @@ z.object({
     orderBy: { field: "timestamp", direction: "DESC" }
   })
 ).describe("Arguments for listing scores");
-var listScoresResponseSchema = z.object({
+var listScoresResponseSchema = z$1.object({
   pagination: paginationInfoSchema.optional(),
   delta: deltaInfoSchema.optional(),
   deltaCursor: deltaCursorSchema.optional(),
-  scores: z.array(scoreRecordSchema)
+  scores: z$1.array(scoreRecordSchema)
 }).describe("Response from listing scores");
-var getScoreAggregateArgsSchema = z.object({
+var getScoreAggregateArgsSchema = z$1.object({
   scorerId: scorerIdField,
   scoreSource: scoreSourceField.optional(),
   aggregation: aggregationTypeSchema,
   filters: scoresFilterSchema.optional(),
   comparePeriod: comparePeriodSchema.optional()
 }).describe("Arguments for getting a score aggregate");
-var getScoreAggregateResponseSchema = z.object(aggregateResponseFields);
-var getScoreBreakdownArgsSchema = z.object({
+var getScoreAggregateResponseSchema = z$1.object(aggregateResponseFields);
+var getScoreBreakdownArgsSchema = z$1.object({
   scorerId: scorerIdField,
   scoreSource: scoreSourceField.optional(),
   groupBy: groupBySchema,
   aggregation: aggregationTypeSchema,
   filters: scoresFilterSchema.optional()
 }).describe("Arguments for getting a score breakdown");
-var getScoreBreakdownResponseSchema = z.object({
-  groups: z.array(
-    z.object({
+var getScoreBreakdownResponseSchema = z$1.object({
+  groups: z$1.array(
+    z$1.object({
       dimensions: dimensionsField,
       value: aggregatedValueField
     })
   )
 });
-var getScoreTimeSeriesArgsSchema = z.object({
+var getScoreTimeSeriesArgsSchema = z$1.object({
   scorerId: scorerIdField,
   scoreSource: scoreSourceField.optional(),
   interval: aggregationIntervalSchema,
@@ -36309,12 +36599,12 @@ var getScoreTimeSeriesArgsSchema = z.object({
   filters: scoresFilterSchema.optional(),
   groupBy: groupBySchema.optional()
 }).describe("Arguments for getting score time series");
-var getScoreTimeSeriesResponseSchema = z.object({
-  series: z.array(
-    z.object({
-      name: z.string().describe("Series name (scorer ID or group key)"),
-      points: z.array(
-        z.object({
+var getScoreTimeSeriesResponseSchema = z$1.object({
+  series: z$1.array(
+    z$1.object({
+      name: z$1.string().describe("Series name (scorer ID or group key)"),
+      points: z$1.array(
+        z$1.object({
           timestamp: bucketTimestampField,
           value: aggregatedValueField
         })
@@ -36322,19 +36612,19 @@ var getScoreTimeSeriesResponseSchema = z.object({
     })
   )
 });
-var getScorePercentilesArgsSchema = z.object({
+var getScorePercentilesArgsSchema = z$1.object({
   scorerId: scorerIdField,
   scoreSource: scoreSourceField.optional(),
   percentiles: percentilesSchema,
   interval: aggregationIntervalSchema,
   filters: scoresFilterSchema.optional()
 }).describe("Arguments for getting score percentiles");
-var getScorePercentilesResponseSchema = z.object({
-  series: z.array(
-    z.object({
+var getScorePercentilesResponseSchema = z$1.object({
+  series: z$1.array(
+    z$1.object({
       percentile: percentileField,
-      points: z.array(
-        z.object({
+      points: z$1.array(
+        z$1.object({
           timestamp: bucketTimestampField,
           value: percentileBucketValueField
         })
@@ -36342,11 +36632,11 @@ var getScorePercentilesResponseSchema = z.object({
     })
   )
 });
-var feedbackSourceField = z.string().describe("Source of feedback (e.g., 'user', 'system', 'manual')");
-var feedbackTypeField = z.string().describe("Type of feedback (e.g., 'thumbs', 'rating', 'correction')");
-var feedbackValueField = z.union([z.number(), z.string()]).describe("Feedback value (rating number or correction text)");
-var feedbackCommentField = z.string().describe("Additional comment or context");
-var feedbackUserIdField = z.string().describe("User who provided the feedback");
+var feedbackSourceField = z$1.string().describe("Source of feedback (e.g., 'user', 'system', 'manual')");
+var feedbackTypeField = z$1.string().describe("Type of feedback (e.g., 'thumbs', 'rating', 'correction')");
+var feedbackValueField = z$1.union([z$1.number(), z$1.string()]).describe("Feedback value (rating number or correction text)");
+var feedbackCommentField = z$1.string().describe("Additional comment or context");
+var feedbackUserIdField = z$1.string().describe("User who provided the feedback");
 function normalizeLegacyFeedbackActor(input) {
   if (!input || typeof input !== "object" || Array.isArray(input)) {
     return input;
@@ -36358,9 +36648,9 @@ function normalizeLegacyFeedbackActor(input) {
   }
   return record;
 }
-var feedbackRecordObjectSchema = z.object({
-  feedbackId: z.string().nullish().describe("Unique id for this feedback event"),
-  timestamp: z.date().describe("When the feedback was recorded"),
+var feedbackRecordObjectSchema = z$1.object({
+  feedbackId: z$1.string().nullish().describe("Unique id for this feedback event"),
+  timestamp: z$1.date().describe("When the feedback was recorded"),
   // Target
   traceId: traceIdField.nullish().describe("Trace that anchors the feedback target when available"),
   spanId: spanIdField.nullish().describe("Span ID this feedback applies to"),
@@ -36378,12 +36668,12 @@ var feedbackRecordObjectSchema = z.object({
   // Context (entity hierarchy, identity, correlation, deployment, experimentation)
   ...contextFields,
   // Source linkage (e.g. dataset item result ID)
-  sourceId: z.string().nullish().describe("ID of the source record this feedback is linked to (e.g. experiment result ID)"),
+  sourceId: z$1.string().nullish().describe("ID of the source record this feedback is linked to (e.g. experiment result ID)"),
   // User-defined metadata (context fields stored here)
-  metadata: z.record(z.string(), z.unknown()).nullish().describe("User-defined metadata")
+  metadata: z$1.record(z$1.string(), z$1.unknown()).nullish().describe("User-defined metadata")
 });
-var feedbackRecordSchema = z.object(feedbackRecordObjectSchema.shape).describe("Feedback record as stored in the database");
-var feedbackInputObjectSchema = z.object({
+var feedbackRecordSchema = z$1.object(feedbackRecordObjectSchema.shape).describe("Feedback record as stored in the database");
+var feedbackInputObjectSchema = z$1.object({
   feedbackSource: feedbackSourceField.optional(),
   /**
    * @deprecated Use `feedbackSource` instead.
@@ -36397,25 +36687,25 @@ var feedbackInputObjectSchema = z.object({
    * @deprecated Use `feedbackUserId` instead.
    */
   userId: feedbackUserIdField.optional(),
-  metadata: z.record(z.string(), z.unknown()).optional().describe("Additional feedback-specific metadata"),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Additional feedback-specific metadata"),
   experimentId: experimentIdField.optional(),
-  sourceId: z.string().optional().describe("ID of the source record this feedback is linked to")
+  sourceId: z$1.string().optional().describe("ID of the source record this feedback is linked to")
 });
-z.object(feedbackInputObjectSchema.shape).describe("User-provided feedback input");
-z.object({
-  feedback: z.preprocess(normalizeLegacyFeedbackActor, feedbackRecordObjectSchema)
+z$1.object(feedbackInputObjectSchema.shape).describe("User-provided feedback input");
+z$1.object({
+  feedback: z$1.preprocess(normalizeLegacyFeedbackActor, feedbackRecordObjectSchema)
 }).describe("Arguments for creating feedback");
-var createFeedbackBodySchema = z.object({
+var createFeedbackBodySchema = z$1.object({
   feedback: feedbackRecordObjectSchema.omit({ timestamp: true })
 }).describe("Arguments for creating feedback");
-var createFeedbackResponseSchema = z.object({ success: z.boolean() }).describe("Response from creating feedback");
-z.object({
-  feedbacks: z.array(z.preprocess(normalizeLegacyFeedbackActor, feedbackRecordObjectSchema))
+var createFeedbackResponseSchema = z$1.object({ success: z$1.boolean() }).describe("Response from creating feedback");
+z$1.object({
+  feedbacks: z$1.array(z$1.preprocess(normalizeLegacyFeedbackActor, feedbackRecordObjectSchema))
 }).describe("Arguments for batch recording feedback");
-var feedbackFilterObjectSchema = z.object({
+var feedbackFilterObjectSchema = z$1.object({
   ...commonFilterFields,
   // Feedback-specific filters
-  feedbackType: z.union([z.string(), z.array(z.string())]).optional().describe("Filter by feedback type(s)"),
+  feedbackType: z$1.union([z$1.string(), z$1.array(z$1.string())]).optional().describe("Filter by feedback type(s)"),
   feedbackSource: feedbackSourceField.optional(),
   /**
    * @deprecated Use `feedbackSource` instead.
@@ -36423,15 +36713,15 @@ var feedbackFilterObjectSchema = z.object({
   source: feedbackSourceField.optional(),
   feedbackUserId: feedbackUserIdField.optional()
 });
-var feedbackFilterSchema = z.object(feedbackFilterObjectSchema.shape).describe("Filters for querying feedback");
-var feedbackOrderByFieldSchema = z.enum(["timestamp"]).describe("Field to order by: 'timestamp'");
-var feedbackOrderBySchema = z.object({
+var feedbackFilterSchema = z$1.object(feedbackFilterObjectSchema.shape).describe("Filters for querying feedback");
+var feedbackOrderByFieldSchema = z$1.enum(["timestamp"]).describe("Field to order by: 'timestamp'");
+var feedbackOrderBySchema = z$1.object({
   field: feedbackOrderByFieldSchema.default("timestamp").describe("Field to order by"),
   direction: sortDirectionSchema.default("DESC").describe("Sort direction")
 }).describe("Order by configuration");
-z.object({
+z$1.object({
   mode: listModeSchema.optional(),
-  filters: z.preprocess(normalizeLegacyFeedbackActor, feedbackFilterObjectSchema).optional(),
+  filters: z$1.preprocess(normalizeLegacyFeedbackActor, feedbackFilterObjectSchema).optional(),
   pagination: paginationArgsSchema2.optional(),
   orderBy: feedbackOrderBySchema.optional(),
   after: deltaCursorSchema.optional(),
@@ -36441,36 +36731,36 @@ z.object({
     orderBy: { field: "timestamp", direction: "DESC" }
   })
 ).describe("Arguments for listing feedback");
-var listFeedbackResponseSchema = z.object({
+var listFeedbackResponseSchema = z$1.object({
   pagination: paginationInfoSchema.optional(),
   delta: deltaInfoSchema.optional(),
   deltaCursor: deltaCursorSchema.optional(),
-  feedback: z.array(feedbackRecordSchema)
+  feedback: z$1.array(feedbackRecordSchema)
 }).describe("Response from listing feedback");
-var getFeedbackAggregateArgsSchema = z.object({
+var getFeedbackAggregateArgsSchema = z$1.object({
   feedbackType: feedbackTypeField,
   feedbackSource: feedbackSourceField.optional(),
   aggregation: aggregationTypeSchema,
   filters: feedbackFilterSchema.optional(),
   comparePeriod: comparePeriodSchema.optional()
 }).describe("Arguments for getting a feedback aggregate over numeric values");
-var getFeedbackAggregateResponseSchema = z.object(aggregateResponseFields);
-var getFeedbackBreakdownArgsSchema = z.object({
+var getFeedbackAggregateResponseSchema = z$1.object(aggregateResponseFields);
+var getFeedbackBreakdownArgsSchema = z$1.object({
   feedbackType: feedbackTypeField,
   feedbackSource: feedbackSourceField.optional(),
   groupBy: groupBySchema,
   aggregation: aggregationTypeSchema,
   filters: feedbackFilterSchema.optional()
 }).describe("Arguments for getting a feedback breakdown over numeric values");
-var getFeedbackBreakdownResponseSchema = z.object({
-  groups: z.array(
-    z.object({
+var getFeedbackBreakdownResponseSchema = z$1.object({
+  groups: z$1.array(
+    z$1.object({
       dimensions: dimensionsField,
       value: aggregatedValueField
     })
   )
 });
-var getFeedbackTimeSeriesArgsSchema = z.object({
+var getFeedbackTimeSeriesArgsSchema = z$1.object({
   feedbackType: feedbackTypeField,
   feedbackSource: feedbackSourceField.optional(),
   interval: aggregationIntervalSchema,
@@ -36478,12 +36768,12 @@ var getFeedbackTimeSeriesArgsSchema = z.object({
   filters: feedbackFilterSchema.optional(),
   groupBy: groupBySchema.optional()
 }).describe("Arguments for getting feedback time series over numeric values");
-var getFeedbackTimeSeriesResponseSchema = z.object({
-  series: z.array(
-    z.object({
-      name: z.string().describe("Series name (feedback type or group key)"),
-      points: z.array(
-        z.object({
+var getFeedbackTimeSeriesResponseSchema = z$1.object({
+  series: z$1.array(
+    z$1.object({
+      name: z$1.string().describe("Series name (feedback type or group key)"),
+      points: z$1.array(
+        z$1.object({
           timestamp: bucketTimestampField,
           value: aggregatedValueField
         })
@@ -36491,19 +36781,19 @@ var getFeedbackTimeSeriesResponseSchema = z.object({
     })
   )
 });
-var getFeedbackPercentilesArgsSchema = z.object({
+var getFeedbackPercentilesArgsSchema = z$1.object({
   feedbackType: feedbackTypeField,
   feedbackSource: feedbackSourceField.optional(),
   percentiles: percentilesSchema,
   interval: aggregationIntervalSchema,
   filters: feedbackFilterSchema.optional()
 }).describe("Arguments for getting feedback percentiles over numeric values");
-var getFeedbackPercentilesResponseSchema = z.object({
-  series: z.array(
-    z.object({
+var getFeedbackPercentilesResponseSchema = z$1.object({
+  series: z$1.array(
+    z$1.object({
       percentile: percentileField,
-      points: z.array(
-        z.object({
+      points: z$1.array(
+        z$1.object({
           timestamp: bucketTimestampField,
           value: percentileBucketValueField
         })
@@ -36511,18 +36801,18 @@ var getFeedbackPercentilesResponseSchema = z.object({
     })
   )
 });
-z.enum(["counter", "gauge", "histogram"]);
-var metricNameField = z.string().describe("Metric name (e.g., mastra_agent_duration_ms)");
-var metricValueField = z.number().describe("Metric value");
-var labelsField = z.record(z.string(), z.string()).describe("Metric labels for dimensional filtering");
-var providerField = z.string().describe("Model provider");
-var modelField = z.string().describe("Model");
-var estimatedCostField = z.number().describe("Estimated cost");
-var costUnitField = z.string().describe("Unit for the estimated cost (e.g., usd)");
-var costMetadField = z.record(z.string(), z.unknown()).nullish().describe("Structured costing metadata");
-var metricRecordSchema = z.object({
-  metricId: z.string().nullish().describe("Unique id for this metric event"),
-  timestamp: z.date().describe("When the metric was recorded"),
+z$1.enum(["counter", "gauge", "histogram"]);
+var metricNameField = z$1.string().describe("Metric name (e.g., mastra_agent_duration_ms)");
+var metricValueField = z$1.number().describe("Metric value");
+var labelsField = z$1.record(z$1.string(), z$1.string()).describe("Metric labels for dimensional filtering");
+var providerField = z$1.string().describe("Model provider");
+var modelField = z$1.string().describe("Model");
+var estimatedCostField = z$1.number().describe("Estimated cost");
+var costUnitField = z$1.string().describe("Unit for the estimated cost (e.g., usd)");
+var costMetadField = z$1.record(z$1.string(), z$1.unknown()).nullish().describe("Structured costing metadata");
+var metricRecordSchema = z$1.object({
+  metricId: z$1.string().nullish().describe("Unique id for this metric event"),
+  timestamp: z$1.date().describe("When the metric was recorded"),
   name: metricNameField,
   value: metricValueField,
   // Correlation
@@ -36533,7 +36823,7 @@ var metricRecordSchema = z.object({
   /**
    * @deprecated Use `executionSource` instead.
    */
-  source: z.string().nullish().describe("Execution source"),
+  source: z$1.string().nullish().describe("Execution source"),
   // Canonical costing fields
   provider: providerField.nullish(),
   model: modelField.nullish(),
@@ -36546,41 +36836,41 @@ var metricRecordSchema = z.object({
   // User-defined metadata
   metadata: metadataField.nullish()
 }).describe("Metric record as stored in the database");
-z.object({
+z$1.object({
   name: metricNameField,
   value: metricValueField,
   labels: labelsField.optional()
 }).describe("User-provided metric input");
 var createMetricRecordSchema = metricRecordSchema;
-z.object({
-  metrics: z.array(createMetricRecordSchema)
+z$1.object({
+  metrics: z$1.array(createMetricRecordSchema)
 }).describe("Arguments for batch recording metrics");
-z.object({
+z$1.object({
   type: aggregationTypeSchema,
   interval: aggregationIntervalSchema.optional(),
   groupBy: groupBySchema.optional()
 }).describe("Metrics aggregation configuration");
-var metricsFilterSchema = z.object({
+var metricsFilterSchema = z$1.object({
   ...commonFilterFields,
   // Metric identification
-  name: z.array(z.string()).nonempty().optional().describe("Filter by metric name(s)"),
+  name: z$1.array(z$1.string()).nonempty().optional().describe("Filter by metric name(s)"),
   /**
    * @deprecated Use `executionSource` instead.
    */
-  source: z.string().optional().describe("Filter by execution source"),
+  source: z$1.string().optional().describe("Filter by execution source"),
   // Canonical costing filters
   provider: providerField.optional(),
   model: modelField.optional(),
   costUnit: costUnitField.optional(),
   // Label filters (exact match on label values)
-  labels: z.record(z.string(), z.string()).optional().describe("Exact match on label key-value pairs")
+  labels: z$1.record(z$1.string(), z$1.string()).optional().describe("Exact match on label key-value pairs")
 }).describe("Filters for querying metrics");
-var metricsOrderByFieldSchema = z.enum(["timestamp"]).describe("Field to order by: 'timestamp'");
-var metricsOrderBySchema = z.object({
+var metricsOrderByFieldSchema = z$1.enum(["timestamp"]).describe("Field to order by: 'timestamp'");
+var metricsOrderBySchema = z$1.object({
   field: metricsOrderByFieldSchema.default("timestamp").describe("Field to order by"),
   direction: sortDirectionSchema.default("DESC").describe("Sort direction")
 }).describe("Order by configuration");
-z.object({
+z$1.object({
   mode: listModeSchema.optional(),
   filters: metricsFilterSchema.optional(),
   pagination: paginationArgsSchema2.optional(),
@@ -36592,11 +36882,11 @@ z.object({
     orderBy: { field: "timestamp", direction: "DESC" }
   })
 ).describe("Arguments for listing metrics");
-var listMetricsResponseSchema = z.object({
+var listMetricsResponseSchema = z$1.object({
   pagination: paginationInfoSchema.optional(),
   delta: deltaInfoSchema.optional(),
   deltaCursor: deltaCursorSchema.optional(),
-  metrics: z.array(metricRecordSchema)
+  metrics: z$1.array(metricRecordSchema)
 }).describe("Response from listing metrics");
 var METRIC_DISTINCT_COLUMNS = [
   "entityType",
@@ -36614,7 +36904,7 @@ var METRIC_DISTINCT_COLUMNS = [
   "threadId",
   "resourceId"
 ];
-var distinctColumnSchema = z.enum(METRIC_DISTINCT_COLUMNS).optional().describe(
+var distinctColumnSchema = z$1.enum(METRIC_DISTINCT_COLUMNS).optional().describe(
   "Column to apply count_distinct over (required when aggregation is 'count_distinct'). Restricted to allowlisted metric dimensions."
 );
 var requireDistinctColumnRefinement = {
@@ -36624,76 +36914,76 @@ var requireDistinctColumnRefinement = {
     path: ["distinctColumn"]
   }
 };
-var getMetricAggregateArgsSchema = z.object({
-  name: z.array(z.string()).nonempty().describe("Metric name(s) to aggregate"),
+var getMetricAggregateArgsSchema = z$1.object({
+  name: z$1.array(z$1.string()).nonempty().describe("Metric name(s) to aggregate"),
   aggregation: aggregationTypeSchema,
   distinctColumn: distinctColumnSchema,
   filters: metricsFilterSchema.optional(),
   comparePeriod: comparePeriodSchema.optional()
 }).refine(requireDistinctColumnRefinement.check, requireDistinctColumnRefinement.options).describe("Arguments for getting a metric aggregate");
-var getMetricAggregateResponseSchema = z.object({
+var getMetricAggregateResponseSchema = z$1.object({
   ...aggregateResponseFields,
-  estimatedCost: z.number().nullable().optional().describe("Aggregated estimated cost from the same filtered row set"),
-  costUnit: z.string().nullable().optional().describe("Shared cost unit for the aggregated rows, or null when mixed/unknown"),
-  previousEstimatedCost: z.number().nullable().optional().describe("Aggregated estimated cost from the comparison period"),
-  costChangePercent: z.number().nullable().optional().describe("Percentage change in estimated cost from comparison period")
+  estimatedCost: z$1.number().nullable().optional().describe("Aggregated estimated cost from the same filtered row set"),
+  costUnit: z$1.string().nullable().optional().describe("Shared cost unit for the aggregated rows, or null when mixed/unknown"),
+  previousEstimatedCost: z$1.number().nullable().optional().describe("Aggregated estimated cost from the comparison period"),
+  costChangePercent: z$1.number().nullable().optional().describe("Percentage change in estimated cost from comparison period")
 });
-var getMetricBreakdownArgsSchema = z.object({
-  name: z.array(z.string()).nonempty().describe("Metric name(s) to break down"),
+var getMetricBreakdownArgsSchema = z$1.object({
+  name: z$1.array(z$1.string()).nonempty().describe("Metric name(s) to break down"),
   groupBy: groupBySchema,
   aggregation: aggregationTypeSchema,
   distinctColumn: distinctColumnSchema,
   filters: metricsFilterSchema.optional(),
-  limit: z.number().int().positive().max(1e3).optional().describe("Maximum number of groups to return (server-side TopK). Required for high-cardinality groupBy."),
+  limit: z$1.number().int().positive().max(1e3).optional().describe("Maximum number of groups to return (server-side TopK). Required for high-cardinality groupBy."),
   orderDirection: sortDirectionSchema.optional().describe(
     "Sort direction for the aggregated value (defaults to 'DESC' at the storage layer; pairs with limit for top/bottom-N)."
   )
 }).refine(requireDistinctColumnRefinement.check, requireDistinctColumnRefinement.options).describe("Arguments for getting a metric breakdown");
-var getMetricBreakdownResponseSchema = z.object({
-  groups: z.array(
-    z.object({
+var getMetricBreakdownResponseSchema = z$1.object({
+  groups: z$1.array(
+    z$1.object({
       dimensions: dimensionsField,
       value: aggregatedValueField,
-      estimatedCost: z.number().nullable().optional().describe("Summed estimated cost for this group"),
-      costUnit: z.string().nullable().optional().describe("Shared cost unit for this group, or null when mixed/unknown")
+      estimatedCost: z$1.number().nullable().optional().describe("Summed estimated cost for this group"),
+      costUnit: z$1.string().nullable().optional().describe("Shared cost unit for this group, or null when mixed/unknown")
     })
   )
 });
-var getMetricTimeSeriesArgsSchema = z.object({
-  name: z.array(z.string()).nonempty().describe("Metric name(s)"),
+var getMetricTimeSeriesArgsSchema = z$1.object({
+  name: z$1.array(z$1.string()).nonempty().describe("Metric name(s)"),
   interval: aggregationIntervalSchema,
   aggregation: aggregationTypeSchema,
   distinctColumn: distinctColumnSchema,
   filters: metricsFilterSchema.optional(),
   groupBy: groupBySchema.optional()
 }).refine(requireDistinctColumnRefinement.check, requireDistinctColumnRefinement.options).describe("Arguments for getting metric time series");
-var getMetricTimeSeriesResponseSchema = z.object({
-  series: z.array(
-    z.object({
-      name: z.string().describe("Series name (metric name or group key)"),
-      costUnit: z.string().nullable().optional().describe("Shared cost unit for this series, or null when mixed/unknown"),
-      points: z.array(
-        z.object({
+var getMetricTimeSeriesResponseSchema = z$1.object({
+  series: z$1.array(
+    z$1.object({
+      name: z$1.string().describe("Series name (metric name or group key)"),
+      costUnit: z$1.string().nullable().optional().describe("Shared cost unit for this series, or null when mixed/unknown"),
+      points: z$1.array(
+        z$1.object({
           timestamp: bucketTimestampField,
           value: aggregatedValueField,
-          estimatedCost: z.number().nullable().optional().describe("Summed estimated cost in this bucket")
+          estimatedCost: z$1.number().nullable().optional().describe("Summed estimated cost in this bucket")
         })
       )
     })
   )
 });
-var getMetricPercentilesArgsSchema = z.object({
-  name: z.string().describe("Metric name"),
+var getMetricPercentilesArgsSchema = z$1.object({
+  name: z$1.string().describe("Metric name"),
   percentiles: percentilesSchema,
   interval: aggregationIntervalSchema,
   filters: metricsFilterSchema.optional()
 }).describe("Arguments for getting metric percentiles");
-var getMetricPercentilesResponseSchema = z.object({
-  series: z.array(
-    z.object({
+var getMetricPercentilesResponseSchema = z$1.object({
+  series: z$1.array(
+    z$1.object({
       percentile: percentileField,
-      points: z.array(
-        z.object({
+      points: z$1.array(
+        z$1.object({
           timestamp: bucketTimestampField,
           value: percentileBucketValueField
         })
@@ -36701,51 +36991,51 @@ var getMetricPercentilesResponseSchema = z.object({
     })
   )
 });
-var getMetricNamesArgsSchema = z.object({
-  prefix: z.string().optional().describe("Filter metric names by prefix"),
-  limit: z.coerce.number().int().min(1).optional().describe("Maximum number of names to return")
+var getMetricNamesArgsSchema = z$1.object({
+  prefix: z$1.string().optional().describe("Filter metric names by prefix"),
+  limit: z$1.coerce.number().int().min(1).optional().describe("Maximum number of names to return")
 }).describe("Arguments for getting metric names");
-var getMetricNamesResponseSchema = z.object({
-  names: z.array(z.string()).describe("Distinct metric names")
+var getMetricNamesResponseSchema = z$1.object({
+  names: z$1.array(z$1.string()).describe("Distinct metric names")
 });
-var getMetricLabelKeysArgsSchema = z.object({
-  metricName: z.string().describe("Metric name to get label keys for")
+var getMetricLabelKeysArgsSchema = z$1.object({
+  metricName: z$1.string().describe("Metric name to get label keys for")
 }).describe("Arguments for getting metric label keys");
-var getMetricLabelKeysResponseSchema = z.object({
-  keys: z.array(z.string()).describe("Distinct label keys for the metric")
+var getMetricLabelKeysResponseSchema = z$1.object({
+  keys: z$1.array(z$1.string()).describe("Distinct label keys for the metric")
 });
-var getMetricLabelValuesArgsSchema = z.object({
-  metricName: z.string().describe("Metric name"),
-  labelKey: z.string().describe("Label key to get values for"),
-  prefix: z.string().optional().describe("Filter values by prefix"),
-  limit: z.coerce.number().int().min(1).optional().describe("Maximum number of values to return")
+var getMetricLabelValuesArgsSchema = z$1.object({
+  metricName: z$1.string().describe("Metric name"),
+  labelKey: z$1.string().describe("Label key to get values for"),
+  prefix: z$1.string().optional().describe("Filter values by prefix"),
+  limit: z$1.coerce.number().int().min(1).optional().describe("Maximum number of values to return")
 }).describe("Arguments for getting label values");
-var getMetricLabelValuesResponseSchema = z.object({
-  values: z.array(z.string()).describe("Distinct label values")
+var getMetricLabelValuesResponseSchema = z$1.object({
+  values: z$1.array(z$1.string()).describe("Distinct label values")
 });
-z.object({}).describe("Arguments for getting entity types");
-var getEntityTypesResponseSchema = z.object({
-  entityTypes: z.array(entityTypeField).describe("Distinct entity types")
+z$1.object({}).describe("Arguments for getting entity types");
+var getEntityTypesResponseSchema = z$1.object({
+  entityTypes: z$1.array(entityTypeField).describe("Distinct entity types")
 });
-var getEntityNamesArgsSchema = z.object({
+var getEntityNamesArgsSchema = z$1.object({
   entityType: entityTypeField.optional().describe("Optional entity type filter")
 }).describe("Arguments for getting entity names");
-var getEntityNamesResponseSchema = z.object({
-  names: z.array(z.string()).describe("Distinct entity names")
+var getEntityNamesResponseSchema = z$1.object({
+  names: z$1.array(z$1.string()).describe("Distinct entity names")
 });
-z.object({}).describe("Arguments for getting service names");
-var getServiceNamesResponseSchema = z.object({
-  serviceNames: z.array(z.string()).describe("Distinct service names")
+z$1.object({}).describe("Arguments for getting service names");
+var getServiceNamesResponseSchema = z$1.object({
+  serviceNames: z$1.array(z$1.string()).describe("Distinct service names")
 });
-z.object({}).describe("Arguments for getting environments");
-var getEnvironmentsResponseSchema = z.object({
-  environments: z.array(z.string()).describe("Distinct environments")
+z$1.object({}).describe("Arguments for getting environments");
+var getEnvironmentsResponseSchema = z$1.object({
+  environments: z$1.array(z$1.string()).describe("Distinct environments")
 });
-var getTagsArgsSchema = z.object({
+var getTagsArgsSchema = z$1.object({
   entityType: entityTypeField.optional().describe("Optional entity type filter")
 }).describe("Arguments for getting tags");
-var getTagsResponseSchema = z.object({
-  tags: z.array(z.string()).describe("Distinct tags")
+var getTagsResponseSchema = z$1.object({
+  tags: z$1.array(z$1.string()).describe("Distinct tags")
 });
 function createNewRoute(def, config) {
   const { handler, ...schemas } = config;
@@ -36825,8 +37115,8 @@ var CREATE_SCORE = createNewRoute(NEW_ROUTE_DEFS.CREATE_SCORE, {
   }
 });
 var GET_SCORE = createNewRoute(NEW_ROUTE_DEFS.GET_SCORE, {
-  pathParamSchema: z.object({ scoreId: z.string() }),
-  responseSchema: z.object({ score: scoreRecordSchema.nullable() }),
+  pathParamSchema: z$1.object({ scoreId: z$1.string() }),
+  responseSchema: z$1.object({ score: scoreRecordSchema.nullable() }),
   handler: async ({ mastra, scoreId }) => {
     const observabilityStore = await getObservabilityStore(mastra);
     const score = await observabilityStore.getScoreById(scoreId);
@@ -37101,13 +37391,13 @@ var NEW_ROUTES = {
 
 // src/server/handlers/observability-storage-schemas.ts
 var ns = coreStorage;
-var fallbackEmptyObject = z.object({});
-var fallbackBranchArgs = z.object({
-  traceId: z.unknown(),
-  spanId: z.unknown(),
-  depth: z.unknown()
+var fallbackEmptyObject = z$1.object({});
+var fallbackBranchArgs = z$1.object({
+  traceId: z$1.unknown(),
+  spanId: z$1.unknown(),
+  depth: z$1.unknown()
 });
-var fallbackSchema = z.unknown();
+var fallbackSchema = z$1.unknown();
 var branchesFilterSchema = ns.branchesFilterSchema ?? fallbackEmptyObject;
 var branchesOrderBySchema = ns.branchesOrderBySchema ?? fallbackEmptyObject;
 var getBranchArgsSchema = ns.getBranchArgsSchema ?? fallbackBranchArgs;
@@ -37157,13 +37447,13 @@ __export(observability_exports, {
   NEW_ROUTES: () => NEW_ROUTES,
   SCORE_TRACES_ROUTE: () => SCORE_TRACES_ROUTE
 });
-var legacyQueryParamsSchema = z.object({
+var legacyQueryParamsSchema = z$1.object({
   // Old: dateRange was in pagination, now it's startedAt in filters
   dateRange: dateRangeSchema$1.optional(),
   // Old: name matched span names like "agent run: 'myAgent'"
-  name: z.string().optional(),
+  name: z$1.string().optional(),
   // entityType needs preprocessing to handle legacy 'workflow' value
-  entityType: z.preprocess((val) => val === "workflow" ? "workflow_run" : val, z.string().optional())
+  entityType: z$1.preprocess((val) => val === "workflow" ? "workflow_run" : val, z$1.string().optional())
 });
 function transformLegacyParams(params) {
   const result = { ...params };
@@ -37206,7 +37496,7 @@ var LIST_TRACES_ROUTE = createRoute$1({
   queryParamSchema: createObservabilityListQuerySchema(
     tracesFilterSchema.extend({
       ...legacyQueryParamsSchema.shape,
-      entityType: z.preprocess(
+      entityType: z$1.preprocess(
         (value) => value === "workflow" ? "workflow_run" : value,
         tracesFilterSchema.shape.entityType
       )
@@ -37396,11 +37686,11 @@ var GET_TRACE_TRAJECTORY_ROUTE = createRoute$1({
   path: "/observability/traces/:traceId/trajectory",
   responseType: "json",
   pathParamSchema: getTraceArgsSchema,
-  responseSchema: z.object({
-    steps: z.array(z.unknown()),
-    totalDurationMs: z.number().optional(),
-    rawOutput: z.unknown().optional(),
-    rawWorkflowResult: z.unknown().optional()
+  responseSchema: z$1.object({
+    steps: z$1.array(z$1.unknown()),
+    totalDurationMs: z$1.number().optional(),
+    rawOutput: z$1.unknown().optional(),
+    rawWorkflowResult: z$1.unknown().optional()
   }),
   summary: "Extract trajectory from trace",
   description: "Extracts a structured trajectory (ordered steps) from a trace by analyzing its spans",
@@ -37657,21 +37947,21 @@ var DELETE_CONVERSATION_ROUTE = createRoute$1({
 });
 
 var listLogsQuerySchema = createPagePaginationSchema().extend({
-  fromDate: z.coerce.date().optional(),
-  toDate: z.coerce.date().optional(),
-  logLevel: z.enum(["debug", "info", "warn", "error", "silent"]).optional(),
-  filters: z.union([z.string(), z.array(z.string())]).optional(),
-  transportId: z.string()
+  fromDate: z$1.coerce.date().optional(),
+  toDate: z$1.coerce.date().optional(),
+  logLevel: z$1.enum(["debug", "info", "warn", "error", "silent"]).optional(),
+  filters: z$1.union([z$1.string(), z$1.array(z$1.string())]).optional(),
+  transportId: z$1.string()
 });
-var listLogsResponseSchema = z.object({
-  logs: z.array(baseLogMessageSchema),
-  total: z.number(),
-  page: z.number(),
-  perPage: z.union([z.number(), z.literal(false)]),
-  hasMore: z.boolean()
+var listLogsResponseSchema = z$1.object({
+  logs: z$1.array(baseLogMessageSchema),
+  total: z$1.number(),
+  page: z$1.number(),
+  perPage: z$1.union([z$1.number(), z$1.literal(false)]),
+  hasMore: z$1.boolean()
 });
-var listLogTransportsResponseSchema = z.object({
-  transports: z.array(z.string())
+var listLogTransportsResponseSchema = z$1.object({
+  transports: z$1.array(z$1.string())
 });
 
 // src/server/handlers/logs.ts
@@ -37764,7 +38054,7 @@ var LIST_LOGS_BY_RUN_ID_ROUTE = createRoute$1({
   }
 });
 
-var workflowRunStatusSchema = z.enum([
+var workflowRunStatusSchema = z$1.enum([
   "running",
   "waiting",
   "suspended",
@@ -37776,99 +38066,99 @@ var workflowRunStatusSchema = z.enum([
   "tripwire",
   "paused"
 ]);
-var workflowIdPathParams = z.object({
-  workflowId: z.string().describe("Unique identifier for the workflow")
+var workflowIdPathParams = z$1.object({
+  workflowId: z$1.string().describe("Unique identifier for the workflow")
 });
 var workflowRunPathParams = workflowIdPathParams.extend({
-  runId: z.string().describe("Unique identifier for the workflow run")
+  runId: z$1.string().describe("Unique identifier for the workflow run")
 });
-var serializedStepSchema = z.object({
-  id: z.string(),
-  description: z.string().optional(),
-  stateSchema: z.string().optional(),
-  inputSchema: z.string().optional(),
-  outputSchema: z.string().optional(),
-  resumeSchema: z.string().optional(),
-  suspendSchema: z.string().optional(),
-  component: z.string().optional(),
-  isWorkflow: z.boolean().optional(),
-  metadata: z.record(z.string(), z.unknown()).optional()
+var serializedStepSchema = z$1.object({
+  id: z$1.string(),
+  description: z$1.string().optional(),
+  stateSchema: z$1.string().optional(),
+  inputSchema: z$1.string().optional(),
+  outputSchema: z$1.string().optional(),
+  resumeSchema: z$1.string().optional(),
+  suspendSchema: z$1.string().optional(),
+  component: z$1.string().optional(),
+  isWorkflow: z$1.boolean().optional(),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional()
 });
-var serializedStepFlowEntrySchema = z.object({
-  type: z.enum(["step", "sleep", "sleepUntil", "waitForEvent", "parallel", "conditional", "loop", "foreach"])
+var serializedStepFlowEntrySchema = z$1.object({
+  type: z$1.enum(["step", "sleep", "sleepUntil", "waitForEvent", "parallel", "conditional", "loop", "foreach"])
 });
-var workflowInfoSchema = z.object({
-  steps: z.record(z.string(), serializedStepSchema),
-  allSteps: z.record(z.string(), serializedStepSchema),
-  name: z.string().optional(),
-  description: z.string().optional(),
-  metadata: z.record(z.string(), z.unknown()).optional(),
-  stepGraph: z.array(serializedStepFlowEntrySchema),
-  inputSchema: z.string().optional(),
-  outputSchema: z.string().optional(),
-  stateSchema: z.string().optional(),
-  options: z.object({}).optional(),
-  isProcessorWorkflow: z.boolean().optional()
+var workflowInfoSchema = z$1.object({
+  steps: z$1.record(z$1.string(), serializedStepSchema),
+  allSteps: z$1.record(z$1.string(), serializedStepSchema),
+  name: z$1.string().optional(),
+  description: z$1.string().optional(),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional(),
+  stepGraph: z$1.array(serializedStepFlowEntrySchema),
+  inputSchema: z$1.string().optional(),
+  outputSchema: z$1.string().optional(),
+  stateSchema: z$1.string().optional(),
+  options: z$1.object({}).optional(),
+  isProcessorWorkflow: z$1.boolean().optional()
 });
-var listWorkflowsResponseSchema = z.record(z.string(), workflowInfoSchema);
-var workflowRunSchema = z.object({
-  workflowName: z.string(),
-  runId: z.string(),
-  snapshot: z.union([z.record(z.string(), z.any()), z.string()]),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-  resourceId: z.string().optional()
+var listWorkflowsResponseSchema = z$1.record(z$1.string(), workflowInfoSchema);
+var workflowRunSchema = z$1.object({
+  workflowName: z$1.string(),
+  runId: z$1.string(),
+  snapshot: z$1.union([z$1.record(z$1.string(), z$1.any()), z$1.string()]),
+  createdAt: z$1.date(),
+  updatedAt: z$1.date(),
+  resourceId: z$1.string().optional()
 });
-var workflowRunsResponseSchema = z.object({
-  runs: z.array(workflowRunSchema),
-  total: z.number()
+var workflowRunsResponseSchema = z$1.object({
+  runs: z$1.array(workflowRunSchema),
+  total: z$1.number()
 });
 var listWorkflowRunsQuerySchema = createCombinedPaginationSchema().extend({
-  fromDate: z.coerce.date().optional(),
-  toDate: z.coerce.date().optional(),
-  resourceId: z.string().optional(),
+  fromDate: z$1.coerce.date().optional(),
+  toDate: z$1.coerce.date().optional(),
+  resourceId: z$1.string().optional(),
   status: workflowRunStatusSchema.optional()
 });
-var workflowExecutionBodySchema = z.object({
-  resourceId: z.string().optional(),
-  inputData: z.unknown().optional(),
-  initialState: z.unknown().optional(),
-  requestContext: z.record(z.string(), z.unknown()).optional(),
+var workflowExecutionBodySchema = z$1.object({
+  resourceId: z$1.string().optional(),
+  inputData: z$1.unknown().optional(),
+  initialState: z$1.unknown().optional(),
+  requestContext: z$1.record(z$1.string(), z$1.unknown()).optional(),
   tracingOptions: tracingOptionsSchema.optional(),
-  perStep: z.boolean().optional()
+  perStep: z$1.boolean().optional()
 });
 var streamLegacyWorkflowBodySchema = workflowExecutionBodySchema;
 var streamWorkflowBodySchema = workflowExecutionBodySchema.extend({
-  closeOnSuspend: z.boolean().optional()
+  closeOnSuspend: z$1.boolean().optional()
 });
-var resumeBodySchema = z.object({
-  step: z.union([z.string(), z.array(z.string())]).optional(),
+var resumeBodySchema = z$1.object({
+  step: z$1.union([z$1.string(), z$1.array(z$1.string())]).optional(),
   // Optional - workflow can auto-resume all suspended steps
-  resumeData: z.unknown().optional(),
-  requestContext: z.record(z.string(), z.unknown()).optional(),
+  resumeData: z$1.unknown().optional(),
+  requestContext: z$1.record(z$1.string(), z$1.unknown()).optional(),
   tracingOptions: tracingOptionsSchema.optional(),
-  perStep: z.boolean().optional(),
-  forEachIndex: z.number().int().nonnegative().optional()
+  perStep: z$1.boolean().optional(),
+  forEachIndex: z$1.number().int().nonnegative().optional()
 });
-var restartBodySchema = z.object({
-  requestContext: z.record(z.string(), z.unknown()).optional(),
+var restartBodySchema = z$1.object({
+  requestContext: z$1.record(z$1.string(), z$1.unknown()).optional(),
   tracingOptions: tracingOptionsSchema.optional()
 });
-var timeTravelBodySchema = z.object({
-  inputData: z.unknown().optional(),
-  resumeData: z.unknown().optional(),
-  initialState: z.unknown().optional(),
-  step: z.union([z.string(), z.array(z.string())]),
-  context: z.record(z.string(), z.any()).optional(),
-  nestedStepsContext: z.record(z.string(), z.record(z.string(), z.any())).optional(),
-  requestContext: z.record(z.string(), z.unknown()).optional(),
+var timeTravelBodySchema = z$1.object({
+  inputData: z$1.unknown().optional(),
+  resumeData: z$1.unknown().optional(),
+  initialState: z$1.unknown().optional(),
+  step: z$1.union([z$1.string(), z$1.array(z$1.string())]),
+  context: z$1.record(z$1.string(), z$1.any()).optional(),
+  nestedStepsContext: z$1.record(z$1.string(), z$1.record(z$1.string(), z$1.any())).optional(),
+  requestContext: z$1.record(z$1.string(), z$1.unknown()).optional(),
   tracingOptions: tracingOptionsSchema.optional(),
-  perStep: z.boolean().optional()
+  perStep: z$1.boolean().optional()
 });
 var startAsyncWorkflowBodySchema = workflowExecutionBodySchema;
-z.object({
-  event: z.string(),
-  data: z.unknown()
+z$1.object({
+  event: z$1.string(),
+  data: z$1.unknown()
 });
 var VALID_WORKFLOW_RESULT_FIELDS = /* @__PURE__ */ new Set([
   "result",
@@ -37879,7 +38169,7 @@ var VALID_WORKFLOW_RESULT_FIELDS = /* @__PURE__ */ new Set([
   "serializedStepGraph"
 ]);
 var WORKFLOW_RESULT_FIELDS_ERROR = "Invalid field name. Available fields: result, error, payload, steps, activeStepsPath, serializedStepGraph";
-var createFieldsValidator = (description) => z.string().optional().refine(
+var createFieldsValidator = (description) => z$1.string().optional().refine(
   (value) => {
     if (!value) return true;
     const requestedFields = value.split(",").map((f) => f.trim());
@@ -37887,52 +38177,52 @@ var createFieldsValidator = (description) => z.string().optional().refine(
   },
   { message: WORKFLOW_RESULT_FIELDS_ERROR }
 ).describe(description);
-var withNestedWorkflowsField = z.enum(["true", "false"]).optional().describe("Whether to include nested workflow data in steps. Defaults to true. Set to false for better performance.");
-var workflowExecutionResultSchema = z.object({
+var withNestedWorkflowsField = z$1.enum(["true", "false"]).optional().describe("Whether to include nested workflow data in steps. Defaults to true. Set to false for better performance.");
+var workflowExecutionResultSchema = z$1.object({
   status: workflowRunStatusSchema.optional(),
-  result: z.unknown().optional(),
-  error: z.unknown().optional(),
-  payload: z.unknown().optional(),
-  initialState: z.unknown().optional(),
-  steps: z.record(z.string(), z.any()).optional(),
-  activeStepsPath: z.record(z.string(), z.array(z.number())).optional(),
-  serializedStepGraph: z.array(serializedStepFlowEntrySchema).optional()
+  result: z$1.unknown().optional(),
+  error: z$1.unknown().optional(),
+  payload: z$1.unknown().optional(),
+  initialState: z$1.unknown().optional(),
+  steps: z$1.record(z$1.string(), z$1.any()).optional(),
+  activeStepsPath: z$1.record(z$1.string(), z$1.array(z$1.number())).optional(),
+  serializedStepGraph: z$1.array(serializedStepFlowEntrySchema).optional()
 });
-var workflowRunResultQuerySchema = z.object({
+var workflowRunResultQuerySchema = z$1.object({
   fields: createFieldsValidator(
     "Comma-separated list of fields to return. Available fields: result, error, payload, steps, activeStepsPath, serializedStepGraph. Metadata fields (runId, workflowName, resourceId, createdAt, updatedAt) and status are always included."
   ),
   withNestedWorkflows: withNestedWorkflowsField
 });
-var workflowRunResultSchema = z.object({
+var workflowRunResultSchema = z$1.object({
   // Metadata - always present
-  runId: z.string(),
-  workflowName: z.string(),
-  resourceId: z.string().optional(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
+  runId: z$1.string(),
+  workflowName: z$1.string(),
+  resourceId: z$1.string().optional(),
+  createdAt: z$1.date(),
+  updatedAt: z$1.date(),
   // Execution state
   status: workflowRunStatusSchema,
-  initialState: z.record(z.string(), z.any()).optional(),
-  result: z.unknown().optional(),
-  error: z.unknown().optional(),
-  payload: z.unknown().optional(),
-  steps: z.record(z.string(), z.any()).optional(),
+  initialState: z$1.record(z$1.string(), z$1.any()).optional(),
+  result: z$1.unknown().optional(),
+  error: z$1.unknown().optional(),
+  payload: z$1.unknown().optional(),
+  steps: z$1.record(z$1.string(), z$1.any()).optional(),
   // Optional detailed fields
-  activeStepsPath: z.record(z.string(), z.array(z.number())).optional(),
-  serializedStepGraph: z.array(serializedStepFlowEntrySchema).optional()
+  activeStepsPath: z$1.record(z$1.string(), z$1.array(z$1.number())).optional(),
+  serializedStepGraph: z$1.array(serializedStepFlowEntrySchema).optional()
 });
 var workflowControlResponseSchema = messageResponseSchema;
-var createWorkflowRunResponseSchema = z.object({
-  runId: z.string()
+var createWorkflowRunResponseSchema = z$1.object({
+  runId: z$1.string()
 });
-var createWorkflowRunBodySchema = z.object({
-  resourceId: z.string().optional(),
-  disableScorers: z.boolean().optional()
+var createWorkflowRunBodySchema = z$1.object({
+  resourceId: z$1.string().optional(),
+  disableScorers: z$1.boolean().optional()
 });
-var observeWorkflowQuerySchema = z.object({
-  runId: z.string().describe("Unique identifier for the run"),
-  offset: z.coerce.number().optional().describe("Resume from this event index (0-based). If omitted, replays all events.")
+var observeWorkflowQuerySchema = z$1.object({
+  runId: z$1.string().describe("Unique identifier for the run"),
+  offset: z$1.coerce.number().optional().describe("Resume from this event index (0-based). If omitted, replays all events.")
 });
 
 // src/server/handlers/workflows.ts
@@ -38005,8 +38295,8 @@ var LIST_WORKFLOWS_ROUTE = createRoute$1({
   method: "GET",
   path: "/workflows",
   responseType: "json",
-  queryParamSchema: z.object({
-    partial: z.string().optional()
+  queryParamSchema: z$1.object({
+    partial: z$1.string().optional()
   }),
   responseSchema: listWorkflowsResponseSchema,
   summary: "List all workflows",
@@ -38934,19 +39224,19 @@ var OBSERVE_STREAM_LEGACY_WORKFLOW_ROUTE = createRoute$1({
     }
   }
 });
-var stepExecutionBodySchema = z.object({
-  stepId: z.string(),
-  executionPath: z.array(z.number().int().nonnegative()),
-  stepResults: z.record(z.string(), z.any()),
-  state: z.record(z.string(), z.any()),
-  requestContext: z.record(z.string(), z.any()),
-  input: z.any().optional(),
-  resumeData: z.any().optional(),
-  retryCount: z.number().int().nonnegative().optional(),
-  foreachIdx: z.number().int().nonnegative().optional(),
-  format: z.enum(["legacy", "vnext"]).optional(),
-  perStep: z.boolean().optional(),
-  validateInputs: z.boolean().optional()
+var stepExecutionBodySchema = z$1.object({
+  stepId: z$1.string(),
+  executionPath: z$1.array(z$1.number().int().nonnegative()),
+  stepResults: z$1.record(z$1.string(), z$1.any()),
+  state: z$1.record(z$1.string(), z$1.any()),
+  requestContext: z$1.record(z$1.string(), z$1.any()),
+  input: z$1.any().optional(),
+  resumeData: z$1.any().optional(),
+  retryCount: z$1.number().int().nonnegative().optional(),
+  foreachIdx: z$1.number().int().nonnegative().optional(),
+  format: z$1.enum(["legacy", "vnext"]).optional(),
+  perStep: z$1.boolean().optional(),
+  validateInputs: z$1.boolean().optional()
 });
 var strategyByMastra = /* @__PURE__ */ new WeakMap();
 async function getStepStrategy(mastra) {
@@ -38958,7 +39248,7 @@ async function getStepStrategy(mastra) {
   }
   return cached;
 }
-var stepExecutionResponseSchema = z.any();
+var stepExecutionResponseSchema = z$1.any();
 var EXECUTE_WORKFLOW_STEP_ROUTE = createRoute$1({
   method: "POST",
   path: "/workflows/:workflowId/runs/:runId/steps/execute",
@@ -38995,21 +39285,21 @@ var EXECUTE_WORKFLOW_STEP_ROUTE = createRoute$1({
     }
   })
 });
-var workflowEventSchema = z.object({
-  id: z.string(),
-  type: z.string(),
-  data: z.unknown(),
-  runId: z.string(),
-  createdAt: z.string(),
-  index: z.number().optional(),
-  deliveryAttempt: z.number().optional()
+var workflowEventSchema = z$1.object({
+  id: z$1.string(),
+  type: z$1.string(),
+  data: z$1.unknown(),
+  runId: z$1.string(),
+  createdAt: z$1.string(),
+  index: z$1.number().optional(),
+  deliveryAttempt: z$1.number().optional()
 });
-var receiveWorkflowEventBodySchema = z.object({
+var receiveWorkflowEventBodySchema = z$1.object({
   event: workflowEventSchema.passthrough()
 });
-var receiveWorkflowEventResponseSchema = z.object({
-  ok: z.boolean(),
-  retry: z.boolean().optional()
+var receiveWorkflowEventResponseSchema = z$1.object({
+  ok: z$1.boolean(),
+  retry: z$1.boolean().optional()
 });
 var RECEIVE_WORKFLOW_EVENT_ROUTE = createRoute$1({
   method: "POST",
@@ -39039,12 +39329,12 @@ var RECEIVE_WORKFLOW_EVENT_ROUTE = createRoute$1({
   })
 });
 
-var actionIdPathParams = z.object({
-  actionId: z.string().describe("Unique identifier for the agent-builder action")
+var actionIdPathParams = z$1.object({
+  actionId: z$1.string().describe("Unique identifier for the agent-builder action")
 });
-var actionRunPathParams = z.object({
-  actionId: z.string().describe("Unique identifier for the agent-builder action"),
-  runId: z.string().describe("Unique identifier for the action run")
+var actionRunPathParams = z$1.object({
+  actionId: z$1.string().describe("Unique identifier for the agent-builder action"),
+  runId: z$1.string().describe("Unique identifier for the action run")
 });
 var streamAgentBuilderBodySchema = streamWorkflowBodySchema;
 var streamLegacyAgentBuilderBodySchema = streamLegacyWorkflowBodySchema;
@@ -39972,91 +40262,91 @@ var checkRules = async (rules, path, method, user) => {
 };
 
 // src/server/schemas/auth.ts
-var ssoConfigSchema = z.object({
-  provider: z.string(),
-  text: z.string(),
-  icon: z.string().optional(),
-  description: z.string().optional(),
-  url: z.string()
+var ssoConfigSchema = z$1.object({
+  provider: z$1.string(),
+  text: z$1.string(),
+  icon: z$1.string().optional(),
+  description: z$1.string().optional(),
+  url: z$1.string()
 });
-var loginConfigSchema = z.object({
-  type: z.enum(["sso", "credentials", "both"]),
+var loginConfigSchema = z$1.object({
+  type: z$1.enum(["sso", "credentials", "both"]),
   sso: ssoConfigSchema.optional(),
-  signUpEnabled: z.boolean().optional(),
-  description: z.string().optional()
+  signUpEnabled: z$1.boolean().optional(),
+  description: z$1.string().optional()
 }).nullable();
-var publicCapabilitiesSchema = z.object({
-  enabled: z.boolean(),
+var publicCapabilitiesSchema = z$1.object({
+  enabled: z$1.boolean(),
   login: loginConfigSchema
 });
-var authenticatedUserSchema = z.object({
-  id: z.string(),
-  email: z.string().optional(),
-  name: z.string().optional(),
-  avatarUrl: z.string().optional()
+var authenticatedUserSchema = z$1.object({
+  id: z$1.string(),
+  email: z$1.string().optional(),
+  name: z$1.string().optional(),
+  avatarUrl: z$1.string().optional()
 });
-var capabilityFlagsSchema = z.object({
-  user: z.boolean(),
-  session: z.boolean(),
-  sso: z.boolean(),
-  rbac: z.boolean(),
-  acl: z.boolean()
+var capabilityFlagsSchema = z$1.object({
+  user: z$1.boolean(),
+  session: z$1.boolean(),
+  sso: z$1.boolean(),
+  rbac: z$1.boolean(),
+  acl: z$1.boolean()
 });
-var userAccessSchema = z.object({
-  roles: z.array(z.string()),
-  permissions: z.array(z.string())
+var userAccessSchema = z$1.object({
+  roles: z$1.array(z$1.string()),
+  permissions: z$1.array(z$1.string())
 }).nullable();
 var authenticatedCapabilitiesSchema = publicCapabilitiesSchema.extend({
   user: authenticatedUserSchema,
   capabilities: capabilityFlagsSchema,
   access: userAccessSchema
 });
-var capabilitiesResponseSchema = z.union([authenticatedCapabilitiesSchema, publicCapabilitiesSchema]);
-var ssoLoginQuerySchema = z.object({
-  redirect_uri: z.string().optional()
+var capabilitiesResponseSchema = z$1.union([authenticatedCapabilitiesSchema, publicCapabilitiesSchema]);
+var ssoLoginQuerySchema = z$1.object({
+  redirect_uri: z$1.string().optional()
 });
-var ssoCallbackQuerySchema = z.object({
-  code: z.string(),
-  state: z.string().optional()
+var ssoCallbackQuerySchema = z$1.object({
+  code: z$1.string(),
+  state: z$1.string().optional()
 });
-z.object({
-  url: z.string()
+z$1.object({
+  url: z$1.string()
 });
-z.object({
-  success: z.boolean(),
+z$1.object({
+  success: z$1.boolean(),
   user: authenticatedUserSchema.optional(),
-  redirectTo: z.string().optional()
+  redirectTo: z$1.string().optional()
 });
-z.object({
-  success: z.boolean(),
-  redirectTo: z.string().optional()
+z$1.object({
+  success: z$1.boolean(),
+  redirectTo: z$1.string().optional()
 });
-var refreshResponseSchema = z.object({
-  success: z.boolean()
+var refreshResponseSchema = z$1.object({
+  success: z$1.boolean()
 });
-var currentUserResponseSchema = z.object({
-  id: z.string(),
-  email: z.string().optional(),
-  name: z.string().optional(),
-  avatarUrl: z.string().optional(),
-  roles: z.array(z.string()).optional(),
-  permissions: z.array(z.string()).optional()
+var currentUserResponseSchema = z$1.object({
+  id: z$1.string(),
+  email: z$1.string().optional(),
+  name: z$1.string().optional(),
+  avatarUrl: z$1.string().optional(),
+  roles: z$1.array(z$1.string()).optional(),
+  permissions: z$1.array(z$1.string()).optional()
 }).nullable();
-var credentialsSignInBodySchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1)
+var credentialsSignInBodySchema = z$1.object({
+  email: z$1.string().email(),
+  password: z$1.string().min(1)
 });
-var credentialsSignUpBodySchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
-  name: z.string().optional()
+var credentialsSignUpBodySchema = z$1.object({
+  email: z$1.string().email(),
+  password: z$1.string().min(1),
+  name: z$1.string().optional()
 });
-z.object({
+z$1.object({
   user: authenticatedUserSchema,
-  token: z.string().optional()
+  token: z$1.string().optional()
 });
-var permissionPatternsResponseSchema = z.object({
-  patterns: z.array(z.string())
+var permissionPatternsResponseSchema = z$1.object({
+  patterns: z$1.array(z$1.string())
 });
 
 var _buildCapabilitiesPromise;
@@ -40548,8 +40838,8 @@ var POST_CREDENTIALS_SIGN_UP_ROUTE = createPublicRoute({
     }
   }
 });
-var rolePermissionsPathSchema = z.object({ roleId: z.string() });
-var rolePermissionsResponseSchema = z.object({ roleId: z.string(), permissions: z.array(z.string()) });
+var rolePermissionsPathSchema = z$1.object({ roleId: z$1.string() });
+var rolePermissionsResponseSchema = z$1.object({ roleId: z$1.string(), permissions: z$1.array(z$1.string()) });
 var GET_ROLE_PERMISSIONS_ROUTE = createRoute$1({
   method: "GET",
   path: "/auth/roles/:roleId/permissions",
@@ -40608,193 +40898,193 @@ var AUTH_ROUTES = [
 ];
 
 // src/server/schemas/a2a.ts
-var a2aAgentIdPathParams = z.object({
-  agentId: z.string().describe("Unique identifier for the agent")
+var a2aAgentIdPathParams = z$1.object({
+  agentId: z$1.string().describe("Unique identifier for the agent")
 });
 a2aAgentIdPathParams.extend({
-  taskId: z.string().describe("Unique identifier for the task")
+  taskId: z$1.string().describe("Unique identifier for the task")
 });
-var pushNotificationAuthenticationInfoSchema = z.object({
-  schemes: z.array(z.string()).describe("Supported authentication schemes - e.g. Basic, Bearer"),
-  credentials: z.string().optional().describe("Optional credentials")
+var pushNotificationAuthenticationInfoSchema = z$1.object({
+  schemes: z$1.array(z$1.string()).describe("Supported authentication schemes - e.g. Basic, Bearer"),
+  credentials: z$1.string().optional().describe("Optional credentials")
 });
-var pushNotificationConfigSchema = z.object({
-  url: z.string().describe("URL for sending the push notifications"),
-  id: z.string().optional().describe("Push Notification ID - created by server to support multiple callbacks"),
-  token: z.string().optional().describe("Token unique to this task/session"),
+var pushNotificationConfigSchema = z$1.object({
+  url: z$1.string().describe("URL for sending the push notifications"),
+  id: z$1.string().optional().describe("Push Notification ID - created by server to support multiple callbacks"),
+  token: z$1.string().optional().describe("Token unique to this task/session"),
   authentication: pushNotificationAuthenticationInfoSchema.optional()
 });
-var messageSendConfigurationSchema = z.object({
-  acceptedOutputModes: z.array(z.string()).optional().describe("Accepted output modalities by the client"),
-  blocking: z.boolean().optional().describe("If the server should treat the client as a blocking request"),
-  historyLength: z.number().optional().describe("Number of recent messages to be retrieved"),
+var messageSendConfigurationSchema = z$1.object({
+  acceptedOutputModes: z$1.array(z$1.string()).optional().describe("Accepted output modalities by the client"),
+  blocking: z$1.boolean().optional().describe("If the server should treat the client as a blocking request"),
+  historyLength: z$1.number().optional().describe("Number of recent messages to be retrieved"),
   pushNotificationConfig: pushNotificationConfigSchema.optional()
 });
-var textPartSchema = z.object({
-  kind: z.literal("text").describe("Part type - text for TextParts"),
-  text: z.string().describe("Text content"),
-  metadata: z.record(z.string(), z.unknown()).optional().describe("Optional metadata associated with the part")
+var textPartSchema = z$1.object({
+  kind: z$1.literal("text").describe("Part type - text for TextParts"),
+  text: z$1.string().describe("Text content"),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Optional metadata associated with the part")
 });
-var fileWithBytesSchema = z.object({
-  bytes: z.string().describe("base64 encoded content of the file"),
-  mimeType: z.string().optional().describe("Optional mimeType for the file"),
-  name: z.string().optional().describe("Optional name for the file")
+var fileWithBytesSchema = z$1.object({
+  bytes: z$1.string().describe("base64 encoded content of the file"),
+  mimeType: z$1.string().optional().describe("Optional mimeType for the file"),
+  name: z$1.string().optional().describe("Optional name for the file")
 });
-var fileWithUriSchema = z.object({
-  uri: z.string().describe("URL for the File content"),
-  mimeType: z.string().optional().describe("Optional mimeType for the file"),
-  name: z.string().optional().describe("Optional name for the file")
+var fileWithUriSchema = z$1.object({
+  uri: z$1.string().describe("URL for the File content"),
+  mimeType: z$1.string().optional().describe("Optional mimeType for the file"),
+  name: z$1.string().optional().describe("Optional name for the file")
 });
-var filePartSchema = z.object({
-  kind: z.literal("file").describe("Part type - file for FileParts"),
-  file: z.union([fileWithBytesSchema, fileWithUriSchema]).describe("File content either as url or bytes"),
-  metadata: z.record(z.string(), z.unknown()).optional().describe("Optional metadata associated with the part")
+var filePartSchema = z$1.object({
+  kind: z$1.literal("file").describe("Part type - file for FileParts"),
+  file: z$1.union([fileWithBytesSchema, fileWithUriSchema]).describe("File content either as url or bytes"),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Optional metadata associated with the part")
 });
-var dataPartSchema = z.object({
-  kind: z.literal("data").describe("Part type - data for DataParts"),
-  data: z.record(z.string(), z.unknown()).describe("Structured data content"),
-  metadata: z.record(z.string(), z.unknown()).optional().describe("Optional metadata associated with the part")
+var dataPartSchema = z$1.object({
+  kind: z$1.literal("data").describe("Part type - data for DataParts"),
+  data: z$1.record(z$1.string(), z$1.unknown()).describe("Structured data content"),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Optional metadata associated with the part")
 });
-var partSchema = z.union([textPartSchema, filePartSchema, dataPartSchema]);
-var messageSchema = z.object({
-  kind: z.literal("message").describe("Event type"),
-  messageId: z.string().describe("Identifier created by the message creator"),
-  role: z.enum(["user", "agent"]).describe("Message sender's role"),
-  parts: z.array(partSchema).describe("Message content"),
-  contextId: z.string().optional().describe("The context the message is associated with"),
-  taskId: z.string().optional().describe("Identifier of task the message is related to"),
-  referenceTaskIds: z.array(z.string()).optional().describe("List of tasks referenced as context by this message"),
-  extensions: z.array(z.string()).optional().describe("The URIs of extensions that are present or contributed to this Message"),
-  metadata: z.record(z.string(), z.unknown()).optional().describe("Extension metadata")
+var partSchema = z$1.union([textPartSchema, filePartSchema, dataPartSchema]);
+var messageSchema = z$1.object({
+  kind: z$1.literal("message").describe("Event type"),
+  messageId: z$1.string().describe("Identifier created by the message creator"),
+  role: z$1.enum(["user", "agent"]).describe("Message sender's role"),
+  parts: z$1.array(partSchema).describe("Message content"),
+  contextId: z$1.string().optional().describe("The context the message is associated with"),
+  taskId: z$1.string().optional().describe("Identifier of task the message is related to"),
+  referenceTaskIds: z$1.array(z$1.string()).optional().describe("List of tasks referenced as context by this message"),
+  extensions: z$1.array(z$1.string()).optional().describe("The URIs of extensions that are present or contributed to this Message"),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Extension metadata")
 });
-var messageSendParamsSchema$1 = z.object({
+var messageSendParamsSchema$1 = z$1.object({
   message: messageSchema,
   configuration: messageSendConfigurationSchema.optional(),
-  metadata: z.record(z.string(), z.unknown()).optional().describe("Extension metadata")
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional().describe("Extension metadata")
 });
-var taskQueryParamsSchema = z.object({
-  id: z.string().describe("Task id"),
-  historyLength: z.number().optional().describe("Number of recent messages to be retrieved"),
-  metadata: z.record(z.string(), z.unknown()).optional()
+var taskQueryParamsSchema = z$1.object({
+  id: z$1.string().describe("Task id"),
+  historyLength: z$1.number().optional().describe("Number of recent messages to be retrieved"),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional()
 });
-var taskIdParamsSchema = z.object({
-  id: z.string().describe("Task id"),
-  metadata: z.record(z.string(), z.unknown()).optional()
+var taskIdParamsSchema = z$1.object({
+  id: z$1.string().describe("Task id"),
+  metadata: z$1.record(z$1.string(), z$1.unknown()).optional()
 });
 var taskResubscribeParamsSchema = taskIdParamsSchema;
-var setPushNotificationConfigParamsSchema = z.object({
-  taskId: z.string().describe("Task id"),
+var setPushNotificationConfigParamsSchema = z$1.object({
+  taskId: z$1.string().describe("Task id"),
   pushNotificationConfig: pushNotificationConfigSchema
 });
 var getPushNotificationConfigParamsSchema = taskIdParamsSchema.extend({
-  pushNotificationConfigId: z.string().optional().describe("Push notification config id")
+  pushNotificationConfigId: z$1.string().optional().describe("Push notification config id")
 });
 var listPushNotificationConfigParamsSchema = taskIdParamsSchema;
 var deletePushNotificationConfigParamsSchema = taskIdParamsSchema.extend({
-  pushNotificationConfigId: z.string().describe("Push notification config id")
+  pushNotificationConfigId: z$1.string().describe("Push notification config id")
 });
-z.object({
+z$1.object({
   message: messageSchema,
-  metadata: z.record(z.string(), z.any()).optional()
+  metadata: z$1.record(z$1.string(), z$1.any()).optional()
 });
-z.object({
-  id: z.string()
+z$1.object({
+  id: z$1.string()
 });
 var requestBaseSchema = {
-  jsonrpc: z.literal("2.0"),
-  id: z.union([z.string(), z.number()])
+  jsonrpc: z$1.literal("2.0"),
+  id: z$1.union([z$1.string(), z$1.number()])
 };
-var agentExecutionBodySchema = z.discriminatedUnion("method", [
-  z.object({
+var agentExecutionBodySchema = z$1.discriminatedUnion("method", [
+  z$1.object({
     ...requestBaseSchema,
-    method: z.literal("message/send"),
+    method: z$1.literal("message/send"),
     params: messageSendParamsSchema$1
   }),
-  z.object({
+  z$1.object({
     ...requestBaseSchema,
-    method: z.literal("message/stream"),
+    method: z$1.literal("message/stream"),
     params: messageSendParamsSchema$1
   }),
-  z.object({
+  z$1.object({
     ...requestBaseSchema,
-    method: z.literal("tasks/get"),
+    method: z$1.literal("tasks/get"),
     params: taskQueryParamsSchema
   }),
-  z.object({
+  z$1.object({
     ...requestBaseSchema,
-    method: z.literal("tasks/cancel"),
+    method: z$1.literal("tasks/cancel"),
     params: taskIdParamsSchema
   }),
-  z.object({
+  z$1.object({
     ...requestBaseSchema,
-    method: z.literal("tasks/resubscribe"),
+    method: z$1.literal("tasks/resubscribe"),
     params: taskResubscribeParamsSchema
   }),
-  z.object({
+  z$1.object({
     ...requestBaseSchema,
-    method: z.literal("tasks/pushNotificationConfig/set"),
+    method: z$1.literal("tasks/pushNotificationConfig/set"),
     params: setPushNotificationConfigParamsSchema
   }),
-  z.object({
+  z$1.object({
     ...requestBaseSchema,
-    method: z.literal("tasks/pushNotificationConfig/get"),
+    method: z$1.literal("tasks/pushNotificationConfig/get"),
     params: getPushNotificationConfigParamsSchema
   }),
-  z.object({
+  z$1.object({
     ...requestBaseSchema,
-    method: z.literal("tasks/pushNotificationConfig/list"),
+    method: z$1.literal("tasks/pushNotificationConfig/list"),
     params: listPushNotificationConfigParamsSchema
   }),
-  z.object({
+  z$1.object({
     ...requestBaseSchema,
-    method: z.literal("tasks/pushNotificationConfig/delete"),
+    method: z$1.literal("tasks/pushNotificationConfig/delete"),
     params: deletePushNotificationConfigParamsSchema
   }),
-  z.object({
+  z$1.object({
     ...requestBaseSchema,
-    method: z.literal("agent/getAuthenticatedExtendedCard")
+    method: z$1.literal("agent/getAuthenticatedExtendedCard")
   })
 ]);
-var agentCardResponseSchema = z.object({
-  additionalInterfaces: z.array(z.unknown()).optional(),
-  name: z.string(),
-  description: z.string(),
-  url: z.string(),
-  protocolVersion: z.string(),
-  provider: z.object({
-    organization: z.string(),
-    url: z.string()
+var agentCardResponseSchema = z$1.object({
+  additionalInterfaces: z$1.array(z$1.unknown()).optional(),
+  name: z$1.string(),
+  description: z$1.string(),
+  url: z$1.string(),
+  protocolVersion: z$1.string(),
+  provider: z$1.object({
+    organization: z$1.string(),
+    url: z$1.string()
   }).optional(),
-  security: z.array(z.record(z.string(), z.array(z.string()))).optional(),
-  securitySchemes: z.record(z.string(), z.unknown()).optional(),
-  version: z.string(),
-  capabilities: z.object({
-    extensions: z.array(z.unknown()).optional(),
-    streaming: z.boolean().optional(),
-    pushNotifications: z.boolean().optional(),
-    stateTransitionHistory: z.boolean().optional()
+  security: z$1.array(z$1.record(z$1.string(), z$1.array(z$1.string()))).optional(),
+  securitySchemes: z$1.record(z$1.string(), z$1.unknown()).optional(),
+  version: z$1.string(),
+  capabilities: z$1.object({
+    extensions: z$1.array(z$1.unknown()).optional(),
+    streaming: z$1.boolean().optional(),
+    pushNotifications: z$1.boolean().optional(),
+    stateTransitionHistory: z$1.boolean().optional()
   }),
-  defaultInputModes: z.array(z.string()),
-  defaultOutputModes: z.array(z.string()),
-  supportsAuthenticatedExtendedCard: z.boolean().optional(),
-  signatures: z.array(
-    z.object({
-      protected: z.string(),
-      signature: z.string(),
-      header: z.record(z.string(), z.unknown()).optional()
+  defaultInputModes: z$1.array(z$1.string()),
+  defaultOutputModes: z$1.array(z$1.string()),
+  supportsAuthenticatedExtendedCard: z$1.boolean().optional(),
+  signatures: z$1.array(
+    z$1.object({
+      protected: z$1.string(),
+      signature: z$1.string(),
+      header: z$1.record(z$1.string(), z$1.unknown()).optional()
     })
   ).optional(),
-  skills: z.array(
-    z.object({
-      id: z.string(),
-      name: z.string(),
-      description: z.string(),
-      tags: z.array(z.string()).optional()
+  skills: z$1.array(
+    z$1.object({
+      id: z$1.string(),
+      name: z$1.string(),
+      description: z$1.string(),
+      tags: z$1.array(z$1.string()).optional()
     })
   )
 });
-z.unknown();
-var agentExecutionResponseSchema = z.unknown();
+z$1.unknown();
+var agentExecutionResponseSchema = z$1.unknown();
 
 // ../../../../../setup-pnpm/node_modules/.bin/store/v11/links/@/canonicalize/1.0.8/8d710dcf19a48d178b2fc853e16c59951fde29eb27b6037da6c3f4dbb968b03d/node_modules/canonicalize/lib/canonicalize.js
 var require_canonicalize = __commonJS({
@@ -41322,57 +41612,57 @@ function createTaskContext({
 }
 
 // src/server/handlers/a2a.ts
-var messagePartSchema = z.discriminatedUnion("kind", [
-  z.object({
-    kind: z.literal("text"),
-    text: z.string(),
-    metadata: z.record(z.string(), z.any()).optional()
+var messagePartSchema = z$1.discriminatedUnion("kind", [
+  z$1.object({
+    kind: z$1.literal("text"),
+    text: z$1.string(),
+    metadata: z$1.record(z$1.string(), z$1.any()).optional()
   }),
-  z.object({
-    kind: z.literal("file"),
-    file: z.union([
-      z.object({
-        bytes: z.string(),
-        mimeType: z.string().optional(),
-        name: z.string().optional()
+  z$1.object({
+    kind: z$1.literal("file"),
+    file: z$1.union([
+      z$1.object({
+        bytes: z$1.string(),
+        mimeType: z$1.string().optional(),
+        name: z$1.string().optional()
       }),
-      z.object({
-        uri: z.string(),
-        mimeType: z.string().optional(),
-        name: z.string().optional()
+      z$1.object({
+        uri: z$1.string(),
+        mimeType: z$1.string().optional(),
+        name: z$1.string().optional()
       })
     ]),
-    metadata: z.record(z.string(), z.any()).optional()
+    metadata: z$1.record(z$1.string(), z$1.any()).optional()
   }),
-  z.object({
-    kind: z.literal("data"),
-    data: z.record(z.string(), z.any()),
-    metadata: z.record(z.string(), z.any()).optional()
+  z$1.object({
+    kind: z$1.literal("data"),
+    data: z$1.record(z$1.string(), z$1.any()),
+    metadata: z$1.record(z$1.string(), z$1.any()).optional()
   })
 ]);
-var messageSendParamsSchema = z.object({
-  message: z.object({
-    role: z.enum(["user", "agent"]),
-    parts: z.array(messagePartSchema),
-    kind: z.literal("message"),
-    messageId: z.string(),
-    contextId: z.string().optional(),
-    taskId: z.string().optional(),
-    referenceTaskIds: z.array(z.string()).optional(),
-    extensions: z.array(z.string()).optional(),
-    metadata: z.record(z.string(), z.any()).optional()
+var messageSendParamsSchema = z$1.object({
+  message: z$1.object({
+    role: z$1.enum(["user", "agent"]),
+    parts: z$1.array(messagePartSchema),
+    kind: z$1.literal("message"),
+    messageId: z$1.string(),
+    contextId: z$1.string().optional(),
+    taskId: z$1.string().optional(),
+    referenceTaskIds: z$1.array(z$1.string()).optional(),
+    extensions: z$1.array(z$1.string()).optional(),
+    metadata: z$1.record(z$1.string(), z$1.any()).optional()
   }),
-  configuration: z.object({
-    acceptedOutputModes: z.array(z.string()).optional(),
-    blocking: z.boolean().optional(),
-    historyLength: z.number().optional(),
-    pushNotificationConfig: z.object({
-      url: z.string(),
-      id: z.string().optional(),
-      token: z.string().optional(),
-      authentication: z.object({
-        schemes: z.array(z.string()),
-        credentials: z.string().optional()
+  configuration: z$1.object({
+    acceptedOutputModes: z$1.array(z$1.string()).optional(),
+    blocking: z$1.boolean().optional(),
+    historyLength: z$1.number().optional(),
+    pushNotificationConfig: z$1.object({
+      url: z$1.string(),
+      id: z$1.string().optional(),
+      token: z$1.string().optional(),
+      authentication: z$1.object({
+        schemes: z$1.array(z$1.string()),
+        credentials: z$1.string().optional()
       }).optional()
     }).optional()
   }).optional()
@@ -41452,7 +41742,7 @@ function validateMessageSendParams(params) {
   try {
     messageSendParamsSchema.parse(params);
   } catch (error) {
-    if (error instanceof z.ZodError) {
+    if (error instanceof z$1.ZodError) {
       throw MastraA2AError.invalidParams(error.issues[0].message);
     }
     throw error;
@@ -45412,7 +45702,7 @@ function unwrapOptionalNullable(schema) {
   return inner;
 }
 function parseComplexQueryParams(queryParamSchema, params) {
-  if (!(queryParamSchema instanceof z.ZodObject)) {
+  if (!(queryParamSchema instanceof z$1.ZodObject)) {
     return params;
   }
   const parsedParams = { ...params };

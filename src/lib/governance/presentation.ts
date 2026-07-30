@@ -11,6 +11,7 @@ import {
   verdictFromPrimary,
   type GateVerdict,
 } from "@/lib/release-gate-brief";
+import { isOpsQueueRecommendationTitle } from "@/lib/agent-analysis/ops-queue";
 import type { getOrganizationContext } from "@/lib/org-data";
 import { ENTERPRISE_WORKFLOW_STEPS } from "@/lib/enterprise-workflow";
 
@@ -104,7 +105,12 @@ export function buildApprovalsHeroSummary(ctx: Ctx): {
   headline: string;
   subcopy: string;
 } {
-  const pending = ctx.approvals.filter((a) => !a.decision);
+  // Leadership gate only — ops-queue ([cloud:], [qa-board:], …) belongs on Recommendations.
+  const pending = ctx.approvals.filter((a) => {
+    if (a.decision) return false;
+    const title = a.title ?? a.recommendation?.title ?? "";
+    return !isOpsQueueRecommendationTitle(title);
+  });
   if (pending.length === 0) {
     return {
       headline: "No leadership actions right now",

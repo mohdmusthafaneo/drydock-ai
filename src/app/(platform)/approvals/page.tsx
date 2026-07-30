@@ -3,6 +3,7 @@ import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 import { getSession } from "@/lib/session";
 import { getOrganizationContext } from "@/lib/org-data";
+import { isOpsQueueRecommendationTitle } from "@/lib/agent-analysis/ops-queue";
 import {
   buildApprovalsHeroSummary,
   sortPendingApprovals,
@@ -29,6 +30,13 @@ function formatDecidedAt(date: Date | null | undefined): string | null {
   });
 }
 
+function isOpsApproval(approval: {
+  title: string | null;
+  recommendation: { title: string } | null;
+}): boolean {
+  return isOpsQueueRecommendationTitle(approvalTitle(approval));
+}
+
 export default async function ApprovalsPage() {
   const session = await getSession();
   if (!session) redirect("/login");
@@ -36,7 +44,9 @@ export default async function ApprovalsPage() {
   const ctx = await getOrganizationContext(session.organizationId);
   if (!ctx.dna) redirect("/governance/setup");
 
-  const pending = sortPendingApprovals(ctx.approvals.filter((a) => !a.decision));
+  const undecided = ctx.approvals.filter((a) => !a.decision);
+  const pending = sortPendingApprovals(undecided.filter((a) => !isOpsApproval(a)));
+  const opsPending = sortPendingApprovals(undecided.filter(isOpsApproval));
   const decided = ctx.approvals.filter((a) => a.decision);
   const hero = buildApprovalsHeroSummary(ctx);
 
@@ -60,7 +70,10 @@ export default async function ApprovalsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Pending approvals</CardTitle>
-          <CardDescription>{pending.length} awaiting decision</CardDescription>
+          <CardDescription>
+            {pending.length} leadership item{pending.length === 1 ? "" : "s"} awaiting
+            decision
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {pending.length === 0 ? (
@@ -72,6 +85,9 @@ export default async function ApprovalsPage() {
                 </p>
                 <p className="mt-1 text-[14px] leading-relaxed text-ash">
                   Releases can proceed without your sign-off.
+                  {opsPending.length > 0
+                    ? " Engineering ops items are tracked under Recommendations."
+                    : ""}
                 </p>
               </div>
             </div>
@@ -111,6 +127,41 @@ export default async function ApprovalsPage() {
           )}
         </CardContent>
       </Card>
+
+      {opsPending.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Engineering ops queue</CardTitle>
+            <CardDescription>
+              {opsPending.length} cloud / board-health item
+              {opsPending.length === 1 ? "" : "s"} — routed to eng leads via{" "}
+              <Link href="/recommendations" className="underline-offset-4 hover:underline">
+                Recommendations
+              </Link>
+              , not leadership release gates. Prefer resolving there; these will clear on
+              the next agent sync.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {opsPending.slice(0, 8).map((approval) => (
+              <div
+                key={approval.id}
+                className="rounded-xl border border-border-subtle bg-elevated px-4 py-3 text-sm"
+              >
+                <p className="font-medium text-primary">{approvalTitle(approval)}</p>
+                <p className="mt-1 text-xs text-muted">
+                  Ops queue · see Recommendations for action
+                </p>
+              </div>
+            ))}
+            {opsPending.length > 8 ? (
+              <p className="text-xs text-muted">
+                +{opsPending.length - 8} more — open Recommendations to review.
+              </p>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader>

@@ -99,7 +99,7 @@ export async function POST(request: Request) {
         },
       });
 
-      const providers = ["GITHUB", "JIRA", "JENKINS", "GRAFANA", "PROMETHEUS", "SLACK"] as const;
+      const providers = ["GITHUB", "JIRA", "JENKINS", "GRAFANA", "PROMETHEUS", "SLACK", "AWS"] as const;
       for (const provider of providers) {
         const connected =
           (provider === "GITHUB" && body.tools.includes("github")) ||

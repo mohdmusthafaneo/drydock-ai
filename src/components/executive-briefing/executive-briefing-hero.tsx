@@ -1,17 +1,20 @@
 "use client";
 
 import type { ExecutiveBriefing } from "@/lib/executive-briefing/types";
+import type { AgentRunFreshness } from "@/lib/agent-analysis/types";
 import { BriefingHeadline } from "@/components/executive-briefing/briefing-headline";
 import { BriefingHighlights } from "@/components/executive-briefing/briefing-highlights";
 import { BriefingInsightBox } from "@/components/executive-briefing/briefing-insight";
 import { BriefingNarrative } from "@/components/executive-briefing/briefing-narrative";
 import { ScrollCue } from "@/components/executive-briefing/scroll-cue";
+import { AgentFreshnessStrip } from "@/components/agent-analysis/agent-freshness-strip";
 import { MountItem, MountSequence } from "@/components/motion/mount-sequence";
 import { cn } from "@/lib/utils";
 
 type Props = {
   briefing: ExecutiveBriefing;
   orgName: string;
+  agentFreshness?: AgentRunFreshness[];
 };
 
 function formatLlmGeneratedAt(iso: string): string {
@@ -25,7 +28,11 @@ function formatLlmGeneratedAt(iso: string): string {
   });
 }
 
-export function ExecutiveBriefingHero({ briefing, orgName }: Props) {
+export function ExecutiveBriefingHero({
+  briefing,
+  orgName,
+  agentFreshness,
+}: Props) {
   const hasHighlights = briefing.highlights.length > 0;
   const isLlmEnriched = briefing.source === "llm_enriched";
 
@@ -80,6 +87,11 @@ export function ExecutiveBriefingHero({ briefing, orgName }: Props) {
             <MountItem transition={{ delay: 0.24 }}>
               <p className="text-[14px] leading-relaxed text-graphite">{briefing.meta}</p>
             </MountItem>
+            {agentFreshness && agentFreshness.length > 0 && (
+              <MountItem transition={{ delay: 0.28 }}>
+                <AgentFreshnessStrip freshness={agentFreshness} className="pt-1" />
+              </MountItem>
+            )}
             {briefing.insight && (
               <MountItem transition={{ delay: 0.32 }}>
                 <BriefingInsightBox insight={briefing.insight} />

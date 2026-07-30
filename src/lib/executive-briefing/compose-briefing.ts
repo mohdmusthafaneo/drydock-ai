@@ -22,10 +22,13 @@ export type ComposeBriefingInput = HealthScoreInput & {
   assessmentSummary?: string | null;
   complianceSummary?: ComplianceFindingSummary | null;
   predictionSummary?: PredictionSummary | null;
+  /** Extra L2 claims from agent analysis runs (QA / DevOps / governance / productivity). */
+  agentAnalysisClaims?: BriefingClaim[];
   integrationFreshness: {
     jiraSyncedAt?: string | null;
     githubSyncedAt?: string | null;
     observabilitySyncedAt?: string | null;
+    agentAnalyzedAt?: string | null;
   };
   connectedTools: number;
   activeAuthors?: number;
@@ -750,12 +753,19 @@ function buildPredictedRiskClaim(summary: PredictionSummary): BriefingClaim {
 
 /** Keep AI code risk, code accountability, and predicted risk visible on the executive dashboard. */
 function finalizeBriefingClaims(claims: BriefingClaim[]): BriefingClaim[] {
-  const pinnedIds = ["ai-code-risk", "code-accountability", "predicted-risk"] as const;
+  const pinnedIds = [
+    "ai-code-risk",
+    "code-accountability",
+    "predicted-risk",
+    "qa-posture",
+    "cloud-hygiene",
+    "code-risk",
+  ] as const;
   const pinned = pinnedIds
     .map((id) => claims.find((c) => c.id === id))
     .filter((c): c is BriefingClaim => Boolean(c));
   const rest = claims.filter((c) => !pinnedIds.includes(c.id as (typeof pinnedIds)[number]));
-  const maxSlots = 6;
+  const maxSlots = 8;
   const kept = rest.slice(0, Math.max(0, maxSlots - pinned.length));
   const deliveryIndex = kept.findIndex((c) => c.id === "delivery");
   const insertAt = deliveryIndex >= 0 ? deliveryIndex + 1 : Math.min(2, kept.length);
@@ -864,6 +874,10 @@ function buildClaims(input: ComposeBriefingInput, health: ExecutiveBriefing["hea
 
   if (input.predictionSummary) {
     claims.push(buildPredictedRiskClaim(input.predictionSummary));
+  }
+
+  if (input.agentAnalysisClaims?.length) {
+    claims.push(...input.agentAnalysisClaims);
   }
 
   const stabilityDim = health.dimensions.find((d) => d.id === "stability");
@@ -1000,6 +1014,7 @@ function resolveFreshness(input: ComposeBriefingInput): ExecutiveBriefing["fresh
     input.integrationFreshness.jiraSyncedAt,
     input.integrationFreshness.githubSyncedAt,
     input.integrationFreshness.observabilitySyncedAt,
+    input.integrationFreshness.agentAnalyzedAt,
   ].filter((t): t is string => Boolean(t));
 
   const asOf =
@@ -1012,6 +1027,12 @@ function resolveFreshness(input: ComposeBriefingInput): ExecutiveBriefing["fresh
   if (isStale(input.integrationFreshness.githubSyncedAt)) staleSources.push("GitHub");
   if (isStale(input.integrationFreshness.observabilitySyncedAt)) {
     staleSources.push("Observability");
+  }
+  if (
+    input.integrationFreshness.agentAnalyzedAt &&
+    isStale(input.integrationFreshness.agentAnalyzedAt)
+  ) {
+    staleSources.push("Agent scans");
   }
 
   return {

@@ -25,6 +25,8 @@ import {
   Plus,
   Cog,
   Layers,
+  HeartPulse,
+  TrendingUp,
 } from "lucide-react";
 
 export type WorkspaceMode = "MVP" | "ENTERPRISE";
@@ -150,6 +152,8 @@ export function getEnterpriseNavLayout(): EnterpriseNavLayout {
             integrationGate: "observability",
             lockedHint: "Connect Prometheus",
           },
+          { href: "/code-health", label: "Code health", icon: HeartPulse },
+          { href: "/productivity", label: "Productivity", icon: TrendingUp },
         ],
       },
       {

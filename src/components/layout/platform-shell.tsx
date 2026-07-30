@@ -83,6 +83,9 @@ export async function PlatformShell({
   const jiraConnected = ctx.integrations.some(
     (i) => i.provider === "JIRA" && i.status === "CONNECTED",
   );
+  const githubConnected = ctx.integrations.some(
+    (i) => i.provider === "GITHUB" && i.status === "CONNECTED",
+  );
 
   const steps = getOnboardingSteps({
     hasProfile: Boolean(ctx.profile?.completedAt),
@@ -94,6 +97,7 @@ export async function PlatformShell({
     pendingApprovals: ctx.stats.pendingApprovals,
     toolchainMappingConfirmed: Boolean(ctx.profile?.toolchainMappingConfirmedAt),
     jiraConnected,
+    githubConnected,
     jiraCalibrationComplete,
   });
 

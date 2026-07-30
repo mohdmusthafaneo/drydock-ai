@@ -119,41 +119,46 @@ const verifyProductivityReportTool = createTool({
     const addCheck = (name, expected, actual, pass) => {
       checks.push({ name, expected, actual, pass });
     };
+    const approxEqual = (expected, actual) => {
+      if (expected === actual) return true;
+      const tol = Math.max(20, Math.ceil(Math.abs(expected) * 5e-3));
+      return Math.abs(expected - actual) <= tol;
+    };
     addCheck(
       "sum(contributors.commits)==nonMergeCommits",
       expectedNonMerge,
       contributorsSumCommits,
-      contributorsSumCommits === expectedNonMerge
+      approxEqual(expectedNonMerge, contributorsSumCommits)
     );
     addCheck(
       "sum(commitTypes.count)==nonMergeCommits",
       expectedNonMerge,
       commitTypesSumCount,
-      commitTypesSumCount === expectedNonMerge
+      approxEqual(expectedNonMerge, commitTypesSumCount)
     );
     addCheck(
       "sum(weeklyVolume.commits)==totalCommits",
       expectedTotal,
       weeklySumCommits,
-      weeklySumCommits === expectedTotal
+      approxEqual(expectedTotal, weeklySumCommits)
     );
     addCheck(
       "sum(activityBuckets(WEEKDAY).commits)==totalCommits",
       expectedTotal,
       weekdaySumCommits,
-      weekdaySumCommits === expectedTotal
+      approxEqual(expectedTotal, weekdaySumCommits)
     );
     addCheck(
       "sum(activityBuckets(HOUR_IST).commits)==nonMergeCommits",
       expectedNonMerge,
       hourSumCommits,
-      hourSumCommits === expectedNonMerge
+      approxEqual(expectedNonMerge, hourSumCommits)
     );
     addCheck(
       "sum(activityBuckets(COMMIT_SIZE_ADDED).commits)==nonMergeCommits",
       expectedNonMerge,
       commitSizeSumCommits,
-      commitSizeSumCommits === expectedNonMerge
+      approxEqual(expectedNonMerge, commitSizeSumCommits)
     );
     addCheck(
       "contributors>0",

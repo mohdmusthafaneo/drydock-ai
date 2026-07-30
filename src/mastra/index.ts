@@ -30,6 +30,10 @@ export {
   devopsAgent,
 } from "./agents";
 export {
+  aidosWorkflows,
+  agentAnalysisRefreshWorkflow,
+} from "./workflows";
+export {
   repositoryCloneTool,
   getCommitsTool,
   materializeAnalyzeGitTool,

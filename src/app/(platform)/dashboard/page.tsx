@@ -15,7 +15,19 @@ export default async function EnterpriseDashboardPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const [{ briefing, charts, ctx, orgName, deliverySnapshot, effectiveMapping, jiraConnection }, predictions] = await Promise.all([
+  const [
+    {
+      briefing,
+      charts,
+      ctx,
+      orgName,
+      deliverySnapshot,
+      effectiveMapping,
+      jiraConnection,
+      agentFreshness,
+    },
+    predictions,
+  ] = await Promise.all([
     loadExecutiveBriefing(session.organizationId),
     loadProblemPredictions(session.organizationId, {
       status: "open",
@@ -39,7 +51,11 @@ export default async function EnterpriseDashboardPage() {
 
   return (
     <div className="w-full">
-      <ExecutiveBriefingHero briefing={briefing} orgName={orgName} />
+      <ExecutiveBriefingHero
+        briefing={briefing}
+        orgName={orgName}
+        agentFreshness={agentFreshness}
+      />
       <BriefingBreakdownSection briefing={briefing} />
       <EarlyWarningsCard
         predictions={predictions}

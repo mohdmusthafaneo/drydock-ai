@@ -2,6 +2,20 @@ import { forOrgRead } from "@/lib/prisma";
 import { computeCompletedStepIds } from "@/lib/enterprise-workflow";
 import { hasObservabilitySynced } from "@/lib/observability-connectivity";
 import { isJiraCalibrationComplete } from "@/lib/jira-calibration/status";
+import { isOpsQueueRecommendationTitle } from "@/lib/agent-analysis/ops-queue";
+
+function isLeadershipPendingApproval(approval: {
+  decision: unknown;
+  title: string | null;
+  recommendation: { title: string; releaseId: string | null } | null;
+}): boolean {
+  if (approval.decision) return false;
+  const title = approval.title ?? approval.recommendation?.title ?? "";
+  if (isOpsQueueRecommendationTitle(title)) return false;
+  // Prefer release-linked gates for the executive "release approvals" count.
+  // Non-release, non-ops recommendations still count (e.g. governance matrix).
+  return true;
+}
 
 export async function getOrganizationContext(organizationId: string) {
   const db = forOrgRead(organizationId);
@@ -91,7 +105,7 @@ export async function getOrganizationContext(organizationId: string) {
     db.governancePolicy.findUnique({ where: { organizationId } }),
   ]);
 
-  const pendingApprovals = approvals.filter((a) => !a.decision);
+  const pendingApprovals = approvals.filter(isLeadershipPendingApproval);
   const connectedIntegrations = integrations.filter((i) => i.status === "CONNECTED");
   const activeReleases = releases.filter(
     (r) => r.status !== "DEPLOYED" && r.status !== "BLOCKED",

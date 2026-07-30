@@ -39,6 +39,7 @@ enum IntegrationProvider {
   GRAFANA
   PROMETHEUS
   SLACK
+  AWS
 }
 
 enum TelemetryEventType {

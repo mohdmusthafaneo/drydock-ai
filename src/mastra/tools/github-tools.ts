@@ -4,20 +4,68 @@ import { simpleGit } from "simple-git";
 import fs from "node:fs/promises";
 import path from "node:path";
 
+import { asSystem } from "@/lib/prisma";
+import { resolveGitHubTokenForIntegration } from "@/lib/github-token";
 import { productivityWorkspace } from "../workspace";
+import { resolveOrganizationId } from "../config/request-context";
 
 function cloneLocationFor(repositoryUrl: string): string {
+  const name =
+    repositoryUrl
+      .replace(/\.git$/i, "")
+      .split("/")
+      .filter(Boolean)
+      .pop() || "repo";
   return path.join(
     productivityWorkspace.filesystem!.basePath,
     "github-repositories",
-    repositoryUrl.split("/").pop() || "",
+    name,
   );
+}
+
+/** Parse owner/repo from https://github.com/owner/repo(.git) or git@github.com:owner/repo.git */
+function parseGithubOwnerRepo(
+  repositoryUrl: string,
+): { owner: string; repo: string } | null {
+  const https = repositoryUrl.match(
+    /github\.com[/:]([^/]+)\/([^/.]+?)(?:\.git)?\/?$/i,
+  );
+  if (!https) return null;
+  return { owner: https[1], repo: https[2] };
+}
+
+async function authenticatedCloneUrl(
+  repositoryUrl: string,
+  organizationId: string | undefined,
+): Promise<string> {
+  if (!organizationId) return repositoryUrl;
+  const parsed = parseGithubOwnerRepo(repositoryUrl);
+  if (!parsed) return repositoryUrl;
+
+  const integration = await asSystem().integration.findUnique({
+    where: {
+      organizationId_provider: {
+        organizationId,
+        provider: "GITHUB",
+      },
+    },
+  });
+  if (!integration || integration.status !== "CONNECTED") {
+    return repositoryUrl;
+  }
+
+  try {
+    const token = await resolveGitHubTokenForIntegration(integration);
+    return `https://x-access-token:${token}@github.com/${parsed.owner}/${parsed.repo}.git`;
+  } catch {
+    return repositoryUrl;
+  }
 }
 
 export const repositoryCloneTool = createTool({
   id: "repository-clone",
   description:
-    "Clone a GitHub repository into the workspace. If the destination already exists, reuses it (fetches latest) instead of failing.",
+    "Clone a GitHub repository into the workspace (uses the org GitHub App token for private repos). If the destination already exists, reuses it (fetches latest) instead of failing.",
   inputSchema: z.object({
     repository_url: z.string(),
     branch: z.string().optional(),
@@ -26,13 +74,27 @@ export const repositoryCloneTool = createTool({
     cloned_location: z.string(),
     reused: z.boolean(),
   }),
-  execute: async (inputData) => {
+  execute: async (inputData, context) => {
+    const organizationId = (() => {
+      try {
+        return resolveOrganizationId(context?.requestContext);
+      } catch {
+        return undefined;
+      }
+    })();
+
     const clone_location = cloneLocationFor(inputData.repository_url);
     const gitDir = path.join(clone_location, ".git");
+    const remoteUrl = await authenticatedCloneUrl(
+      inputData.repository_url,
+      organizationId,
+    );
 
     try {
       await fs.access(gitDir);
       const git = simpleGit(clone_location);
+      // Refresh remote URL so private-repo fetches use the installation token.
+      await git.remote(["set-url", "origin", remoteUrl]);
       await git.fetch(["--all", "--prune"]);
       if (inputData.branch) {
         const branches = await git.branch(["-a"]);
@@ -58,7 +120,7 @@ export const repositoryCloneTool = createTool({
 
     await fs.mkdir(path.dirname(clone_location), { recursive: true });
     await simpleGit().clone(
-      inputData.repository_url,
+      remoteUrl,
       clone_location,
       inputData.branch ? { "--branch": inputData.branch } : undefined,
     );

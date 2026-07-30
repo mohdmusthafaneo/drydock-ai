@@ -113,18 +113,23 @@ export function generateRecommendations(
     impact: RecImpact;
     confidence: number;
     affectedSystems: string[];
-  }> = [
-    {
+  }> = [];
+
+  // Skip when DNA is already recommend-only — the loop is the product default.
+  if (dna.autonomyMode !== "RECOMMEND") {
+    items.push({
       title: "Enable human-governed recommendation loop",
       description:
         "Route all AI-suggested delivery actions through the Approval Center before execution.",
-      rationale:
-        `Delivery DNA sets autonomy to ${dna.autonomyMode}, which requires explicit human approval for trust and auditability.`,
+      rationale: `Delivery DNA sets autonomy to ${dna.autonomyMode}, which requires explicit human approval for trust and auditability.`,
       impact: "HIGH",
       confidence: 0.92,
       affectedSystems: ["AIDOS Governance", "Approval Center"],
-    },
-    {
+    });
+  }
+
+  if (!tools.includes("jira")) {
+    items.push({
       title: "Connect Jira for workflow intelligence",
       description:
         "Sync epics, sprints, and blockers to improve delivery bottleneck detection.",
@@ -133,8 +138,11 @@ export function generateRecommendations(
       impact: "MEDIUM",
       confidence: 0.88,
       affectedSystems: ["Jira", "Workflow Orchestration"],
-    },
-    {
+    });
+  }
+
+  if (!tools.includes("github")) {
+    items.push({
       title: "Connect GitHub for change-risk signals",
       description:
         "Ingest PR velocity, review latency, and deployment tags for release intelligence.",
@@ -143,8 +151,8 @@ export function generateRecommendations(
       impact: "MEDIUM",
       confidence: 0.85,
       affectedSystems: ["GitHub", "Release Intelligence"],
-    },
-  ];
+    });
+  }
 
   if (!tools.includes("grafana") && !options?.grafanaConnected) {
     items.push({

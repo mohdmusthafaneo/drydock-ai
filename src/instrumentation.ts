@@ -19,4 +19,19 @@ export async function register() {
       });
     });
   }
+
+  // Boot Mastra so declarative workflow schedules (agent-analysis-refresh) tick
+  // on long-lived web/worker processes. Studio (`mastra:studio`) also boots Mastra.
+  if (role === "web" || role === "worker") {
+    void import("@/mastra")
+      .then(({ getMastra }) => getMastra())
+      .then(() => {
+        logServerStartup("Mastra instance ready (workflow schedules active when enabled)");
+      })
+      .catch((error) => {
+        logServerStartup("Mastra bootstrap failed", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      });
+  }
 }

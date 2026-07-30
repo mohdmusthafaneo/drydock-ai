@@ -27,6 +27,14 @@ import { isGrafanaTrulyConnected, parseGrafanaMeta } from "@/lib/grafana-meta";
 import { IntegrationHealthSummaryStrip } from "@/components/integrations/integration-health-summary";
 import { RevealSection } from "@/components/motion/reveal-section";
 import { DisconnectButton, StubConnectButton } from "@/components/integrations/integration-actions";
+import { AwsIntegrationPanel } from "@/components/integrations/aws-integration-panel";
+import {
+  isAwsTrulyConnected,
+  maskExternalId,
+  parseAwsMeta,
+} from "@/lib/aws-meta";
+import { ensureAwsIntegrationRow } from "@/lib/ensure-aws-integration";
+import { decryptToken } from "@/lib/token-crypto";
 
 const PROVIDER_LABELS: Record<string, string> = {
   GITHUB: "GitHub",
@@ -35,6 +43,7 @@ const PROVIDER_LABELS: Record<string, string> = {
   GRAFANA: "Grafana",
   PROMETHEUS: "Prometheus",
   SLACK: "Slack",
+  AWS: "AWS",
 };
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -84,8 +93,10 @@ export default async function IntegrationsPage({
   const grafanaWebhookUrl = `${appUrl}/api/webhooks/grafana?organizationId=${session.organizationId}`;
   const appUrlConfigured = isAppUrlConfigured();
 
+  await ensureAwsIntegrationRow(session.organizationId);
   const ctx = await getOrganizationContext(session.organizationId);
   const githubAppSlug = process.env.GITHUB_APP_SLUG;
+  const trustedAwsAccountId = process.env.TRUSTED_AWS_ACCOUNT_ID?.trim() || null;
   const jiraOAuthConfigured = getJiraOAuthConfig().configured;
   const canManage = hasPermission(session, "integrations", "manage_integrations");
 
@@ -175,10 +186,20 @@ export default async function IntegrationsPage({
           const isJira = integration.provider === "JIRA";
           const isPrometheus = integration.provider === "PROMETHEUS";
           const isGrafana = integration.provider === "GRAFANA";
+          const isAws = integration.provider === "AWS";
           const prometheusMeta = isPrometheus
             ? parsePrometheusMeta(integration.metadataJson)
             : null;
           const grafanaMeta = isGrafana ? parseGrafanaMeta(integration.metadataJson) : null;
+          const awsMeta = isAws ? parseAwsMeta(integration.metadataJson) : null;
+          let awsExternalIdMasked: string | undefined;
+          if (awsMeta?.externalIdEnc) {
+            try {
+              awsExternalIdMasked = maskExternalId(decryptToken(awsMeta.externalIdEnc));
+            } catch {
+              awsExternalIdMasked = "••••";
+            }
+          }
           const isConnected = integration.status === "CONNECTED";
 
           return (
@@ -283,6 +304,19 @@ export default async function IntegrationsPage({
                     webhookEnabled={integration.webhookEnabled}
                     appUrlConfigured={appUrlConfigured}
                     canManage={canManage}
+                  />
+                ) : isAws ? (
+                  <AwsIntegrationPanel
+                    connected={isConnected}
+                    trulyConnected={isAwsTrulyConnected(integration)}
+                    roleArn={awsMeta?.roleArn}
+                    accountIdHint={awsMeta?.accountIdHint}
+                    externalIdMasked={awsExternalIdMasked}
+                    connectedAt={integration.connectedAt?.toISOString()}
+                    lastScanSummary={awsMeta?.lastScanSummary}
+                    lastScanAt={awsMeta?.lastScanAt}
+                    canManage={canManage}
+                    trustedAccountId={trustedAwsAccountId}
                   />
                 ) : (
                   <div className="flex flex-wrap gap-2">
