@@ -61,8 +61,9 @@ export function BriefingExecutiveDeck({ briefing, deck, orgName, jiraConnection 
               Delivery confidence
             </h2>
             <p className="mt-3 max-w-2xl text-[16px] leading-relaxed text-ash">
-              How {orgName} scores across release readiness, production stability, team momentum, and
-              governance — so you know where to focus without reading a backlog.
+              How {orgName} scores across release readiness, production stability, engineering
+              risk, team momentum, and governance — so you know where to focus without reading a
+              backlog.
             </p>
           </div>
         </RevealItem>

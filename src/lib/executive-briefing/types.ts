@@ -1,4 +1,9 @@
-export type HealthDimensionId = "release" | "stability" | "momentum" | "governance";
+export type HealthDimensionId =
+  | "release"
+  | "stability"
+  | "momentum"
+  | "engineering"
+  | "governance";
 
 export type HealthDimension = {
   id: HealthDimensionId;

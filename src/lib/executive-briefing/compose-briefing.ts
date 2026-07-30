@@ -326,7 +326,7 @@ function buildInsight(
   if (input.stats.pendingApprovals > 0) {
     return {
       tone: "attention",
-      message: `${input.stats.pendingApprovals} release approval${input.stats.pendingApprovals === 1 ? "" : "s"} need your sign-off before deploy.`,
+      message: `${input.stats.pendingApprovals} release approval${input.stats.pendingApprovals === 1 ? "" : "s"} need${input.stats.pendingApprovals === 1 ? "s" : ""} your sign-off before deploy.`,
       href: "/approvals",
     };
   }
@@ -428,6 +428,7 @@ function buildHighlights(
     });
   }
 
+  // Sprint tracking already puts the completion % in the L1 headline — skip the duplicate highlight.
   if (release?.readinessScore != null) {
     highlights.push({
       id: "readiness",
@@ -436,15 +437,6 @@ function buildHighlights(
       subtext: release.name,
       href: `/releases/${release.id}`,
       tone: release.readinessScore >= 75 ? "good" : release.readinessScore >= 50 ? "attention" : "risk",
-    });
-  } else if (sprint) {
-    highlights.push({
-      id: "readiness",
-      label: "Sprint complete",
-      value: `${sprint.pct}%`,
-      subtext: sprint.name,
-      href: sprint.jiraUrl ?? "/delivery-analysis",
-      tone: sprint.pct >= 70 ? "good" : sprint.pct >= 50 ? "attention" : "risk",
     });
   }
 
@@ -751,27 +743,49 @@ function buildPredictedRiskClaim(summary: PredictionSummary): BriefingClaim {
   };
 }
 
-/** Keep AI code risk, code accountability, and predicted risk visible on the executive dashboard. */
+const PINNED_CLAIM_IDS = [
+  "ai-code-risk",
+  "code-accountability",
+  "predicted-risk",
+  "qa-posture",
+  "cloud-hygiene",
+  "code-risk",
+] as const;
+
+const VERDICT_PRIORITY: Record<BriefingClaimVerdict, number> = {
+  risk: 0,
+  attention: 1,
+  neutral: 2,
+  good: 3,
+};
+
+/**
+ * Cap the attention grid at 8 slots. Prefer risk > attention > neutral > good;
+ * pinning is only a tie-break among equal verdicts. Display order stays the
+ * original push order of whatever survives selection.
+ */
 function finalizeBriefingClaims(claims: BriefingClaim[]): BriefingClaim[] {
-  const pinnedIds = [
-    "ai-code-risk",
-    "code-accountability",
-    "predicted-risk",
-    "qa-posture",
-    "cloud-hygiene",
-    "code-risk",
-  ] as const;
-  const pinned = pinnedIds
-    .map((id) => claims.find((c) => c.id === id))
-    .filter((c): c is BriefingClaim => Boolean(c));
-  const rest = claims.filter((c) => !pinnedIds.includes(c.id as (typeof pinnedIds)[number]));
   const maxSlots = 8;
-  const kept = rest.slice(0, Math.max(0, maxSlots - pinned.length));
-  const deliveryIndex = kept.findIndex((c) => c.id === "delivery");
-  const insertAt = deliveryIndex >= 0 ? deliveryIndex + 1 : Math.min(2, kept.length);
-  const before = kept.slice(0, insertAt);
-  const after = kept.slice(insertAt);
-  return [...before, ...pinned, ...after].slice(0, maxSlots);
+  if (claims.length <= maxSlots) return claims;
+
+  const keep = new Set(
+    claims
+      .map((claim, index) => ({
+        claim,
+        index,
+        pinned: (PINNED_CLAIM_IDS as readonly string[]).includes(claim.id),
+      }))
+      .sort(
+        (a, b) =>
+          VERDICT_PRIORITY[a.claim.verdict] - VERDICT_PRIORITY[b.claim.verdict] ||
+          Number(b.pinned) - Number(a.pinned) ||
+          a.index - b.index,
+      )
+      .slice(0, maxSlots)
+      .map((entry) => entry.claim.id),
+  );
+
+  return claims.filter((claim) => keep.has(claim.id));
 }
 
 function buildClaims(input: ComposeBriefingInput, health: ExecutiveBriefing["health"]): BriefingClaim[] {

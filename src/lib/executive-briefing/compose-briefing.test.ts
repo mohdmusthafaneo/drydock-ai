@@ -403,4 +403,179 @@ describe("composeExecutiveBriefing", () => {
     assert.match(claim!.context, /high-risk AI PR/i);
     assert.match(claim!.context, /hot path/i);
   });
+
+  it("keeps every risk claim and drops clean pinned ones when over 8 slots", () => {
+    const briefing = composeExecutiveBriefing({
+      orgName: "Acme Corp",
+      stats: {
+        ...baseStats,
+        pendingApprovals: 1,
+        openIncidents: 2,
+      },
+      hasAssessedRelease: true,
+      latestRelease: {
+        id: "rel-1",
+        name: "v2.4",
+        status: "BLOCKED",
+        readinessScore: 35,
+        governanceRiskScore: 70,
+        assessedAt: new Date(),
+      },
+      connectedTools: 3,
+      integrationFreshness: {},
+      deliverySnapshot: {
+        generatedAt: new Date().toISOString(),
+        projectKeys: ["ACME"],
+        rangeLabel: "30d",
+        kpis: { healthScore: 40, openWork: 40, blocked: 8, overdue: 5, resolvedLast7d: 2 },
+        riskMix: { blocked: 8, overdue: 5, bugs: 10, otherOpen: 17 },
+        trend: [],
+        byProject: [],
+        versions: [],
+        sprints: [],
+        signals: [],
+        gaps: [],
+      },
+      codeSnapshot: {
+        generatedAt: new Date().toISOString(),
+        rangeLabel: "Last 7 days",
+        repos: ["acme/app"],
+        kpis: {
+          aiLinesPct: 12,
+          aiLinesPctDelta: 0,
+          aiCommitsPct: 10,
+          aiCommitsPctDelta: 0,
+          aiPrsPct: 8,
+          aiPrsPctDelta: 0,
+          reviewCoverageOnAiPrsPct: 100,
+        },
+        attribution: {
+          human_only: { count: 5, lines: 400 },
+          ai_assisted: { count: 1, lines: 50 },
+          ai_generated: { count: 0, lines: 0 },
+          unknown: { count: 0, lines: 0 },
+        },
+        trend: [],
+        byRepo: [],
+        byAuthor: [],
+        pullRequests: [],
+        commits: [],
+        files: [],
+        tools: [],
+        governanceSignals: [],
+        aiRisk: {
+          aiLinesPct: 12,
+          highRiskCount: 0,
+          unreviewedAiPrs: 0,
+          unlinkedAiPrs: 0,
+          avgCompletionScore: null,
+        },
+        accountability: {
+          highRiskPrsWithoutReviewer: 0,
+          unownedHighCostPaths: 0,
+          unnamedReviewerAiPrs: 0,
+        },
+      },
+      complianceSummary: {
+        openCount: 3,
+        criticalOpen: 2,
+        warningOpen: 1,
+        infoOpen: 0,
+        lastEvaluatedAt: new Date().toISOString(),
+      },
+      predictionSummary: {
+        openCount: 2,
+        criticalOpen: 1,
+        warningOpen: 1,
+        infoOpen: 0,
+        lastEvaluatedAt: new Date().toISOString(),
+      },
+      agentAnalysisClaims: [
+        {
+          id: "qa-posture",
+          headline: "QA posture",
+          metric: "30",
+          metricLabel: "Blocked issues",
+          verdict: "risk",
+          verdictLabel: "30 blocked",
+          context: "Blocked QA issues",
+          href: "/qa",
+        },
+        {
+          id: "cloud-hygiene",
+          headline: "Cloud hygiene",
+          metric: "35",
+          metricLabel: "Critical findings",
+          verdict: "risk",
+          verdictLabel: "35 critical",
+          context: "Critical cloud findings",
+          href: "/devops",
+        },
+        {
+          id: "code-risk",
+          headline: "Code change risk",
+          metric: "10",
+          metricLabel: "Risk score",
+          verdict: "risk",
+          verdictLabel: "High risk",
+          context: "repo · last 20 commits",
+          href: "/code-health",
+        },
+        {
+          id: "productivity",
+          headline: "Delivery cadence",
+          metric: "51%",
+          metricLabel: "Top contributor share",
+          verdict: "attention",
+          verdictLabel: "Bus factor",
+          context: "Alice owns 51% of commits",
+          href: "/productivity",
+        },
+      ],
+    });
+
+    assert.ok(briefing.claims.length <= 8);
+    const riskClaims = briefing.claims.filter((c) => c.verdict === "risk");
+    assert.ok(riskClaims.length >= 3);
+    assert.ok(briefing.claims.some((c) => c.id === "approvals" || c.id === "qa-posture"));
+    // Clean pinned AI code risk should lose its slot to real risk claims.
+    const aiRisk = briefing.claims.find((c) => c.id === "ai-code-risk");
+    assert.ok(!aiRisk || aiRisk.verdict !== "good");
+  });
+
+  it("pluralizes approval insight verb with the noun", () => {
+    const singular = composeExecutiveBriefing({
+      orgName: "Acme Corp",
+      stats: { ...baseStats, pendingApprovals: 1 },
+      hasAssessedRelease: true,
+      latestRelease: {
+        id: "rel-1",
+        name: "v2.4",
+        status: "READY",
+        readinessScore: 80,
+        governanceRiskScore: 10,
+        assessedAt: new Date(),
+      },
+      connectedTools: 3,
+      integrationFreshness: {},
+    });
+    assert.match(singular.insight!.message, /1 release approval needs your sign-off/);
+
+    const plural = composeExecutiveBriefing({
+      orgName: "Acme Corp",
+      stats: { ...baseStats, pendingApprovals: 2 },
+      hasAssessedRelease: true,
+      latestRelease: {
+        id: "rel-1",
+        name: "v2.4",
+        status: "READY",
+        readinessScore: 80,
+        governanceRiskScore: 10,
+        assessedAt: new Date(),
+      },
+      connectedTools: 3,
+      integrationFreshness: {},
+    });
+    assert.match(plural.insight!.message, /2 release approvals need your sign-off/);
+  });
 });

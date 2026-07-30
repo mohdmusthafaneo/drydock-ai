@@ -1,5 +1,6 @@
 import type { BriefingClaim, BriefingClaimVerdict } from "@/lib/executive-briefing/types";
 import type { LatestAgentAnalysisBundle } from "@/lib/agent-analysis/types";
+import { fileBasename, humanizeRevspec } from "@/lib/agent-analysis/format";
 
 function capitalizeFirst(text: string): string {
   if (!text) return text;
@@ -105,9 +106,9 @@ export function buildAgentAnalysisClaims(
 
     const contextParts = [
       bundle.governance.repositoryName,
-      bundle.governance.revspec,
+      bundle.governance.revspec ? humanizeRevspec(bundle.governance.revspec) : null,
       bundle.governance.worstFilePath
-        ? `worst file ${bundle.governance.worstFilePath}`
+        ? `hotspot ${fileBasename(bundle.governance.worstFilePath)}`
         : null,
     ].filter(Boolean);
 
@@ -125,30 +126,30 @@ export function buildAgentAnalysisClaims(
 
   if (bundle.productivity) {
     const top = bundle.productivity.contributors[0];
-    const busFactor =
-      top && top.sharePct >= 50
-        ? "attention"
-        : top && top.sharePct >= 40
-          ? "attention"
-          : "good";
-    const verdict: BriefingClaimVerdict =
-      bundle.productivity.weakestSignals.length > 0 ? busFactor : "good";
+    let verdict: BriefingClaimVerdict;
+    let verdictLabel: string;
+
+    if (top && top.sharePct >= 60) {
+      verdict = "risk";
+      verdictLabel = "Bus factor";
+    } else if (top && top.sharePct >= 45) {
+      verdict = "attention";
+      verdictLabel = "Bus factor";
+    } else if (bundle.productivity.weakestSignals.length > 0) {
+      verdict = "attention";
+      verdictLabel = "Watch signals";
+    } else {
+      verdict = "good";
+      verdictLabel = "Healthy";
+    }
 
     claims.push({
       id: "productivity",
       headline: "Delivery cadence",
-      metric:
-        bundle.productivity.totalCommits != null
-          ? String(bundle.productivity.totalCommits)
-          : undefined,
-      metricLabel: "Commits analyzed",
+      metric: top != null ? `${top.sharePct}%` : undefined,
+      metricLabel: top != null ? "Top contributor share" : undefined,
       verdict,
-      verdictLabel:
-        top && top.sharePct >= 50
-          ? "Bus factor"
-          : bundle.productivity.weakestSignals.length > 0
-            ? "Watch signals"
-            : "Healthy",
+      verdictLabel,
       context: capitalizeFirst(
         top
           ? `${top.authorName} owns ${top.sharePct}% of commits on ${bundle.productivity.repositoryName}`

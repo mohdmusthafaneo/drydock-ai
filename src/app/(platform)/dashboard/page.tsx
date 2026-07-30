@@ -25,6 +25,7 @@ export default async function EnterpriseDashboardPage() {
       effectiveMapping,
       jiraConnection,
       agentFreshness,
+      agentLeadershipDecisions,
     },
     predictions,
   ] = await Promise.all([
@@ -47,6 +48,7 @@ export default async function EnterpriseDashboardPage() {
     hasDelivery: charts.delivery != null,
     hasEngineering: charts.engineering != null,
     hasObservability: charts.stability != null,
+    agentLeadershipDecisions,
   });
 
   return (

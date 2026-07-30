@@ -2,6 +2,7 @@ import type { ExecutiveBriefing } from "@/lib/executive-briefing/types";
 import type { getOrganizationContext } from "@/lib/org-data";
 import type { DeliveryAnalysisSnapshot, DeliveryAnalysisSprintRow, DeliveryAnalysisVersionRow } from "@/lib/delivery-analysis/types";
 import type { ToolchainMapping } from "@/lib/toolchain-mapping";
+import type { AgentDecision } from "@/lib/agent-analysis/types";
 import { filterPortfolioReleases } from "@/lib/release-source";
 import { scoreToBand } from "@/lib/executive-briefing/health-score";
 
@@ -71,7 +72,22 @@ function portfolioTone(
   return "neutral";
 }
 
-function buildDecisions(briefing: ExecutiveBriefing, ctx: Ctx): LeadershipDecision[] {
+function mapAgentDecision(decision: AgentDecision): LeadershipDecision {
+  return {
+    id: decision.id,
+    title: decision.title,
+    context: decision.detail,
+    urgency: decision.tone === "risk" ? "critical" : "attention",
+    href: decision.href ?? "/dashboard",
+    actionLabel: decision.ctaLabel ?? "Review",
+  };
+}
+
+export function buildDecisions(
+  briefing: ExecutiveBriefing,
+  ctx: Ctx,
+  agentLeadershipDecisions: AgentDecision[] = [],
+): LeadershipDecision[] {
   const decisions: LeadershipDecision[] = [];
 
   if (ctx.stats.pendingApprovals > 0) {
@@ -147,6 +163,12 @@ function buildDecisions(briefing: ExecutiveBriefing, ctx: Ctx): LeadershipDecisi
     });
   }
 
+  for (const agentDecision of agentLeadershipDecisions) {
+    // Deck already emits rollback from ctx.stats.rollbackPending.
+    if (agentDecision.id === "devops-rollback") continue;
+    decisions.push(mapAgentDecision(agentDecision));
+  }
+
   return decisions;
 }
 
@@ -205,20 +227,21 @@ function buildPortfolio(
   ctx: Ctx,
   deliverySnapshot?: DeliveryAnalysisSnapshot | null,
   mapping?: ToolchainMapping | null,
+  briefing?: ExecutiveBriefing,
 ): ReleasePortfolioItem[] {
   const tracking = mapping?.jira?.releaseTracking ?? "fixVersion";
+  let items: ReleasePortfolioItem[] = [];
+
   if (tracking === "sprint" && deliverySnapshot?.sprints?.length) {
     const sprintReleases = ctx.releases.filter((r) => r.jiraSprintId != null);
-    return deliverySnapshot.sprints.slice(0, 4).map((sprint) => {
+    items = deliverySnapshot.sprints.slice(0, 4).map((sprint) => {
       const linked = sprintReleases.find((r) => r.jiraSprintId === sprint.sprintId);
       return sprintToPortfolioItem(sprint, linked?.id);
     });
-  }
-
-  if (tracking === "fixVersion" && deliverySnapshot?.versions?.length) {
+  } else if (tracking === "fixVersion" && deliverySnapshot?.versions?.length) {
     const fvReleases = ctx.releases.filter((r) => r.jiraFixVersion != null);
     const openVersions = deliverySnapshot.versions.filter((v) => !v.released);
-    return openVersions.slice(0, 4).map((version) => {
+    items = openVersions.slice(0, 4).map((version) => {
       const linked = fvReleases.find(
         (r) =>
           r.jiraFixVersion === version.name &&
@@ -226,29 +249,34 @@ function buildPortfolio(
       );
       return fixVersionToPortfolioItem(version, linked?.id);
     });
+  } else {
+    const portfolioReleases = filterPortfolioReleases(ctx.releases);
+    const active = portfolioReleases.filter((r) => r.status !== "DEPLOYED").slice(0, 4);
+    const recentLive = portfolioReleases
+      .filter((r) => r.status === "DEPLOYED")
+      .slice(0, 1);
+
+    items = [...active, ...recentLive].slice(0, 4).map((release) => ({
+      id: release.id,
+      name: release.name,
+      phase: releasePhase(release.status),
+      readiness: release.readinessScore,
+      risk: release.governanceRiskScore,
+      href: `/releases/${release.id}`,
+      tone: portfolioTone(
+        release.status,
+        release.readinessScore,
+        release.governanceRiskScore,
+      ),
+    }));
   }
 
-  const portfolioReleases = filterPortfolioReleases(ctx.releases);
-  const active = portfolioReleases.filter((r) => r.status !== "DEPLOYED").slice(0, 4);
-  const recentLive = portfolioReleases
-    .filter((r) => r.status === "DEPLOYED")
-    .slice(0, 1);
+  // A single portfolio row that duplicates the release claim adds no executive value.
+  if (items.length === 1 && briefing?.claims.some((c) => c.id === "release")) {
+    return [];
+  }
 
-  const items = [...active, ...recentLive].slice(0, 4);
-
-  return items.map((release) => ({
-    id: release.id,
-    name: release.name,
-    phase: releasePhase(release.status),
-    readiness: release.readinessScore,
-    risk: release.governanceRiskScore,
-    href: `/releases/${release.id}`,
-    tone: portfolioTone(
-      release.status,
-      release.readinessScore,
-      release.governanceRiskScore,
-    ),
-  }));
+  return items;
 }
 
 function buildBlindSpots(briefing: ExecutiveBriefing): string[] {
@@ -262,7 +290,49 @@ function buildBlindSpots(briefing: ExecutiveBriefing): string[] {
   return [...new Set(spots)];
 }
 
-function buildTeamLinks(
+const AGENT_TEAM_LINKS: Array<{
+  claimId: string;
+  id: string;
+  audience: string;
+  title: string;
+  fallbackSummary: string;
+  href: string;
+}> = [
+  {
+    claimId: "qa-posture",
+    id: "qa",
+    audience: "QA lead",
+    title: "QA posture detail",
+    fallbackSummary: "Blocked issues, open bugs, and board health",
+    href: "/qa",
+  },
+  {
+    claimId: "cloud-hygiene",
+    id: "devops",
+    audience: "DevOps / platform lead",
+    title: "Cloud & deployment detail",
+    fallbackSummary: "Cloud hygiene findings and deployment health",
+    href: "/devops",
+  },
+  {
+    claimId: "code-risk",
+    id: "code-health",
+    audience: "Engineering lead",
+    title: "Code change risk detail",
+    fallbackSummary: "Hotspots, risk drivers, and review priority",
+    href: "/code-health",
+  },
+  {
+    claimId: "productivity",
+    id: "productivity",
+    audience: "Engineering lead",
+    title: "Delivery cadence detail",
+    fallbackSummary: "Contributor concentration and commit signals",
+    href: "/productivity",
+  },
+];
+
+export function buildTeamLinks(
   briefing: ExecutiveBriefing,
   ctx: Ctx,
   hasDelivery: boolean,
@@ -315,7 +385,19 @@ function buildTeamLinks(
     });
   }
 
-  return links;
+  for (const agentLink of AGENT_TEAM_LINKS) {
+    const claim = briefing.claims.find((c) => c.id === agentLink.claimId);
+    if (!claim || claim.verdict === "good") continue;
+    links.push({
+      id: agentLink.id,
+      audience: agentLink.audience,
+      title: agentLink.title,
+      summary: claim.context || agentLink.fallbackSummary,
+      href: agentLink.href,
+    });
+  }
+
+  return links.slice(0, 6);
 }
 
 export function composeExecutiveDeck(input: {
@@ -326,10 +408,20 @@ export function composeExecutiveDeck(input: {
   hasDelivery: boolean;
   hasEngineering: boolean;
   hasObservability: boolean;
+  agentLeadershipDecisions?: AgentDecision[];
 }): ExecutiveDeck {
   return {
-    decisions: buildDecisions(input.briefing, input.ctx),
-    portfolio: buildPortfolio(input.ctx, input.deliverySnapshot, input.mapping),
+    decisions: buildDecisions(
+      input.briefing,
+      input.ctx,
+      input.agentLeadershipDecisions ?? [],
+    ),
+    portfolio: buildPortfolio(
+      input.ctx,
+      input.deliverySnapshot,
+      input.mapping,
+      input.briefing,
+    ),
     blindSpots: buildBlindSpots(input.briefing),
     teamLinks: buildTeamLinks(
       input.briefing,
@@ -349,7 +441,7 @@ export function dimensionBandLabel(score: number): string {
     case "steady":
       return "Steady";
     case "caution":
-      return "Needs attention";
+      return "Caution";
     case "at_risk":
       return "At risk";
   }

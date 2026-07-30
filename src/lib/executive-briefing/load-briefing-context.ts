@@ -1,5 +1,12 @@
 import { loadLatestAgentAnalysis } from "@/lib/agent-analysis/load-latest-runs";
 import { buildAgentAnalysisClaims } from "@/lib/agent-analysis/claims";
+import {
+  buildCodeHealthPageView,
+  buildDevOpsPageView,
+  buildProductivityPageView,
+  buildQaPageView,
+} from "@/lib/agent-analysis/presentation";
+import type { AgentDecision } from "@/lib/agent-analysis/types";
 import { syncAgentAnalysisRecommendations } from "@/lib/agent-analysis/sync-recommendations";
 import { dismissStaleSetupRecommendations } from "@/lib/agent-analysis/dismiss-stale-setup-recs";
 import { getOrganizationContext } from "@/lib/org-data";
@@ -204,6 +211,7 @@ export async function loadExecutiveBriefing(
   effectiveMapping: ToolchainMapping | null;
   jiraConnection: JiraConnectionState;
   agentFreshness: import("@/lib/agent-analysis/types").AgentRunFreshness[];
+  agentLeadershipDecisions: AgentDecision[];
 }> {
   const applyLlmSnapshot = options?.applyLlmSnapshot ?? true;
   const [ctx, org, jiraStored, githubIntegration, complianceSummary, predictionSummary, calibrationGate, effectiveMapping, agentAnalysis] =
@@ -324,8 +332,25 @@ export async function loadExecutiveBriefing(
     },
     complianceSummary,
     predictionSummary,
+    agentAnalysis,
     agentAnalysisClaims: buildAgentAnalysisClaims(agentAnalysis),
   });
+
+  const qaView = buildQaPageView(agentAnalysis.qa);
+  const devopsView = buildDevOpsPageView(agentAnalysis.devops, {
+    degradedDeployments: ctx.stats.degradedDeployments,
+    rollbackPending: ctx.stats.rollbackPending,
+    deploymentEventCount: ctx.deploymentEvents.length,
+  });
+  const codeHealthView = buildCodeHealthPageView(agentAnalysis.governance);
+  const productivityView = buildProductivityPageView(agentAnalysis.productivity);
+
+  const agentLeadershipDecisions = [
+    ...qaView.decisions,
+    ...devopsView.decisions,
+    ...codeHealthView.decisions,
+    ...productivityView.decisions,
+  ].filter((d) => d.audience === "leadership");
 
   let briefing = deterministic;
 
@@ -357,5 +382,6 @@ export async function loadExecutiveBriefing(
     effectiveMapping,
     jiraConnection,
     agentFreshness: agentAnalysis.freshness,
+    agentLeadershipDecisions,
   };
 }

@@ -9,6 +9,7 @@ import type { DeliveryAnalysisSnapshot } from "@/lib/delivery-analysis/types";
 import type { CodeAnalysisSnapshot } from "@/lib/code-analysis/types";
 import type { PortfolioHygieneSummary } from "@/lib/jira-hygiene";
 import type { ToolchainMapping } from "@/lib/toolchain-mapping";
+import type { LatestAgentAnalysisBundle } from "@/lib/agent-analysis/types";
 
 export type JiraConnectionState = {
   connected: boolean;
@@ -48,12 +49,15 @@ export type HealthScoreInput = {
   jiraCalibrationMessage?: string;
   jiraConnection?: JiraConnectionState;
   mapping?: ToolchainMapping | null;
+  /** Latest QA / DevOps / Code health / Productivity agent runs. */
+  agentAnalysis?: LatestAgentAnalysisBundle | null;
 };
 
 const DIMENSION_WEIGHTS: Record<HealthDimensionId, number> = {
-  release: 0.35,
-  momentum: 0.2,
-  stability: 0.3,
+  release: 0.3,
+  stability: 0.25,
+  momentum: 0.15,
+  engineering: 0.15,
   governance: 0.15,
 };
 
@@ -244,6 +248,88 @@ function computeGovernanceDimension(input: HealthScoreInput): HealthDimension | 
 }
 
 /**
+ * Engineering risk from QA / DevOps / Code health / Productivity agent runs.
+ * Returns null when no agent run exists so weight redistributes.
+ */
+export function computeEngineeringDimension(
+  input: HealthScoreInput,
+): HealthDimension | null {
+  const bundle = input.agentAnalysis;
+  if (!bundle) return null;
+
+  const hasAnyRun = Boolean(
+    bundle.qa || bundle.devops || bundle.governance || bundle.productivity,
+  );
+  if (!hasAnyRun) return null;
+
+  let score = 90;
+  const summaryParts: string[] = [];
+
+  if (bundle.qa) {
+    const blocked = bundle.qa.blocked;
+    if (blocked > 0) {
+      score -= Math.min(20, blocked);
+      summaryParts.push(
+        `${blocked} blocked QA issue${blocked === 1 ? "" : "s"}`,
+      );
+    }
+  }
+
+  if (bundle.devops) {
+    const critical =
+      bundle.devops.bySeverity.find((s) => s.severity === "CRITICAL")?.count ?? 0;
+    const high =
+      bundle.devops.bySeverity.find((s) => s.severity === "HIGH")?.count ?? 0;
+    if (critical > 0) {
+      score -= Math.min(25, critical);
+      summaryParts.push(
+        `${critical} critical cloud finding${critical === 1 ? "" : "s"}`,
+      );
+    }
+    if (high > 0) {
+      score -= Math.min(8, high / 2);
+    }
+  }
+
+  if (bundle.governance?.riskScore != null) {
+    const riskScore = bundle.governance.riskScore;
+    score -= riskScore * 2;
+    if (riskScore >= 4) {
+      summaryParts.push(`code change risk ${riskScore}/10`);
+    }
+  }
+
+  const topShare = bundle.productivity?.contributors[0]?.sharePct;
+  if (topShare != null) {
+    if (topShare >= 50) {
+      score -= 12;
+      summaryParts.push(`${topShare}% top contributor share`);
+    } else if (topShare >= 40) {
+      score -= 6;
+      summaryParts.push(`${topShare}% top contributor share`);
+    }
+  }
+
+  const summary =
+    summaryParts.length > 0
+      ? capitalizeFirst(summaryParts.join("; ")) + "."
+      : "Agent scans report no elevated engineering risk.";
+
+  return {
+    id: "engineering",
+    label: "Engineering risk",
+    score: clampScore(score),
+    weight: DIMENSION_WEIGHTS.engineering,
+    summary,
+  };
+}
+
+function capitalizeFirst(text: string): string {
+  if (!text) return text;
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/**
  * Composite delivery health score. Missing release data caps overall at 79.
  * Dimensions without data have weight redistributed to available dimensions.
  */
@@ -255,6 +341,7 @@ export function computeDeliveryHealthScore(input: HealthScoreInput): DeliveryHea
     computeReleaseDimension(input),
     computeStabilityDimension(input),
     computeMomentumDimension(input),
+    computeEngineeringDimension(input),
     computeGovernanceDimension(input),
   ];
 
@@ -278,6 +365,16 @@ export function computeDeliveryHealthScore(input: HealthScoreInput): DeliveryHea
     dataGaps.push("No assessed release");
   }
 
+  const hasAnyAgentRun = Boolean(
+    input.agentAnalysis?.qa ||
+      input.agentAnalysis?.devops ||
+      input.agentAnalysis?.governance ||
+      input.agentAnalysis?.productivity,
+  );
+  if (!hasAnyAgentRun) {
+    dataGaps.push("Agent engineering scans not available");
+  }
+
   const dimensions = candidates.filter((d): d is HealthDimension => d !== null);
 
   const hasScoreableRelease = dimensions.some((d) => d.id === "release");
@@ -285,7 +382,8 @@ export function computeDeliveryHealthScore(input: HealthScoreInput): DeliveryHea
     Boolean(input.deliverySnapshot) ||
     Boolean(input.codeSnapshot) ||
     Boolean(input.observabilitySnapshot && !input.observabilityIsDemo) ||
-    input.hasAssessedRelease;
+    input.hasAssessedRelease ||
+    hasAnyAgentRun;
 
   if (!hasAnyIntegrationData && !input.hasAssessedRelease) {
     return {

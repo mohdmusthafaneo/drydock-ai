@@ -16,7 +16,7 @@ export default async function ReportsPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const { briefing, charts, ctx, orgName, deliverySnapshot, effectiveMapping } =
+  const { briefing, charts, ctx, orgName, deliverySnapshot, effectiveMapping, agentLeadershipDecisions } =
     await loadExecutiveBriefing(session.organizationId);
   if (!ctx.dna) redirect("/governance/setup");
 
@@ -28,6 +28,7 @@ export default async function ReportsPage() {
     hasDelivery: charts.delivery != null,
     hasEngineering: charts.engineering != null,
     hasObservability: charts.stability != null,
+    agentLeadershipDecisions,
   });
 
   const topClaims = briefing.claims.slice(0, 3);
