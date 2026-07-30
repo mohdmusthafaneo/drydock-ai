@@ -1,0 +1,48 @@
+import type { AgentPageView } from "@/lib/agent-analysis/types";
+import { ExecutiveVerdictBanner } from "@/components/executive-briefing/executive-verdict-banner";
+import { BriefingHighlights } from "@/components/executive-briefing/briefing-highlights";
+import { AgentDecisionList } from "@/components/agent-analysis/agent-decision-list";
+import { RevealSection } from "@/components/motion/reveal-section";
+
+type Props = {
+  view: AgentPageView;
+  children?: React.ReactNode;
+  /** Optional content between highlights and decisions (e.g. clustered findings). */
+  afterHighlights?: React.ReactNode;
+};
+
+/**
+ * Shared executive layout for agent analysis pages:
+ * verdict hero → scope → highlights → optional mid slot → decide/delegate → detail children.
+ */
+export function AgentPageShell({ view, children, afterHighlights }: Props) {
+  return (
+    <div className="space-y-8">
+      <div className="space-y-3">
+        <ExecutiveVerdictBanner
+          verdict={view.hero.verdict}
+          verdictLabel={view.hero.verdictLabel}
+          headline={view.hero.headline}
+          subcopy={view.hero.subcopy}
+        />
+        {view.scope ? (
+          <p className="px-1 text-[12px] text-graphite">{view.scope}</p>
+        ) : null}
+      </div>
+
+      {view.highlights.length > 0 ? (
+        <RevealSection>
+          <div className="overflow-hidden rounded-[24px] border border-border-subtle bg-pure-white shadow-[var(--shadow)]">
+            <BriefingHighlights highlights={view.highlights} bare />
+          </div>
+        </RevealSection>
+      ) : null}
+
+      {afterHighlights}
+
+      <AgentDecisionList decisions={view.decisions} />
+
+      {children}
+    </div>
+  );
+}

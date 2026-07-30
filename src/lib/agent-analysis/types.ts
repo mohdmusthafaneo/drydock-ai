@@ -1,3 +1,8 @@
+import type {
+  BriefingClaimVerdict,
+  BriefingHighlight,
+} from "@/lib/executive-briefing/types";
+
 export type AgentAnalysisDomain = "qa" | "devops" | "governance" | "productivity";
 
 export type AgentRunFreshness = {
@@ -121,4 +126,48 @@ export type LatestAgentAnalysisBundle = {
   governance: LatestGovernanceRunSummary | null;
   productivity: LatestProductivityRunSummary | null;
   freshness: AgentRunFreshness[];
+};
+
+/** Executive page shell — shared across QA / DevOps / Code health / Productivity. */
+export type AgentDecision = {
+  id: string;
+  audience: "leadership" | "engineering";
+  title: string;
+  detail: string;
+  href?: string;
+  ctaLabel?: string;
+  tone: BriefingClaimVerdict;
+};
+
+export type AgentPageHero = {
+  verdict: BriefingClaimVerdict;
+  verdictLabel: string;
+  headline: string;
+  subcopy: string;
+};
+
+export type AgentPageView = {
+  hero: AgentPageHero;
+  highlights: BriefingHighlight[];
+  decisions: AgentDecision[];
+  /** Scope line under the hero, e.g. "repo · last 20 commits · verified 9m ago". */
+  scope: string;
+};
+
+export type ClusteredFinding = {
+  checkId: string;
+  title: string;
+  severity: string;
+  count: number;
+  recommendation: string;
+  description: string;
+  resourceRefs: string[];
+};
+
+export type ShareSegment = {
+  id: string;
+  label: string;
+  count: number;
+  sharePct: number;
+  tone?: "neutral" | "good" | "attention" | "risk";
 };
