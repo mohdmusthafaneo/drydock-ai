@@ -2,7 +2,6 @@
 
 import type { ExecutiveBriefing } from "@/lib/executive-briefing/types";
 import type { AgentRunFreshness } from "@/lib/agent-analysis/types";
-import { BriefingHeadline } from "@/components/executive-briefing/briefing-headline";
 import { BriefingHighlights } from "@/components/executive-briefing/briefing-highlights";
 import { BriefingInsightBox } from "@/components/executive-briefing/briefing-insight";
 import { BriefingNarrative } from "@/components/executive-briefing/briefing-narrative";
@@ -74,16 +73,12 @@ export function ExecutiveBriefingHero({
           )}
         >
           <div className="space-y-6">
-            {isLlmEnriched ? (
-              <MountItem transition={{ delay: 0.16 }}>
-                <BriefingNarrative
-                  narrative={briefing.narrative}
-                  healthLabel={briefing.health.bandLabel}
-                />
-              </MountItem>
-            ) : (
-              <BriefingHeadline segments={briefing.headline} />
-            )}
+            <MountItem transition={{ delay: 0.16 }}>
+              <BriefingNarrative
+                narrative={briefing.narrative}
+                healthLabel={briefing.health.bandLabel}
+              />
+            </MountItem>
             <MountItem transition={{ delay: 0.24 }}>
               <p className="text-[14px] leading-relaxed text-graphite">{briefing.meta}</p>
             </MountItem>

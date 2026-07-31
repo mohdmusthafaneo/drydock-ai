@@ -334,6 +334,7 @@ export async function loadExecutiveBriefing(
     predictionSummary,
     agentAnalysis,
     agentAnalysisClaims: buildAgentAnalysisClaims(agentAnalysis),
+    jiraSnapshot: jiraStored?.snapshot ?? null,
   });
 
   const qaView = buildQaPageView(agentAnalysis.qa);

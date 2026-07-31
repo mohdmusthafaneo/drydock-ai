@@ -173,7 +173,7 @@ describe("composeExecutiveBriefing", () => {
     assert.equal(stability!.verdict, "risk");
   });
 
-  it("keeps headline short and avoids banned jargon", () => {
+  it("keeps headline short and writes a diagnostic narrative without banned jargon", () => {
     const briefing = composeExecutiveBriefing({
       orgName: "Acme Corp",
       stats: baseStats,
@@ -205,8 +205,8 @@ describe("composeExecutiveBriefing", () => {
       },
     });
 
-    assert.ok(briefing.wordCount <= 45);
     assert.ok(briefing.wordCount >= 8);
+    assert.ok(briefing.wordCount <= 180);
     assert.ok(briefing.headline.length > 0);
     assert.ok(briefing.highlights.length > 0);
     assert.ok(briefing.meta.length > 0);

@@ -29,12 +29,14 @@ export {
   governanceAgent,
   devopsAgent,
   aidosAssistant,
+  productIntelligenceAgent,
   AIDOS_ASSISTANT_ID,
   AIDOS_ASSISTANT_INSTRUCTIONS,
 } from "./agents";
 export {
   aidosWorkflows,
   agentAnalysisRefreshWorkflow,
+  executiveBriefingEnrichWorkflow,
 } from "./workflows";
 export { runAidosAssistant } from "./workflows/run-assistant";
 export type {

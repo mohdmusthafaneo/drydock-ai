@@ -14,8 +14,12 @@ import type { CodeAnalysisSnapshot } from "@/lib/code-analysis/types";
 import type { ComplianceFindingSummary } from "@/lib/compliance/types";
 import type { PredictionSummary } from "@/lib/problem-prediction/types";
 import type { DeliveryAnalysisSprintRow } from "@/lib/delivery-analysis/types";
-import type { ToolchainMapping } from "@/lib/toolchain-mapping";
+import type { JiraDeliverySnapshot } from "@/lib/jira-meta";
 import { isOnboardingDemoRelease } from "@/lib/release-source";
+import {
+  buildDiagnosticNarrative,
+  extractDeliveryDiagnosticFacts,
+} from "@/lib/executive-briefing/delivery-diagnostic";
 
 export type ComposeBriefingInput = HealthScoreInput & {
   orgName: string;
@@ -24,6 +28,8 @@ export type ComposeBriefingInput = HealthScoreInput & {
   predictionSummary?: PredictionSummary | null;
   /** Extra L2 claims from agent analysis runs (QA / DevOps / governance / productivity). */
   agentAnalysisClaims?: BriefingClaim[];
+  /** Raw Jira delivery meta — used for unassigned / overall bugs in L1 diagnostics. */
+  jiraSnapshot?: JiraDeliverySnapshot | null;
   integrationFreshness: {
     jiraSyncedAt?: string | null;
     githubSyncedAt?: string | null;
@@ -1068,7 +1074,24 @@ export function composeExecutiveBriefing(input: ComposeBriefingInput): Executive
     ? buildProductionHeadline(input, health)
     : buildOnboardingHeadline(input);
 
-  const narrative = flattenHeadline(headline);
+  const diagnosticFacts = extractDeliveryDiagnosticFacts({
+    deliverySnapshot: input.deliverySnapshot,
+    jiraSnapshot: input.jiraSnapshot,
+    mapping: input.mapping,
+  });
+
+  const narrative = health.visible
+    ? buildDiagnosticNarrative({
+        orgName: input.orgName,
+        headline,
+        healthBand: health.band,
+        healthVisible: health.visible,
+        facts: diagnosticFacts,
+        pendingApprovals: releaseApprovalCount(input.stats),
+        openIncidents: input.stats.openIncidents,
+        assessmentSummary: input.assessmentSummary,
+      })
+    : flattenHeadline(headline);
   const wordCount = countWords(narrative);
 
   const briefing: ExecutiveBriefing = {
@@ -1086,6 +1109,12 @@ export function composeExecutiveBriefing(input: ComposeBriefingInput): Executive
 
   return briefing;
 }
+
+export {
+  extractDeliveryDiagnosticFacts,
+  buildDiagnosticNarrative,
+} from "@/lib/executive-briefing/delivery-diagnostic";
+export type { DeliveryDiagnosticFacts } from "@/lib/executive-briefing/delivery-diagnostic";
 
 export function assertNoBannedL1Terms(narrative: string): void {
   const lower = narrative.toLowerCase();
