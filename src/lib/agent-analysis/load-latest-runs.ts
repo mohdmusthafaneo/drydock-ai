@@ -7,6 +7,10 @@ import type {
   LatestProductivityRunSummary,
   LatestQaRunSummary,
 } from "@/lib/agent-analysis/types";
+import {
+  loadRolledUpGovernanceRun,
+  loadRolledUpProductivityRun,
+} from "@/lib/agent-analysis/rollup";
 
 const STALE_MS = 24 * 60 * 60 * 1000;
 
@@ -133,97 +137,13 @@ export async function loadLatestDevOpsRun(
 export async function loadLatestGovernanceRun(
   organizationId: string,
 ): Promise<LatestGovernanceRunSummary | null> {
-  const run = await prisma.governanceAnalysisRun.findFirst({
-    where: { organizationId, status: "VERIFIED" },
-    orderBy: { analyzedAt: "desc" },
-    include: {
-      worstFiles: { orderBy: { rank: "asc" }, take: 10 },
-      riskDrivers: { orderBy: { rank: "asc" }, take: 8 },
-      deadCodeFindings: { orderBy: { rank: "asc" }, take: 10 },
-    },
-  });
-  if (!run) return null;
-
-  return {
-    id: run.id,
-    analyzedAt: run.analyzedAt.toISOString(),
-    status: run.status,
-    repositoryName: run.repositoryName,
-    revspec: run.revspec,
-    riskScore: run.headlineRiskScore,
-    probability: run.headlineProbability,
-    riskLevel: run.headlineRiskLevel,
-    reviewPriority: run.headlineReviewPriority,
-    summary: run.headlineSummary,
-    worstFilePath: run.headlineWorstFilePath,
-    findingsCount: run.headlineFindingsCount ?? 0,
-    deadCodeCount: run.headlineDeadCodeFindingsCount ?? 0,
-    worstFiles: run.worstFiles.map((f) => ({
-      rank: f.rank,
-      filePath: f.filePath,
-      score: f.score,
-      maxCcn: f.maxCcn,
-      hasTestFile: f.hasTestFile,
-    })),
-    riskDrivers: run.riskDrivers.map((d) => ({
-      rank: d.rank,
-      label: d.label,
-      contribution: d.contribution,
-    })),
-    deadCode: run.deadCodeFindings.map((d) => ({
-      rank: d.rank,
-      kind: d.kind,
-      filePath: d.filePath,
-      reason: d.reason,
-      cleanupReady: d.cleanupReady,
-    })),
-  };
+  return loadRolledUpGovernanceRun(organizationId);
 }
 
 export async function loadLatestProductivityRun(
   organizationId: string,
 ): Promise<LatestProductivityRunSummary | null> {
-  const run = await prisma.productivityAnalysisRun.findFirst({
-    where: { organizationId, status: "VERIFIED" },
-    orderBy: { analyzedAt: "desc" },
-    include: {
-      contributors: { orderBy: { rank: "asc" }, take: 10 },
-      weeklyVolume: { orderBy: { isoWeek: "asc" } },
-      commitTypeBreakdown: { orderBy: { count: "desc" } },
-    },
-  });
-  if (!run) return null;
-
-  return {
-    id: run.id,
-    analyzedAt: run.analyzedAt.toISOString(),
-    status: run.status,
-    repositoryName: run.repositoryName,
-    branch: run.branch,
-    totalCommits: run.headlineTotalCommits,
-    filesTouched: run.headlineFilesTouched,
-    prsMerged: run.headlinePrsMerged,
-    featFixRatio: run.headlineFeatFixRatio,
-    tlDr: run.tlDr,
-    strongestSignals: run.strongestSignals,
-    weakestSignals: run.weakestSignals,
-    contributors: run.contributors.map((c) => ({
-      authorName: c.authorName,
-      commits: c.commits,
-      sharePct: c.sharePct,
-      net: c.net,
-      rank: c.rank,
-    })),
-    weeklyVolume: run.weeklyVolume.map((w) => ({
-      isoWeek: w.isoWeek,
-      commits: w.commits,
-    })),
-    commitTypes: run.commitTypeBreakdown.map((t) => ({
-      commitType: t.commitType,
-      count: t.count,
-      sharePct: t.sharePct,
-    })),
-  };
+  return loadRolledUpProductivityRun(organizationId);
 }
 
 export async function loadLatestAgentAnalysis(

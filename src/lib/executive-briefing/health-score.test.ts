@@ -110,6 +110,8 @@ describe("computeEngineeringDimension", () => {
         worstFiles: [],
         riskDrivers: [],
         deadCode: [],
+        repositoryCount: 1,
+        repositories: ["acme/app"],
       },
       productivity: {
         id: "prod-1",
@@ -127,6 +129,8 @@ describe("computeEngineeringDimension", () => {
         contributors: [{ authorName: "Alice", commits: 12, sharePct: 30, net: 100, rank: 1 }],
         weeklyVolume: [],
         commitTypes: [],
+        repositoryCount: 1,
+        repositories: ["acme/app"],
       },
       freshness: [],
     };

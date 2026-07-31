@@ -88,6 +88,8 @@ function govRun(partial: Partial<LatestGovernanceRunSummary> = {}): LatestGovern
         cleanupReady: true,
       },
     ],
+    repositoryCount: 1,
+    repositories: ["connexus-web-api"],
     ...partial,
   };
 }
@@ -120,6 +122,8 @@ function prodRun(
       { commitType: "feat", count: 20, sharePct: 50 },
       { commitType: "fix", count: 10, sharePct: 25 },
     ],
+    repositoryCount: 1,
+    repositories: ["connexus-web-api"],
     ...partial,
   };
 }

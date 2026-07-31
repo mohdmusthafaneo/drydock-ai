@@ -9,12 +9,23 @@ import { analyzeGitReportSchema, mapReportToRows } from "./report-schema";
 import { resolveOrganizationId } from "../../config/request-context";
 import { prisma } from "@/lib/prisma";
 
+/** Derive `owner/repo` from a GitHub URL so multi-repo orgs do not collide on bare names. */
 function parseRepositoryName(repositoryUrl: string): string {
-  const cleaned = repositoryUrl.trim().split("#")[0].split("?")[0];
-  const last = cleaned.split("/").pop() ?? "";
-  const noGit = last.replace(/\.git$/i, "");
-  if (!noGit.trim()) throw new Error(`Could not parse repository name from URL: ${repositoryUrl}`);
-  return noGit;
+  const cleaned = repositoryUrl.trim().split("#")[0].split("?")[0].replace(/\.git$/i, "");
+  try {
+    const u = new URL(cleaned);
+    const parts = u.pathname.split("/").filter(Boolean);
+    if (parts.length >= 2) {
+      return `${parts[parts.length - 2]}/${parts[parts.length - 1]}`;
+    }
+  } catch {
+    // fall through for scp-style or bare owner/repo
+  }
+  const scp = cleaned.match(/[:/]([^/]+)\/([^/]+)$/);
+  if (scp) return `${scp[1]}/${scp[2]}`;
+  const slash = cleaned.match(/^([^/]+)\/([^/]+)$/);
+  if (slash) return `${slash[1]}/${slash[2]}`;
+  throw new Error(`Could not parse owner/repo from URL: ${repositoryUrl}`);
 }
 
 function chunkArray<T>(arr: T[], size: number): T[][] {

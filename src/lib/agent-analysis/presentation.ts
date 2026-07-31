@@ -485,14 +485,23 @@ export function buildCodeHealthPageView(
   const level = (run.riskLevel ?? "").toLowerCase();
   const priority = run.reviewPriority ? humanizeSignalLabel(run.reviewPriority) : null;
   const window = humanizeRevspec(run.revspec);
+  const repoCount = run.repositoryCount ?? 1;
+  const multiRepo = repoCount > 1;
+  const worstRepo = run.repositoryName;
 
   let headline: string;
   if (level === "high" || level === "critical" || (run.riskScore != null && run.riskScore >= 7)) {
-    headline = `High change risk on ${run.repositoryName}`;
+    headline = multiRepo
+      ? `High change risk — highest: ${worstRepo}`
+      : `High change risk on ${worstRepo}`;
   } else if (level === "medium" || (run.riskScore != null && run.riskScore >= 4)) {
-    headline = `Elevated change risk on ${run.repositoryName}`;
+    headline = multiRepo
+      ? `Elevated change risk — highest: ${worstRepo}`
+      : `Elevated change risk on ${worstRepo}`;
   } else {
-    headline = `Change risk is manageable on ${run.repositoryName}`;
+    headline = multiRepo
+      ? `Change risk is manageable across ${repoCount} repositories`
+      : `Change risk is manageable on ${worstRepo}`;
   }
 
   const subcopyParts = [
@@ -589,7 +598,9 @@ export function buildCodeHealthPageView(
     },
     highlights: highlights.slice(0, 4),
     decisions,
-    scope: `${run.repositoryName} · ${window} · ${verifiedAgo(run.analyzedAt)}`,
+    scope: multiRepo
+      ? `${repoCount} repositories · ${window} · ${verifiedAgo(run.analyzedAt)}`
+      : `${run.repositoryName} · ${window} · ${verifiedAgo(run.analyzedAt)}`,
     topHotspots,
     riskDrivers,
     cleanupReadyCount,
@@ -627,22 +638,31 @@ export function buildProductivityPageView(
   const top = run.contributors[0];
   const strongestSignals = run.strongestSignals.map(humanizeSignalLabel);
   const weakestSignals = run.weakestSignals.map(humanizeSignalLabel);
+  const repoCount = run.repositoryCount ?? 1;
+  const multiRepo = repoCount > 1;
+  const repoLabel = multiRepo
+    ? `${repoCount} repositories`
+    : run.repositoryName;
 
   let headline: string;
   let subcopy: string;
   if (top && top.sharePct >= 50) {
     headline = `Bus factor risk: ${top.authorName} owns ${top.sharePct}% of commits`;
-    subcopy = `${run.totalCommits?.toLocaleString() ?? "—"} commits analyzed on ${run.repositoryName} (${run.branch}). Spread ownership before the next push window.`;
+    subcopy = `${run.totalCommits?.toLocaleString() ?? "—"} commits analyzed across ${repoLabel}${multiRepo ? "" : ` (${run.branch})`}. Spread ownership before the next push window.`;
   } else if (weakestSignals.length > 0) {
-    headline = `Watch delivery signals on ${run.repositoryName}`;
+    headline = multiRepo
+      ? `Watch delivery signals across ${repoCount} repositories`
+      : `Watch delivery signals on ${run.repositoryName}`;
     subcopy = top
       ? `${top.authorName} leads at ${top.sharePct}% · weakest: ${weakestSignals.slice(0, 2).join(", ")}.`
       : `Weakest signals: ${weakestSignals.slice(0, 2).join(", ")}.`;
   } else {
-    headline = `Delivery cadence looks healthy on ${run.repositoryName}`;
+    headline = multiRepo
+      ? `Delivery cadence looks healthy across ${repoCount} repositories`
+      : `Delivery cadence looks healthy on ${run.repositoryName}`;
     subcopy = top
       ? `${top.authorName} leads at ${top.sharePct}% of commits — within a healthy range.`
-      : `${run.totalCommits?.toLocaleString() ?? "—"} commits analyzed on ${run.branch}.`;
+      : `${run.totalCommits?.toLocaleString() ?? "—"} commits analyzed${multiRepo ? "" : ` on ${run.branch}`}.`;
   }
 
   const highlights: BriefingHighlight[] = [
@@ -729,7 +749,9 @@ export function buildProductivityPageView(
     },
     highlights: highlights.slice(0, 4),
     decisions,
-    scope: `${run.repositoryName} · ${run.branch} · ${verifiedAgo(run.analyzedAt)}`,
+    scope: multiRepo
+      ? `${repoCount} repositories · default branches · ${verifiedAgo(run.analyzedAt)}`
+      : `${run.repositoryName} · ${run.branch} · ${verifiedAgo(run.analyzedAt)}`,
     contributorSegments,
     commitTypeSegments,
     weeklyVolume: run.weeklyVolume.slice(-12),

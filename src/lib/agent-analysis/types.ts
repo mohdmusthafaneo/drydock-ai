@@ -94,6 +94,10 @@ export type LatestGovernanceRunSummary = {
     reason: string | null;
     cleanupReady: boolean | null;
   }>;
+  /** Number of repos included in this org rollup (1 when single-repo). */
+  repositoryCount: number;
+  /** Repo full names (owner/repo) included in the rollup. */
+  repositories: string[];
 };
 
 export type LatestProductivityRunSummary = {
@@ -118,6 +122,10 @@ export type LatestProductivityRunSummary = {
   }>;
   weeklyVolume: Array<{ isoWeek: string; commits: number }>;
   commitTypes: Array<{ commitType: string; count: number; sharePct: number }>;
+  /** Number of repos included in this org rollup (1 when single-repo). */
+  repositoryCount: number;
+  /** Repo full names (owner/repo) included in the rollup. */
+  repositories: string[];
 };
 
 export type LatestAgentAnalysisBundle = {

@@ -4,36 +4,59 @@ import { parseJiraMeta } from "@/lib/jira-meta";
 import { isAwsTrulyConnected } from "@/lib/aws-meta";
 import { isJiraOAuthConnected } from "@/lib/jira-meta";
 
+export type RepoTarget = {
+  fullName: string;
+  repoUrl: string;
+  branch: string;
+};
+
 export type OrgAgentTargets = {
   organizationId: string;
   qa: { projectKeys: string[] } | null;
   devops: { configured: true } | null;
-  productivity: { repoUrl: string; branch: string } | null;
-  governance: { repoUrl: string; branch: string; revspec: string } | null;
+  productivity: { repos: RepoTarget[] } | null;
+  governance: { repos: RepoTarget[]; revspec: string } | null;
 };
 
 function githubRepoUrl(fullName: string): string {
   return `https://github.com/${fullName}.git`;
 }
 
-function pickPrimaryRepo(meta: ReturnType<typeof parseIntegrationMeta>): {
-  fullName: string;
-  branch: string;
-} | null {
-  const fullName =
-    meta.repoFullNames?.[0] ??
-    meta.repos?.[0]?.fullName ??
-    meta.githubSchemaSnapshot?.repos?.[0]?.fullName;
-  if (!fullName) return null;
+/** All org-selected GitHub repos with per-repo default branch. */
+function listRepoTargets(
+  meta: ReturnType<typeof parseIntegrationMeta>,
+): RepoTarget[] {
+  const fullNames =
+    meta.repoFullNames && meta.repoFullNames.length > 0
+      ? meta.repoFullNames
+      : (meta.repos?.map((r) => r.fullName) ??
+        meta.githubSchemaSnapshot?.repos?.map((r) => r.fullName) ??
+        []);
 
-  const branch =
-    meta.repos?.find((r) => r.fullName === fullName)?.defaultBranch ??
-    meta.githubSchemaSnapshot?.repos?.find((r) => r.fullName === fullName)
-      ?.defaultBranch ??
-    meta.githubSchemaSnapshot?.suggestions?.productionBranch?.value ??
-    "main";
+  const fallbackBranch =
+    meta.githubSchemaSnapshot?.suggestions?.productionBranch?.value ?? "main";
 
-  return { fullName, branch };
+  const seen = new Set<string>();
+  const out: RepoTarget[] = [];
+  for (const fullName of fullNames) {
+    const key = fullName.toLowerCase();
+    if (!fullName.trim() || seen.has(key)) continue;
+    seen.add(key);
+
+    const branch =
+      meta.repos?.find((r) => r.fullName.toLowerCase() === key)?.defaultBranch ??
+      meta.githubSchemaSnapshot?.repos?.find(
+        (r) => r.fullName.toLowerCase() === key,
+      )?.defaultBranch ??
+      fallbackBranch;
+
+    out.push({
+      fullName,
+      repoUrl: githubRepoUrl(fullName),
+      branch,
+    });
+  }
+  return out;
 }
 
 /** Resolve which domain agents can run for an org from Integration metadata. */
@@ -66,13 +89,11 @@ export async function resolveOrgAgentTargets(
   let governance: OrgAgentTargets["governance"] = null;
   if (github?.status === "CONNECTED") {
     const meta = parseIntegrationMeta(github.metadataJson);
-    const repo = pickPrimaryRepo(meta);
-    if (repo) {
-      const repoUrl = githubRepoUrl(repo.fullName);
-      productivity = { repoUrl, branch: repo.branch };
+    const repos = listRepoTargets(meta);
+    if (repos.length > 0) {
+      productivity = { repos };
       governance = {
-        repoUrl,
-        branch: repo.branch,
+        repos,
         revspec: "HEAD~20..HEAD",
       };
     }

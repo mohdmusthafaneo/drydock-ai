@@ -8,11 +8,19 @@ const inputSchema = z.object({
   organizationId: z.string().optional(),
 });
 
+const repoResultSchema = z.object({
+  repository: z.string(),
+  status: z.enum(["ok", "failed"]),
+  error: z.string().optional(),
+});
+
 const domainResultSchema = z.object({
   domain: z.enum(["qa", "devops", "productivity", "governance"]),
   status: z.enum(["ok", "skipped", "failed"]),
   reason: z.string().optional(),
   error: z.string().optional(),
+  repository: z.string().optional(),
+  repoResults: z.array(repoResultSchema).optional(),
 });
 
 const outputSchema = z.object({
@@ -78,6 +86,12 @@ const refreshAllOrgsStep = createStep({
           status: d.status,
           reason: d.reason,
           error: d.error,
+          repository: d.repository,
+          repoResults: d.repoResults?.map((rr) => ({
+            repository: rr.repository,
+            status: rr.status,
+            error: rr.error,
+          })),
         })),
       })),
     };

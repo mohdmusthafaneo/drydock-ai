@@ -29,8 +29,12 @@ export async function POST() {
   const planned = {
     qa: Boolean(targets.qa),
     devops: Boolean(targets.devops),
-    productivity: Boolean(targets.productivity),
-    governance: Boolean(targets.governance),
+    productivity: targets.productivity
+      ? { repoCount: targets.productivity.repos.length }
+      : null,
+    governance: targets.governance
+      ? { repoCount: targets.governance.repos.length }
+      : null,
   };
 
   const mastra = await getMastra();

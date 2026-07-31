@@ -143,6 +143,10 @@ export function buildAgentAnalysisClaims(
       verdictLabel = "Healthy";
     }
 
+    const prodRepoLabel =
+      (bundle.productivity.repositoryCount ?? 1) > 1
+        ? `${bundle.productivity.repositoryCount} repositories`
+        : bundle.productivity.repositoryName;
     claims.push({
       id: "productivity",
       headline: "Delivery cadence",
@@ -152,8 +156,8 @@ export function buildAgentAnalysisClaims(
       verdictLabel,
       context: capitalizeFirst(
         top
-          ? `${top.authorName} owns ${top.sharePct}% of commits on ${bundle.productivity.repositoryName}`
-          : `Latest productivity scan for ${bundle.productivity.repositoryName}`,
+          ? `${top.authorName} owns ${top.sharePct}% of commits across ${prodRepoLabel}`
+          : `Latest productivity scan across ${prodRepoLabel}`,
       ),
       href: "/productivity",
     });

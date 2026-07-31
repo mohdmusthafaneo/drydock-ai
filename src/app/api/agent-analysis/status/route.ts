@@ -21,11 +21,16 @@ export async function GET() {
     targets: {
       qa: targets.qa,
       devops: Boolean(targets.devops),
-      productivity: targets.productivity,
+      productivity: targets.productivity
+        ? {
+            repoCount: targets.productivity.repos.length,
+            repositories: targets.productivity.repos.map((r) => r.fullName),
+          }
+        : null,
       governance: targets.governance
         ? {
-            repoUrl: targets.governance.repoUrl,
-            branch: targets.governance.branch,
+            repoCount: targets.governance.repos.length,
+            repositories: targets.governance.repos.map((r) => r.fullName),
             revspec: targets.governance.revspec,
           }
         : null,
@@ -52,6 +57,8 @@ export async function GET() {
             id: bundle.governance.id,
             analyzedAt: bundle.governance.analyzedAt,
             riskScore: bundle.governance.riskScore,
+            repositoryCount: bundle.governance.repositoryCount,
+            repositories: bundle.governance.repositories,
           }
         : null,
       productivity: bundle.productivity
@@ -59,6 +66,8 @@ export async function GET() {
             id: bundle.productivity.id,
             analyzedAt: bundle.productivity.analyzedAt,
             commits: bundle.productivity.totalCommits,
+            repositoryCount: bundle.productivity.repositoryCount,
+            repositories: bundle.productivity.repositories,
           }
         : null,
     },
