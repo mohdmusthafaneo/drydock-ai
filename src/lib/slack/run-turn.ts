@@ -1,7 +1,6 @@
 import type { Message, Thread } from "chat";
 import type { UserRole } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
-import { hasPermission } from "@/lib/rbac";
 import type { SessionPayload } from "@/lib/session";
 import {
   createAgentChatThread,
@@ -45,18 +44,29 @@ function decodeSlackThreadParts(threadId: string): {
   return { channelId: parts[1]!, threadTs: parts.slice(2).join(":") };
 }
 
-async function resolveSlackActor(input: {
+/**
+ * Optional AIDOS user match for attribution only.
+ * Access is gated by Slack workspace install + budget — not by AIDOS invite.
+ */
+async function resolveOptionalAidosUser(input: {
   organizationId: string;
   slackUserId: string;
   botToken: string;
   emailHint?: string;
-}): Promise<SessionPayload | null> {
-  let email = input.emailHint?.trim().toLowerCase();
+}): Promise<{
+  actor: SessionPayload | null;
+  slackEmail: string | null;
+}> {
+  let email = input.emailHint?.trim().toLowerCase() || null;
   if (!email) {
-    const profile = await fetchSlackUser(input.botToken, input.slackUserId);
-    email = profile?.profile?.email?.trim().toLowerCase();
+    try {
+      const profile = await fetchSlackUser(input.botToken, input.slackUserId);
+      email = profile?.profile?.email?.trim().toLowerCase() || null;
+    } catch {
+      email = null;
+    }
   }
-  if (!email) return null;
+  if (!email) return { actor: null, slackEmail: null };
 
   const user = await prisma.user.findFirst({
     where: {
@@ -73,20 +83,25 @@ async function resolveSlackActor(input: {
     },
   });
 
-  if (!user) return null;
+  if (!user) return { actor: null, slackEmail: email };
 
   return {
-    userId: user.id,
-    organizationId: user.organizationId,
-    email: user.email,
-    name: user.name,
-    role: user.role as UserRole,
+    slackEmail: email,
+    actor: {
+      userId: user.id,
+      organizationId: user.organizationId,
+      email: user.email,
+      name: user.name,
+      role: user.role as UserRole,
+    },
   };
 }
 
 async function getOrCreateSlackThread(input: {
   organizationId: string;
-  userId: string;
+  userId?: string | null;
+  slackUserId: string;
+  slackEmail: string | null;
   externalThreadId: string;
   titleSeed: string;
 }): Promise<string> {
@@ -128,17 +143,21 @@ async function getOrCreateSlackThread(input: {
         threadId: created.data.threadId,
         externalSource: EXTERNAL_SOURCE,
         externalThreadId: input.externalThreadId,
+        slackUserId: input.slackUserId,
+        slackEmail: input.slackEmail,
       },
     });
     await logChatAudit(tx, {
       organizationId: input.organizationId,
-      userId: input.userId,
+      userId: input.userId ?? undefined,
       action: "agent_chat.thread.linked_external",
       entityType: "AgentChatThread",
       entityId: created.data.threadId,
       metadata: {
         externalSource: EXTERNAL_SOURCE,
         externalThreadId: input.externalThreadId,
+        slackUserId: input.slackUserId,
+        slackEmail: input.slackEmail,
       },
     });
   });
@@ -147,7 +166,8 @@ async function getOrCreateSlackThread(input: {
 }
 
 /**
- * Governed Slack turn: identity gate → RBAC → budget → persist → assistant → reply.
+ * Governed Slack turn: workspace tenant → budget → persist → assistant → reply.
+ * Any member of the connected Slack workspace can ask; AIDOS invite is not required.
  * Does not call Mastra's default channel handler.
  */
 export async function runSlackAssistantTurn(
@@ -180,26 +200,12 @@ export async function runSlackAssistantTurn(
     return;
   }
 
-  const actor = await resolveSlackActor({
+  const { actor, slackEmail } = await resolveOptionalAidosUser({
     organizationId: tenant.organizationId,
     slackUserId,
     botToken: tenant.botToken,
     emailHint: message.author?.email,
   });
-
-  if (!actor) {
-    await thread.post(
-      "Your Slack account email is not linked to an active AIDOS user in this organization. Ask an admin to invite you, then try again.",
-    );
-    return;
-  }
-
-  if (!hasPermission(actor, "agents", "view")) {
-    await thread.post(
-      "Your AIDOS role does not have permission to use the assistant. Ask an org admin to grant Agents access.",
-    );
-    return;
-  }
 
   const budget = await consumeSlackTurnBudget(tenant.organizationId);
   if (!budget.allowed) {
@@ -212,14 +218,16 @@ export async function runSlackAssistantTurn(
   const externalThreadId = `${parts.channelId}:${parts.threadTs}`;
   const threadId = await getOrCreateSlackThread({
     organizationId: tenant.organizationId,
-    userId: actor.userId,
+    userId: actor?.userId,
+    slackUserId,
+    slackEmail,
     externalThreadId,
     titleSeed: content,
   });
 
   const human = await postHumanChatMessage({
     organizationId: tenant.organizationId,
-    userId: actor.userId,
+    userId: actor?.userId,
     threadId,
     content,
   });

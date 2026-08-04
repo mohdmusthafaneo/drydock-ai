@@ -13,7 +13,8 @@ import {
 
 export type CreateThreadInput = {
   organizationId: string;
-  userId: string;
+  /** Optional — Slack workspace guests may post without an AIDOS user. */
+  userId?: string | null;
   title?: string;
   initialMessage?: string;
 };
@@ -52,7 +53,7 @@ export async function createAgentChatThread(
       data: {
         organizationId,
         title: resolvedTitle,
-        createdByUserId: userId,
+        createdByUserId: userId ?? null,
         status: "open",
       },
     });
@@ -61,12 +62,12 @@ export async function createAgentChatThread(
       organizationId,
       type: "agent_chat.thread.created",
       title: `Agent thread created: ${thread.title}`,
-      metadata: { threadId: thread.id, userId },
+      metadata: { threadId: thread.id, userId: userId ?? null },
     });
 
     await logChatAudit(tx, {
       organizationId,
-      userId,
+      userId: userId ?? undefined,
       action: "agent_chat.thread.created",
       entityType: "AgentChatThread",
       entityId: thread.id,
@@ -82,7 +83,7 @@ export async function createAgentChatThread(
           threadId: thread.id,
           kind: "human",
           contentMarkdown: initialContent,
-          authorUserId: userId,
+          authorUserId: userId ?? null,
         },
       });
       messageId = message.id;
@@ -91,12 +92,16 @@ export async function createAgentChatThread(
         organizationId,
         type: "agent_chat.message.posted",
         title: "Human message posted in agent thread",
-        metadata: { threadId: thread.id, messageId: message.id, userId },
+        metadata: {
+          threadId: thread.id,
+          messageId: message.id,
+          userId: userId ?? null,
+        },
       });
 
       await logChatAudit(tx, {
         organizationId,
-        userId,
+        userId: userId ?? undefined,
         action: "agent_chat.message.posted",
         entityType: "AgentChatMessage",
         entityId: message.id,
@@ -204,7 +209,8 @@ export async function getAgentChatThread(
 
 export async function postHumanChatMessage(input: {
   organizationId: string;
-  userId: string;
+  /** Optional — Slack workspace guests may post without an AIDOS user. */
+  userId?: string | null;
   threadId: string;
   content: string;
 }): Promise<
@@ -227,6 +233,7 @@ export async function postHumanChatMessage(input: {
   }
 
   const wasClosed = thread.status === "done";
+  const authorUserId = userId ?? null;
 
   const message = await prisma.$transaction(async (tx) => {
     const created = await tx.agentChatMessage.create({
@@ -235,7 +242,7 @@ export async function postHumanChatMessage(input: {
         threadId,
         kind: "human",
         contentMarkdown: trimmed,
-        authorUserId: userId,
+        authorUserId,
       },
     });
 
@@ -253,7 +260,7 @@ export async function postHumanChatMessage(input: {
           threadId,
           kind: "system",
           contentMarkdown: "Conversation reopened",
-          authorUserId: userId,
+          authorUserId,
         },
       });
 
@@ -261,12 +268,16 @@ export async function postHumanChatMessage(input: {
         organizationId,
         type: "agent_chat.thread.reopened",
         title: "Conversation reopened by human follow-up",
-        metadata: { threadId, userId, triggerMessageId: created.id },
+        metadata: {
+          threadId,
+          userId: authorUserId,
+          triggerMessageId: created.id,
+        },
       });
 
       await logChatAudit(tx, {
         organizationId,
-        userId,
+        userId: authorUserId ?? undefined,
         action: "agent_chat.thread.reopened",
         entityType: "AgentChatThread",
         entityId: threadId,
@@ -281,13 +292,13 @@ export async function postHumanChatMessage(input: {
       metadata: {
         threadId,
         messageId: created.id,
-        userId,
+        userId: authorUserId,
       },
     });
 
     await logChatAudit(tx, {
       organizationId,
-      userId,
+      userId: authorUserId ?? undefined,
       action: "agent_chat.message.posted",
       entityType: "AgentChatMessage",
       entityId: created.id,
