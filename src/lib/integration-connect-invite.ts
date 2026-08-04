@@ -3,8 +3,10 @@ import type { IntegrationConnectInvite, IntegrationProvider } from "@/generated/
 import { prisma } from "@/lib/prisma";
 import { getAppUrl } from "@/lib/app-url";
 
-const CONNECT_PROVIDERS = new Set<IntegrationProvider>(["GITHUB", "JIRA"]);
+const CONNECT_PROVIDERS = new Set<IntegrationProvider>(["GITHUB", "JIRA", "SLACK"]);
 const INVITE_TTL_MS = 24 * 60 * 60 * 1000;
+
+export type ConnectInviteProvider = "GITHUB" | "JIRA" | "SLACK";
 
 export type ConnectInviteErrorCode =
   | "invalid"
@@ -21,11 +23,11 @@ export class ConnectInviteError extends Error {
   }
 }
 
-function assertConnectProvider(provider: IntegrationProvider): "GITHUB" | "JIRA" {
+function assertConnectProvider(provider: IntegrationProvider): ConnectInviteProvider {
   if (!CONNECT_PROVIDERS.has(provider)) {
     throw new Error(`Unsupported connect invite provider: ${provider}`);
   }
-  return provider as "GITHUB" | "JIRA";
+  return provider as ConnectInviteProvider;
 }
 
 function generateToken(): string {
@@ -33,10 +35,15 @@ function generateToken(): string {
 }
 
 export function buildConnectInviteUrl(
-  provider: "GITHUB" | "JIRA",
+  provider: ConnectInviteProvider,
   token: string,
 ): string {
-  const path = provider === "GITHUB" ? `/connect/github/${token}` : `/connect/jira/${token}`;
+  const path =
+    provider === "GITHUB"
+      ? `/connect/github/${token}`
+      : provider === "JIRA"
+        ? `/connect/jira/${token}`
+        : `/connect/slack/${token}`;
   return `${getAppUrl()}${path}`;
 }
 

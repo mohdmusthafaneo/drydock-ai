@@ -84,6 +84,7 @@ Engineering execution (out of MVP auto-exec)
 
 - [x] Auth, discovery, Delivery DNA, recommendations, approvals
 - [x] GitHub OAuth (partial)
+- [x] Slack multi-tenant assistant channel (Mastra Channels + governed Q&A) — see [`slack-integration.md`](./slack-integration.md)
 
 ### Accelerator — next ⬜
 

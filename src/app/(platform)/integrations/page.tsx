@@ -23,11 +23,14 @@ import { ConnectHandoffBanner } from "@/components/integrations/connect-handoff-
 import { SyncIntegrationsButton } from "@/components/integrations/integration-health-actions";
 import { GitHubIntegrationPanel } from "@/components/integrations/github-integration-panel";
 import { JiraIntegrationPanel } from "@/components/integrations/jira-integration-panel";
+import { SlackIntegrationPanel } from "@/components/integrations/slack-integration-panel";
 import { PrometheusIntegrationPanel } from "@/components/integrations/prometheus-integration-panel";
 import { GrafanaIntegrationPanel } from "@/components/integrations/grafana-integration-panel";
 import { ObservabilityPairingBanner } from "@/components/integrations/observability-pairing-banner";
 import { isPrometheusTrulyConnected, parsePrometheusMeta } from "@/lib/prometheus-meta";
 import { isGrafanaTrulyConnected, parseGrafanaMeta } from "@/lib/grafana-meta";
+import { getSlackOAuthConfig } from "@/lib/slack-oauth";
+import { parseSlackMeta } from "@/lib/slack-meta";
 import { IntegrationHealthSummaryStrip } from "@/components/integrations/integration-health-summary";
 import { RevealSection } from "@/components/motion/reveal-section";
 import { DisconnectButton, StubConnectButton } from "@/components/integrations/integration-actions";
@@ -38,6 +41,7 @@ import {
   parseAwsMeta,
 } from "@/lib/aws-meta";
 import { ensureAwsIntegrationRow } from "@/lib/ensure-aws-integration";
+import { ensureSlackIntegrationRow } from "@/lib/ensure-slack-integration";
 import { decryptToken } from "@/lib/token-crypto";
 import { ConnectorConfigureDisclosure } from "@/components/integrations/connector-configure-disclosure";
 import { MoreConnectorsSection } from "@/components/integrations/more-connectors-section";
@@ -52,9 +56,9 @@ const PROVIDER_LABELS: Record<string, string> = {
   AWS: "AWS",
 };
 
-const PRIMARY_ORDER = ["GITHUB", "JIRA"] as const;
+const PRIMARY_ORDER = ["GITHUB", "JIRA", "SLACK"] as const;
 const OBSERVABILITY_ORDER = ["GRAFANA", "PROMETHEUS"] as const;
-const MORE_PROVIDERS = new Set(["JENKINS", "SLACK"]);
+const MORE_PROVIDERS = new Set(["JENKINS"]);
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -140,13 +144,16 @@ export default async function IntegrationsPage({
   const appUrl = getAppUrl();
   const githubWebhookUrl = `${appUrl}/api/webhooks/github?organizationId=${session.organizationId}`;
   const grafanaWebhookUrl = `${appUrl}/api/webhooks/grafana?organizationId=${session.organizationId}`;
+  const slackWebhookUrl = `${appUrl}/api/webhooks/slack`;
   const appUrlConfigured = isAppUrlConfigured();
 
   await ensureAwsIntegrationRow(session.organizationId);
+  await ensureSlackIntegrationRow(session.organizationId);
   const ctx = await getOrganizationContext(session.organizationId);
   const githubAppSlug = process.env.GITHUB_APP_SLUG;
   const trustedAwsAccountId = process.env.TRUSTED_AWS_ACCOUNT_ID?.trim() || null;
   const jiraOAuthConfigured = getJiraOAuthConfig().configured;
+  const slackOAuthConfigured = getSlackOAuthConfig().configured;
   const canManage = hasPermission(session, "integrations", "manage_integrations");
   const isDev = process.env.NODE_ENV === "development";
 
@@ -193,8 +200,10 @@ export default async function IntegrationsPage({
     githubInstallState,
     githubWebhookUrl,
     grafanaWebhookUrl,
+    slackWebhookUrl,
     appUrlConfigured,
     jiraOAuthConfigured,
+    slackOAuthConfigured,
     jiraProjectOptions,
     jiraProjectLoadError,
     trustedAwsAccountId,
@@ -296,10 +305,21 @@ export default async function IntegrationsPage({
           </div>
         </section>
 
+        <section className="space-y-4">
+          <SectionHeading
+            step={3}
+            title="Team chat"
+            description="Install Slack so org members can ask the AIDOS assistant read-only questions from channels and DMs."
+          />
+          <div className="grid gap-4 md:grid-cols-2">
+            {primary.filter((i) => i.provider === "SLACK").map((i) => renderCard(i))}
+          </div>
+        </section>
+
         {observability.length > 0 && (
           <section className="space-y-4">
             <SectionHeading
-              step={3}
+              step={4}
               title="Observability"
               description="Grafana and Prometheus for runtime health and release confidence."
             />
@@ -312,7 +332,7 @@ export default async function IntegrationsPage({
         {aws && (
           <section className="space-y-4">
             <SectionHeading
-              step={4}
+              step={5}
               title="Cloud"
               description="AWS assume-role access for inventory and cloud hygiene scans."
             />
@@ -358,8 +378,10 @@ function IntegrationConnectorCard({
   githubInstallState,
   githubWebhookUrl,
   grafanaWebhookUrl,
+  slackWebhookUrl,
   appUrlConfigured,
   jiraOAuthConfigured,
+  slackOAuthConfigured,
   jiraProjectOptions,
   jiraProjectLoadError,
   trustedAwsAccountId,
@@ -374,8 +396,10 @@ function IntegrationConnectorCard({
   githubInstallState: string | undefined;
   githubWebhookUrl: string;
   grafanaWebhookUrl: string;
+  slackWebhookUrl: string;
   appUrlConfigured: boolean;
   jiraOAuthConfigured: boolean;
+  slackOAuthConfigured: boolean;
   jiraProjectOptions: Array<{ key: string; name: string }>;
   jiraProjectLoadError: string | undefined;
   trustedAwsAccountId: string | null;
@@ -384,8 +408,10 @@ function IntegrationConnectorCard({
 }) {
   const meta = parseIntegrationMeta(integration.metadataJson);
   const jiraMeta = parseJiraMeta(integration.metadataJson);
+  const slackMeta = parseSlackMeta(integration.metadataJson);
   const isGitHub = integration.provider === "GITHUB";
   const isJira = integration.provider === "JIRA";
+  const isSlack = integration.provider === "SLACK";
   const isPrometheus = integration.provider === "PROMETHEUS";
   const isGrafana = integration.provider === "GRAFANA";
   const isAws = integration.provider === "AWS";
@@ -447,6 +473,23 @@ function IntegrationConnectorCard({
         initialProjectLoadError={jiraProjectLoadError}
         canManage={canManage}
         appUrlConfigured={appUrlConfigured}
+      />
+    );
+  } else if (isSlack) {
+    body = (
+      <SlackIntegrationPanel
+        connected={isConnected}
+        configured={slackOAuthConfigured}
+        teamName={slackMeta.teamName}
+        teamId={slackMeta.teamId}
+        botUserId={slackMeta.botUserId}
+        scope={slackMeta.scope}
+        connectedAt={integration.connectedAt?.toISOString() ?? slackMeta.connectedAt}
+        connectionStatus={slackMeta.connectionStatus}
+        lastError={slackMeta.lastError ?? integration.lastError ?? undefined}
+        canManage={canManage}
+        appUrlConfigured={appUrlConfigured}
+        webhookUrl={slackWebhookUrl}
       />
     );
   } else if (isPrometheus) {

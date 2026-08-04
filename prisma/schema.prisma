@@ -890,6 +890,10 @@ model AgentChatThread {
   status             AgentChatThreadStatus    @default(open)
   contextSummary     String?
   createdByUserId    String?
+  /// External channel source, e.g. "slack"
+  externalSource     String?
+  /// Platform thread key, e.g. "<channelId>:<threadTs>"
+  externalThreadId   String?
   closedAt           DateTime?
   createdAt          DateTime                 @default(now())
   updatedAt          DateTime                 @updatedAt
@@ -898,6 +902,7 @@ model AgentChatThread {
   createdBy     User?                    @relation("ChatThreadCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
   messages      AgentChatMessage[]
 
+  @@unique([organizationId, externalSource, externalThreadId])
   @@index([organizationId, status, updatedAt])
 }
 

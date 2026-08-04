@@ -245,9 +245,9 @@ Hired agents share the specialist agent template; **dynamic `AGENTS.md` content*
 |----|------|-------|
 | M3.1 | `discoveryDnaWorkflow` — optional LLM enrichment of Delivery DNA narrative | Keep deterministic core; LLM adds summary/rationale |
 | M3.2 | `mvpAcceleratorWorkflow` — multi-step PRD → architecture → epics pipeline | Human approval gates between steps |
-| M3.3 | Phase 5.6g Slack ingress → invoke `chatRoutingWorkflow` via ingress API | Build on Mastra from day one |
+| M3.3 | Phase 5.6g Slack ingress via Mastra Channels (`@chat-adapter/slack`) → governed `runSlackAssistantTurn` (org-scoped, audited) | **Done** — see [`slack-integration.md`](./slack-integration.md); not a custom ingress stub |
 
-**Exit criteria:** Feature-flagged LLM paths for discovery/accelerator; 5.6g ingress stub calls Mastra workflow.
+**Exit criteria:** Feature-flagged LLM paths for discovery/accelerator; Slack assistant channel live via Mastra Channels + AIDOS governance.
 
 ---
 

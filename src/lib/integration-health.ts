@@ -2,6 +2,7 @@ import type { Integration, IntegrationProvider } from "@/generated/prisma/client
 import { prisma } from "@/lib/prisma";
 import { isGrafanaTrulyConnected, parseGrafanaMeta } from "@/lib/grafana-meta";
 import { isJiraOAuthConnected, parseJiraMeta } from "@/lib/jira-meta";
+import { isSlackTrulyConnected, parseSlackMeta } from "@/lib/slack-meta";
 import { isJiraReconnectMessage, JIRA_RECONNECT_MESSAGE } from "@/lib/jira-errors";
 
 export type IntegrationHealthState =
@@ -103,6 +104,37 @@ export async function checkIntegrationHealth(
       }
     } else {
       message = "Connected — initial sync pending";
+    }
+  } else if (integration.provider === "SLACK" && isSlackTrulyConnected(integration)) {
+    const meta = parseSlackMeta(integration.metadataJson);
+    const requiredScopes = [
+      "app_mentions:read",
+      "chat:write",
+      "users:read",
+      "users:read.email",
+    ];
+    const granted = new Set(
+      (meta.scope ?? "")
+        .split(/[,\s]+/)
+        .map((s) => s.trim())
+        .filter(Boolean),
+    );
+    const missing = requiredScopes.filter((s) => granted.size > 0 && !granted.has(s));
+
+    if (meta.connectionStatus === "error" || !meta.botTokenEnc) {
+      healthy = false;
+      expired = true;
+      message =
+        meta.lastError ??
+        integration.lastError ??
+        "Reconnect Slack to restore the assistant";
+    } else if (missing.length > 0) {
+      healthy = false;
+      message = `Missing Slack scopes: ${missing.join(", ")} — reinstall the app`;
+    } else {
+      message = meta.teamName
+        ? `Connected to ${meta.teamName}`
+        : "Connected — Slack assistant ready";
     }
   } else if (integration.lastSyncAt) {
     const hoursSince =

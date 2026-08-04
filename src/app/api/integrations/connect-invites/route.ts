@@ -10,7 +10,7 @@ import {
 } from "@/lib/integration-connect-invite";
 
 const createSchema = z.object({
-  provider: z.enum(["GITHUB", "JIRA"]),
+  provider: z.enum(["GITHUB", "JIRA", "SLACK"]),
 });
 
 export async function POST(request: Request) {
@@ -78,7 +78,7 @@ export async function GET(request: Request) {
   }
 
   const provider = new URL(request.url).searchParams.get("provider");
-  if (provider !== "GITHUB" && provider !== "JIRA") {
+  if (provider !== "GITHUB" && provider !== "JIRA" && provider !== "SLACK") {
     return NextResponse.json({ error: "Invalid provider" }, { status: 400 });
   }
 

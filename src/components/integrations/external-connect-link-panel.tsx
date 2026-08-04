@@ -5,13 +5,21 @@ import { Copy, Link2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatFixedLocaleDateTime } from "@/lib/format-date";
 
+type ConnectInviteProvider = "GITHUB" | "JIRA" | "SLACK";
+
 type ActiveInvite = {
   id: string;
-  provider: "GITHUB" | "JIRA";
+  provider: ConnectInviteProvider;
   expiresAt: string;
   createdAt: string;
   url: string;
 };
+
+function providerAdminLabel(provider: ConnectInviteProvider): string {
+  if (provider === "JIRA") return "Jira";
+  if (provider === "SLACK") return "Slack workspace";
+  return "GitHub";
+}
 
 export function ExternalConnectLinkPanel({
   provider,
@@ -21,7 +29,7 @@ export function ExternalConnectLinkPanel({
   providerConfigured,
   providerConfigHint,
 }: {
-  provider: "GITHUB" | "JIRA";
+  provider: ConnectInviteProvider;
   connected: boolean;
   canManage: boolean;
   appUrlConfigured: boolean;
@@ -127,7 +135,7 @@ export function ExternalConnectLinkPanel({
         <p className="text-xs font-medium text-primary">Share setup link</p>
       </div>
       <p className="text-xs text-muted">
-        Send this link to someone with {provider === "JIRA" ? "Jira" : "GitHub"} admin access.
+        Send this link to someone with {providerAdminLabel(provider)} admin access.
         Single-use, expires in 24 hours.
       </p>
 

@@ -7,7 +7,7 @@ import { revokeConnectInvite } from "@/lib/integration-connect-invite";
 
 const schema = z
   .object({
-    provider: z.enum(["GITHUB", "JIRA"]).optional(),
+    provider: z.enum(["GITHUB", "JIRA", "SLACK"]).optional(),
     inviteId: z.string().optional(),
   })
   .refine((data) => data.provider || data.inviteId, {

@@ -1,6 +1,7 @@
 import { Agent } from "@mastra/core/agent";
 
 import { resolveMastraModelConfig } from "../config/models";
+import { buildAidosSlackChannelConfig } from "../channels/slack";
 
 export const AIDOS_ASSISTANT_ID = "aidosAssistant";
 
@@ -17,6 +18,8 @@ Rules:
 - When answering from QA / DevOps / productivity / governance analysis tools, cite analyzedAt and say if the run is stale (older than 24h). If there is no verified run yet, say so and suggest checking the matching dashboard.
 - Greetings and small-talk (hi/hello/thanks/ok): reply immediately in one or two short sentences — do not call tools.`;
 
+const slackChannels = buildAidosSlackChannelConfig();
+
 /**
  * Tools are supplied at run-time via toolsets in `runAidosAssistant`
  * to avoid circular imports between agents ↔ tools.
@@ -26,4 +29,5 @@ export const aidosAssistant = new Agent({
   name: "AIDOS Assistant",
   instructions: AIDOS_ASSISTANT_INSTRUCTIONS,
   model: resolveMastraModelConfig(),
+  ...(slackChannels ? { channels: slackChannels } : {}),
 });

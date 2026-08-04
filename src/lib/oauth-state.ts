@@ -8,7 +8,7 @@ export type OAuthState =
       flow: "external";
       organizationId: string;
       inviteId: string;
-      provider: "GITHUB" | "JIRA";
+      provider: "GITHUB" | "JIRA" | "SLACK";
       createdById: string;
     };
 
@@ -36,7 +36,9 @@ export async function verifyOAuthState(token: string): Promise<OAuthState> {
       typeof raw.organizationId !== "string" ||
       typeof raw.inviteId !== "string" ||
       typeof raw.createdById !== "string" ||
-      (raw.provider !== "GITHUB" && raw.provider !== "JIRA")
+      (raw.provider !== "GITHUB" &&
+        raw.provider !== "JIRA" &&
+        raw.provider !== "SLACK")
     ) {
       throw new Error("Invalid external OAuth state");
     }

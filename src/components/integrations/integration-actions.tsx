@@ -27,6 +27,20 @@ export function JiraOAuthConnect({
   );
 }
 
+export function SlackOAuthConnect({
+  label = "Add to Slack",
+  variant = "default",
+}: {
+  label?: string;
+  variant?: "default" | "brand" | "secondary" | "ghost";
+}) {
+  return (
+    <Button size="sm" variant={variant} asChild>
+      <Link href="/api/integrations/slack/authorize">{label}</Link>
+    </Button>
+  );
+}
+
 export function StubConnectButton({ provider }: { provider: string }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);

@@ -56,6 +56,11 @@ const envSchema = z.object({
   ATLASSIAN_CLIENT_ID: z.string().optional(),
   ATLASSIAN_CLIENT_SECRET: z.string().optional(),
 
+  SLACK_CLIENT_ID: z.string().optional(),
+  SLACK_CLIENT_SECRET: z.string().optional(),
+  SLACK_SIGNING_SECRET: z.string().optional(),
+  SLACK_ASSISTANT_HOURLY_LIMIT: z.coerce.number().int().positive().optional(),
+
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
     .default("info"),
