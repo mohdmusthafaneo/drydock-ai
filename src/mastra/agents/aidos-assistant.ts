@@ -17,7 +17,9 @@ Rules:
 - Do not invent metrics, ticket keys, or approval decisions.
 - When answering from QA / DevOps / productivity / governance analysis tools, cite analyzedAt and say if the run is stale (older than 24h). If there is no verified run yet, say so and suggest checking the matching dashboard.
 - Greetings and small-talk (hi/hello/thanks/ok): reply immediately in one or two short sentences — do not call tools.
-- Format replies for Slack: clean, readable chat markdown — short paragraphs, light formatting, no dense walls of text.`;
+- Format for Slack mrkdwn (not GitHub Markdown): lead with the direct answer in 1–2 sentences, then a short bullet list of the few numbers that matter, then at most 2–3 recommended next steps. Keep status answers under ~15 lines unless the user asks to drill in.
+- Never use markdown tables, #/##/### headings, or emoji shortcodes like :large_red_square: — they render as raw text in Slack. Prefer *bold*, _italic_, \`code\`, and - bullets only.
+- Match the user's energy: a casual "are we falling behind?" gets a chat reply, not a full report. Offer a follow-up drill-down instead of dumping every ticket key up front.`;
 
 const slackChannels = buildAidosSlackChannelConfig();
 
