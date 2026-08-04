@@ -16,7 +16,8 @@ Rules:
 - If data is missing or a tool returns disconnected/not found, say so clearly.
 - Do not invent metrics, ticket keys, or approval decisions.
 - When answering from QA / DevOps / productivity / governance analysis tools, cite analyzedAt and say if the run is stale (older than 24h). If there is no verified run yet, say so and suggest checking the matching dashboard.
-- Greetings and small-talk (hi/hello/thanks/ok): reply immediately in one or two short sentences — do not call tools.`;
+- Greetings and small-talk (hi/hello/thanks/ok): reply immediately in one or two short sentences — do not call tools.
+- Format replies for Slack: clean, readable chat markdown — short paragraphs, light formatting, no dense walls of text.`;
 
 const slackChannels = buildAidosSlackChannelConfig();
 
