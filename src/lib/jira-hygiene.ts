@@ -91,6 +91,104 @@ function baselineSeverity(
   return null;
 }
 
+function buildAssignmentFindings(
+  project: ProjectScope,
+  mapping?: NonNullable<ToolchainMapping["jira"]>,
+): JiraHygieneFinding[] {
+  if (project.openIssues <= 0) return [];
+  const unassignedRatio = ratio(project.unassignedCount, project.openIssues);
+  const unassignedSeverity = baselineSeverity(
+    unassignedRatio,
+    mapping?.hygieneBaselines?.unassignedRatioP50,
+    { warning: 0.25, critical: 0.4 },
+  );
+  if (!unassignedSeverity) return [];
+  return [
+    {
+      id: "high-unassigned",
+      category: "assignment",
+      label: "Unassigned work",
+      value: `${Math.round(unassignedRatio * 100)}% of open issues have no assignee`,
+      severity: unassignedSeverity,
+      recommendation:
+        "Assign owners to open issues so delivery signals reflect accountability.",
+    },
+  ];
+}
+
+function buildOverdueFindings(
+  project: ProjectScope,
+  mapping?: NonNullable<ToolchainMapping["jira"]>,
+): JiraHygieneFinding[] {
+  if (project.openIssues <= 0) return [];
+  const overdueRatio = ratio(project.overdueCount, project.openIssues);
+  const overdueSeverity = baselineSeverity(
+    overdueRatio,
+    mapping?.hygieneBaselines?.overdueRatioP50,
+    { warning: 0.2, critical: 0.35 },
+  );
+  if (!overdueSeverity) return [];
+  return [
+    {
+      id: "high-overdue",
+      category: "schedule",
+      label: "Overdue backlog",
+      value: `${Math.round(overdueRatio * 100)}% of open issues are past due date`,
+      severity: overdueSeverity,
+      recommendation:
+        "Update due dates or close stale tickets — overdue ratios inflate schedule risk.",
+    },
+  ];
+}
+
+function buildEstimateFindings(
+  project: ProjectScope,
+  mapping?: NonNullable<ToolchainMapping["jira"]>,
+): JiraHygieneFinding[] {
+  if (project.openIssues <= 0) return [];
+  const missing = project.missingEstimateCount;
+  if (missing == null) return [];
+  const estimateRatio = ratio(missing, project.openIssues);
+  const estimateSeverity = baselineSeverity(
+    estimateRatio,
+    mapping?.hygieneBaselines?.missingEstimateRatioP50,
+    { warning: 0.3, critical: 0.5 },
+  );
+  if (!estimateSeverity) return [];
+  return [
+    {
+      id: "missing-estimates",
+      category: "estimates",
+      label: "Missing estimates",
+      value: `${Math.round(estimateRatio * 100)}% of open issues lack story points`,
+      severity: estimateSeverity,
+      recommendation:
+        "Add story-point estimates so sprint and capacity signals are trustworthy.",
+    },
+  ];
+}
+
+function buildPartialDataFindings(
+  project: ProjectScope,
+  dataQualityFlags?: string[],
+): JiraHygieneFinding[] {
+  const qualityFlags = [
+    ...new Set([...(project.jqlPartialFailures ?? []), ...(dataQualityFlags ?? [])]),
+  ];
+  if (qualityFlags.length <= 0) return [];
+  return [
+    {
+      id: "jql-partial-failure",
+      category: "data-quality",
+      label: "Partial Jira data",
+      value: `Some counts unavailable: ${qualityFlags.slice(0, 3).join(", ")}${qualityFlags.length > 3 ? "…" : ""}`,
+      severity: qualityFlags.length >= 3 ? "critical" : "warning",
+      recommendation:
+        "Re-sync Jira or review field mapping — some delivery metrics may be incomplete.",
+    },
+  ];
+}
+
 function buildHygieneFindings(input: {
   project: ProjectScope;
   mapping?: NonNullable<ToolchainMapping["jira"]>;
@@ -99,94 +197,39 @@ function buildHygieneFindings(input: {
   dataQualityFlags?: string[];
 }): JiraHygieneFinding[] {
   const { project, mapping, snapshotSyncedAt, traceabilityGap, dataQualityFlags } = input;
-  const findings: JiraHygieneFinding[] = [];
+  const findings: JiraHygieneFinding[] = [
+    ...buildAssignmentFindings(project, mapping),
+    ...buildOverdueFindings(project, mapping),
+    ...buildEstimateFindings(project, mapping),
+  ];
 
   if (project.openIssues > 0) {
-    const unassignedRatio = ratio(project.unassignedCount, project.openIssues);
-    const unassignedSeverity = baselineSeverity(unassignedRatio, mapping?.hygieneBaselines?.unassignedRatioP50, {
-      warning: 0.25,
-      critical: 0.4,
-    });
-    if (unassignedSeverity) {
-      findings.push({
-        id: "high-unassigned",
-        category: "assignment",
-        label: "Unassigned work",
-        value: `${Math.round(unassignedRatio * 100)}% of open issues have no assignee`,
-        severity: unassignedSeverity,
-        recommendation: "Assign owners to open issues so delivery signals reflect accountability.",
-      });
-    }
-
-    const overdueRatio = ratio(project.overdueCount, project.openIssues);
-    const overdueSeverity = baselineSeverity(overdueRatio, mapping?.hygieneBaselines?.overdueRatioP50, {
-      warning: 0.2,
-      critical: 0.35,
-    });
-    if (overdueSeverity) {
-      findings.push({
-        id: "high-overdue",
-        category: "schedule",
-        label: "Overdue backlog",
-        value: `${Math.round(overdueRatio * 100)}% of open issues are past due date`,
-        severity: overdueSeverity,
-        recommendation: "Update due dates or close stale tickets — overdue ratios inflate schedule risk.",
-      });
-    }
-
-    if (
-      project.missingEstimateCount != null &&
-      project.openIssues > 0
-    ) {
-      const estimateRatio = ratio(project.missingEstimateCount, project.openIssues);
-      const estimateSeverity = baselineSeverity(
-        estimateRatio,
-        mapping?.hygieneBaselines?.missingEstimateRatioP50,
-        { warning: 0.3, critical: 0.5 },
-      );
-      if (estimateSeverity) {
-        findings.push({
-          id: "missing-estimates",
-          category: "estimates",
-          label: "Missing estimates",
-          value: `${Math.round(estimateRatio * 100)}% of open issues lack story points`,
-          severity: estimateSeverity,
-          recommendation:
-            "Add story-point estimates so sprint and capacity signals are trustworthy.",
+    const missingDueDate = project.missingDueDateCount;
+    if (missingDueDate != null) {
+      const inProgress = project.statusBreakdown?.inProgress ?? project.openIssues;
+      if (inProgress > 0) {
+        const dueDateRatio = ratio(missingDueDate, inProgress);
+        const dueDateSeverity = baselineSeverity(dueDateRatio, undefined, {
+          warning: 0.35,
+          critical: 0.55,
         });
+        if (dueDateSeverity) {
+          findings.push({
+            id: "missing-due-dates",
+            category: "schedule",
+            label: "In-progress without due date",
+            value: `${Math.round(dueDateRatio * 100)}% of in-progress issues have no due date`,
+            severity: dueDateSeverity,
+            recommendation:
+              "Set due dates on active work so schedule risk and overdue signals stay meaningful.",
+          });
+        }
       }
     }
 
-    const inProgress =
-      project.statusBreakdown?.inProgress ?? project.openIssues;
-    if (
-      project.missingDueDateCount != null &&
-      inProgress > 0
-    ) {
-      const dueDateRatio = ratio(project.missingDueDateCount, inProgress);
-      const dueDateSeverity = baselineSeverity(dueDateRatio, undefined, {
-        warning: 0.35,
-        critical: 0.55,
-      });
-      if (dueDateSeverity) {
-        findings.push({
-          id: "missing-due-dates",
-          category: "schedule",
-          label: "In-progress without due date",
-          value: `${Math.round(dueDateRatio * 100)}% of in-progress issues have no due date`,
-          severity: dueDateSeverity,
-          recommendation:
-            "Set due dates on active work so schedule risk and overdue signals stay meaningful.",
-        });
-      }
-    }
-
-    if (
-      project.staleOpenCount != null &&
-      project.openIssues > 0 &&
-      project.staleOpenCount >= STALE_OPEN_THRESHOLD
-    ) {
-      const staleRatio = ratio(project.staleOpenCount, project.openIssues);
+    const stale = project.staleOpenCount;
+    if (stale != null && stale >= STALE_OPEN_THRESHOLD) {
+      const staleRatio = ratio(stale, project.openIssues);
       const staleSeverity = baselineSeverity(staleRatio, undefined, {
         warning: 0.15,
         critical: 0.3,
@@ -196,7 +239,7 @@ function buildHygieneFindings(input: {
           id: "aged-open-tickets",
           category: "schedule",
           label: "Aged open tickets",
-          value: `${project.staleOpenCount} open issue${project.staleOpenCount === 1 ? "" : "s"} older than 30 days (${Math.round(staleRatio * 100)}% of backlog)`,
+          value: `${stale} open issue${stale === 1 ? "" : "s"} older than 30 days (${Math.round(staleRatio * 100)}% of backlog)`,
           severity: staleSeverity,
           recommendation:
             "Close or re-prioritize stale tickets — aged backlog inflates delivery risk.",
@@ -204,50 +247,30 @@ function buildHygieneFindings(input: {
       }
     }
 
-    if (project.unknownWorkflowStatusCount != null && project.unknownWorkflowStatusCount > 0) {
+    const unknown = project.unknownWorkflowStatusCount;
+    if (unknown != null && unknown > 0) {
       findings.push({
         id: "unknown-status-vs-workflow",
         category: "data-quality",
         label: "Unknown workflow statuses",
-        value: `${project.unknownWorkflowStatusCount} open issue${project.unknownWorkflowStatusCount === 1 ? "" : "s"} in non-standard status categories`,
-        severity: project.unknownWorkflowStatusCount >= 5 ? "critical" : "warning",
+        value: `${unknown} open issue${unknown === 1 ? "" : "s"} in non-standard status categories`,
+        severity: unknown >= 5 ? "critical" : "warning",
         recommendation:
           "Align custom statuses with your agreed workflow mapping so blockers and done states are detected correctly.",
       });
     }
   }
 
-  const projectJqlFailures = project.jqlPartialFailures ?? [];
-  const portfolioFlags = dataQualityFlags ?? [];
-  const qualityFlags = [...new Set([...projectJqlFailures, ...portfolioFlags])];
-  if (qualityFlags.length > 0) {
-    findings.push({
-      id: "jql-partial-failure",
-      category: "data-quality",
-      label: "Partial Jira data",
-      value: `Some counts unavailable: ${qualityFlags.slice(0, 3).join(", ")}${qualityFlags.length > 3 ? "…" : ""}`,
-      severity: qualityFlags.length >= 3 ? "critical" : "warning",
-      recommendation: "Re-sync Jira or review field mapping — some delivery metrics may be incomplete.",
-    });
-  }
+  findings.push(...buildPartialDataFindings(project, dataQualityFlags));
 
   const ageHours = syncAgeHours(snapshotSyncedAt);
-  if (ageHours > CRITICAL_STALE_HOURS) {
+  if (ageHours > STALE_SYNC_HOURS) {
     findings.push({
       id: "stale-sync",
       category: "freshness",
       label: "Stale Jira sync",
       value: `Last synced ${Math.floor(ageHours)}h ago`,
-      severity: "critical",
-      recommendation: "Re-sync Jira before using these numbers in release decisions.",
-    });
-  } else if (ageHours > STALE_SYNC_HOURS) {
-    findings.push({
-      id: "stale-sync",
-      category: "freshness",
-      label: "Stale Jira sync",
-      value: `Last synced ${Math.floor(ageHours)}h ago`,
-      severity: "warning",
+      severity: ageHours > CRITICAL_STALE_HOURS ? "critical" : "warning",
       recommendation: "Re-sync Jira before using these numbers in release decisions.",
     });
   }
