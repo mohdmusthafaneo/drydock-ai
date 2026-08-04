@@ -40,14 +40,18 @@ export function getSlackOAuthConfig(flow: SlackOAuthFlow = "session") {
   const clientId = process.env.SLACK_CLIENT_ID;
   const clientSecret = process.env.SLACK_CLIENT_SECRET;
   const signingSecret = process.env.SLACK_SIGNING_SECRET;
-  const redirectUri = getSlackOAuthRedirectUri(flow);
+  const configured = Boolean(clientId && clientSecret && signingSecret);
+  // Only resolve the app URL when Slack is configured — avoids throwing
+  // during Next.js production builds (DOCKER/CI) where NEXT_PUBLIC_APP_URL
+  // is unset but agent modules are still imported for page data collection.
+  const redirectUri = configured ? getSlackOAuthRedirectUri(flow) : "";
 
   return {
     clientId,
     clientSecret,
     signingSecret,
     redirectUri,
-    configured: Boolean(clientId && clientSecret && signingSecret),
+    configured,
   };
 }
 

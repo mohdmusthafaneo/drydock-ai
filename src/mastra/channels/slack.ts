@@ -1,13 +1,15 @@
 import { createSlackAdapter } from "@chat-adapter/slack";
 import type { ChannelConfig } from "@mastra/core/channels";
 
-import { getSlackOAuthConfig } from "@/lib/slack-oauth";
 import { getSlackInstallationForAdapter } from "@/lib/slack/tenant";
 
 /**
  * Build Slack channel config for the AIDOS assistant.
  * Returns null when Slack is not configured or when running as the worker
  * process / Mastra Studio (avoid starting channel machinery there).
+ *
+ * Reads Slack env vars directly (no getAppUrl) so this is safe to call at
+ * module init during `next build` when NEXT_PUBLIC_APP_URL is unset.
  */
 export function buildAidosSlackChannelConfig(): ChannelConfig | null {
   const role = process.env.AIDOS_PROCESS_ROLE ?? "web";
@@ -17,8 +19,10 @@ export function buildAidosSlackChannelConfig(): ChannelConfig | null {
     return null;
   }
 
-  const { clientId, clientSecret, signingSecret, configured } = getSlackOAuthConfig();
-  if (!configured || !clientId || !clientSecret || !signingSecret) {
+  const clientId = process.env.SLACK_CLIENT_ID;
+  const clientSecret = process.env.SLACK_CLIENT_SECRET;
+  const signingSecret = process.env.SLACK_SIGNING_SECRET;
+  if (!clientId || !clientSecret || !signingSecret) {
     return null;
   }
 
