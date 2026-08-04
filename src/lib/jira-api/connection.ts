@@ -71,56 +71,14 @@ export async function probeJiraConnection(integration: Integration): Promise<{
     return { ok: false, error: "Missing cloudId in integration metadata" };
   }
 
-  let accessToken = getJiraAccessToken(integration);
+  const accessToken = getJiraAccessToken(integration);
   if (!accessToken) {
     return { ok: false, error: "Missing or invalid access token" };
   }
 
   try {
-    await fetchJiraMyself(accessToken, meta.cloudId);
-    return {
-      ok: true,
-      metaPatch: {
-        lastConnectionCheckAt: new Date().toISOString(),
-        connectionStatus: "ok",
-        lastError: undefined,
-      },
-    };
+    return await probeJiraWithRefresh(integration, accessToken, meta.cloudId, meta.refreshTokenEnc);
   } catch (err) {
-    if (err instanceof JiraApiError && err.status === 401) {
-      const refreshToken = getJiraRefreshToken(integration);
-      if (refreshToken) {
-        try {
-          const refreshed = await refreshJiraAccessToken(refreshToken);
-          accessToken = refreshed.accessToken;
-          await fetchJiraMyself(accessToken, meta.cloudId);
-          return {
-            ok: true,
-            metaPatch: {
-              accessTokenEnc: encryptToken(refreshed.accessToken),
-              refreshTokenEnc: refreshed.refreshToken
-                ? encryptToken(refreshed.refreshToken)
-                : meta.refreshTokenEnc,
-              lastConnectionCheckAt: new Date().toISOString(),
-              connectionStatus: "ok",
-              lastError: undefined,
-            },
-          };
-        } catch (refreshErr) {
-          const message = formatJiraSyncError(refreshErr);
-          return {
-            ok: false,
-            error: message,
-            metaPatch: {
-              lastConnectionCheckAt: new Date().toISOString(),
-              connectionStatus: "error",
-              lastError: message,
-            },
-          };
-        }
-      }
-    }
-
     const message = err instanceof Error ? err.message : "Connection probe failed";
     return {
       ok: false,
@@ -133,6 +91,60 @@ export async function probeJiraConnection(integration: Integration): Promise<{
     };
   }
 }
+
+async function probeJiraWithRefresh(
+  integration: Integration,
+  accessToken: string,
+  cloudId: string,
+  fallbackRefreshTokenEnc: string | undefined,
+): Promise<{
+  ok: boolean;
+  error?: string;
+  metaPatch?: Partial<JiraIntegrationMeta>;
+}> {
+  try {
+    await fetchJiraMyself(accessToken, cloudId);
+    return {
+      ok: true,
+      metaPatch: {
+        lastConnectionCheckAt: new Date().toISOString(),
+        connectionStatus: "ok",
+        lastError: undefined,
+      },
+    };
+  } catch (err) {
+    if (!(err instanceof JiraApiError) || err.status !== 401) throw err;
+    const refreshToken = getJiraRefreshToken(integration);
+    if (!refreshToken) throw err;
+    try {
+      const refreshed = await refreshJiraAccessToken(refreshToken);
+      await fetchJiraMyself(refreshed.accessToken, cloudId);
+      return {
+        ok: true,
+        metaPatch: {
+          accessTokenEnc: encryptToken(refreshed.accessToken),
+          refreshTokenEnc: refreshed.refreshToken
+            ? encryptToken(refreshed.refreshToken)
+            : fallbackRefreshTokenEnc,
+          connectionStatus: "ok",
+          lastError: undefined,
+        },
+      };
+    } catch (refreshErr) {
+      const message = formatJiraSyncError(refreshErr);
+      return {
+        ok: false,
+        error: message,
+        metaPatch: {
+          lastConnectionCheckAt: new Date().toISOString(),
+          connectionStatus: "error",
+          lastError: message,
+        },
+      };
+    }
+  }
+}
+
 
 export function applyJiraMetaPatch(
   integration: Integration,
