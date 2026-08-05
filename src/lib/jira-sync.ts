@@ -60,46 +60,59 @@ async function upsertFixVersionReleases(
   for (const project of projects) {
     for (const version of project.versions) {
       if (version.released) continue;
-
-      const openCount = version.openIssuesInVersion ?? 0;
-      const readinessScore =
-        openCount === 0 ? 100 : openCount <= 5 ? 75 : openCount <= 15 ? 50 : 25;
-
-      const existing = await prisma.release.findFirst({
-        where: {
-          organizationId,
-          jiraFixVersion: version.name,
-          serviceScope: project.key,
-        },
-      });
-
-      const data = {
-        name: version.name,
-        version: version.name,
-        jiraFixVersion: version.name,
-        serviceScope: project.key,
-        readinessScore,
-        status: "DETECTED" as const,
-        metadataJson: JSON.stringify({
-          source: "jira_fixversion_sync",
-          projectKey: project.key,
-          versionId: version.id,
-          releaseDate: version.releaseDate,
-        }),
-      };
-
-      if (existing) {
-        await prisma.release.update({ where: { id: existing.id }, data });
-      } else {
-        await prisma.release.create({
-          data: {
-            organizationId,
-            environment: "STAGING",
-            ...data,
-          },
-        });
-      }
+      await upsertFixVersionRelease(organizationId, project.key, version);
     }
+  }
+}
+
+function readinessScoreForOpenCount(openCount: number): number {
+  if (openCount === 0) return 100;
+  if (openCount <= 5) return 75;
+  if (openCount <= 15) return 50;
+  return 25;
+}
+
+async function upsertFixVersionRelease(
+  organizationId: string,
+  projectKey: string,
+  version: { id: string; name: string; releaseDate?: string | null; openIssuesInVersion?: number | null },
+): Promise<void> {
+  const openCount = version.openIssuesInVersion ?? 0;
+  const readinessScore = readinessScoreForOpenCount(openCount);
+
+  const existing = await prisma.release.findFirst({
+    where: {
+      organizationId,
+      jiraFixVersion: version.name,
+      serviceScope: projectKey,
+    },
+  });
+
+  const data = {
+    name: version.name,
+    version: version.name,
+    jiraFixVersion: version.name,
+    serviceScope: projectKey,
+    readinessScore,
+    status: "DETECTED" as const,
+    metadataJson: JSON.stringify({
+      source: "jira_fixversion_sync",
+      projectKey,
+      versionId: version.id,
+      releaseDate: version.releaseDate,
+    }),
+  };
+
+  if (existing) {
+    await prisma.release.update({ where: { id: existing.id }, data });
+  } else {
+    await prisma.release.create({
+      data: {
+        organizationId,
+        environment: "STAGING",
+        ...data,
+      },
+    });
   }
 }
 
@@ -227,9 +240,27 @@ async function enrichProjectP2b(
 
   const statusBreakdown: JiraStatusBreakdown = { todo, inProgress, done };
 
+  const enrichedVersions = await enrichVersionsWithOpenCount(
+    accessToken,
+    cloudId,
+    baseJql,
+    versions,
+    mapping,
+  );
+
+  return { resolvedLast7d, statusBreakdown, versions: enrichedVersions };
+}
+
+async function enrichVersionsWithOpenCount(
+  accessToken: string,
+  cloudId: string,
+  baseJql: string,
+  versions: JiraDeliverySnapshot["projects"][number]["versions"],
+  mapping: JiraMappingSlice,
+): Promise<JiraDeliverySnapshot["projects"][number]["versions"]> {
   const versionsToCount = versionsForOpenCount(versions);
   const countTargets = new Set(versionsToCount.map((v) => v.id));
-  const enrichedVersions = await Promise.all(
+  return Promise.all(
     versions.map(async (v) => {
       if (!countTargets.has(v.id)) return v;
       try {
@@ -247,8 +278,6 @@ async function enrichProjectP2b(
       }
     }),
   );
-
-  return { resolvedLast7d, statusBreakdown, versions: enrichedVersions };
 }
 
 async function enrichHygieneCounts(
