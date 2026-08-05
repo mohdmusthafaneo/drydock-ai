@@ -126,6 +126,7 @@ async function probeJiraWithRefresh(
           refreshTokenEnc: refreshed.refreshToken
             ? encryptToken(refreshed.refreshToken)
             : fallbackRefreshTokenEnc,
+          lastConnectionCheckAt: new Date().toISOString(),
           connectionStatus: "ok",
           lastError: undefined,
         },

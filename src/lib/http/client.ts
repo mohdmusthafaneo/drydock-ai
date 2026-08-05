@@ -149,6 +149,10 @@ export async function httpFetch(options: HttpRequestOptions): Promise<Response> 
     try {
       return await httpFetchAttempt(options, key, attempt, maxAttempts, timeoutMs);
     } catch (err) {
+      // Retryable HTTP statuses already slept (honoring Retry-After) inside the attempt.
+      if (err instanceof HttpRetrySignal) continue;
+
+      lastError = err;
       if (err instanceof HttpResponseError) throw err;
       if (attempt < maxAttempts - 1) {
         await sleep(jitteredBackoffMs(attempt));

@@ -243,7 +243,7 @@ function computeWeightedReadiness(input: {
   components.push({ weight: 0.2, score: input.dna.governanceScore });
 
   const totalWeight = components.reduce((sum, c) => sum + c.weight, 0);
-  let blended =
+  const blended =
     totalWeight > 0
       ? components.reduce((sum, c) => sum + c.score * (c.weight / totalWeight), 0)
       : 88;
