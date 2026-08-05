@@ -8,7 +8,7 @@ import {
   releaseStatusLabel,
   sortReleasesByRisk,
 } from "@/lib/governance/presentation";
-import { verdictBadgeVariant } from "@/lib/release-gate-brief";
+import { verdictBadgeVariant, releaseStatusBadgeVariant } from "@/lib/release-gate-brief";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/layout/page-header";
@@ -78,19 +78,10 @@ export default async function ReleasesPage() {
                         {verdict}
                       </Badge>
                     )}
-                    <Badge
-                      variant={
-                        r.status === "DEPLOYED"
-                          ? "success"
-                          : r.status === "BLOCKED"
-                            ? "warning"
-                            : r.status === "PENDING_APPROVAL"
-                              ? "ai"
-                              : "muted"
-                      }
-                    >
+                    <Badge variant={releaseStatusBadgeVariant(r.status)}>
                       {statusLabel}
                     </Badge>
+
                   </div>
                 </div>
                 {r.readinessScore != null && (
