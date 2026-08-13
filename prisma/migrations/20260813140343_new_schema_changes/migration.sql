@@ -1,0 +1,2 @@
+-- RenameIndex
+ALTER INDEX "AgentChatThread_organizationId_externalSource_externalThreadId_" RENAME TO "AgentChatThread_organizationId_externalSource_externalThrea_key";
