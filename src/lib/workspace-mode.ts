@@ -376,7 +376,7 @@ export function resolvePageTitleForPath(
   if (segments.length === 0) return WORKSPACE_META[mode].label;
 
   const last = segments[segments.length - 1]!;
-  if (/^[a-f0-9-]{8,}$/i.test(last) || /^\d+$/.test(last)) {
+  if (looksLikeOpaqueId(last)) {
     const parent = segments[segments.length - 2];
     if (parent) {
       return parent
@@ -384,6 +384,7 @@ export function resolvePageTitleForPath(
         .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
         .join(" ");
     }
+    return parentSlugFallback(segments);
   }
 
   return last
@@ -391,3 +392,32 @@ export function resolvePageTitleForPath(
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");
 }
+
+/** True when a URL segment looks like a database id rather than a human-readable slug.
+ * Catches: hex/UUID (existing pattern), all-digit ids, CUIDv1/v2 (e.g. `cms640nhu001c4s0mnjw5esgw`),
+ * and any alphanumeric token that is long enough to not be a real slug.
+ */
+function looksLikeOpaqueId(segment: string): boolean {
+  if (!segment) return false;
+  // Keep treating short numeric and hex strings as ids.
+  if (/^[a-f0-9-]{8,}$/i.test(segment)) return true;
+  if (/^\d+$/.test(segment)) return true;
+  // CUIDs and similar: starts with a letter, then mix of alphanumerics with no dashes,
+  // length ≥ 16. A real slug will either be short or contain dashes separating words.
+  if (/^[a-z][a-z0-9]+$/i.test(segment) && segment.length >= 16) return true;
+  return false;
+}
+
+function parentSlugFallback(segments: string[]): string {
+  for (let i = segments.length - 2; i >= 0; i--) {
+    const seg = segments[i]!;
+    if (!looksLikeOpaqueId(seg)) {
+      return seg
+        .split("-")
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(" ");
+    }
+  }
+  return WORKSPACE_META["ENTERPRISE"].label;
+}
+
