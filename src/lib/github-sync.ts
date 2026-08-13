@@ -53,19 +53,8 @@ export async function syncGitHubIntegration(input: {
   const summaries: GitHubRepoSummary[] = [];
 
   for (const fullName of targetFullNames) {
-    let repo = byFullName.get(fullName.toLowerCase());
-    if (!repo) {
-      const { owner, repo: repoName } = parseOwnerRepo(fullName);
-      try {
-        repo = await getRepo(token, owner, repoName);
-      } catch (e) {
-        if (e instanceof GitHubApiError && (e.status === 404 || e.status === 403)) {
-          continue;
-        }
-        throw e;
-      }
-    }
-
+    const repo = await resolveGitHubRepoForSync(token, fullName, byFullName);
+    if (!repo) continue;
     summaries.push({
       id: repo.id,
       fullName: repo.full_name,
@@ -231,4 +220,22 @@ export async function syncGitHubIntegration(input: {
     repos: summaries,
     summary,
   };
+}
+
+async function resolveGitHubRepoForSync(
+  token: string,
+  fullName: string,
+  byFullName: Map<string, { id: number; full_name: string; private: boolean; default_branch: string; updated_at: string; open_issues_count: number }>,
+): Promise<{ id: number; full_name: string; private: boolean; default_branch: string; updated_at: string; open_issues_count: number } | null> {
+  const cached = byFullName.get(fullName.toLowerCase());
+  if (cached) return cached;
+  const { owner, repo: repoName } = parseOwnerRepo(fullName);
+  try {
+    return await getRepo(token, owner, repoName);
+  } catch (e) {
+    if (e instanceof GitHubApiError && (e.status === 404 || e.status === 403)) {
+      return null;
+    }
+    throw e;
+  }
 }

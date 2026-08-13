@@ -943,25 +943,25 @@ export function buildWorkflowAttentionSummary(
 
 export type AuditFilterCategory = "all" | "approvals" | "releases" | "integrations" | "agents";
 
+const APPROVAL_ACTION_PREFIXES = [
+  "recommendation.",
+  "agent_action.",
+  "agent.hire.",
+] as const;
+
+const INTEGRATION_ACTION_PREFIXES = [
+  "integration.",
+  "sync.",
+  "prometheus.",
+  "github.",
+  "jira.",
+  "delivery_dna.",
+] as const;
+
 export function categorizeAuditAction(action: string): AuditFilterCategory {
-  if (
-    action.startsWith("recommendation.") ||
-    action.startsWith("agent_action.") ||
-    action.startsWith("agent.hire.")
-  ) {
-    return "approvals";
-  }
+  if (APPROVAL_ACTION_PREFIXES.some((p) => action.startsWith(p))) return "approvals";
   if (action.startsWith("release.")) return "releases";
-  if (
-    action.startsWith("integration.") ||
-    action.startsWith("sync.") ||
-    action.startsWith("prometheus.") ||
-    action.startsWith("github.") ||
-    action.startsWith("jira.") ||
-    action.startsWith("delivery_dna.")
-  ) {
-    return "integrations";
-  }
+  if (INTEGRATION_ACTION_PREFIXES.some((p) => action.startsWith(p))) return "integrations";
   if (action.startsWith("agent.")) return "agents";
   return "all";
 }

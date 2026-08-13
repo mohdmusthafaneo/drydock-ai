@@ -147,40 +147,17 @@ export async function httpFetch(options: HttpRequestOptions): Promise<Response> 
 
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     try {
-      const response = await fetch(options.url, {
-        method: options.method ?? "GET",
-        headers: options.headers,
-        body: options.body,
-        signal: AbortSignal.timeout(timeoutMs),
-      });
-
-      if (response.ok) {
-        recordCircuitSuccess(key);
-        return response;
-      }
-
-      if (RETRYABLE_STATUSES.has(response.status) && attempt < maxAttempts - 1) {
-        const retryAfter = parseRetryAfterSec(response);
-        await sleep(jitteredBackoffMs(attempt, retryAfter));
-        continue;
-      }
-
-      const bodyText = await response.text().catch(() => undefined);
-      recordCircuitFailure(key);
-      throw new HttpResponseError(
-        bodyText || `HTTP ${response.status}`,
-        response.status,
-        bodyText,
-      );
+      return await httpFetchAttempt(options, key, attempt, maxAttempts, timeoutMs);
     } catch (err) {
+      // Retryable HTTP statuses already slept (honoring Retry-After) inside the attempt.
+      if (err instanceof HttpRetrySignal) continue;
+
       lastError = err;
       if (err instanceof HttpResponseError) throw err;
-
       if (attempt < maxAttempts - 1) {
         await sleep(jitteredBackoffMs(attempt));
         continue;
       }
-
       recordCircuitFailure(key);
       const message =
         err instanceof Error && err.name === "TimeoutError"
@@ -192,6 +169,46 @@ export async function httpFetch(options: HttpRequestOptions): Promise<Response> 
     }
   }
 
+  throwIfLastError(lastError);
+}
+
+async function httpFetchAttempt(
+  options: HttpRequestOptions,
+  key: string,
+  attempt: number,
+  maxAttempts: number,
+  timeoutMs: number,
+): Promise<Response> {
+  const response = await fetch(options.url, {
+    method: options.method ?? "GET",
+    headers: options.headers,
+    body: options.body,
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+
+  if (response.ok) {
+    recordCircuitSuccess(key);
+    return response;
+  }
+
+  if (RETRYABLE_STATUSES.has(response.status) && attempt < maxAttempts - 1) {
+    const retryAfter = parseRetryAfterSec(response);
+    await sleep(jitteredBackoffMs(attempt, retryAfter));
+    throw new HttpRetrySignal();
+  }
+
+  const bodyText = await response.text().catch(() => undefined);
+  recordCircuitFailure(key);
+  throw new HttpResponseError(bodyText || `HTTP ${response.status}`, response.status, bodyText);
+}
+
+class HttpRetrySignal extends Error {
+  constructor() {
+    super("retry");
+  }
+}
+
+function throwIfLastError(lastError: unknown): never {
   throw lastError instanceof Error
     ? lastError
     : new HttpResponseError("Request failed after retries", 502);

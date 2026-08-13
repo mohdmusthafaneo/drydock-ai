@@ -78,21 +78,7 @@ export async function saveOrgGitHubRepoFullNames(input: {
   const installationRepos = await listInstallationRepos(token);
   const granted = new Set(installationRepos.map((r) => r.full_name.toLowerCase()));
 
-  for (const fullName of names) {
-    if (!granted.has(fullName.toLowerCase())) {
-      const { owner, repo } = parseOwnerRepo(fullName);
-      try {
-        await getRepo(token, owner, repo);
-      } catch (e) {
-        if (e instanceof GitHubApiError && (e.status === 404 || e.status === 403)) {
-          throw new Error(
-            `Repository ${fullName} is not accessible — grant access in GitHub App settings`,
-          );
-        }
-        throw e;
-      }
-    }
-  }
+  await assertReposAccessible(token, names, granted);
 
   const metadataJson = mergeGitHubMeta(meta, {
     repoFullNames: names,
@@ -140,4 +126,25 @@ export function resolveSyncRepoFullNames(input: {
     return normalizeRepoFullNames(input.metaNames);
   }
   throw new Error("Select at least one GitHub repository before syncing.");
+}
+
+async function assertReposAccessible(
+  token: string,
+  names: string[],
+  granted: Set<string>,
+): Promise<void> {
+  for (const fullName of names) {
+    if (granted.has(fullName.toLowerCase())) continue;
+    const { owner, repo } = parseOwnerRepo(fullName);
+    try {
+      await getRepo(token, owner, repo);
+    } catch (e) {
+      if (e instanceof GitHubApiError && (e.status === 404 || e.status === 403)) {
+        throw new Error(
+          `Repository ${fullName} is not accessible — grant access in GitHub App settings`,
+        );
+      }
+      throw e;
+    }
+  }
 }

@@ -29,6 +29,15 @@ export function verdictBadgeVariant(
   return "muted";
 }
 
+export function releaseStatusBadgeVariant(
+  status: string,
+): "success" | "warning" | "ai" | "muted" {
+  if (status === "DEPLOYED") return "success";
+  if (status === "BLOCKED") return "warning";
+  if (status === "PENDING_APPROVAL") return "ai";
+  return "muted";
+}
+
 export function groupSignalsByArea(signals: QASignal[]): SignalGroup[] {
   const schedule = signals.filter((s) => s.source === "jira");
   const ci = signals.filter((s) => s.source === "github");
