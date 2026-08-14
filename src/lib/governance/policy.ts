@@ -19,11 +19,19 @@ export type EscalationChains = {
   levels?: string[];
 };
 
+export type ApprovalLevelLabels = {
+  level1?: string;
+  level2?: string;
+  level3?: string;
+  level4?: string;
+};
+
 export type GovernancePolicyConfig = {
   deploymentThresholds?: DeploymentThresholds;
   releaseRules?: ReleaseRules;
   approvalRequirements?: ApprovalRequirements;
   escalationChains?: EscalationChains;
+  approvalLevelLabels?: ApprovalLevelLabels;
 };
 
 export type GovernancePolicyDocument = GovernancePolicyConfig & {
@@ -73,6 +81,10 @@ export function mergePolicyConfig(
       ...base.escalationChains,
       ...override.escalationChains,
     },
+    approvalLevelLabels: {
+      ...base.approvalLevelLabels,
+      ...override.approvalLevelLabels,
+    },
   };
 }
 
@@ -83,6 +95,7 @@ export function parseGovernancePolicy(
         releaseRulesJson?: unknown;
         approvalRequirements?: unknown;
         escalationChainsJson?: unknown;
+        approvalLevelLabelsJson?: unknown;
         projectOverridesJson?: unknown;
       }
     | null
@@ -99,6 +112,7 @@ export function parseGovernancePolicy(
     releaseRules: safeParseJson<ReleaseRules>(row.releaseRulesJson),
     approvalRequirements: safeParseJson<ApprovalRequirements>(row.approvalRequirements),
     escalationChains: safeParseJson<EscalationChains>(row.escalationChainsJson),
+    approvalLevelLabels: safeParseJson<ApprovalLevelLabels>(row.approvalLevelLabelsJson),
     projectOverrides:
       projectOverrides && typeof projectOverrides === "object" ? projectOverrides : {},
   };
@@ -125,11 +139,13 @@ export function serializeGovernancePolicyBaseline(
   releaseRulesJson: Prisma.InputJsonValue;
   approvalRequirements: Prisma.InputJsonValue;
   escalationChainsJson: Prisma.InputJsonValue;
+  approvalLevelLabelsJson: Prisma.InputJsonValue;
 } {
   return {
     deploymentThresholds: asJsonInput(config.deploymentThresholds ?? {}),
     releaseRulesJson: asJsonInput(config.releaseRules ?? {}),
     approvalRequirements: asJsonInput(config.approvalRequirements ?? {}),
     escalationChainsJson: asJsonInput(config.escalationChains ?? {}),
+    approvalLevelLabelsJson: asJsonInput(config.approvalLevelLabels ?? {}),
   };
 }

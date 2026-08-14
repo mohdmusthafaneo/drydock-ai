@@ -245,11 +245,14 @@ export function autonomyModeLabel(mode: string): string {
   return AUTONOMY_MODE_LABELS[mode] ?? mode.replace(/_/g, " ").toLowerCase();
 }
 
-export function approvalLevelLabel(level: number): string {
-  if (level <= 1) return "Team lead sign-off";
-  if (level === 2) return "Manager approval";
-  if (level === 3) return "Director + compliance";
-  if (level >= 4) return "Executive escalation";
+export function approvalLevelLabel(
+  level: number,
+  customLabels?: { level1?: string; level2?: string; level3?: string; level4?: string },
+): string {
+  if (level <= 1) return customLabels?.level1 ?? "Team lead sign-off";
+  if (level === 2) return customLabels?.level2 ?? "Manager approval";
+  if (level === 3) return customLabels?.level3 ?? "Director + compliance";
+  if (level >= 4) return customLabels?.level4 ?? "Executive escalation";
   return `Level ${level}`;
 }
 
@@ -271,8 +274,9 @@ export function buildGovernanceHeadlineSegments(
     summary: string | null;
   },
   orgName: string,
+  customLabels?: { level1?: string; level2?: string; level3?: string; level4?: string },
 ): HeadlineSegment[] {
-  return buildGovernanceDnaOverview(dna, orgName).headlineSegments;
+  return buildGovernanceDnaOverview(dna, orgName, customLabels).headlineSegments;
 }
 
 export function buildGovernanceDnaOverview(
@@ -284,10 +288,11 @@ export function buildGovernanceDnaOverview(
     observabilityStrategy: string | null;
   },
   orgName: string,
+  customLabels?: { level1?: string; level2?: string; level3?: string; level4?: string },
 ): { headlineSegments: HeadlineSegment[]; bullets: string[] } {
   const workflow = workflowModeLabel(dna.workflowMode);
   const autonomy = autonomyModeLabel(dna.autonomyMode);
-  const approval = approvalLevelLabel(dna.approvalLevel);
+  const approval = approvalLevelLabel(dna.approvalLevel, customLabels);
   const riskPct = Math.round(dna.riskThreshold * 100);
 
   const headlineSegments: HeadlineSegment[] = [
@@ -350,12 +355,15 @@ export function buildGovernancePolicyHighlights(ctx: Ctx): BriefingHighlight[] {
   return highlights.slice(0, 4);
 }
 
-export function buildAutonomyVerdictStrip(dna: {
-  autonomyMode: string;
-  approvalLevel: number;
-}): { label: string; detail: string; tone: BriefingClaimVerdict } {
+export function buildAutonomyVerdictStrip(
+  dna: {
+    autonomyMode: string;
+    approvalLevel: number;
+  },
+  customLabels?: { level1?: string; level2?: string; level3?: string; level4?: string },
+): { label: string; detail: string; tone: BriefingClaimVerdict } {
   const mode = autonomyModeLabel(dna.autonomyMode);
-  const approval = approvalLevelLabel(dna.approvalLevel);
+  const approval = approvalLevelLabel(dna.approvalLevel, customLabels);
   const tone: BriefingClaimVerdict =
     dna.autonomyMode === "OBSERVE" || dna.autonomyMode === "RECOMMEND"
       ? "good"

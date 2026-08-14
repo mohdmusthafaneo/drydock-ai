@@ -1,4 +1,6 @@
 import { forOrgRead } from "@/lib/prisma";
+import { parseGovernancePolicy } from "@/lib/governance/policy";
+import type { ApprovalLevelLabels } from "@/lib/governance/policy";
 import { computeCompletedStepIds } from "@/lib/enterprise-workflow";
 import { hasObservabilitySynced } from "@/lib/observability-connectivity";
 import { isJiraCalibrationComplete } from "@/lib/jira-calibration/status";
@@ -149,6 +151,8 @@ export async function getOrganizationContext(organizationId: string) {
     (d) => d.health === "DEGRADED" || d.health === "FAILED",
   );
 
+  const parsedPolicy = parseGovernancePolicy(governancePolicy);
+
   return {
     org,
     profile,
@@ -166,6 +170,7 @@ export async function getOrganizationContext(organizationId: string) {
     telemetryEvents,
     webhookEvents,
     governancePolicy,
+    approvalLevelLabels: parsedPolicy.approvalLevelLabels ?? {},
     completedStepIds,
     stats: {
       governanceScore: dna?.governanceScore ?? 0,
