@@ -76,7 +76,20 @@ export async function POST(request: Request) {
       ok: true,
       release,
     });
-  } catch {
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      const fieldErrors: Record<string, string> = {};
+      for (const issue of err.issues) {
+        const key = issue.path.join(".");
+        if (!fieldErrors[key]) {
+          fieldErrors[key] = issue.message;
+        }
+      }
+      return NextResponse.json(
+        { error: "Validation failed", fieldErrors },
+        { status: 400 }
+      );
+    }
     return NextResponse.json({ error: "Invalid release data" }, { status: 400 });
   }
 }
