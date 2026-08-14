@@ -60,11 +60,6 @@ export default async function SettingsPage() {
               Delivery DNA
             </Link>
           )}
-          {(session.role === "ORG_ADMIN" || session.role === "DELIVERY_MANAGER") && (
-            <Link href="/admin" className="text-ink underline-offset-4 hover:underline">
-              Admin console
-            </Link>
-          )}
         </CardContent>
       </Card>
 

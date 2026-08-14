@@ -14,7 +14,6 @@ import {
   Lightbulb,
   CheckSquare,
   Shield,
-  BarChart3,
   ScrollText,
   MessagesSquare,
   Server,
@@ -180,14 +179,7 @@ export function getEnterpriseNavLayout(): EnterpriseNavLayout {
           { href: "/recommendations", label: "Recommendations", icon: Lightbulb },
           { href: "/governance", label: "Delivery DNA", icon: Shield },
           { href: "/workflow", label: "Workflow center", icon: GitBranch },
-          { href: "/reports", label: "Reports", icon: BarChart3 },
           { href: "/audit", label: "Audit logs", icon: ScrollText },
-          {
-            href: "/admin",
-            label: "Admin",
-            icon: Users,
-            roleGate: ["ORG_ADMIN", "DELIVERY_MANAGER"],
-          },
         ],
       },
     ],
@@ -339,10 +331,8 @@ export function isEnterpriseOnlyPath(pathname: string): boolean {
     "/recommendations",
     "/approvals",
     "/governance",
-    "/reports",
     "/audit",
     "/agent-threads",
-    "/admin",
   ];
   return prefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
@@ -420,4 +410,3 @@ function parentSlugFallback(segments: string[]): string {
   }
   return WORKSPACE_META["ENTERPRISE"].label;
 }
-
