@@ -154,7 +154,7 @@ export function DiscoveryWizard({
           </CardTitle>
           <CardDescription>
             Step {step + 1} of {STEPS.length}
-            {initialForm && step === 0 ? " · pre-filled from your profile" : ""}
+            {initialForm && step === 0 ? " · pre-filled from your org DNA" : ""}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
