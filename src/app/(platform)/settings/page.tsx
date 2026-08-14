@@ -41,16 +41,8 @@ export default async function SettingsPage() {
             <span className="text-muted">Your role: </span>
             <span className="text-primary">{ROLE_LABELS[session.role]}</span>
           </p>
-          {dna && (
-            <p>
-              <span className="text-muted">Autonomy mode: </span>
-              <Badge variant="ai">{dna.autonomyMode}</Badge>
-              <span className="ml-2 text-muted">(recommend-only in Phase 1)</span>
-            </p>
-          )}
         </CardContent>
       </Card>
-
       <Card>
         <CardHeader>
           <CardTitle>Quick links</CardTitle>
