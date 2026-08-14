@@ -10,15 +10,6 @@ export type ReleaseRules = {
   requireApprovalForProduction?: boolean;
 };
 
-export type ApprovalRequirements = {
-  minApprovers?: number;
-  qaLeadForHighRisk?: boolean;
-};
-
-export type EscalationChains = {
-  levels?: string[];
-};
-
 export type ApprovalLevelLabels = {
   level1?: string;
   level2?: string;
@@ -26,6 +17,14 @@ export type ApprovalLevelLabels = {
   level4?: string;
 };
 
+export type ApprovalRequirements = {
+  minApprovers?: number;
+  qaLeadForHighRisk?: boolean;
+  approvalLevelLabels?: ApprovalLevelLabels;
+};
+export type EscalationChains = {
+  levels?: string[];
+};
 export type GovernancePolicyConfig = {
   deploymentThresholds?: DeploymentThresholds;
   releaseRules?: ReleaseRules;
