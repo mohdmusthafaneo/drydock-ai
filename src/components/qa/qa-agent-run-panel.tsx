@@ -8,9 +8,12 @@ import { Badge } from "@/components/ui/badge";
 export function QaAgentRunPanel({
   run,
   section = "all",
+  issueTypeFilter,
 }: {
   run: LatestQaRunSummary | null;
   section?: "all" | "blocked" | "bugs";
+  /** Set to a specific issueType to show only that type, or "!Bug" to exclude Bug. */
+  issueTypeFilter?: string;
 }) {
   if (!run) {
     return (
@@ -29,8 +32,14 @@ export function QaAgentRunPanel({
     );
   }
 
-  const blockedEvidence = run.evidence.filter((e) => e.preset === "BLOCKED");
-  const bugEvidence = run.evidence.filter((e) => e.preset === "OPEN_BUGS");
+  let blockedEvidence = run.evidence.filter((e) => e.preset === "BLOCKED");
+  let bugEvidence = run.evidence.filter((e) => e.preset === "OPEN_BUGS");
+
+  if (issueTypeFilter === "!Bug") {
+    bugEvidence = bugEvidence.filter((e) => e.issueType !== "Bug");
+  } else if (issueTypeFilter && issueTypeFilter !== "all") {
+    bugEvidence = bugEvidence.filter((e) => e.issueType === issueTypeFilter);
+  }
 
   return (
     <div className="space-y-6">
@@ -45,7 +54,11 @@ export function QaAgentRunPanel({
         <EvidenceList
           title={section === "all" ? "Open bugs" : undefined}
           rows={bugEvidence}
-          empty="No open-bug evidence in the latest sample."
+          empty={
+            issueTypeFilter === "!Bug"
+              ? "No issue-type evidence in the latest sample."
+              : "No open-bug evidence in the latest sample."
+          }
         />
       )}
     </div>
