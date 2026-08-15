@@ -20,7 +20,7 @@ export async function GET() {
 
   const releases = await prisma.release.findMany({
     where: { organizationId: session.organizationId },
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ detectedAt: "desc" }, { createdAt: "desc" }],
   });
 
   return NextResponse.json({ releases });

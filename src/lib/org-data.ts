@@ -55,7 +55,7 @@ export async function getOrganizationContext(organizationId: string) {
     }),
     db.release.findMany({
       where: { organizationId },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ detectedAt: "desc" }, { createdAt: "desc" }],
     }),
     db.deliveryWorkflow.findUnique({ where: { organizationId } }),
     db.incident.findMany({
