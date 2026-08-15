@@ -63,8 +63,6 @@ const NAV_HREF_TO_FLAG: Record<string, NavFeatureFlagId> = {
   "/integrations": "nav.integrations",
   "/admin": "nav.admin",
   "/settings": "nav.settings",
-  "/accelerator": "nav.mvp_launchpad",
-  "/accelerator/new": "nav.mvp_new",
 };
 
 /** Related routes not listed in the sidebar but tied to a nav flag */

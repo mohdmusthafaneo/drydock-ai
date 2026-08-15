@@ -5,7 +5,6 @@ import type { IntegrationGateKey, IntegrationNavGates } from "@/lib/nav-availabi
 import { DEFAULT_INTEGRATION_NAV_GATES } from "@/lib/nav-availability";
 import {
   LayoutDashboard,
-  Rocket,
   GitBranch,
   Kanban,
   FlaskConical,
@@ -20,8 +19,6 @@ import {
   AlertTriangle,
   Plug,
   Settings,
-  Users,
-  Plus,
   HeartPulse,
   TrendingUp,
 } from "lucide-react";
@@ -41,15 +38,15 @@ export const WORKSPACE_META: Record<
 > = {
   MVP: {
     label: "MVP Workspace",
-    tagline: "Idea to launch, fast",
+    tagline: "",
     description: "Build products — PRD, architecture, Jira epics, and launch plans.",
-    homePath: "/accelerator",
+    homePath: "/dashboard",
     accentClass: "from-mvp to-violet-400",
     badgeClass: "bg-mvp-muted text-mvp",
   },
   ENTERPRISE: {
     label: "Enterprise Workspace",
-    tagline: "",
+    tagline: "Governance & observability",
     description:
       "Enterprise operational intelligence shell — govern, observe, and orchestrate AI-native delivery (no autonomous agents yet).",
     homePath: "/dashboard",
@@ -101,20 +98,6 @@ export type ResolvedEnterpriseNavLayout = {
   sections: ResolvedNavSection[];
   bottomItems: ResolvedNavItem[];
 };
-
-/** Master FRD §9 — Application Pages (full catalog) */
-export function getNavForMode(mode: WorkspaceMode): NavItem[] {
-  if (mode === "MVP") {
-    return [
-      { href: "/accelerator", label: "Launchpad", icon: Rocket, primary: true },
-      { href: "/accelerator/new", label: "New MVP", icon: Plus },
-      { href: "/integrations", label: "Integrations", icon: Plug },
-      { href: "/settings", label: "Settings", icon: Settings },
-    ];
-  }
-
-  return flattenEnterpriseNavLayout(getEnterpriseNavLayout());
-}
 
 export function getEnterpriseNavLayout(): EnterpriseNavLayout {
   return {
@@ -268,15 +251,11 @@ export function getResolvedEnterpriseNavLayout(
   };
 }
 
-/** Sidebar items after nav feature flags (flat list for MVP and legacy callers) */
+/** Sidebar items after nav feature flags (flat list for all modes) */
 export function getEnabledNavForMode(
-  mode: WorkspaceMode,
+  _mode: WorkspaceMode,
   gates: IntegrationNavGates = DEFAULT_INTEGRATION_NAV_GATES,
 ): NavItem[] {
-  if (mode === "MVP") {
-    return getNavForMode(mode).filter((item) => isNavHrefEnabled(item.href));
-  }
-
   const layout = getResolvedEnterpriseNavLayout(gates);
   return [
     ...layout.topItems,
@@ -304,10 +283,6 @@ export function getEnabledHomePath(mode: WorkspaceMode): string {
 
 /** @deprecated Prefer resolveLandingPath from @/lib/landing-path or getLandingPathForOrganization */
 export function getHomePath(mode: WorkspaceMode, hasDna: boolean): string {
-  if (mode === "MVP") {
-    if (isNavHrefEnabled("/accelerator")) return WORKSPACE_META.MVP.homePath;
-    return getEnabledHomePath("MVP");
-  }
   if (!hasDna) return "/activate";
   if (isNavHrefEnabled("/dashboard")) return "/dashboard";
   if (isNavHrefEnabled("/workflow")) return "/workflow";
@@ -337,18 +312,8 @@ export function isEnterpriseOnlyPath(pathname: string): boolean {
   return prefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
-export function isMvpOnlyPath(pathname: string): boolean {
-  return pathname.startsWith("/accelerator");
-}
-
 export function isNavItemActive(pathname: string, href: string): boolean {
-  return (
-    pathname === href ||
-    (href !== "/accelerator" && pathname.startsWith(`${href}/`)) ||
-    (href === "/accelerator" &&
-      pathname.startsWith("/accelerator") &&
-      pathname !== "/accelerator/new")
-  );
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 /** Best-effort page title from pathname for the app header. */
@@ -393,7 +358,7 @@ function looksLikeOpaqueId(segment: string): boolean {
   if (/^[a-f0-9-]{8,}$/i.test(segment)) return true;
   if (/^\d+$/.test(segment)) return true;
   // CUIDs and similar: starts with a letter, then mix of alphanumerics with no dashes,
-  // length ≥ 16. A real slug will either be short or contain dashes separating words.
+  // length >= 16. A real slug will either be short or contain dashes separating words.
   if (/^[a-z][a-z0-9]+$/i.test(segment) && segment.length >= 16) return true;
   return false;
 }
