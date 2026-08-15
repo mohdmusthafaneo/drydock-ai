@@ -14,11 +14,11 @@ import {
   getIntegrationNavGates,
   isIntegrationGatedPathAccessible,
 } from "@/lib/nav-availability";
-import { isMvpOnlyPath } from "@/lib/workspace-mode";
 
 function isChatPath(pathname: string): boolean {
   return pathname === "/agent-threads" || pathname.startsWith("/agent-threads/");
 }
+
 export async function PlatformShell({
   session,
   children,
@@ -35,10 +35,6 @@ export async function PlatformShell({
 
   const headersList = await headers();
   const pathname = headersList.get("x-pathname") ?? "";
-
-  if (pathname && isMvpOnlyPath(pathname)) {
-    redirect("/dashboard");
-  }
 
   const ctx = await getOrganizationContext(session.organizationId);
   const homePath = resolveLandingPath({
