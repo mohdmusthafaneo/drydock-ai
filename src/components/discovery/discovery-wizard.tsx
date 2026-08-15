@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { generateDeliveryDNA } from "@/lib/delivery-dna";
 import {
   approvalLevelLabel,
@@ -63,6 +64,7 @@ export function DiscoveryWizard({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [showToast, setShowToast] = useState(false);
   const [form, setForm] = useState<DiscoveryFormState>({
     ...DEFAULT_FORM,
     ...initialForm,
@@ -113,6 +115,7 @@ export function DiscoveryWizard({
       return;
     }
     setSuccess(true);
+    setShowToast(true);
   }
 
   return (
@@ -462,15 +465,22 @@ export function DiscoveryWizard({
               <Button type="button" variant="ink" size="lg" onClick={() => setStep((s) => s + 1)}>
                 Continue
               </Button>
+            ) : loading ? (
+              <Skeleton className="h-12 w-[200px] rounded-[10px]" />
             ) : (
-              <Button type="button" variant="ink" size="lg" disabled={loading} onClick={submit}>
-                {loading ? "Generating DNA…" : "Generate Delivery DNA"}
+              <Button type="button" variant="ink" size="lg" onClick={submit}>
+                Generate Delivery DNA
               </Button>
             )}
           </div>
           {error && <p className="text-sm text-error">{error}</p>}
         </>
       )}
+      <Toast
+        message="Delivery DNA saved successfully!"
+        visible={showToast}
+        onDismiss={() => setShowToast(false)}
+      />
     </div>
   );
 }
