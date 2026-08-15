@@ -24,12 +24,12 @@ Screenshots referenced below live in `./screenshots/`.
 8. [Investigate — Delivery analysis](#8-delivery-analysis)
 9. [Releases — register, assess, approve](#9-releases)
 10. [Govern — Approvals](#10-approvals)
-11. [Governance surfaces — setup, policy, workflow, toolchain mapping](#11-governance-surfaces)
+11. [Governance surfaces — setup, policy, workflow](#11-governance-surfaces)
 12. [Investigate — QA, DevOps, Productivity, Code](#12-investigate-views)
 13. [Recommendations](#13-recommendations)
 14. [Ask AIDOS (Agent threads)](#14-ask-aidos)
 15. [Incidents](#15-incidents)
-16. [Observability, Reports, Audit, Settings, Admin](#16-supporting-pages)
+16. [Audit, Settings, Activate](#16-supporting-pages)
 17. [Glossary of terms I had to learn](#17-glossary)
 18. [Known ambiguities I hit while walking the app](#18-ambiguities)
 19. [Where to find each screenshot](#19-screenshots)
@@ -118,22 +118,17 @@ Every authenticated page has the same shell.
 **Ambiguity I hit:** the hexagon icon has no text label. Based on hover targets, it opens `/governance`, which is the Delivery DNA page. (See Q65 in `QUESTIONS-FOR-PO.md`.)
 
 ### Top banner (right of every page)
-
+- **Phase pill** — "Phase 1" pill was present in the original walk (Q62). Removed in Phase 1 — no longer visible on any surface.
 - **Page title** (e.g., "Today", "Delivery analysis", "Agent threads")
-- **Phase pill** — "Phase 1" on every page I visited (Q62)
 
 ### Floating "Next in setup" banner
 
-On release detail and incident detail, there's a sticky banner at the top with:
-- "Next in setup" header
-- A single next-action CTA (e.g., "First decision" → `/approvals`)
-- A "3/4" progress and **"All steps"** expandable menu
-
-**Ambiguity I hit:** I am not sure if this banner is always shown or only for in-progress setup. (See Q8 and Q70.)
+The FirstDecisionSetup floating panel was removed in Phase 1 (TKT-008). The Discovery wizard is now a 3-step linear flow (Organization → Governance → Review) accessible from `/governance/setup`.
 
 ### Main content area
 
 A single scrollable `<main>` element with the page-specific content. Note: the body is fixed at viewport height; you scroll inside `<main>`. The dashboard is ~4000px tall.
+
 
 ---
 
@@ -342,16 +337,6 @@ Actions: **Export**, **Sync now**.
 - Spillover
 
 For Sprint 37 (CX): Blocked 30, Open work 38, Reopened 20, Spillover 22, Delivery health 0.
-
-### Full signal board (expandable)
-
-When you click "Full signal board", the page reveals:
-- Risk mix (donut)
-- Delivery health trend
-- Project breakdown
-- Active sprints (with cards)
-- Delivery signals (extended list)
-
 I did not exercise the export functionality, but the button is present.
 
 ---
@@ -402,7 +387,6 @@ The page renders a 4-step pipeline:
 - **Signal details (13)** — collapsible list of every signal: schedule, CI, observability, etc. Each tagged `stability` / `coverage` / `regression` / `performance` / `governance`.
 - **Source freshness** — Jira / GitHub / Grafana / Prometheus with their last-sync state.
 - **1 pending approval · QA LEAD** banner linking to `/approvals`.
-- **Regression intelligence** — short summary.
 
 The signal details breakdown is the most interesting bit for QA. There are 13 signals here:
 
@@ -442,7 +426,7 @@ Categories:
 
 ## 11. Governance surfaces
 
-There are **four** sub-routes under `/governance`:
+There are **three** sub-routes under `/governance`:
 
 ### `/governance/setup` — Discovery wizard
 ![Governance setup](screenshots/24-governance-setup.webp)
@@ -463,12 +447,6 @@ A second view of the policy. **Ambiguity:** I could not tell if this is a separa
 ![Governance workflow](screenshots/26-governance-workflow.webp)
 
 Edits per-workflow config. Lists workflows (Sprint tracking, Incident response, etc.) with risk and approval settings.
-
-### `/governance/toolchain-mapping`
-![Governance toolchain](screenshots/27-governance-toolchain.webp)
-![Toolchain mid](screenshots/27b-toolchain-mid.webp)
-
-Map tools (Jira, GitHub, Slack, …) to workflows. For example, "Jira → Sprint tracking", "GitHub → Engineering ops", "Slack → Incident response".
 
 ---
 
@@ -597,6 +575,16 @@ Sections:
 
 ---
 
+### Routing model — leadership-only (Phase 1)
+
+AIDOS Phase 1 ships **leadership-only routing** for incidents: every incident is surfaced to the full leadership audience (org admins, directors). There is no per-recipient routing today.
+
+**Current state:** Incident notifications are broadcast to all leadership roles. The `recipient_id` field in the `Incident` model is a **placeholder** — reserved to unblock future per-recipient targeting (e.g. route to a specific QA lead or engineering manager based on the incident's service/team scope).
+
+**Roadmap:** Per-recipient routing is planned for a future phase. Once implemented, `recipient_id` will be populated at incident-creation time based on the affected service or team assignment. Until then, all leadership users see every incident.
+
+---
+
 ## 16. Supporting pages
 
 ### Workflow — `/workflow`
@@ -612,22 +600,7 @@ Append-only event log: who did what, when. For Connexus it shows recent activity
 ### Settings — `/settings`
 ![Settings](screenshots/22-settings.webp)
 
-Tabs: Members, Integrations, Workspace, etc. Member invites, plan tier, workspace settings.
-
-### Observability — `/observability`
-![Observability](screenshots/18-observability.webp)
-
-**Note:** Visiting this URL on Connexus redirects to `/integrations` (Connect page). I am not sure if Observability is meant to be a separate product surface for ENTERPRISE orgs, or if it is in roadmap. (Q57.)
-
-### Reports — `/reports`
-![Reports](screenshots/20-reports.webp)
-
-Redirects to `/dashboard`. (Q58.)
-
-### Admin — `/admin`
-![Admin](screenshots/23-admin.webp)
-
-Redirects to `/dashboard` for this account. Likely a different role. (Q5.)
+Tabs: Integrations, Workspace. Member listing, plan tier, workspace settings.
 
 ### Activate — `/activate`
 ![Activate](screenshots/28-activate.webp)
@@ -659,9 +632,9 @@ These are the things I found unclear while walking the app. The full list of 70 
 
 1. **Score `0` vs `39`** — the dashboard says "Delivery confidence 39 / 100" but every axis card says `0`. Which is "right"? Likely the 39 is a derived composite and 0s are unfilled placeholders. This is a visual bug.
 2. **H1 on release detail is a CUID** — `Cms640nhu001c4s0mnjw5esgw` instead of "Sprint 37". A clear defect.
-3. **Phase 1 pill everywhere** — unclear if this is a roadmap indicator or a build badge.
+3. ~~**Phase 1 pill everywhere**~~ — was a roadmap/build badge. Removed in Phase 1 (TKT-009).
 4. **Sidebar hexagon has no label** — looks like a Delivery DNA entry but is unlabelled.
-5. **Multiple "setup" surfaces** — `/governance`, `/governance/setup`, `/governance/policy`, `/governance/workflow`, `/governance/toolchain-mapping` — overlap with each other and with the Discovery wizard. The source of truth is unclear.
+5. ~~**Multiple "setup" surfaces**~~ — `/governance/toolchain-mapping` was removed in Phase 1. Remaining surfaces: `/governance`, `/governance/setup`, `/governance/policy`, `/governance/workflow`.
 
 See `QUESTIONS-FOR-PO.md` for the full 70.
 
@@ -690,7 +663,7 @@ All screenshots are in `./screenshots/`. Naming: `NN-section[-modifier].webp`.
 | 06 | `06-governance.webp` | /governance landing (renders DNA — same as 04) |
 | 07 | `07-delivery-analysis.webp` | Delivery analysis KPIs |
 | 07b | `07b-delivery-analysis-mid.webp` | Delivery analysis grid |
-| 07c | `07c-delivery-analysis-expanded.webp` | Full signal board expanded |
+| ~~07c~~ | ~~`07c-delivery-analysis-expanded.webp`~~ | ~~Full signal board — removed in Phase 1~~ |
 | 07d | `07d-delivery-analysis-deeper.webp` | Charts, project breakdown, sprints |
 | 08 | `08-approvals.webp` | Approvals empty state |
 | 08b | `08b-approvals-system-events.webp` | Approvals with system events |
@@ -706,18 +679,18 @@ All screenshots are in `./screenshots/`. Naming: `NN-section[-modifier].webp`.
 | 16 | `16-incidents.webp` | Incidents list |
 | 17 | `17-releases.webp` | Releases list |
 | 17b | `17b-releases-new.webp` | New release form |
-| 18 | `18-observability.webp` | /observability (redirected) |
+| ~~18~~ | ~~`18-observability.webp`~~ | ~~/observability — removed in Phase 1~~ |
 | 19 | `19-workflow.webp` | Workflow center |
-| 20 | `20-reports.webp` | /reports (redirected) |
+| ~~20~~ | ~~`20-reports.webp`~~ | ~~/reports — removed in Phase 1~~ |
 | 21 | `21-audit.webp` | Audit log |
 | 22 | `22-settings.webp` | Settings |
-| 23 | `23-admin.webp` | /admin (redirected) |
+| ~~23~~ | ~~`23-admin.webp`~~ | ~~/admin — removed in Phase 1~~ |
 | 24 | `24-governance-setup.webp` | Discovery wizard step 1 |
 | 24b | `24b-discovery-step2.webp` | Discovery step 2 (Governance) |
 | 25 | `25-governance-policy.webp` | /governance/policy |
 | 26 | `26-governance-workflow.webp` | /governance/workflow |
-| 27 | `27-governance-toolchain.webp` | Toolchain mapping top |
-| 27b | `27b-toolchain-mid.webp` | Toolchain mapping mid |
+| ~~27~~ | ~~`27-governance-toolchain.webp`~~ | ~~Toolchain mapping — removed in Phase 1~~ |
+| ~~27b~~ | ~~`27b-toolchain-mid.webp`~~ | ~~Toolchain mapping mid — removed in Phase 1~~ |
 | 28 | `28-activate.webp` | /activate (redirected) |
 | 29 | `29-agent-thread-new.webp` | Ask AIDOS new thread (suggested prompts) |
 | 29b | `29b-agent-thread-detail.webp` | Open agent thread conversation |
@@ -726,7 +699,7 @@ All screenshots are in `./screenshots/`. Naming: `NN-section[-modifier].webp`.
 | 30c | `30c-release-after-assessment.webp` | Release after running assessment |
 | 30d | `30d-release-assessment-mid.webp` | Release assessment mid |
 | 30e | `30e-signal-details.webp` | Release 13 signal details expanded |
-| 30f | `30f-release-bottom.webp` | Release regression intelligence footer |
+| ~~30f~~ | ~~`30f-release-bottom.webp`~~ | ~~Release regression intelligence footer — removed in Phase 1~~ |
 | 31 | `31-incident-detail.webp` | Incident detail top |
 | 31b | `31b-incident-detail-lower.webp` | Incident remediation form |
 
@@ -760,12 +733,11 @@ All screenshots are in `./screenshots/`. Naming: `NN-section[-modifier].webp`.
 >
 > **Patterns discovered:**
 >
-> - **Connectors:** Grafana, Prometheus wizards expand inline (no modal). AWS is pre-connected with stale "initial sync pending" state. Jenkins is "Coming soon" but the banner still says "Jenkins · 3 disconnected" — number mismatch.
-> - **Releases:** Form rejects unknown branches with a generic "Invalid release data". Setting `branch = main` (the configured production branch from toolchain mapping) succeeds. New release auto-creates a pending approval.
-> - **Ask AIDOS:** When asked for the "most recent release", the agent picked Sprint 37 (older) instead of the release I had just created. Recency sort is broken.
-> - **Incidents:** Status select is a native `<select>` and `tab.select` does not bind to React state. Workaround: `evaluate(s.value = '...'; s.dispatchEvent(new Event('change', {bubbles:true})))`. No toast on update — silent success.
-> - **Audit log:** Comprehensive, chronological, 50 events visible. Filter buttons work. **No defects found.**
-> - **Settings:** Team invite generates a share link with `name=local-part-of-email` (cosmetic). No autonomy-mode toggle in Phase 1.
+- **Connectors:** Grafana, Prometheus wizards expand inline (no modal). AWS is pre-connected with stale "initial sync pending" state. Jenkins was removed in Phase 1 (TKT-060).
+- **Releases:** Form rejects unknown branches with a generic "Invalid release data". Setting `branch = main` succeeds. New release auto-creates a pending approval.
+- **Ask AIDOS:** When asked for the "most recent release", the agent picked Sprint 37 (older) instead of the release I had just created. Recency sort is broken.
+- **Incidents:** Status select is a native `<select>` and `tab.select` does not bind to React state. Workaround: `evaluate(s.value = '...'; s.dispatchEvent(new Event('change', {bubbles:true})))`. No toast on update — silent success.
+- **Audit log:** Comprehensive, chronological, 50 events visible. Filter buttons work. **No defects found.**
 >
 > **Critical automation note for next QA / engineer:** every native `<select>` in AIDOS (Incident, Connect auth dropdown, Release env, Discovery steps, etc.) requires the evaluate+dispatch workaround. The standard `page.select()` fails silently. The native DOM event channel is unbound from React.
 
