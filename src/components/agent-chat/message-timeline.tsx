@@ -14,6 +14,7 @@ import {
   toolsFromReasoningJson,
 } from "@/components/agent-chat/thought-panel";
 import type { StreamingMessageState } from "@/components/agent-chat/use-agent-thread-stream";
+import { MessageFeedback } from "@/components/agent-chat/message-feedback";
 import { parseReasoningJson } from "@/lib/agent-chat/types";
 
 export type TimelineMessage = {
@@ -23,8 +24,8 @@ export type TimelineMessage = {
   reasoningJson?: unknown;
   createdAt: Date | string;
   authorUser: { id: string; name: string } | null;
+  feedback?: string | null;
 };
-
 function isAssistantKind(kind: TimelineMessage["kind"]): boolean {
   return kind === "assistant" || kind === "agent_reply";
 }
@@ -51,9 +52,10 @@ function authorLabel(message: TimelineMessage): string {
 
 type MessageBubbleProps = {
   message: TimelineMessage;
+  threadId: string;
 };
 
-export function MessageBubble({ message }: MessageBubbleProps) {
+export function MessageBubble({ message, threadId }: MessageBubbleProps) {
   const isHuman = message.kind === "human";
   const isLegacyApproval =
     message.kind === "approval_request" ||
@@ -125,6 +127,13 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         >
           {message.contentMarkdown}
         </MessageContent>
+        {isAssistant ? (
+          <MessageFeedback
+            messageId={message.id}
+            threadId={threadId}
+            currentFeedback={message.feedback}
+          />
+        ) : null}
       </div>
     </Message>
   );
@@ -138,6 +147,7 @@ type MessageTimelineProps = {
 };
 
 export function MessageTimeline({
+  threadId,
   messages,
   streamingMessages = [],
   emptyState,
@@ -160,7 +170,7 @@ export function MessageTimeline({
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-5">
       {messages.map((message) => (
-        <MessageBubble key={message.id} message={message} />
+        <MessageBubble key={message.id} message={message} threadId={threadId} />
       ))}
       {activeStreaming.map((stream) => (
         <StreamingMessageBubble
