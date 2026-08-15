@@ -219,8 +219,11 @@ export async function POST(
         assessedAt: new Date(),
       },
     });
-
-    if (assessment.riskLevel === "HIGH" || assessment.riskLevel === "CRITICAL") {
+    if (
+      (assessment.riskLevel === "HIGH" || assessment.riskLevel === "CRITICAL") &&
+      release.jiraFixVersion &&
+      assessment.primaryRecommendation !== "HOLD"
+    ) {
       await tx.incident.create({
         data: {
           organizationId: session.organizationId,
