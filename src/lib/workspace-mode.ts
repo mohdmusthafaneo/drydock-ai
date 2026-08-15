@@ -173,7 +173,6 @@ export function getEnterpriseNavLayout(): EnterpriseNavLayout {
         id: "govern",
         label: "Govern",
         icon: Shield,
-        defaultCollapsed: true,
         items: [
           { href: "/approvals", label: "Approval center", icon: CheckSquare },
           { href: "/recommendations", label: "Recommendations", icon: Lightbulb },
