@@ -283,7 +283,7 @@ export function JiraIntegrationPanel({
 
         {availableSitesCount != null && availableSitesCount > 1 && (
           <p className="text-xs text-muted">
-            {availableSitesCount} Jira sites available — using the primary site for now.
+            {availableSitesCount} Jira sites connected — syncing from primary site ({siteName ?? "unknown"}) only.
           </p>
         )}
 
@@ -342,7 +342,7 @@ export function JiraIntegrationPanel({
       <div className="space-y-2 rounded-lg border border-border bg-elevated/40 p-3">
         <p className="text-xs font-medium text-primary">Projects to sync</p>
         <p className="text-xs text-muted">
-          Choose which Jira projects this organization syncs. Each org manages its own selection.
+          Choose which Jira projects this organization syncs from {siteName ?? "the connected Jira site"}. Each org manages its own selection.
         </p>
 
         {canManage ? (

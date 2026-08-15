@@ -238,14 +238,7 @@ export default async function ReleaseDetailPage({
         </RevealSection>
       )}
 
-      {release.regressionNotes && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Regression intelligence</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-ash">{release.regressionNotes}</CardContent>
-        </Card>
-      )}
+
 
       {release.status === "APPROVED" && (
         <Card className="bg-apricot-wash/40">
