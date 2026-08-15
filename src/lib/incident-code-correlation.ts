@@ -5,7 +5,7 @@ import { parseOwnerRepo, getPullRequest } from "@/lib/github-api";
 import { resolveGitHubTokenForIntegration } from "@/lib/github-token";
 import { fetchJiraIssueTexts } from "@/lib/code-analysis/jira-issue-fetch";
 
-const CORRELATION_WINDOW_MS = 72 * 60 * 60 * 1000;
+export const CORRELATION_WINDOW_MS = 72 * 60 * 60 * 1000;
 const MAX_LINKS = 5;
 
 export type IncidentCodeLinkView = {

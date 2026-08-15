@@ -46,7 +46,7 @@ export const WORKSPACE_META: Record<
   },
   ENTERPRISE: {
     label: "Enterprise Workspace",
-    tagline: "Governance & observability",
+    tagline: "",
     description:
       "Enterprise operational intelligence shell — govern, observe, and orchestrate AI-native delivery (no autonomous agents yet).",
     homePath: "/dashboard",
