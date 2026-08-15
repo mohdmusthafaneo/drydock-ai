@@ -999,8 +999,7 @@ export function categorizeAuditAction(action: string): AuditFilterCategory {
   if (APPROVAL_ACTION_PREFIXES.some((p) => action.startsWith(p))) return "approvals";
   if (action.startsWith("release.")) return "releases";
   if (INTEGRATION_ACTION_PREFIXES.some((p) => action.startsWith(p))) return "integrations";
-  if (action.startsWith("agent.")) return "agents";
-  if (action.startsWith("agent_chat.")) return "conversations";
+  if (action.startsWith("agent.") || action.startsWith("agent_chat.")) return "agents";
   return "all";
 }
 
