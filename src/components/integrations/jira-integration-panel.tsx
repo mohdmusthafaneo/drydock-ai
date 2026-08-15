@@ -1,9 +1,19 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useState, useCallback, useEffect } from "react";
 import type { JiraDeliverySnapshot } from "@/lib/jira-meta";
+import { formatFixedLocaleDateTime } from "@/lib/format-date";
+import { isJiraReconnectMessage } from "@/lib/jira-errors";
 import {
   DisconnectButton,
   JiraOAuthConnect,
   RotateTokenButton,
 } from "@/components/integrations/integration-actions";
+import { ExternalConnectLinkPanel } from "@/components/integrations/external-connect-link-panel";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ExternalLink, RefreshCw } from "lucide-react";
 
 type JiraProjectOption = { key: string; name: string };
 
