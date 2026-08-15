@@ -33,6 +33,7 @@ export default async function CodeHealthPage() {
 
       <AgentPageShell
         view={view}
+        approvalLevelLabels={ctx.approvalLevelLabels}
         afterHighlights={
           <CodeHealthHotspots hotspots={view.topHotspots} drivers={view.riskDrivers} />
         }

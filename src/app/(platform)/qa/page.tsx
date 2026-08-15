@@ -72,7 +72,7 @@ export default async function QAIntelligencePage({
       <BriefingContextChip from={sp.from} />
       <DataTrustStrip lastSyncLabel={lastSyncLabel} blindSpots={blindSpots} />
 
-      <AgentPageShell view={view}>
+      <AgentPageShell view={view} approvalLevelLabels={ctx.approvalLevelLabels}>
         <div className="space-y-4 border-t border-border-subtle pt-8">
           <EngineeringDetailSection
             title="Blocked issue evidence"
