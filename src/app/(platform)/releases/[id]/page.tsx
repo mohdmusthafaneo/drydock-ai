@@ -15,6 +15,8 @@ import { resolveEffectiveToolchainMapping } from "@/lib/toolchain-mapping";
 import { resolveLowJiraHygieneForRelease } from "@/lib/jira-hygiene";
 import { isJiraOAuthConnected, parseJiraMeta } from "@/lib/jira-meta";
 import { buildReleaseDetailVerdict } from "@/lib/governance/presentation";
+import { parseGovernancePolicy } from "@/lib/governance/policy";
+import { ROLE_LABELS } from "@/lib/roles";
 import { verdictBadgeVariant } from "@/lib/release-gate-brief";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,8 +37,7 @@ export default async function ReleaseDetailPage({
   if (!session) redirect("/login");
 
   const { id } = await params;
-
-  const [release, integrations, effectiveMapping] = await Promise.all([
+  const [release, integrations, effectiveMapping, governancePolicy] = await Promise.all([
     prisma.release.findFirst({
       where: { id, organizationId: session.organizationId },
       include: {
@@ -47,6 +48,9 @@ export default async function ReleaseDetailPage({
       where: { organizationId: session.organizationId },
     }),
     resolveEffectiveToolchainMapping(session.organizationId),
+    prisma.governancePolicy.findUnique({
+      where: { organizationId: session.organizationId },
+    }),
   ]);
 
   if (!release) notFound();
@@ -94,16 +98,24 @@ export default async function ReleaseDetailPage({
   const pendingApprovals = release.recommendations.flatMap((r) =>
     r.approvals.filter((a) => !a.decision),
   );
+  const parsedPolicy = parseGovernancePolicy(governancePolicy);
+  // approvalLevelLabels can be keyed by level (level1–4) OR by role name (QA_LEAD, etc.)
+  // We support both: first try role-keyed lookup, then fall back to ROLE_LABELS display name
+  const labels = parsedPolicy.approvalLevelLabels as Record<string, string>;
   const pendingRoles = [
     ...new Set(
       release.recommendations
         .filter((r) => r.approvals.some((a) => !a.decision))
         .map((r) => r.requiredRole)
         .filter((role) => role != null)
-        .map((role) => role.replace(/_/g, " ")),
+        .map((role) => {
+          // Org-configured label takes precedence (role-keyed or level-keyed); fall back to system label
+          const orgLabel = labels[role];
+          if (orgLabel) return orgLabel;
+          return ROLE_LABELS[role] ?? role.replace(/_/g, " ");
+        }),
     ),
   ];
-
   const showGateBrief = release.assessedAt != null;
   const releaseVerdict = buildReleaseDetailVerdict(release);
   const jiraSprintUrl =
