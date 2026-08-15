@@ -10,6 +10,7 @@ export type ThreadListItemResponse = {
   title: string;
   status: AgentChatThreadStatus;
   updatedAt: string;
+  externalSource: string | null;
   _count: { messages: number };
   messages: {
     id?: string;
@@ -31,6 +32,7 @@ export type AgentThreadDetailResponse = {
     id: string;
     title: string;
     status: AgentChatThreadStatus;
+    externalSource: string | null;
     contextSummary?: string | null;
     closedAt?: string | null;
     updatedAt: string;

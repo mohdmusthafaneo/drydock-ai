@@ -548,9 +548,28 @@ This is the conversational AI surface. It looks like a chat app with:
 ### What I observed
 
 - Threads persist across sessions and across pages.
-- Some threads are prefixed with `@U0BMN9YBNTV` (a Slack user ID) — suggesting Slack origin. (Q44.)
+- Threads that originated from Slack carry a **Slack badge** — a small pink/red pill labelled "Slack" with the Slack mark icon — in the thread-list sidebar. The badge appears next to the thread title, to the right of the title or the Archived status badge.
+- The `externalSource` field on `AgentChatThread` records the origin channel. When a Slack message arrives in the configured assistant channel, the webhook handler creates a thread with `externalSource = "slack"` and `externalThreadId = "<channelId>:<threadTs>"`. The reverse — a thread started in AIDOS and mirrored to Slack — is not currently implemented.
+- Slack user IDs (`@U0BMN9YBNTV`) appearing in thread titles or messages are the Slack user who triggered the thread, surfaced as a reference. They do not indicate the origin of the thread.
 - The AI answers are rich and reference real numbers from the org's data (e.g., "I'll check the latest QA analysis to give you an accurate picture… Here's where Connexus stands: …").
 - The 4 suggested prompts: "What open bugs are in this sprint?", "What did the QA agent find?", "Any high-severity AWS findings?", "How ready is our latest release?" — these are the four high-value entry points.
+
+### Slack ↔ AIDOS shared-thread model
+
+The `AgentChatThread` model supports threads that span both Slack and the AIDOS UI through two fields on the Prisma model:
+
+| Field | Type | Description |
+|---|---|---|
+| `externalSource` | `String?` | Origin channel, e.g. `"slack"`. `null` means AIDOS-only. |
+| `externalThreadId` | `String?` | Platform-specific thread key. Format: `"<channelId>:<threadTs>"` for Slack. |
+
+The `@@unique` constraint is `([organizationId, externalSource, externalThreadId])`, ensuring one thread per external channel thread.
+
+**Creating a thread from Slack:** When a Slack message arrives in the configured assistant channel, the webhook handler calls `createAgentChatThread` with `externalSource = "slack"` and `externalThreadId` set to the Slack `<channelId>:<thread_ts>`. The thread title is pre-populated from the Slack message text.
+
+**Creating a thread from AIDOS:** Calls to `createAgentChatThread` without `externalSource` create an AIDOS-only thread (no Slack mirror).
+
+**UI indicator:** The thread-list sidebar (`SidebarThreadLink` in `chat-workspace.tsx`) renders a `SlackOriginBadge` when `thread.externalSource` is non-null and equals `"slack"`. The badge is a pink pill with the Slack icon and "Slack" label.
 
 ### Ambiguity
 No obvious feedback mechanism (thumbs up/down) on AI answers. (Q47.)
