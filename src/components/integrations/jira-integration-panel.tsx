@@ -1,18 +1,9 @@
-"use client";
-
-import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { ExternalLink, RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import type { JiraDeliverySnapshot } from "@/lib/jira-meta";
 import {
   DisconnectButton,
   JiraOAuthConnect,
+  RotateTokenButton,
 } from "@/components/integrations/integration-actions";
-import { ExternalConnectLinkPanel } from "@/components/integrations/external-connect-link-panel";
-import { isJiraReconnectMessage, JIRA_RECONNECT_MESSAGE } from "@/lib/jira-errors";
-import { formatFixedLocaleDateTime } from "@/lib/format-date";
-import type { JiraDeliverySnapshot } from "@/lib/jira-meta";
 
 type JiraProjectOption = { key: string; name: string };
 
@@ -473,10 +464,25 @@ export function JiraIntegrationPanel({
         </Button>
       )}
 
+      {canManage && (
+        <details className="rounded-lg border border-border bg-elevated/40 p-3">
+          <summary className="cursor-pointer text-xs font-medium text-primary">
+            Manage connection
+          </summary>
+          <div className="mt-3 space-y-2">
+            <p className="text-xs text-muted">
+              Rotate the Jira OAuth token if access was revoked or the previous token expired.
+              This disconnects the current token and redirects you to re-authorize with fresh
+              permissions.
+            </p>
+            <RotateTokenButton provider="JIRA" />
+          </div>
+        </details>
+      )}
+
       {!canManage && !hasSelection && (
         <p className="text-xs text-muted">An org admin must select projects before sync.</p>
       )}
-
       {deliverySnapshot && deliverySnapshot.projects.length > 0 && (
         <div className="space-y-1">
           <p className="text-xs font-medium text-primary">Delivery snapshot</p>

@@ -243,19 +243,40 @@ This is the integration hub. Each card represents a connector. Some are pre-conn
 | **Slack** | Connected | "Multi-tenant assistant channel" |
 | **Grafana** | Disconnected | "Connect for alert correlation" |
 | **Prometheus** | Disconnected | "Connect for metrics ingestion" |
-| **AWS** | Disconnected | "Connect for cloud hygiene" |
+| **Jira** | Setup | Asks for site URL, email, API token |
+
+### Token storage policy
+
+Jira (and all other OAuth-based integrations) store credentials as follows:
+
+| Property | Detail |
+|---|---|
+| **Storage** | Jira OAuth tokens are stored in the AIDOS database (PostgreSQL). |
+| **Encryption at rest** | All integration credentials are encrypted at rest using AES-256. The raw tokens are never logged or exposed in the UI. |
+| **Rotatable** | Tokens can be rotated without full disconnect. Click **Manage connection → Rotate token** on the Jira card. This invalidates the current token and redirects you to re-authorize with a fresh Jira OAuth token. Project selections are preserved across rotation. |
+| **Disconnect** | **Disconnect** removes the token entirely and clears the integration state. Reconnecting requires a full OAuth re-authorization. |
+
+**Note:** Rotating a token via "Rotate token" is equivalent to disconnecting then immediately reconnecting — the organization integration record is preserved, only the stored credential is replaced. This means your Jira project selection is retained. A full **Disconnect** wipes all Jira integration metadata for the org and requires picking projects again after reconnecting.
 
 ### Public connect routes
 
-For pre-account setup, there are public routes that an admin can share:
-- `/connect/jira/[token]`
-- `/connect/github/[token]`
-- `/connect/slack/[token]`
-- `/connect/done`
-- `/connect/error`
+For pre-account setup, there are public routes that an integration partner can share with their customers:
 
-These render outside the auth wall, with a token gate.
+| Route | Purpose |
+|---|---|
+| `/connect/jira/[token]` | Jira Cloud OAuth — partner sets up Jira for a customer org |
+| `/connect/github/[token]` | GitHub App installation — partner installs on customer account |
+| `/connect/slack/[token]` | Slack workspace OAuth — partner adds Slack for a customer org |
+| `/connect/done` | Post-oauth success landing |
+| `/connect/error` | Post-oauth error with error codes |
 
+**Partner token link use case:** AIDOS is deployed per-customer by an integration partner. The partner generates a `ConnectInvite` record (server-side) containing a single-use token scoped to a specific provider and organization. They share the resulting URL (e.g. `https://customer.aidos.live/connect/jira/[token]`) with the end customer's Jira admin — who clicks through and completes OAuth — without needing a pre-existing AIDOS account. Pages render outside the auth wall and are gated only by the token. Each token expires in 24 hours and can only be used once.
+
+**Page banner:** Every partner token page displays a blue `Set up integration on behalf of customer` banner at the top so the visitor immediately understands they are acting as a partner代理, not a direct AIDOS user.
+
+</input>
+</invoke>
+</minimax:tool_call>
 ---
 
 ## 7. Delivery DNA
