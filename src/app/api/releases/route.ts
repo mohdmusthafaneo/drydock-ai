@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
-
+import { determineActorType } from "@/lib/audit-helpers";
 const createSchema = z.object({
   name: z.string().min(1).max(120),
   version: z.string().max(40).optional(),
@@ -69,6 +69,7 @@ export async function POST(request: Request) {
         entityType: "Release",
         entityId: release.id,
         metadataJson: JSON.stringify({ environment: body.environment }),
+        actorType: determineActorType(session.userId, "release.detected"),
       },
     });
 

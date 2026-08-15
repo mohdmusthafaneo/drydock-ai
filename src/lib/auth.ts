@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
+import { determineActorType } from "@/lib/audit-helpers";
 
 export async function hashPassword(password: string) {
   return bcrypt.hash(password, 12);
@@ -59,6 +60,7 @@ export async function registerUser(input: {
         entityType: "Organization",
         entityId: organization.id,
         metadataJson: JSON.stringify({ slug }),
+        actorType: determineActorType(user.id, "organization.created"),
       },
     });
 

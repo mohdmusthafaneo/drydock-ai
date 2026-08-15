@@ -8,6 +8,7 @@ import { introspectGitHubSchema } from "@/lib/github-introspection";
 import { parseIntegrationMeta } from "@/lib/integration-meta";
 import { inferToolchainMapping } from "@/lib/toolchain-mapping";
 
+import { determineActorType } from "@/lib/audit-helpers";
 const bodySchema = z
   .object({
     force: z.boolean().optional(),
@@ -87,6 +88,7 @@ export async function POST(request: Request) {
           repoCount: snapshot.repos.length,
           branchStrategy: snapshot.suggestions.branchStrategy?.value,
         }),
+        actorType: determineActorType(session.userId, "github.schema.introspected"),
       },
     });
 

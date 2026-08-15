@@ -8,6 +8,7 @@ import type {
 } from "@/lib/problem-prediction/types";
 import { prisma } from "@/lib/prisma";
 
+import { determineActorType } from "@/lib/audit-helpers";
 function isMissingProblemPredictionTables(error: unknown): boolean {
   return (
     error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -192,6 +193,7 @@ async function persistPredictionsInner(
           reopened,
           newCritical,
         }),
+        actorType: determineActorType(null, "prediction.evaluated"),
       },
     });
 

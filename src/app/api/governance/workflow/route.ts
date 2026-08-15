@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
+import { determineActorType } from "@/lib/audit-helpers";
 
 const schema = z.object({
   executionStatus: z.enum(["ACTIVE", "PAUSED", "COMPLETED"]).optional(),
@@ -64,6 +65,7 @@ export async function POST(request: Request) {
         entityType: "DeliveryWorkflow",
         entityId: workflow.id,
         metadataJson: JSON.stringify(body),
+        actorType: determineActorType(session.userId, "workflow.configured"),
       },
     });
 

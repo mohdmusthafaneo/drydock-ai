@@ -18,6 +18,7 @@ import {
 } from "@/lib/integration-meta";
 import { maybeIntrospectGitHubAfterSync } from "@/lib/github-introspection";
 import { ingestNormalizedEvents } from "@/lib/telemetry-ingest";
+import { determineActorType } from "@/lib/audit-helpers";
 
 export async function syncGitHubIntegration(input: {
   organizationId: string;
@@ -211,6 +212,7 @@ export async function syncGitHubIntegration(input: {
         repoCount: summaries.length,
         repoFullNames: targetFullNames,
       }),
+      actorType: determineActorType(input.userId, "integration.github.synced"),
     },
   });
 

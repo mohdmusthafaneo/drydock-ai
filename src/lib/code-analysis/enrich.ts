@@ -6,6 +6,7 @@ import {
   fallbackCompletionScore,
 } from "@/lib/code-analysis/scoring";
 import type { CodeAnalysisPullRequest } from "@/lib/code-analysis/types";
+import { determineActorType } from "@/lib/audit-helpers";
 
 export type EnrichCodeAnalysisResult =
   | { status: "enriched"; scored: number }
@@ -161,6 +162,7 @@ export async function enrichCodeAnalysisForOrg(
         entityType: "Organization",
         entityId: organizationId,
         metadataJson: JSON.stringify({ scored }),
+        actorType: determineActorType(null, "code_analysis.enriched"),
       },
     });
 

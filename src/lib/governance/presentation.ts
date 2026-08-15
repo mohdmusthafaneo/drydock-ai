@@ -978,50 +978,32 @@ export function buildWorkflowAttentionSummary(
   };
 }
 
-export type AuditFilterCategory = "all" | "approvals" | "releases" | "integrations" | "agents" | "conversations";
+export type AuditFilterCategory = "all" | "human" | "system" | "integration";
 
-const APPROVAL_ACTION_PREFIXES = [
-  "recommendation.",
-  "agent_action.",
-  "agent.hire.",
-] as const;
-
-const INTEGRATION_ACTION_PREFIXES = [
-  "integration.",
-  "sync.",
-  "prometheus.",
-  "github.",
-  "jira.",
-  "delivery_dna.",
-] as const;
-
-export function categorizeAuditAction(action: string): AuditFilterCategory {
-  if (APPROVAL_ACTION_PREFIXES.some((p) => action.startsWith(p))) return "approvals";
-  if (action.startsWith("release.")) return "releases";
-  if (INTEGRATION_ACTION_PREFIXES.some((p) => action.startsWith(p))) return "integrations";
-  if (action.startsWith("agent.") || action.startsWith("agent_chat.")) return "agents";
+export function categorizeByActorType(actorType: string | null | undefined): AuditFilterCategory {
+  if (actorType === "human") return "human";
+  if (actorType === "integration") return "integration";
+  if (actorType === "system") return "system";
   return "all";
 }
 
-export function filterAuditLogs<T extends { action: string }>(
+export function filterAuditLogs<T extends { actorType?: string | null }>(
   logs: T[],
   category: AuditFilterCategory,
 ): T[] {
   if (category === "all") return logs;
-  return logs.filter((log) => categorizeAuditAction(log.action) === category);
+  return logs.filter((log) => categorizeByActorType(log.actorType) === category);
 }
 
-export function countAuditByCategory(logs: { action: string }[]): Record<AuditFilterCategory, number> {
+export function countAuditByCategory(logs: { actorType?: string | null }[]): Record<AuditFilterCategory, number> {
   const counts: Record<AuditFilterCategory, number> = {
     all: logs.length,
-    approvals: 0,
-    releases: 0,
-    integrations: 0,
-    agents: 0,
-    conversations: 0,
+    human: 0,
+    system: 0,
+    integration: 0,
   };
   for (const log of logs) {
-    const cat = categorizeAuditAction(log.action);
+    const cat = categorizeByActorType(log.actorType);
     if (cat !== "all") counts[cat]++;
   }
   return counts;

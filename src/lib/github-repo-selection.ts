@@ -9,6 +9,7 @@ import { resolveGitHubTokenForIntegration } from "@/lib/github-token";
 import { mergeGitHubMeta, parseIntegrationMeta } from "@/lib/integration-meta";
 import type { Integration } from "@/generated/prisma/client";
 
+import { determineActorType } from "@/lib/audit-helpers";
 export const MAX_GITHUB_SYNC_REPOS = 10;
 
 export type GitHubRepoOption = {
@@ -98,6 +99,7 @@ export async function saveOrgGitHubRepoFullNames(input: {
         entityType: "Integration",
         entityId: integration.id,
         metadataJson: JSON.stringify({ repoFullNames: names }),
+        actorType: determineActorType(input.userId, "integration.github.repos_updated"),
       },
     });
 

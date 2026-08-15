@@ -1,4 +1,5 @@
 import type { Prisma } from "@/generated/prisma/client";
+import { determineActorType } from "@/lib/audit-helpers";
 
 type Tx = Prisma.TransactionClient;
 
@@ -37,7 +38,7 @@ export async function logAgentAudit(
   await tx.auditLog.create({
     data: {
       organizationId: input.organizationId,
-      actorType: "agent",
+      actorType: "system",
       action: input.action,
       entityType: input.entityType,
       entityId: input.entityId,

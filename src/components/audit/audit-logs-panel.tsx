@@ -24,11 +24,25 @@ type AuditLogItem = {
 
 const FILTERS: Array<{ id: AuditFilterCategory; label: string }> = [
   { id: "all", label: "All events" },
-  { id: "approvals", label: "Approval decisions" },
-  { id: "releases", label: "Releases" },
-  { id: "integrations", label: "Integrations" },
-  { id: "agents", label: "Analysis agents" },
+  { id: "human", label: "Human" },
+  { id: "system", label: "System" },
+  { id: "integration", label: "Integration" },
 ];
+
+function ActorTypeBadge({ actorType }: { actorType: string | null }) {
+  const styles: Record<string, string> = {
+    human: "bg-blue-100 text-blue-700",
+    system: "bg-gray-100 text-gray-600",
+    integration: "bg-purple-100 text-purple-700",
+  };
+  const cls = styles[actorType ?? ""] ?? "bg-gray-100 text-gray-500";
+  const label = actorType ?? "unknown";
+  return (
+    <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide", cls)}>
+      {label}
+    </span>
+  );
+}
 
 export function AuditLogsPanel({ logs }: { logs: AuditLogItem[] }) {
   const [filter, setFilter] = useState<AuditFilterCategory>("all");
@@ -64,15 +78,6 @@ export function AuditLogsPanel({ logs }: { logs: AuditLogItem[] }) {
             {" · "}
             {new Date(lastDecision.createdAt).toLocaleString()}
           </p>
-          {filter !== "approvals" && counts.approvals > 0 && (
-            <button
-              type="button"
-              onClick={() => setFilter("approvals")}
-              className="mt-3 text-[14px] font-medium text-ink hover:text-rust"
-            >
-              View all approval decisions →
-            </button>
-          )}
         </section>
       )}
 
@@ -101,9 +106,7 @@ export function AuditLogsPanel({ logs }: { logs: AuditLogItem[] }) {
             {FILTERS.find((f) => f.id === filter)?.label ?? "Events"} ({filtered.length})
           </CardTitle>
           <CardDescription>
-            {filter === "approvals"
-              ? "Human approval and recommendation decisions for compliance review."
-              : "Chronological audit trail for your organization."}
+            Chronological audit trail for your organization.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -116,11 +119,14 @@ export function AuditLogsPanel({ logs }: { logs: AuditLogItem[] }) {
                   key={log.id}
                   className="rounded-xl bg-elevated px-4 py-3 text-sm"
                 >
-                  <div className="flex flex-wrap justify-between gap-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="font-medium text-ink">{auditActionLabel(log.action)}</span>
-                    <span className="text-xs text-muted">
-                      {new Date(log.createdAt).toLocaleString()}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <ActorTypeBadge actorType={log.actorType} />
+                      <span className="text-xs text-muted">
+                        {new Date(log.createdAt).toLocaleString()}
+                      </span>
+                    </div>
                   </div>
                   <p className="mt-1 text-secondary">
                     {log.entityType}
@@ -133,15 +139,6 @@ export function AuditLogsPanel({ logs }: { logs: AuditLogItem[] }) {
           )}
         </CardContent>
       </Card>
-
-      {filter === "approvals" && (
-        <p className="text-[13px] text-muted">
-          Need the full compliance export?{" "}
-          <Link href="/api/audit/export" className="font-medium text-ink hover:text-rust">
-            Download CSV
-          </Link>
-        </p>
-      )}
     </div>
   );
 }

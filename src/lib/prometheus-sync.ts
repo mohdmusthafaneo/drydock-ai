@@ -14,6 +14,7 @@ import {
 import { invalidateExecutiveBriefingSnapshot } from "@/lib/executive-briefing/invalidate-snapshot";
 import { mergePrometheusMeta, parsePrometheusMeta } from "@/lib/prometheus-meta";
 import { prisma } from "@/lib/prisma";
+import { determineActorType } from "@/lib/audit-helpers";
 
 const PROMETHEUS_SOURCE: MetricSource = "PROMETHEUS";
 
@@ -145,6 +146,7 @@ export async function syncPrometheusIntegration(input: {
           errorRate: snapshot.kpis.errorRate,
           p95LatencyMs: snapshot.kpis.p95LatencyMs,
         }),
+        actorType: determineActorType(input.userId, "prometheus.metrics_sync.completed"),
       },
     });
   });

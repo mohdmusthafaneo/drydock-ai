@@ -1,4 +1,5 @@
 import { enrichCodeAnalysisForOrg } from "@/lib/code-analysis/enrich";
+import { determineActorType } from "@/lib/audit-helpers";
 import { invalidateExecutiveBriefingSnapshot } from "@/lib/executive-briefing/invalidate-snapshot";
 import { prisma } from "@/lib/prisma";
 import { markIntegrationSync } from "@/lib/integration-health";
@@ -393,6 +394,7 @@ export async function syncCodeAnalysis(input: {
         commitCount: allCommits.length,
         prCount: allPullRequests.length,
       }),
+      actorType: determineActorType(input.userId, "code_analysis.analyzed"),
     },
   });
 

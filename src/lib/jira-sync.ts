@@ -34,6 +34,7 @@ import {
   LEGACY_JIRA_MAPPING,
   type JiraMappingSlice,
 } from "@/lib/jira-jql";
+import { determineActorType } from "@/lib/audit-helpers";
 import { resolveSpilloverCount } from "@/lib/jira-spillover";
 import {
   aggregateSprintIssues,
@@ -811,6 +812,7 @@ export async function syncJiraIntegration(input: {
         projectKeys: projects.map((p) => p.key),
         openIssues: totalOpen,
       }),
+      actorType: determineActorType(input.userId, "integration.jira.synced"),
     },
   });
 
