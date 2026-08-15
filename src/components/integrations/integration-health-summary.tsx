@@ -9,7 +9,7 @@ const PROVIDER_LABELS: Record<string, string> = {
   GRAFANA: "Grafana",
   PROMETHEUS: "Prometheus",
   SLACK: "Slack",
-  AWS: "AWS",
+  AWS: "Cloud Hygiene",
 };
 
 const VERDICT_BADGE = {

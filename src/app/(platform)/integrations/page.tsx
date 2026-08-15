@@ -53,7 +53,7 @@ const PROVIDER_LABELS: Record<string, string> = {
   GRAFANA: "Grafana",
   PROMETHEUS: "Prometheus",
   SLACK: "Slack",
-  AWS: "AWS",
+  AWS: "Cloud Hygiene",
 };
 
 const PRIMARY_ORDER = ["GITHUB", "JIRA", "SLACK"] as const;
@@ -334,7 +334,7 @@ export default async function IntegrationsPage({
             <SectionHeading
               step={5}
               title="Cloud"
-              description="AWS assume-role access for inventory and cloud hygiene scans."
+              description="Cloud Hygiene assume-role access for inventory and cloud hygiene scans."
             />
             <div className="grid gap-4 md:grid-cols-2">{renderCard(aws)}</div>
           </section>
