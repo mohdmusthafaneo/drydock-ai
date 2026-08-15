@@ -5,7 +5,6 @@ import type { IntegrationHealthAggregate } from "@/lib/integration-health";
 const PROVIDER_LABELS: Record<string, string> = {
   GITHUB: "GitHub",
   JIRA: "Jira",
-  JENKINS: "Jenkins",
   GRAFANA: "Grafana",
   PROMETHEUS: "Prometheus",
   SLACK: "Slack",

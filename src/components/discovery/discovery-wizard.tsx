@@ -22,7 +22,6 @@ const TOOLS = [
   { id: "prometheus", label: "Prometheus", href: "/integrations?focus=prometheus" },
   { id: "kubernetes", label: "Kubernetes", href: "/integrations" },
   { id: "slack", label: "Slack", href: "/integrations?focus=slack" },
-  { id: "jenkins", label: "Jenkins", href: "/integrations?focus=jenkins" },
 ];
 
 const WORKFLOWS = [
