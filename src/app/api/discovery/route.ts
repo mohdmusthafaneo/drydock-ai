@@ -101,7 +101,7 @@ export async function POST(request: Request) {
 
       // Seed Integration rows as DISCONNECTED only — DNA tool chips are intent,
       // not connectivity. Real connect happens on /integrations.
-      const providers = ["GITHUB", "JIRA", "JENKINS", "GRAFANA", "PROMETHEUS", "SLACK", "AWS"] as const;
+      const providers = ["GITHUB", "JIRA", "GRAFANA", "PROMETHEUS", "SLACK", "AWS"] as const;
       for (const provider of providers) {
         const existing = await tx.integration.findUnique({
           where: {

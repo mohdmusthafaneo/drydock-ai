@@ -8,7 +8,6 @@ const PROVIDER_LABELS: Record<string, string> = {
   grafana: "Grafana",
   prometheus: "Prometheus",
   aws: "Cloud Hygiene",
-  jenkins: "Jenkins",
   slack: "Slack",
 };
 
