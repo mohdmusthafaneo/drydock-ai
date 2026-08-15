@@ -19,6 +19,7 @@ type AuditLogItem = {
   entityId: string | null;
   createdAt: string;
   userName: string | null;
+  actorType: string | null;
 };
 
 const FILTERS: Array<{ id: AuditFilterCategory; label: string }> = [

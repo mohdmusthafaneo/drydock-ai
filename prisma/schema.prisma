@@ -743,6 +743,7 @@ model AuditLog {
   id             String   @default(cuid())
   organizationId String
   userId         String?
+  actorType      String?
   action         String
   entityType     String
   entityId       String?
