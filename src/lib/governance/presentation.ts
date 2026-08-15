@@ -14,12 +14,41 @@ import {
 import { isLeadershipApprovalCenterItem } from "@/lib/recommendation-queue";
 import type { getOrganizationContext } from "@/lib/org-data";
 import { ENTERPRISE_WORKFLOW_STEPS } from "@/lib/enterprise-workflow";
+import {
+  ROLE_TO_LEVEL,
+  DEFAULT_APPROVAL_LEVEL_LABELS,
+  type ApprovalLevelLabels,
+} from "@/lib/governance/policy";
 
 type Ctx = Awaited<ReturnType<typeof getOrganizationContext>>;
 type ApprovalRow = Ctx["approvals"][number];
 
+/**
+ * Resolve a display label for a required-role value.
+ * Priority: org-configured role-keyed label → org-configured level-keyed label → DEFAULT_APPROVAL_LEVEL_LABELS → humanize raw string.
+ */
+export function displayRoleLabel(
+  role: string,
+  customLabels?: ApprovalLevelLabels,
+): string {
+  if (!role) return "";
+  // Cast to allow role-keyed (e.g. "QA_LEAD") and level-keyed (e.g. "level2") lookups
+  const merged = {
+    ...DEFAULT_APPROVAL_LEVEL_LABELS,
+    ...customLabels,
+  } as Record<string, string>;
+  // Org configured a role-keyed label directly
+  if (merged[role]) return merged[role]!;
+  // Fall back: derive level from role, then use level-keyed label
+  const level = ROLE_TO_LEVEL[role];
+  if (level) {
+    const levelLabel = merged[`level${level}`];
+    if (levelLabel) return levelLabel;
+  }
+  return role.replace(/_/g, " ");
+}
+
 const IMPACT_RANK: Record<string, number> = {
-  CRITICAL: 0,
   HIGH: 1,
   MEDIUM: 2,
   LOW: 3,

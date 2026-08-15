@@ -54,6 +54,25 @@ export const SYSTEM_DEFAULT_POLICY: GovernancePolicyConfig = {
   },
 };
 
+/** Maps approval-level role constants to their level number (1–4). */
+export const ROLE_TO_LEVEL: Record<string, number> = {
+  DEVELOPER: 1,
+  QA_LEAD: 2,
+  DEVOPS_LEAD: 2,
+  ENGINEERING_MANAGER: 3,
+  DELIVERY_MANAGER: 3,
+  ORG_ADMIN: 4,
+  COMPLIANCE_OFFICER: 4,
+};
+
+/** Default labels keyed by level number. Merged with org-configured labels in displayRoleLabel. */
+export const DEFAULT_APPROVAL_LEVEL_LABELS: ApprovalLevelLabels = {
+  level1: "Developer",
+  level2: "QA Lead / DevOps Lead",
+  level3: "Engineering Lead",
+  level4: "Org Admin",
+};
+
 function safeParseJson<T>(json: unknown): T | undefined {
   const parsed = readJsonField<T | null>(json, null);
   return parsed && typeof parsed === "object" ? parsed : undefined;

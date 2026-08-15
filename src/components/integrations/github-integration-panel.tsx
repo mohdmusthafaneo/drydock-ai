@@ -367,6 +367,30 @@ export function GitHubIntegrationPanel({
         )}
       </div>
 
+      {canManage && installationId && (
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={saving || pickedNames.length === 0}
+            onClick={() => void saveSelection()}
+          >
+            {saving ? "Saving…" : "Save selection"}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={loadingRepos}
+            onClick={() => void loadRepos()}
+          >
+            <RefreshCw className={loadingRepos ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
+            {loadingRepos ? "Loading…" : "Refresh"}
+          </Button>
+        </div>
+      )}
+
       {lastSyncSummary && (
         <p className="text-xs text-success-soft">{lastSyncSummary}</p>
       )}

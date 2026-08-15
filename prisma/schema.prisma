@@ -916,6 +916,7 @@ model AgentChatMessage {
   reasoningJson   Json                 @default("{}")
   authorUserId    String?
   approvalId      String?
+  feedback        String?
   createdAt       DateTime             @default(now())
 
   organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
