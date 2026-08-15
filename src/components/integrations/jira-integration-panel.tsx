@@ -290,16 +290,32 @@ export function JiraIntegrationPanel({
 
         {lastError && showConnectionIssue && (
           <div className="space-y-1">
-            <p className="text-xs text-warning-soft">
-              {isJiraReconnectMessage(lastError)
-                ? "Jira authorization expired or was revoked. Reconnect to restore sync."
-                : lastError}
-            </p>
-            {canManage && isJiraReconnectMessage(lastError) && (
-              <p className="text-xs text-muted">
-                Use <span className="font-medium text-primary">Reconnect</span> to issue new
-                OAuth tokens.
-              </p>
+            {isJiraReconnectMessage(lastError) ? (
+              <>
+                <p className="text-xs text-warning-soft">
+                  Jira authorization expired or was revoked. Reconnect to restore sync.
+                </p>
+                {canManage && (
+                  <p className="text-xs text-muted">
+                    Use <span className="font-medium text-primary">Reconnect</span> to issue new
+                    OAuth tokens.
+                  </p>
+                )}
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-warning-soft">
+                  Jira connection failed. Check your credentials and try again.
+                </p>
+                <details className="group marker:content-['']">
+                  <summary className="cursor-pointer text-xs text-muted hover:text-secondary list-none">
+                    <span className="text-xs text-muted hover:text-secondary">Technical details</span>
+                  </summary>
+                  <pre className="mt-1 whitespace-pre-wrap break-all text-xs bg-muted/50 p-2 rounded border border-border overflow-auto">
+                    {lastError}
+                  </pre>
+                </details>
+              </>
             )}
           </div>
         )}

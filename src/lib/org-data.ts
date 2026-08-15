@@ -5,7 +5,7 @@ import { computeCompletedStepIds } from "@/lib/enterprise-workflow";
 import { hasObservabilitySynced } from "@/lib/observability-connectivity";
 import { isJiraCalibrationComplete } from "@/lib/jira-calibration/status";
 import { isLeadershipPendingApproval } from "@/lib/recommendation-queue";
-
+import { auditReadOnlyFilter } from "@/lib/audit-helpers";
 export async function getOrganizationContext(organizationId: string) {
   const db = forOrgRead(organizationId);
   const [
@@ -65,7 +65,7 @@ export async function getOrganizationContext(organizationId: string) {
       include: { release: true },
     }),
     db.auditLog.findMany({
-      where: { organizationId },
+      where: { organizationId, ...auditReadOnlyFilter() },
       orderBy: { createdAt: "desc" },
       take: 50,
       include: { user: true },
