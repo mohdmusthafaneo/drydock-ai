@@ -26,7 +26,8 @@ const FILTERS: Array<{ id: AuditFilterCategory; label: string }> = [
   { id: "approvals", label: "Approval decisions" },
   { id: "releases", label: "Releases" },
   { id: "integrations", label: "Integrations" },
-  { id: "agents", label: "Agents" },
+  { id: "agents", label: "Analysis agents" },
+  { id: "conversations", label: "Conversations" },
 ];
 
 export function AuditLogsPanel({ logs }: { logs: AuditLogItem[] }) {

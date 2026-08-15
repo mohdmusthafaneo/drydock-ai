@@ -949,7 +949,7 @@ export function buildWorkflowAttentionSummary(
   };
 }
 
-export type AuditFilterCategory = "all" | "approvals" | "releases" | "integrations" | "agents";
+export type AuditFilterCategory = "all" | "approvals" | "releases" | "integrations" | "agents" | "conversations";
 
 const APPROVAL_ACTION_PREFIXES = [
   "recommendation.",
@@ -971,6 +971,7 @@ export function categorizeAuditAction(action: string): AuditFilterCategory {
   if (action.startsWith("release.")) return "releases";
   if (INTEGRATION_ACTION_PREFIXES.some((p) => action.startsWith(p))) return "integrations";
   if (action.startsWith("agent.")) return "agents";
+  if (action.startsWith("agent_chat.")) return "conversations";
   return "all";
 }
 
@@ -989,6 +990,7 @@ export function countAuditByCategory(logs: { action: string }[]): Record<AuditFi
     releases: 0,
     integrations: 0,
     agents: 0,
+    conversations: 0,
   };
   for (const log of logs) {
     const cat = categorizeAuditAction(log.action);
