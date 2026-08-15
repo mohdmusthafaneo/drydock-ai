@@ -624,7 +624,7 @@ export function buildQaOrgVerdict(input: {
       headline: `${pendingDecisions + holdCount} release${pendingDecisions + holdCount === 1 ? "" : "s"} need leadership attention`,
       subcopy: `Org readiness ${orgReadinessIndex}% · review gate verdicts before the next deploy.`,
       verdict: "attention",
-      verdictLabel: "Hold",
+      verdictLabel: "Override and proceed",
     };
   }
 
@@ -872,7 +872,7 @@ export function buildReleaseDetailVerdict(release: {
       headline: `${release.name} awaits human sign-off`,
       subcopy: `Readiness ${readiness}% · leadership approval required before deployment.`,
       gateVerdict: gateVerdict ?? "HOLD",
-      verdictLabel: "Hold",
+      verdictLabel: "Override and proceed",
     };
   }
 
