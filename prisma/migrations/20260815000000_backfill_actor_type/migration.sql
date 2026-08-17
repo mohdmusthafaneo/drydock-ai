@@ -1,8 +1,10 @@
+-- Add actorType column if missing (supports both fresh DBs and restored dumps)
+ALTER TABLE "AuditLog" ADD COLUMN IF NOT EXISTS "actorType" TEXT;
+
 -- Backfill actorType for existing audit log rows
 -- human: userId is present (user-initiated action)
 -- integration: action starts with integration., sync., prometheus., github., jira., aws., grafana., delivery_dna., connect.
 -- system: everything else (background jobs, agent actions, etc.)
-
 UPDATE "AuditLog"
 SET "actorType" = CASE
   WHEN "userId" IS NOT NULL THEN 'human'
