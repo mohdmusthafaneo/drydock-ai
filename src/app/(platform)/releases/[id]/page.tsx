@@ -14,11 +14,11 @@ import { matchReleaseToFixVersion } from "@/lib/jira-delivery-health";
 import { resolveEffectiveToolchainMapping } from "@/lib/toolchain-mapping";
 import { resolveLowJiraHygieneForRelease } from "@/lib/jira-hygiene";
 import { isJiraOAuthConnected, parseJiraMeta } from "@/lib/jira-meta";
-import { buildReleaseDetailVerdict } from "@/lib/governance/presentation";
-import { verdictBadgeVariant } from "@/lib/release-gate-brief";
+import { buildReleaseDetailVerdict, displayRoleLabel } from "@/lib/governance/presentation";
+import { parseGovernancePolicy } from "@/lib/governance/policy";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ReleaseWorkflow } from "@/components/releases/release-workflow";
+import { verdictBadgeVariant } from "@/lib/release-gate-brief";
 import { AssessReleaseButton, DeployReleaseButton } from "@/components/releases/release-actions";
 import { ReleaseGateBrief } from "@/components/releases/release-gate-brief";
 import { ExecutiveVerdictBanner } from "@/components/executive-briefing/executive-verdict-banner";
@@ -35,8 +35,7 @@ export default async function ReleaseDetailPage({
   if (!session) redirect("/login");
 
   const { id } = await params;
-
-  const [release, integrations, effectiveMapping] = await Promise.all([
+  const [release, integrations, effectiveMapping, governancePolicy] = await Promise.all([
     prisma.release.findFirst({
       where: { id, organizationId: session.organizationId },
       include: {
@@ -47,6 +46,9 @@ export default async function ReleaseDetailPage({
       where: { organizationId: session.organizationId },
     }),
     resolveEffectiveToolchainMapping(session.organizationId),
+    prisma.governancePolicy.findUnique({
+      where: { organizationId: session.organizationId },
+    }),
   ]);
 
   if (!release) notFound();
@@ -94,16 +96,17 @@ export default async function ReleaseDetailPage({
   const pendingApprovals = release.recommendations.flatMap((r) =>
     r.approvals.filter((a) => !a.decision),
   );
+  const parsedPolicy = parseGovernancePolicy(governancePolicy);
+  const labels = parsedPolicy.approvalLevelLabels ?? {};
   const pendingRoles = [
     ...new Set(
       release.recommendations
         .filter((r) => r.approvals.some((a) => !a.decision))
         .map((r) => r.requiredRole)
         .filter((role) => role != null)
-        .map((role) => role.replace(/_/g, " ")),
+        .map((role) => displayRoleLabel(role, labels)),
     ),
   ];
-
   const showGateBrief = release.assessedAt != null;
   const releaseVerdict = buildReleaseDetailVerdict(release);
   const jiraSprintUrl =
@@ -174,11 +177,7 @@ export default async function ReleaseDetailPage({
         />
       </RevealSection>
 
-      <ReleaseWorkflow status={release.status} />
-
-      {(release.status === "DETECTED" ||
-        release.status === "PENDING_APPROVAL" ||
-        release.status === "BLOCKED") && (
+      {["DETECTED", "PENDING_APPROVAL", "BLOCKED"].includes(release.status) && (
         <Card className="bg-sky-wash/50">
           <CardHeader>
             <CardTitle>
@@ -238,14 +237,7 @@ export default async function ReleaseDetailPage({
         </RevealSection>
       )}
 
-      {release.regressionNotes && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Regression intelligence</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-ash">{release.regressionNotes}</CardContent>
-        </Card>
-      )}
+
 
       {release.status === "APPROVED" && (
         <Card className="bg-apricot-wash/40">

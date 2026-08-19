@@ -17,7 +17,7 @@ export function AssessReleaseButton({ releaseId, reAssess = false }: AssessRelea
   async function assess() {
     if (reAssess) {
       const confirmed = window.confirm(
-        "Re-assess will replace pending recommendations and reset approvals. Continue?",
+        "This will overwrite the previous assessment. Continue?",
       );
       if (!confirmed) return;
     }

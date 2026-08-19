@@ -83,9 +83,17 @@ function DecisionGroup({
   );
 }
 
-export function AgentDecisionList({ decisions }: { decisions: AgentDecision[] }) {
+export function AgentDecisionList({
+  decisions,
+  approvalLevelLabels,
+}: {
+  decisions: AgentDecision[];
+  approvalLevelLabels?: Record<string, string>;
+}) {
   const leadership = decisions.filter((d) => d.audience === "leadership");
   const engineering = decisions.filter((d) => d.audience === "engineering");
+
+  const engineeringLabel = approvalLevelLabels?.level3 ?? "For your engineering lead";
 
   if (decisions.length === 0) return null;
 
@@ -97,7 +105,7 @@ export function AgentDecisionList({ decisions }: { decisions: AgentDecision[] })
         items={leadership}
       />
       <DecisionGroup
-        title="For your engineering lead"
+        title={engineeringLabel}
         description="Operational depth to delegate — not for you to monitor daily."
         items={engineering}
       />

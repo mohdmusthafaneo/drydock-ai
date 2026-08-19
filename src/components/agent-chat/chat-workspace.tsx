@@ -12,6 +12,7 @@ import {
 import { plainChatPreview } from "@/lib/agent-chat/preview-text";
 import { Button } from "@/components/ui/button";
 import { ThreadStatusBadge } from "@/components/agent-chat/thread-status-badge";
+import { SlackOriginBadge } from "@/components/agent-chat/slack-origin-badge";
 import { ThreadDetailPanel } from "@/components/agent-chat/thread-detail-panel";
 import { NewChatComposer } from "@/components/agent-chat/compose-box";
 
@@ -77,6 +78,7 @@ function ConversationSidebar({
                 title={thread.title}
                 preview={thread.messages[0]?.contentMarkdown}
                 active={activeThreadId === thread.id}
+                externalSource={thread.externalSource}
                 onNavigate={onNavigate}
               />
             ))}
@@ -93,6 +95,7 @@ function ConversationSidebar({
                     preview={thread.messages[0]?.contentMarkdown}
                     active={activeThreadId === thread.id}
                     archived
+                    externalSource={thread.externalSource}
                     onNavigate={onNavigate}
                   />
                 ))}
@@ -111,6 +114,7 @@ function SidebarThreadLink({
   preview,
   active,
   archived,
+  externalSource,
   onNavigate,
 }: {
   id: string;
@@ -118,6 +122,7 @@ function SidebarThreadLink({
   preview?: string;
   active?: boolean;
   archived?: boolean;
+  externalSource?: string | null;
   onNavigate?: () => void;
 }) {
   const cleaned = preview ? plainChatPreview(preview) : "";
@@ -138,7 +143,10 @@ function SidebarThreadLink({
     >
       <div className="flex items-center justify-between gap-2">
         <p className="truncate text-sm font-medium">{title}</p>
-        {archived ? <ThreadStatusBadge status="done" /> : null}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {externalSource ? <SlackOriginBadge source={externalSource} /> : null}
+          {archived ? <ThreadStatusBadge status="done" /> : null}
+        </div>
       </div>
       {showPreview ? (
         <p className="mt-0.5 truncate text-xs text-graphite">{cleaned}</p>

@@ -8,6 +8,7 @@ import {
   fetchJiraMyself,
   type JiraOAuthFlow,
 } from "@/lib/jira-oauth";
+import { determineActorType } from "@/lib/audit-helpers";
 
 export type CompleteJiraOAuthConnectionInput = {
   organizationId: string;
@@ -145,6 +146,7 @@ export async function completeJiraOAuthConnection(
         action: auditAction,
         entityType: "Integration",
         metadataJson: JSON.stringify(auditMetadata),
+        actorType: determineActorType(input.auditUserId ?? input.userId, auditAction),
       },
     });
 

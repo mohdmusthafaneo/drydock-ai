@@ -374,14 +374,150 @@ function scopedProjects(
   return snapshot.projects;
 }
 
-function mappingLabels(mapping?: ToolchainMapping["jira"]) {
+function mappingLabels(mapping?: ToolchainMapping["jira"]): LabelSet {
   return {
     blocked: mapping?.blockedStatusName ?? "Blocked",
     bug: mapping?.bugIssueType ?? "Bug",
   };
 }
+type LabelSet = {
+  blocked: string;
+  bug: string;
+};
+type ScopedMetrics = {
+  openIssues: number;
+  blockedCount: number;
+  overdueCount: number;
+  reopenedCount: number;
+  spilloverCount: number;
+  bugsOpen: number;
+  unassignedCount: number;
+};
+type FixVersionSummary = {
+  id: string;
+  name: string;
+  released: boolean;
+  overdue?: boolean;
+  releaseDate?: string | null;
+  openIssuesInVersion?: number | null;
+};
 
-/** Org- or project-scoped delivery health for the Delivery Analysis dashboard. */
+function buildBaseJiraSignals(
+  metrics: ScopedMetrics,
+  labels: LabelSet,
+): JiraDeliverySignal[] {
+  return [
+    {
+      id: "jira-blocked",
+      category: "blockers",
+      label: `${labels.blocked} issues`,
+      value:
+        metrics.blockedCount > 0
+          ? `${metrics.blockedCount} in status ${labels.blocked}`
+          : `No issues in status ${labels.blocked}`,
+      severity:
+        metrics.blockedCount >= 5
+          ? "critical"
+          : metrics.blockedCount > 0
+            ? "warning"
+            : "info",
+    },
+    {
+      id: "jira-overdue",
+      category: "schedule",
+      label: "Overdue work",
+      value:
+        metrics.overdueCount > 0
+          ? `${metrics.overdueCount} issue${metrics.overdueCount === 1 ? "" : "s"} past due date`
+          : "No overdue issues in scope",
+      severity:
+        metrics.overdueCount >= 10
+          ? "critical"
+          : metrics.overdueCount > 0
+            ? "warning"
+            : "info",
+    },
+    {
+      id: "jira-bugs",
+      category: "quality",
+      label: `Open ${labels.bug}s`,
+      value: `${metrics.bugsOpen} open ${labels.bug}${metrics.bugsOpen === 1 ? "" : "s"} in scope`,
+      severity:
+        metrics.bugsOpen >= 15
+          ? "critical"
+          : metrics.bugsOpen >= 5
+            ? "warning"
+            : "info",
+    },
+    {
+      id: "jira-reopened",
+      category: "quality",
+      label: "Reopened work",
+      value:
+        metrics.reopenedCount > 0
+          ? `${metrics.reopenedCount} issue${metrics.reopenedCount === 1 ? "" : "s"} reopened from done`
+          : "No reopened issues in scope",
+      severity:
+        metrics.reopenedCount >= 10
+          ? "critical"
+          : metrics.reopenedCount > 0
+            ? "warning"
+            : "info",
+    },
+    {
+      id: "jira-spillover",
+      category: "sprint",
+      label: "Spillover work",
+      value:
+        metrics.spilloverCount > 0
+          ? `${metrics.spilloverCount} issue${metrics.spilloverCount === 1 ? "" : "s"} carried from prior sprint${metrics.spilloverCount === 1 ? "" : "s"}`
+          : "No sprint spillover in scope",
+      severity:
+        metrics.spilloverCount >= 10
+          ? "critical"
+          : metrics.spilloverCount > 0
+            ? "warning"
+            : "info",
+    },
+  ];
+}
+
+function appendFixVersionSignals(
+  signals: JiraDeliverySignal[],
+  matchedFixVersion: FixVersionSummary | undefined,
+) {
+  if (!matchedFixVersion) return;
+  signals.push({
+    id: "jira-fix-version",
+    category: "schedule",
+    label: "Fix version",
+    value: matchedFixVersion.released
+      ? `${matchedFixVersion.name} released`
+      : matchedFixVersion.overdue
+        ? `${matchedFixVersion.name} overdue (target ${matchedFixVersion.releaseDate ?? "unset"})`
+        : `${matchedFixVersion.name} open${matchedFixVersion.releaseDate ? ` — target ${matchedFixVersion.releaseDate}` : ""}`,
+    severity: matchedFixVersion.overdue
+      ? "critical"
+      : matchedFixVersion.released
+        ? "info"
+        : "warning",
+  });
+
+  if (matchedFixVersion.openIssuesInVersion != null) {
+    signals.push({
+      id: "jira-version-open",
+      category: "schedule",
+      label: "Open issues in version",
+      value: `${matchedFixVersion.openIssuesInVersion} open issue${matchedFixVersion.openIssuesInVersion === 1 ? "" : "s"} in ${matchedFixVersion.name}`,
+      severity:
+        matchedFixVersion.openIssuesInVersion > 10
+          ? "critical"
+          : matchedFixVersion.openIssuesInVersion > 0
+            ? "warning"
+            : "info",
+    });
+  }
+}
 export function analyzePortfolioDeliveryHealth(input: {
   snapshot: JiraDeliverySnapshot;
   projectKey?: string | null;
@@ -663,114 +799,8 @@ export function analyzeJiraDeliveryHealth(input: {
       ? scopedProject.versions.find((v) => v.id === matchedVersion.versionId)
       : undefined;
 
-  const signals: JiraDeliverySignal[] = [
-    {
-      id: "jira-blocked",
-      category: "blockers",
-      label: `${labels.blocked} issues`,
-      value:
-        metrics.blockedCount > 0
-          ? `${metrics.blockedCount} in status ${labels.blocked}`
-          : `No issues in status ${labels.blocked}`,
-      severity:
-        metrics.blockedCount >= 5
-          ? "critical"
-          : metrics.blockedCount > 0
-            ? "warning"
-            : "info",
-    },
-    {
-      id: "jira-overdue",
-      category: "schedule",
-      label: "Overdue work",
-      value:
-        metrics.overdueCount > 0
-          ? `${metrics.overdueCount} issue${metrics.overdueCount === 1 ? "" : "s"} past due date`
-          : "No overdue issues in scope",
-      severity:
-        metrics.overdueCount >= 10
-          ? "critical"
-          : metrics.overdueCount > 0
-            ? "warning"
-            : "info",
-    },
-    {
-      id: "jira-bugs",
-      category: "quality",
-      label: `Open ${labels.bug}s`,
-      value: `${metrics.bugsOpen} open ${labels.bug}${metrics.bugsOpen === 1 ? "" : "s"} in scope`,
-      severity:
-        metrics.bugsOpen >= 15
-          ? "critical"
-          : metrics.bugsOpen >= 5
-            ? "warning"
-            : "info",
-    },
-    {
-      id: "jira-reopened",
-      category: "quality",
-      label: "Reopened work",
-      value:
-        metrics.reopenedCount > 0
-          ? `${metrics.reopenedCount} issue${metrics.reopenedCount === 1 ? "" : "s"} reopened from done`
-          : "No reopened issues in scope",
-      severity:
-        metrics.reopenedCount >= 10
-          ? "critical"
-          : metrics.reopenedCount > 0
-            ? "warning"
-            : "info",
-    },
-    {
-      id: "jira-spillover",
-      category: "sprint",
-      label: "Spillover work",
-      value:
-        metrics.spilloverCount > 0
-          ? `${metrics.spilloverCount} issue${metrics.spilloverCount === 1 ? "" : "s"} carried from prior sprint${metrics.spilloverCount === 1 ? "" : "s"}`
-          : "No sprint spillover in scope",
-      severity:
-        metrics.spilloverCount >= 10
-          ? "critical"
-          : metrics.spilloverCount > 0
-            ? "warning"
-            : "info",
-    },
-  ];
-
-  if (matchedFixVersion) {
-    signals.push({
-      id: "jira-fix-version",
-      category: "schedule",
-      label: "Fix version",
-      value: matchedFixVersion.released
-        ? `${matchedFixVersion.name} released`
-        : matchedFixVersion.overdue
-          ? `${matchedFixVersion.name} overdue (target ${matchedFixVersion.releaseDate ?? "unset"})`
-          : `${matchedFixVersion.name} open${matchedFixVersion.releaseDate ? ` — target ${matchedFixVersion.releaseDate}` : ""}`,
-      severity: matchedFixVersion.overdue
-        ? "critical"
-        : matchedFixVersion.released
-          ? "info"
-          : "warning",
-    });
-
-    if (matchedFixVersion.openIssuesInVersion != null) {
-      signals.push({
-        id: "jira-version-open",
-        category: "schedule",
-        label: "Open issues in version",
-        value: `${matchedFixVersion.openIssuesInVersion} open issue${matchedFixVersion.openIssuesInVersion === 1 ? "" : "s"} in ${matchedFixVersion.name}`,
-        severity:
-          matchedFixVersion.openIssuesInVersion > 10
-            ? "critical"
-            : matchedFixVersion.openIssuesInVersion > 0
-              ? "warning"
-              : "info",
-      });
-    }
-  }
-
+  const signals: JiraDeliverySignal[] = buildBaseJiraSignals(metrics, labels);
+  appendFixVersionSignals(signals, matchedFixVersion);
   const gaps: JiraDeliveryGap[] = [];
 
   if (scopedProject?.activeSprint) {

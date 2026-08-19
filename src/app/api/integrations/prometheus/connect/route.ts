@@ -18,6 +18,7 @@ import {
   type PrometheusAuthType,
   type PrometheusIntegrationMeta,
 } from "@/lib/prometheus-meta";
+import { determineActorType } from "@/lib/audit-helpers";
 
 const bodySchema = z.object({
   prometheusUrl: z.string().min(1),
@@ -276,6 +277,7 @@ export async function POST(request: Request) {
         userId: session.userId,
         action: "integration.prometheus.connected",
         entityType: "Integration",
+        actorType: determineActorType(session.userId, "integration.prometheus.connected"),
       },
     });
   });

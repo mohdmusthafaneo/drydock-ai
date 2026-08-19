@@ -10,6 +10,7 @@ import {
   comparePostDeploy,
   parseAssessmentSnapshot,
 } from "@/lib/release-assess-snapshot";
+import { determineActorType } from "@/lib/audit-helpers";
 
 export async function ingestTelemetryForOrganization(input: {
   organizationId: string;
@@ -180,6 +181,7 @@ export async function ingestTelemetryForOrganization(input: {
       action: "telemetry.ingested",
       entityType: "TelemetryMetric",
       metadataJson: JSON.stringify({ correlationId: collected.correlationId }),
+      actorType: determineActorType(input.userId, "telemetry.ingested"),
     },
   });
 

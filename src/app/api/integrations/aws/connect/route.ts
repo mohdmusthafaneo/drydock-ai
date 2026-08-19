@@ -10,6 +10,7 @@ import {
   normalizeRoleArn,
   parseAwsMeta,
 } from "@/lib/aws-meta";
+import { determineActorType } from "@/lib/audit-helpers";
 
 const bodySchema = z.object({
   roleArn: z.string().min(1),
@@ -89,6 +90,7 @@ export async function POST(request: Request) {
         status: "CONNECTED",
         displayName,
         connectedAt: new Date(),
+        lastSyncAt: new Date(),
         lastError: null,
         metadataJson: mergeAwsMeta({}, meta),
       },
@@ -96,6 +98,7 @@ export async function POST(request: Request) {
         status: "CONNECTED",
         displayName,
         connectedAt: existing?.connectedAt ?? new Date(),
+        lastSyncAt: new Date(),
         lastError: null,
         metadataJson: mergeAwsMeta(existingMeta, meta),
       },
@@ -121,6 +124,7 @@ export async function POST(request: Request) {
         userId: session.userId,
         action: "integration.aws.connected",
         entityType: "Integration",
+        actorType: determineActorType(session.userId, "integration.aws.connected"),
       },
     });
   });

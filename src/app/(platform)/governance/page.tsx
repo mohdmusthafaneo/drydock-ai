@@ -69,10 +69,10 @@ export default async function GovernancePage() {
   const workflows = profile ? (readJsonField(profile.workflowsJson, []) as string[]) : [];
   const orgName = org?.name ?? "Your organization";
 
-  const dnaOverview = buildGovernanceDnaOverview(dna, orgName);
+  const dnaOverview = buildGovernanceDnaOverview(dna, orgName, ctx.approvalLevelLabels);
   const highlights = buildGovernancePolicyHighlights(ctx);
   const { band, bandLabel } = governanceScoreBand(dna.governanceScore);
-  const autonomyStrip = buildAutonomyVerdictStrip(dna);
+  const autonomyStrip = buildAutonomyVerdictStrip(dna, ctx.approvalLevelLabels);
 
   return (
     <div className="space-y-8">
@@ -164,7 +164,7 @@ export default async function GovernancePage() {
             </div>
             <div>
               <dt className="text-muted">Approval depth</dt>
-              <dd className="mt-0.5 font-medium text-ink">{approvalLevelLabel(dna.approvalLevel)}</dd>
+              <dd className="mt-0.5 font-medium text-ink">{approvalLevelLabel(dna.approvalLevel, ctx.approvalLevelLabels)}</dd>
             </div>
             <div>
               <dt className="text-muted">Autonomy</dt>

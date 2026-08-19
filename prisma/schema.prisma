@@ -277,6 +277,7 @@ model GovernancePolicy {
   releaseRulesJson      Json     @default("{}")
   approvalRequirements  Json     @default("{}")
   escalationChainsJson  Json     @default("{}")
+  approvalLevelLabelsJson Json   @default("{}")
   projectOverridesJson  Json     @default("{}")
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
@@ -434,6 +435,12 @@ model Incident {
   resolvedAt           DateTime?
   createdAt            DateTime       @default(now())
   updatedAt            DateTime       @updatedAt
+  // TODO(tkt-077): Per-recipient routing — route incident notifications to a specific
+  // recipient (e.g. QA lead, engineering manager) rather than broadcasting to all
+  // leadership. Phase 1 ships leadership-only routing; this field is a placeholder
+  // to unblock future per-recipient targeting. Populate once per-recipient routing
+  // is implemented in a later phase.
+  recipientId           String?
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   release      Release?     @relation(fields: [releaseId], references: [id], onDelete: SetNull)
@@ -742,6 +749,7 @@ model AuditLog {
   id             String   @default(cuid())
   organizationId String
   userId         String?
+  actorType      String?
   action         String
   entityType     String
   entityId       String?
@@ -915,6 +923,7 @@ model AgentChatMessage {
   reasoningJson   Json                 @default("{}")
   authorUserId    String?
   approvalId      String?
+  feedback        String?
   createdAt       DateTime             @default(now())
 
   organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)

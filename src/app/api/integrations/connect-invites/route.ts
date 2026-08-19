@@ -8,6 +8,7 @@ import {
   createConnectInvite,
   getActiveConnectInvite,
 } from "@/lib/integration-connect-invite";
+import { determineActorType } from "@/lib/audit-helpers";
 
 const createSchema = z.object({
   provider: z.enum(["GITHUB", "JIRA", "SLACK"]),
@@ -45,6 +46,7 @@ export async function POST(request: Request) {
           inviteId: invite.id,
           expiresAt: invite.expiresAt.toISOString(),
         }),
+        actorType: determineActorType(session.userId, "integration.connect_invite.created"),
       },
     });
 

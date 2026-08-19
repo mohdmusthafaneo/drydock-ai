@@ -5,7 +5,6 @@ import { ingestNormalizedEvents } from "@/lib/telemetry-ingest";
 const PROVIDER_MAP: Record<string, IntegrationProvider> = {
   github: "GITHUB",
   jira: "JIRA",
-  jenkins: "JENKINS",
   grafana: "GRAFANA",
   prometheus: "PROMETHEUS",
 };

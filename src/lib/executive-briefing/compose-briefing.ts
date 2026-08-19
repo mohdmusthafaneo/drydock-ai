@@ -798,8 +798,9 @@ function finalizeBriefingClaims(claims: BriefingClaim[]): BriefingClaim[] {
   return claims.filter((claim) => keep.has(claim.id));
 }
 
-function buildClaims(input: ComposeBriefingInput, health: ExecutiveBriefing["health"]): BriefingClaim[] {
-  const claims: BriefingClaim[] = [];
+function buildSprintOrReleaseClaim(
+  input: ComposeBriefingInput,
+): BriefingClaim | null {
   const sprint = usesSprintTracking(input) ? primarySprint(input) : null;
   const release =
     !sprint && input.latestRelease && !isOnboardingDemoRelease(input.latestRelease)
@@ -819,8 +820,7 @@ function buildClaims(input: ComposeBriefingInput, health: ExecutiveBriefing["hea
     const context = overdue
       ? `Active sprint past end date · ${sprint.done}/${sprint.committed} done`
       : `${sprint.done}/${sprint.committed} issues complete in ${sprint.projectKey}`;
-
-    claims.push({
+    return {
       id: "release",
       headline: sprint.name,
       metric: `${sprint.pct}%`,
@@ -829,8 +829,10 @@ function buildClaims(input: ComposeBriefingInput, health: ExecutiveBriefing["hea
       verdictLabel,
       context: capitalizeFirst(context),
       href: sprint.jiraUrl ?? "/delivery-analysis",
-    });
-  } else if (release) {
+    };
+  }
+
+  if (release) {
     const readiness = release.readinessScore;
     const risk = release.governanceRiskScore;
     const { verdict, verdictLabel } = releaseVerdict(release.status, readiness, risk);
@@ -840,8 +842,7 @@ function buildClaims(input: ComposeBriefingInput, health: ExecutiveBriefing["hea
       riskLine && statusLine !== verdictLabel
         ? `${statusLine} · ${riskLine}`
         : riskLine ?? statusLine;
-
-    claims.push({
+    return {
       id: "release",
       headline: release.name,
       metric: readiness != null ? `${Math.round(readiness)}%` : undefined,
@@ -850,98 +851,189 @@ function buildClaims(input: ComposeBriefingInput, health: ExecutiveBriefing["hea
       verdictLabel,
       context: capitalizeFirst(context),
       href: `/releases/${release.id}`,
-    });
+    };
   }
 
-  if (input.deliverySnapshot) {
-    const { blocked, overdue, resolvedLast7d, openWork } = input.deliverySnapshot.kpis;
-    const { verdict, verdictLabel } = deliveryVerdict(blocked, overdue);
-    const closed = resolvedLast7d ?? 0;
-    const open = openWork ?? 0;
+  return null;
+}
 
-    let context: string;
-    if (blocked > 0 && overdue > 0) {
-      context = `${blocked} waiting on dependencies · ${overdue} past due`;
-    } else if (blocked > 0) {
-      context = `${blocked} item${blocked === 1 ? "" : "s"} waiting on dependencies`;
-    } else if (overdue > 0) {
-      context = `${overdue} item${overdue === 1 ? "" : "s"} past due`;
-    } else if (closed > 0) {
-      context = `${open.toLocaleString()} still open · pace is healthy`;
-    } else {
-      context = `${open.toLocaleString()} open item${open === 1 ? "" : "s"} in flight`;
-    }
+function buildDeliveryClaim(input: ComposeBriefingInput): BriefingClaim | null {
+  const snapshot = input.deliverySnapshot;
+  if (!snapshot) return null;
+  const { blocked, overdue, resolvedLast7d, openWork } = snapshot.kpis;
+  const { verdict, verdictLabel } = deliveryVerdict(blocked, overdue);
+  const closed = resolvedLast7d ?? 0;
+  const open = openWork ?? 0;
 
-    claims.push({
-      id: "delivery",
-      headline: "Delivery pace",
-      metric: closed > 0 ? String(closed) : open > 0 ? open.toLocaleString() : "0",
-      metricLabel: closed > 0 ? "Closed this week" : "Open items",
-      verdict,
-      verdictLabel,
-      context: capitalizeFirst(context),
-      href: "/delivery-analysis",
-    });
+  let context: string;
+  if (blocked > 0 && overdue > 0) {
+    context = `${blocked} waiting on dependencies · ${overdue} past due`;
+  } else if (blocked > 0) {
+    context = `${blocked} item${blocked === 1 ? "" : "s"} waiting on dependencies`;
+  } else if (overdue > 0) {
+    context = `${overdue} item${overdue === 1 ? "" : "s"} past due`;
+  } else if (closed > 0) {
+    context = `${open.toLocaleString()} still open · pace is healthy`;
+  } else {
+    context = `${open.toLocaleString()} open item${open === 1 ? "" : "s"} in flight`;
   }
+
+  return {
+    id: "delivery",
+    headline: "Delivery pace",
+    metric: closed > 0 ? String(closed) : open > 0 ? open.toLocaleString() : "0",
+    metricLabel: closed > 0 ? "Closed this week" : "Open items",
+    verdict,
+    verdictLabel,
+    context: capitalizeFirst(context),
+    href: "/delivery-analysis",
+  };
+}
+
+function buildStabilityClaim(
+  input: ComposeBriefingInput,
+  health: ExecutiveBriefing["health"],
+): BriefingClaim | null {
+  const stabilityDim = health.dimensions.find((d) => d.id === "stability");
+  if (!stabilityDim) return null;
+  const incidents = input.stats.openIncidents;
+  const degraded = input.stats.degradedDeployments;
+  const healthScore = Math.round(stabilityDim.score);
+
+  if (incidents > 0) {
+    return {
+      id: "stability",
+      headline: "Production alert",
+      metric: String(incidents),
+      metricLabel: "Open incidents",
+      verdict: "risk",
+      verdictLabel: `${incidents} incident${incidents === 1 ? "" : "s"}`,
+      context: capitalizeFirst(
+        degraded > 0
+          ? `${degraded} degraded deployment${degraded === 1 ? "" : "s"} need review`
+          : "Production needs immediate attention",
+      ),
+      href: "/incidents",
+    };
+  }
+  if (degraded > 0) {
+    return {
+      id: "stability",
+      headline: "Production",
+      metric: String(healthScore),
+      metricLabel: "Health score",
+      verdict: "attention",
+      verdictLabel: "Degraded",
+      context: capitalizeFirst(
+        `${degraded} deployment${degraded === 1 ? "" : "s"} below target health`,
+      ),
+      href: "/observability",
+    };
+  }
+  return {
+    id: "stability",
+    headline: "Production",
+    metric: String(healthScore),
+    metricLabel: "Health score",
+    verdict: "good",
+    verdictLabel: "Stable",
+    context: capitalizeFirst("No open incidents · deployments healthy"),
+    href: "/observability",
+  };
+}
+
+function buildGovernanceClaim(
+  input: ComposeBriefingInput,
+  health: ExecutiveBriefing["health"],
+  alreadyTaken: Set<string>,
+): BriefingClaim | null {
+  if (alreadyTaken.has("governance")) return null;
+  const governanceDim = health.dimensions.find((d) => d.id === "governance");
+  if (!governanceDim) return null;
+
+  const staleSources: string[] = [];
+  if (isStale(input.integrationFreshness.jiraSyncedAt)) staleSources.push("Jira");
+  if (isStale(input.integrationFreshness.githubSyncedAt)) staleSources.push("GitHub");
+  if (isStale(input.integrationFreshness.observabilitySyncedAt)) {
+    staleSources.push("Observability");
+  }
+
+  const score = Math.round(governanceDim.score);
+  const unhealthy = input.stats.connectedTools - input.stats.integrationsHealthy;
+
+  let verdict: BriefingClaimVerdict;
+  let verdictLabel: string;
+  let context: string;
+
+  if (staleSources.length > 0) {
+    verdict = "attention";
+    verdictLabel = "Data stale";
+    const list =
+      staleSources.length === 1
+        ? staleSources[0]!
+        : staleSources.length === 2
+          ? `${staleSources[0]} and ${staleSources[1]}`
+          : `${staleSources.slice(0, -1).join(", ")}, and ${staleSources[staleSources.length - 1]}`;
+    context = `${list} last synced over 24 hours ago — re-sync before deciding`;
+  } else if (input.jiraHygiene?.degradesTrust) {
+    const project = input.jiraHygiene.worstProject;
+    verdict = input.jiraHygiene.portfolioScore < 40 ? "risk" : "attention";
+    verdictLabel = "Low Jira trust";
+    context = project
+      ? `Project ${project.key}'s Jira is not maintained per the agreed workflow — delivery numbers may be unreliable`
+      : "Jira boards are not maintained per the agreed workflow — delivery numbers may be unreliable";
+  } else if (input.stats.connectedTools === 0) {
+    verdict = "attention";
+    verdictLabel = "Not connected";
+    context = "Connect Jira, GitHub, and observability to trust this briefing";
+  } else if (unhealthy > 0) {
+    verdict = "attention";
+    verdictLabel = `${unhealthy} unhealthy`;
+    context = `${input.stats.integrationsHealthy} of ${input.stats.connectedTools} integrations reporting clean data`;
+  } else {
+    verdict = score >= 75 ? "good" : score >= 50 ? "attention" : "risk";
+    verdictLabel = score >= 75 ? "Trusted" : score >= 50 ? "Fair" : "Low trust";
+    context = `${input.stats.integrationsHealthy} of ${input.stats.connectedTools} integrations healthy · briefing data is current`;
+  }
+
+  return {
+    id: "governance",
+    headline: "Data confidence",
+    metric: String(score),
+    metricLabel: "Trust score",
+    verdict,
+    verdictLabel,
+    context: capitalizeFirst(context),
+    href: "/integrations",
+  };
+}
+
+function buildClaims(input: ComposeBriefingInput, health: ExecutiveBriefing["health"]): BriefingClaim[] {
+  const claims: BriefingClaim[] = [];
+  const push = (claim: BriefingClaim | null) => {
+    if (claim) claims.push(claim);
+  };
+
+  push(buildSprintOrReleaseClaim(input));
+  push(buildDeliveryClaim(input));
 
   if (input.codeSnapshot?.aiRisk) {
     claims.push(buildAiCodeRiskClaim(input.codeSnapshot.aiRisk));
   }
-
   if (input.codeSnapshot?.accountability) {
     claims.push(buildAccountabilityClaim(input.codeSnapshot.accountability));
   }
-
   if (input.complianceSummary) {
     claims.push(buildComplianceClaim(input.complianceSummary));
   }
-
   if (input.predictionSummary) {
     claims.push(buildPredictedRiskClaim(input.predictionSummary));
   }
-
   if (input.agentAnalysisClaims?.length) {
     claims.push(...input.agentAnalysisClaims);
   }
 
-  const stabilityDim = health.dimensions.find((d) => d.id === "stability");
-  if (stabilityDim) {
-    const incidents = input.stats.openIncidents;
-    const degraded = input.stats.degradedDeployments;
-    const healthScore = Math.round(stabilityDim.score);
-
-    let verdict: BriefingClaimVerdict;
-    let verdictLabel: string;
-    let context: string;
-
-    if (incidents > 0) {
-      verdict = "risk";
-      verdictLabel = `${incidents} incident${incidents === 1 ? "" : "s"}`;
-      context =
-        degraded > 0
-          ? `${degraded} degraded deployment${degraded === 1 ? "" : "s"} need review`
-          : "Production needs immediate attention";
-    } else if (degraded > 0) {
-      verdict = "attention";
-      verdictLabel = "Degraded";
-      context = `${degraded} deployment${degraded === 1 ? "" : "s"} below target health`;
-    } else {
-      verdict = "good";
-      verdictLabel = "Stable";
-      context = "No open incidents · deployments healthy";
-    }
-
-    claims.push({
-      id: "stability",
-      headline: incidents > 0 ? "Production alert" : "Production",
-      metric: incidents > 0 ? String(incidents) : String(healthScore),
-      metricLabel: incidents > 0 ? "Open incidents" : "Health score",
-      verdict,
-      verdictLabel,
-      context: capitalizeFirst(context),
-      href: incidents > 0 ? "/incidents" : "/observability",
-    });
-  }
+  push(buildStabilityClaim(input, health));
 
   if (releaseApprovalCount(input.stats) > 0) {
     const n = releaseApprovalCount(input.stats);
@@ -958,11 +1050,10 @@ function buildClaims(input: ComposeBriefingInput, health: ExecutiveBriefing["hea
   }
 
   if (input.stats.rollbackPending > 0) {
-    const n = input.stats.rollbackPending;
     claims.push({
       id: "rollback",
       headline: "Rollback review",
-      metric: String(n),
+      metric: String(input.stats.rollbackPending),
       metricLabel: "Deployments flagged",
       verdict: "risk",
       verdictLabel: "Review now",
@@ -971,64 +1062,7 @@ function buildClaims(input: ComposeBriefingInput, health: ExecutiveBriefing["hea
     });
   }
 
-  const governanceDim = health.dimensions.find((d) => d.id === "governance");
-  if (governanceDim && !claims.some((c) => c.id === "governance")) {
-    const staleSources: string[] = [];
-    if (isStale(input.integrationFreshness.jiraSyncedAt)) staleSources.push("Jira");
-    if (isStale(input.integrationFreshness.githubSyncedAt)) staleSources.push("GitHub");
-    if (isStale(input.integrationFreshness.observabilitySyncedAt)) {
-      staleSources.push("Observability");
-    }
-
-    const score = Math.round(governanceDim.score);
-    const unhealthy = input.stats.connectedTools - input.stats.integrationsHealthy;
-
-    let verdict: BriefingClaimVerdict;
-    let verdictLabel: string;
-    let context: string;
-
-    if (staleSources.length > 0) {
-      verdict = "attention";
-      verdictLabel = "Data stale";
-      const list =
-        staleSources.length === 1
-          ? staleSources[0]!
-          : staleSources.length === 2
-            ? `${staleSources[0]} and ${staleSources[1]}`
-            : `${staleSources.slice(0, -1).join(", ")}, and ${staleSources[staleSources.length - 1]}`;
-      context = `${list} last synced over 24 hours ago — re-sync before deciding`;
-    } else if (input.jiraHygiene?.degradesTrust) {
-      const project = input.jiraHygiene.worstProject;
-      verdict = input.jiraHygiene.portfolioScore < 40 ? "risk" : "attention";
-      verdictLabel = "Low Jira trust";
-      context = project
-        ? `Project ${project.key}'s Jira is not maintained per the agreed workflow — delivery numbers may be unreliable`
-        : "Jira boards are not maintained per the agreed workflow — delivery numbers may be unreliable";
-    } else if (input.stats.connectedTools === 0) {
-      verdict = "attention";
-      verdictLabel = "Not connected";
-      context = "Connect Jira, GitHub, and observability to trust this briefing";
-    } else if (unhealthy > 0) {
-      verdict = "attention";
-      verdictLabel = `${unhealthy} unhealthy`;
-      context = `${input.stats.integrationsHealthy} of ${input.stats.connectedTools} integrations reporting clean data`;
-    } else {
-      verdict = score >= 75 ? "good" : score >= 50 ? "attention" : "risk";
-      verdictLabel = score >= 75 ? "Trusted" : score >= 50 ? "Fair" : "Low trust";
-      context = `${input.stats.integrationsHealthy} of ${input.stats.connectedTools} integrations healthy · briefing data is current`;
-    }
-
-    claims.push({
-      id: "governance",
-      headline: "Data confidence",
-      metric: String(score),
-      metricLabel: "Trust score",
-      verdict,
-      verdictLabel,
-      context: capitalizeFirst(context),
-      href: "/integrations",
-    });
-  }
+  push(buildGovernanceClaim(input, health, new Set(claims.map((c) => c.id))));
 
   return finalizeBriefingClaims(claims);
 }

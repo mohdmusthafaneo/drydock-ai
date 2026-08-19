@@ -12,6 +12,7 @@ import {
 import { parseJiraMeta } from "@/lib/jira-meta";
 import { inferToolchainMapping } from "@/lib/toolchain-mapping";
 
+import { determineActorType } from "@/lib/audit-helpers";
 const bodySchema = z
   .object({
     projectKeys: z.array(z.string().min(1)).optional(),
@@ -103,6 +104,7 @@ export async function POST(request: Request) {
           statusCount: snapshot.statuses.length,
           issueTypeCount: snapshot.issueTypes.length,
         }),
+        actorType: determineActorType(session.userId, "jira.schema.introspected"),
       },
     });
 

@@ -8,11 +8,20 @@ import { Badge } from "@/components/ui/badge";
 export function QaAgentRunPanel({
   run,
   section = "all",
+  issueTypeFilter,
+  evidenceOverride,
+  emptyMessage,
 }: {
   run: LatestQaRunSummary | null;
   section?: "all" | "blocked" | "bugs";
+  /** Set to a specific issueType to show only that type, or "!Bug" to exclude Bug. */
+  issueTypeFilter?: string;
+  /** Pass pre-filtered evidence rows to bypass internal filtering. */
+  evidenceOverride?: LatestQaRunSummary["evidence"];
+  /** Custom empty-state message when evidenceOverride is provided. */
+  emptyMessage?: string;
 }) {
-  if (!run) {
+  if (!run && evidenceOverride === undefined) {
     return (
       <div className="space-y-2 text-sm text-secondary">
         <p>
@@ -29,8 +38,21 @@ export function QaAgentRunPanel({
     );
   }
 
-  const blockedEvidence = run.evidence.filter((e) => e.preset === "BLOCKED");
-  const bugEvidence = run.evidence.filter((e) => e.preset === "OPEN_BUGS");
+  // When evidenceOverride is provided, use it directly without further filtering.
+  if (evidenceOverride !== undefined) {
+    return (
+      <EvidenceList rows={evidenceOverride} empty={emptyMessage ?? "No evidence in the latest sample."} />
+    );
+  }
+
+  const blockedEvidence = run!.evidence.filter((e) => e.preset === "BLOCKED");
+  let bugEvidence = run!.evidence.filter((e) => e.preset === "OPEN_BUGS");
+
+  if (issueTypeFilter === "!Bug") {
+    bugEvidence = bugEvidence.filter((e) => e.issueType !== "Bug");
+  } else if (issueTypeFilter && issueTypeFilter !== "all") {
+    bugEvidence = bugEvidence.filter((e) => e.issueType === issueTypeFilter);
+  }
 
   return (
     <div className="space-y-6">
@@ -45,7 +67,11 @@ export function QaAgentRunPanel({
         <EvidenceList
           title={section === "all" ? "Open bugs" : undefined}
           rows={bugEvidence}
-          empty="No open-bug evidence in the latest sample."
+          empty={
+            issueTypeFilter === "!Bug"
+              ? "No issue-type evidence in the latest sample."
+              : "No open-bug evidence in the latest sample."
+          }
         />
       )}
     </div>
