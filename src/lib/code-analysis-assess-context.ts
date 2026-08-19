@@ -52,7 +52,7 @@ export function resolveCodeAnalysisAssessContext(input: {
   const repos =
     input.repos && input.repos.length > 0 ? input.repos : stored.repos;
 
-  let prs = filterByReleaseWindow(stored.pullRequests, "mergedAt").filter((p) =>
+  const prs = filterByReleaseWindow(stored.pullRequests, "mergedAt").filter((p) =>
     repos.includes(p.repo),
   );
   let commits = filterByReleaseWindow(stored.commits, "committedAt").filter((c) =>

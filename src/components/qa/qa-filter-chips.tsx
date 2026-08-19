@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Info } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 export type QaFilter = "all" | "bugs" | "issues";
@@ -47,15 +47,17 @@ export function QaFilterChips({ defaultFilter = "all", bugCount, issueCount, onF
         ))}
       </div>
 
-      <Tooltip>
-        <TooltipTrigger className="flex items-center gap-1 text-[12px] text-graphite">
-          <Info className="h-3.5 w-3.5" strokeWidth={1.5} />
-          <span className="hidden sm:inline">taxonomy</span>
-        </TooltipTrigger>
-        <TooltipContent side="bottom" className="max-w-xs text-[12px] leading-relaxed">
-          {TAXONOMY_TEXT}
-        </TooltipContent>
-      </Tooltip>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger className="flex items-center gap-1 text-[12px] text-graphite">
+            <Info className="h-3.5 w-3.5" strokeWidth={1.5} />
+            <span className="hidden sm:inline">taxonomy</span>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="max-w-xs text-[12px] leading-relaxed">
+            {TAXONOMY_TEXT}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     </div>
   );
 }

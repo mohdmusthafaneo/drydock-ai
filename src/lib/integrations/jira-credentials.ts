@@ -93,7 +93,7 @@ export async function getJiraCredentialToken(
       throw new Error("Missing cloudId in Jira integration metadata");
     }
 
-    let accessToken = getJiraAccessToken(integration);
+    const accessToken = getJiraAccessToken(integration);
     if (!accessToken) {
       throw new Error("Jira token missing — reconnect via OAuth");
     }

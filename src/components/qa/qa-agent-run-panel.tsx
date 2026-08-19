@@ -45,7 +45,7 @@ export function QaAgentRunPanel({
     );
   }
 
-  let blockedEvidence = run!.evidence.filter((e) => e.preset === "BLOCKED");
+  const blockedEvidence = run!.evidence.filter((e) => e.preset === "BLOCKED");
   let bugEvidence = run!.evidence.filter((e) => e.preset === "OPEN_BUGS");
 
   if (issueTypeFilter === "!Bug") {
