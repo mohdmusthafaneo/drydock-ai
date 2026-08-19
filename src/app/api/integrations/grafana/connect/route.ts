@@ -19,7 +19,6 @@ import {
   type GrafanaAuthType,
   type GrafanaIntegrationMeta,
 } from "@/lib/grafana-meta";
-import { determineActorType } from "@/lib/audit-helpers";
 
 const bodySchema = z.object({
   grafanaUrl: z.string().min(1),
@@ -222,7 +221,6 @@ export async function POST(request: Request) {
         userId: session.userId,
         action: "integration.grafana.connected",
         entityType: "Integration",
-        actorType: determineActorType(session.userId, "integration.grafana.connected"),
       },
     });
   });

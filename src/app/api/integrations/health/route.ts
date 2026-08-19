@@ -3,7 +3,6 @@ import { getSession } from "@/lib/session";
 import { requirePermission } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
 import { checkIntegrationHealth } from "@/lib/integration-health";
-import { determineActorType } from "@/lib/audit-helpers";
 
 export async function GET() {
   const session = await getSession();
@@ -65,7 +64,6 @@ export async function POST() {
       userId: session.userId,
       action: "integrations.sync_all",
       entityType: "Integration",
-      actorType: determineActorType(session.userId, "integrations.sync_all"),
     },
   });
 

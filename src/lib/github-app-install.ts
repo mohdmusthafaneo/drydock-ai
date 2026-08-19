@@ -4,7 +4,6 @@ import {
   parseIntegrationMeta,
   type GitHubIntegrationMeta,
 } from "@/lib/integration-meta";
-import { determineActorType } from "@/lib/audit-helpers";
 
 export type PersistGitHubAppInstallationInput = {
   organizationId: string;
@@ -142,7 +141,6 @@ export async function persistGitHubAppInstallation(
           action: auditAction,
           entityType: "Integration",
           metadataJson: JSON.stringify(auditMetadata),
-          actorType: determineActorType(input.auditUserId ?? input.userId, auditAction),
         },
       });
     }

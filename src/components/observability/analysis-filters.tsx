@@ -79,7 +79,12 @@ export function AnalysisFiltersBar({
               onChange({ riskFocus: v as ObservabilityAnalysisFilters["riskFocus"] })
             }
           />
-
+          <FilterSelect
+            label="Compare"
+            value={filters.compare}
+            options={[{ value: "previous_sync", label: "vs prior sync" }]}
+            onChange={(v) => onChange({ compare: v as ObservabilityAnalysisFilters["compare"] })}
+          />
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

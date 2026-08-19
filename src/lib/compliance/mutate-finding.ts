@@ -3,7 +3,6 @@ import { readJsonField } from "@/lib/json-field";
 import { invalidateExecutiveBriefingSnapshot } from "@/lib/executive-briefing/invalidate-snapshot";
 import { rowToComplianceFindingView } from "@/lib/compliance/load-findings";
 import type { ComplianceFindingView } from "@/lib/compliance/types";
-import { determineActorType } from "@/lib/audit-helpers";
 
 export type ComplianceFindingAction = "resolve" | "dismiss" | "acknowledge";
 
@@ -60,7 +59,6 @@ export async function mutateComplianceFinding(input: {
         entityType: "ComplianceFinding",
         entityId: existing.id,
         metadataJson: JSON.stringify({ ruleKey: existing.ruleKey, severity: existing.severity }),
-        actorType: determineActorType(input.userId, "compliance.finding.acknowledged"),
       },
     });
 
@@ -93,7 +91,6 @@ export async function mutateComplianceFinding(input: {
       entityType: "ComplianceFinding",
       entityId: existing.id,
       metadataJson: JSON.stringify({ ruleKey: existing.ruleKey, severity: existing.severity }),
-      actorType: determineActorType(input.userId, input.action === "dismiss" ? "compliance.finding.dismissed" : "compliance.finding.resolved"),
     },
   });
 

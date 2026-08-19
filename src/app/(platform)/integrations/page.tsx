@@ -49,14 +49,16 @@ import { MoreConnectorsSection } from "@/components/integrations/more-connectors
 const PROVIDER_LABELS: Record<string, string> = {
   GITHUB: "GitHub",
   JIRA: "Jira",
+  JENKINS: "Jenkins",
   GRAFANA: "Grafana",
   PROMETHEUS: "Prometheus",
   SLACK: "Slack",
-  AWS: "Cloud Hygiene",
+  AWS: "AWS",
 };
 
 const PRIMARY_ORDER = ["GITHUB", "JIRA", "SLACK"] as const;
 const OBSERVABILITY_ORDER = ["GRAFANA", "PROMETHEUS"] as const;
+const MORE_PROVIDERS = new Set(["JENKINS"]);
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -226,11 +228,13 @@ export default async function IntegrationsPage({
   const primary = pickByProvider(integrations, PRIMARY_ORDER);
   const observability = pickByProvider(integrations, OBSERVABILITY_ORDER);
   const aws = integrations.find((i) => i.provider === "AWS");
+  const more = integrations.filter((i) => MORE_PROVIDERS.has(i.provider));
   const leftovers = integrations.filter(
     (i) =>
       !PRIMARY_ORDER.includes(i.provider as (typeof PRIMARY_ORDER)[number]) &&
       !OBSERVABILITY_ORDER.includes(i.provider as (typeof OBSERVABILITY_ORDER)[number]) &&
-      i.provider !== "AWS"
+      i.provider !== "AWS" &&
+      !MORE_PROVIDERS.has(i.provider),
   );
 
   return (
@@ -330,12 +334,15 @@ export default async function IntegrationsPage({
             <SectionHeading
               step={5}
               title="Cloud"
-              description="Cloud Hygiene assume-role access for inventory and cloud hygiene scans."
+              description="AWS assume-role access for inventory and cloud hygiene scans."
             />
             <div className="grid gap-4 md:grid-cols-2">{renderCard(aws)}</div>
           </section>
         )}
 
+        <MoreConnectorsSection count={more.length}>
+          {more.map((i) => renderCard(i))}
+        </MoreConnectorsSection>
 
         {leftovers.length > 0 && (
           <section className="space-y-4">

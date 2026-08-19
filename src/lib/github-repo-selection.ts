@@ -9,7 +9,6 @@ import { resolveGitHubTokenForIntegration } from "@/lib/github-token";
 import { mergeGitHubMeta, parseIntegrationMeta } from "@/lib/integration-meta";
 import type { Integration } from "@/generated/prisma/client";
 
-import { determineActorType } from "@/lib/audit-helpers";
 export const MAX_GITHUB_SYNC_REPOS = 10;
 
 export type GitHubRepoOption = {
@@ -79,7 +78,21 @@ export async function saveOrgGitHubRepoFullNames(input: {
   const installationRepos = await listInstallationRepos(token);
   const granted = new Set(installationRepos.map((r) => r.full_name.toLowerCase()));
 
-  await assertReposAccessible(token, names, granted);
+  for (const fullName of names) {
+    if (!granted.has(fullName.toLowerCase())) {
+      const { owner, repo } = parseOwnerRepo(fullName);
+      try {
+        await getRepo(token, owner, repo);
+      } catch (e) {
+        if (e instanceof GitHubApiError && (e.status === 404 || e.status === 403)) {
+          throw new Error(
+            `Repository ${fullName} is not accessible — grant access in GitHub App settings`,
+          );
+        }
+        throw e;
+      }
+    }
+  }
 
   const metadataJson = mergeGitHubMeta(meta, {
     repoFullNames: names,
@@ -99,7 +112,6 @@ export async function saveOrgGitHubRepoFullNames(input: {
         entityType: "Integration",
         entityId: integration.id,
         metadataJson: JSON.stringify({ repoFullNames: names }),
-        actorType: determineActorType(input.userId, "integration.github.repos_updated"),
       },
     });
 
@@ -128,25 +140,4 @@ export function resolveSyncRepoFullNames(input: {
     return normalizeRepoFullNames(input.metaNames);
   }
   throw new Error("Select at least one GitHub repository before syncing.");
-}
-
-async function assertReposAccessible(
-  token: string,
-  names: string[],
-  granted: Set<string>,
-): Promise<void> {
-  for (const fullName of names) {
-    if (granted.has(fullName.toLowerCase())) continue;
-    const { owner, repo } = parseOwnerRepo(fullName);
-    try {
-      await getRepo(token, owner, repo);
-    } catch (e) {
-      if (e instanceof GitHubApiError && (e.status === 404 || e.status === 403)) {
-        throw new Error(
-          `Repository ${fullName} is not accessible — grant access in GitHub App settings`,
-        );
-      }
-      throw e;
-    }
-  }
 }

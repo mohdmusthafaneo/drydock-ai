@@ -14,7 +14,6 @@ import {
 } from "@/lib/grafana-meta";
 import type { PrometheusServiceScope } from "@/lib/observability-analysis/types";
 
-import { determineActorType } from "@/lib/audit-helpers";
 export const MAX_GRAFANA_METRICS_SCOPES = 10;
 
 const PROBE_THROTTLE_MS = 60_000;
@@ -184,7 +183,6 @@ export async function saveOrgGrafanaMetricsConfig(input: {
           datasourceName: ds.name,
           probeSummary: probe.summary,
         }),
-        actorType: determineActorType(input.userId, "grafana.metrics_config.saved"),
       },
     });
   });

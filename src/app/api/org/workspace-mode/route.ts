@@ -3,7 +3,6 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { getLandingPathForOrganization } from "@/lib/landing-path-org";
-import { determineActorType } from "@/lib/audit-helpers";
 
 const schema = z.object({
   workspaceMode: z.enum(["MVP", "ENTERPRISE"]),
@@ -32,7 +31,6 @@ export async function POST(request: Request) {
           entityType: "Organization",
           entityId: session.organizationId,
           metadataJson: JSON.stringify({ workspaceMode }),
-          actorType: determineActorType(session.userId, "workspace.mode_changed"),
         },
       });
     });

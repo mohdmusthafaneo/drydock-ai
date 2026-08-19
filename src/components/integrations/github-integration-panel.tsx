@@ -11,98 +11,11 @@ import { ExternalConnectLinkPanel } from "@/components/integrations/external-con
 import { formatFixedLocaleDateTime } from "@/lib/format-date";
 import type { GitHubRepoSummary } from "@/lib/integration-meta";
 
-
-// Extracted to avoid useState inside .map() (hooks rules)
-function GitHubRepoRow({
-  repo,
-  checked,
-  onToggle,
-}: {
-  repo: GitHubRepoSummary;
-  checked: boolean;
-  onToggle: (fullName: string) => void;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  return (
-    <li>
-      <label className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-elevated/60">
-        <input
-          type="checkbox"
-          checked={checked}
-          onChange={() => onToggle(repo.fullName)}
-          className="rounded border-border"
-        />
-        <span className="min-w-0 flex-1 truncate font-medium text-primary">
-          {repo.fullName}
-        </span>
-        {repo.private && (
-          <Badge variant="muted" className="shrink-0 text-[10px]">
-            private
-          </Badge>
-        )}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            setExpanded((v) => !v);
-          }}
-          className="ml-auto shrink-0 rounded px-1 py-0.5 text-[10px] text-muted hover:bg-elevated/60 hover:text-primary"
-        >
-          {expanded ? "▲" : "▼"}
-        </button>
-      </label>
-      {expanded && (
-        <div className="ml-6 mt-1 space-y-1 rounded border border-border/50 bg-base/30 px-3 py-2 text-[11px] text-muted">
-          <div className="flex flex-wrap gap-x-4 gap-y-1">
-            {repo.updatedAt && (
-              <span>
-                <span className="text-secondary">Last activity:</span>{" "}
-                {formatFixedLocaleDateTime(repo.updatedAt)}
-              </span>
-            )}
-            {repo.openPrs !== undefined && (
-              <span>
-                <span className="text-secondary">Open PRs:</span> {repo.openPrs}
-              </span>
-            )}
-            <span>
-              <span className="text-secondary">Sync:</span>{" "}
-              {checked ? (
-                <span className="text-success-soft">opted-in</span>
-              ) : (
-                <span className="text-warning-soft">available</span>
-              )}
-            </span>
-            <span>
-              <span className="text-secondary">Permissions:</span> read-only
-            </span>
-          </div>
-          {repo.recentWorkflowRuns && repo.recentWorkflowRuns.length > 0 && (
-            <div className="pt-1">
-              <span className="text-secondary">Recent runs:</span>{" "}
-              {repo.recentWorkflowRuns
-                .slice(0, 3)
-                .map((run) => (
-                  <span
-                    key={run.name}
-                    className={`ml-1.5 ${
-                      run.conclusion === "success"
-                        ? "text-success-soft"
-                        : run.conclusion === "failure"
-                          ? "text-error-soft"
-                          : "text-muted"
-                    }`}
-                  >
-                    {run.name} ({run.conclusion ?? "pending"})
-                  </span>
-                ))}
-            </div>
-          )}
-        </div>
-      )}
-    </li>
-  );
-}
+type GitHubRepoOption = {
+  fullName: string;
+  private: boolean;
+  defaultBranch: string;
+};
 
 export function GitHubIntegrationPanel({
   connected,
@@ -137,7 +50,7 @@ export function GitHubIntegrationPanel({
   const [saving, setSaving] = useState(false);
   const [loadingRepos, setLoadingRepos] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [availableRepos, setAvailableRepos] = useState<GitHubRepoSummary[]>([]);
+  const [availableRepos, setAvailableRepos] = useState<GitHubRepoOption[]>([]);
   const [pickedNames, setPickedNames] = useState<string[]>(selectedRepoFullNames ?? []);
   const [maxRepos, setMaxRepos] = useState(10);
 
@@ -354,42 +267,53 @@ export function GitHubIntegrationPanel({
         ) : (
           <>
             <ul className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-border bg-base/50 p-2">
-              {availableRepos.map((r) => (
-                <GitHubRepoRow
-                  key={r.fullName}
-                  repo={r}
-                  checked={pickedNames.includes(r.fullName)}
-                  onToggle={toggleRepo}
-                />
-              ))}
+              {availableRepos.map((r) => {
+                const checked = pickedNames.includes(r.fullName);
+                return (
+                  <li key={r.fullName}>
+                    <label className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-elevated/60">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleRepo(r.fullName)}
+                        className="rounded border-border"
+                      />
+                      <span className="min-w-0 flex-1 truncate font-medium text-primary">
+                        {r.fullName}
+                      </span>
+                      {r.private && (
+                        <Badge variant="muted" className="shrink-0 text-[10px]">
+                          private
+                        </Badge>
+                      )}
+                    </label>
+                  </li>
+                );
+              })}
             </ul>
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={saving || loadingRepos}
+                onClick={saveSelection}
+              >
+                {saving ? "Saving…" : "Save selection"}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                disabled={loadingRepos}
+                onClick={() => void loadRepos()}
+              >
+                Refresh list
+              </Button>
+            </div>
           </>
         )}
       </div>
-
-      {canManage && installationId && (
-        <div className="flex gap-2">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={saving || pickedNames.length === 0}
-            onClick={() => void saveSelection()}
-          >
-            {saving ? "Saving…" : "Save selection"}
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={loadingRepos}
-            onClick={() => void loadRepos()}
-          >
-            <RefreshCw className={loadingRepos ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
-            {loadingRepos ? "Loading…" : "Refresh"}
-          </Button>
-        </div>
-      )}
 
       {lastSyncSummary && (
         <p className="text-xs text-success-soft">{lastSyncSummary}</p>

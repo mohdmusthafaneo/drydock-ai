@@ -10,8 +10,11 @@ import {
   buildReleasePortfolioHighlights,
   buildGovernanceDnaOverview,
   buildGovernanceHeadlineSegments,
-  categorizeByActorType,
+  categorizeAuditAction,
   filterAuditLogs,
+  findLastGovernanceDecision,
+  impactVerdictLabel,
+  releaseListVerdict,
   sortIncidentsByUrgency,
   sortRecommendationsByUrgency,
   workflowModeLabel,
@@ -145,24 +148,16 @@ describe("governance presentation", () => {
     assert.match(line.headline, /blocked/i);
   });
 
-  it("categorizes and filters audit by actorType", () => {
-    assert.equal(categorizeByActorType("human"), "human");
-    assert.equal(categorizeByActorType("integration"), "integration");
-    assert.equal(categorizeByActorType("system"), "system");
-    assert.equal(categorizeByActorType(null), "all");
-    assert.equal(categorizeByActorType(undefined), "all");
+  it("categorizes and filters audit approval actions", () => {
+    assert.equal(categorizeAuditAction("recommendation.approved"), "approvals");
     const logs = [
-      { actorType: "human" },
-      { actorType: "system" },
-      { actorType: "integration" },
+      { action: "recommendation.approved" },
+      { action: "release.deployed" },
     ];
-    assert.equal(filterAuditLogs(logs, "human").length, 1);
-    assert.equal(filterAuditLogs(logs, "system").length, 1);
-    assert.equal(filterAuditLogs(logs, "all").length, 3);
+    assert.equal(filterAuditLogs(logs, "approvals").length, 1);
     assert.equal(
       findLastGovernanceDecision(logs.map((l, i) => ({
         ...l,
-        action: "recommendation.approved",
         entityType: "Approval",
         createdAt: new Date(),
         userName: i === 0 ? "Alex" : null,

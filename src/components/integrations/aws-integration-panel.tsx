@@ -65,7 +65,7 @@ export function AwsIntegrationPanel({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Save failed");
-      setMessage("Cloud Hygiene role saved — run a DevOps agent scan or open Cloud hygiene");
+      setMessage("AWS role saved — run a DevOps agent scan or open Cloud hygiene");
       setExternalId("");
       router.refresh();
     } catch (e) {
@@ -79,7 +79,7 @@ export function AwsIntegrationPanel({
     if (!canManage) {
       return (
         <p className="text-xs text-muted">
-          Cloud Hygiene account scanning is not configured. An org admin can store the assume-role ARN
+          AWS account scanning is not configured. An org admin can store the assume-role ARN
           and External ID here.
         </p>
       );
@@ -138,7 +138,7 @@ export function AwsIntegrationPanel({
         )}
 
         <Button type="button" size="sm" variant="brand" disabled={saving} onClick={save}>
-          {saving ? "Saving…" : "Save Cloud Hygiene role"}
+          {saving ? "Saving…" : "Save AWS role"}
         </Button>
       </div>
     );
@@ -148,7 +148,7 @@ export function AwsIntegrationPanel({
     <div className="space-y-4">
       <div className="space-y-2 rounded-lg border border-border bg-elevated/40 p-3">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="brand">Cloud Hygiene · assume role</Badge>
+          <Badge variant="brand">AWS · assume role</Badge>
           <Badge variant="success">Configured</Badge>
         </div>
 

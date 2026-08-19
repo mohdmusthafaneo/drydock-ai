@@ -1,11 +1,7 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import type { IncidentCodeLinkView } from "@/lib/incident-code-correlation";
-import { CORRELATION_WINDOW_MS } from "@/lib/incident-code-correlation";
-
-const CORRELATION_WINDOW_HOURS = CORRELATION_WINDOW_MS / (1000 * 60 * 60);
 
 type Props = {
   links: IncidentCodeLinkView[];
@@ -19,22 +15,7 @@ export function IncidentRelatedChanges({ links }: Props) {
           <CardTitle>Likely related changes</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span>
-                  No merged PRs correlated in the past {CORRELATION_WINDOW_HOURS}h before
-                  this incident.
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>
-                  PRs merged more than {CORRELATION_WINDOW_HOURS}h before incident detection
-                  are excluded from correlation analysis.
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          No merged PRs correlated in the 72h window before this incident.
         </CardContent>
       </Card>
     );

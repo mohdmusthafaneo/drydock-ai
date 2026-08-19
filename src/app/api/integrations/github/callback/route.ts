@@ -10,7 +10,6 @@ import {
 import { verifyOAuthState } from "@/lib/oauth-state";
 import { appUrl } from "@/lib/app-url";
 
-import { determineActorType } from "@/lib/audit-helpers";
 export async function GET(request: Request) {
   const session = await getSession();
   if (!session) {
@@ -103,7 +102,6 @@ export async function GET(request: Request) {
           action: "integration.github.connected",
           entityType: "Integration",
           metadataJson: JSON.stringify({ githubLogin: githubUser.login }),
-          actorType: determineActorType(session.userId, "integration.github.connected"),
         },
       });
     });

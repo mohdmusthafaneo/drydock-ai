@@ -32,15 +32,38 @@ export async function POST(request: Request) {
       { status: 429 },
     );
   }
+
   try {
     const body = bodySchema.parse(await request.json().catch(() => ({})));
-    const result = await runProbe(session.organizationId, body.datasourceUid);
+
+    let datasourceUid = body.datasourceUid;
+    if (!datasourceUid) {
+      const integration = await prisma.integration.findUnique({
+        where: {
+          organizationId_provider: {
+            organizationId: session.organizationId,
+            provider: "GRAFANA",
+          },
+        },
+      });
+      const meta = integration ? parseGrafanaMeta(integration.metadataJson) : {};
+      datasourceUid = meta.prometheusDatasource?.uid;
+    }
+
+    if (!datasourceUid) {
+      return NextResponse.json({ error: "Select a Prometheus datasource first" }, { status: 400 });
+    }
+
+    const result = await runGrafanaMetricsProbe({
+      organizationId: session.organizationId,
+      datasourceUid,
+    });
+
     return NextResponse.json({
       ok: true,
       summary: result.probe.summary,
       datasourceName: result.datasource.name,
     });
-
   } catch (e) {
     if (e instanceof z.ZodError) {
       return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
@@ -53,32 +76,4 @@ export async function POST(request: Request) {
     }
     return NextResponse.json({ error: message }, { status: 400 });
   }
- }
-
-async function runProbe(
-  organizationId: string,
-  requestedDatasourceUid: string | undefined,
-): Promise<{ probe: { summary: string }; datasource: { name: string } }> {
-  let datasourceUid = requestedDatasourceUid;
-  if (!datasourceUid) {
-    const integration = await prisma.integration.findUnique({
-      where: {
-        organizationId_provider: {
-          organizationId,
-          provider: "GRAFANA",
-        },
-      },
-    });
-    const meta = integration ? parseGrafanaMeta(integration.metadataJson) : {};
-    datasourceUid = meta.prometheusDatasource?.uid;
-  }
-
-  if (!datasourceUid) {
-    throw new Error("Select a Prometheus datasource first");
-  }
-
-  return runGrafanaMetricsProbe({
-    organizationId,
-    datasourceUid,
-  });
 }

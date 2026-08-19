@@ -233,7 +233,7 @@ export const persistQAReportTool = createTool({
         assignee: e.assignee,
       }));
 
-      const rowCounts = {
+      let rowCounts = {
         projectKeys: 0,
         statusStats: 0,
         issueEvidence: 0,

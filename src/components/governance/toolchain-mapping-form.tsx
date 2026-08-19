@@ -259,69 +259,50 @@ export function ToolchainMappingForm({
         }),
       ]);
 
-      await applyJiraIntrospection(jiraRes);
-      await applyGithubIntrospection(githubRes);
+      if (!jiraRes.ok && jiraRes.status !== 400) {
+        const data = await jiraRes.json();
+        if (jiraRes.status === 401 || jiraRes.status === 403) {
+          setError(
+            data.error ??
+              "Jira OAuth scopes may be insufficient. Disconnect and reconnect Jira on Integrations.",
+          );
+        } else if (jiraRes.status !== 429) {
+          setError(data.error || "Failed to refresh Jira schema");
+        }
+      }
+
+      if (jiraRes.ok) {
+        const data = await jiraRes.json();
+        setSchema((s) => ({
+          ...s,
+          jira: data.snapshot ?? s.jira,
+          jiraStale: false,
+        }));
+        if (data.mappingSuggestions) {
+          setMapping((m) => ({
+            ...m,
+            jira: data.mappingSuggestions.jira ?? m.jira,
+            github: data.mappingSuggestions.github ?? m.github,
+            inferredFrom: data.mappingSuggestions.inferredFrom ?? m.inferredFrom,
+          }));
+        }
+      }
+
+      if (githubRes.ok) {
+        const data = await githubRes.json();
+        setSchema((s) => ({ ...s, github: data.snapshot ?? s.github }));
+        if (data.mappingSuggestions?.github) {
+          setMapping((m) => ({
+            ...m,
+            github: data.mappingSuggestions.github ?? m.github,
+          }));
+        }
+      }
 
       await loadSchema();
       router.refresh();
     } finally {
       setRefreshing(false);
-    }
-  }
-
-  async function applyJiraIntrospection(jiraRes: Response) {
-    if (!jiraRes.ok && jiraRes.status !== 400) {
-      const data = (await jiraRes.json().catch(() => ({}))) as {
-        error?: string;
-      };
-      if (jiraRes.status === 401 || jiraRes.status === 403) {
-        setError(
-          data.error ??
-            "Jira OAuth scopes may be insufficient. Disconnect and reconnect Jira on Integrations.",
-        );
-      } else if (jiraRes.status !== 429) {
-        setError(data.error || "Failed to refresh Jira schema");
-      }
-      return;
-    }
-
-    if (!jiraRes.ok) return;
-
-    const data = (await jiraRes.json()) as {
-      snapshot?: JiraSchemaSnapshot;
-      mappingSuggestions?: {
-        jira?: ToolchainMapping["jira"];
-        github?: ToolchainMapping["github"];
-        inferredFrom?: ToolchainMapping["inferredFrom"];
-      };
-    };
-    setSchema((s) => ({
-      ...s,
-      jira: data.snapshot ?? s.jira,
-      jiraStale: false,
-    }));
-    if (data.mappingSuggestions) {
-      setMapping((m) => ({
-        ...m,
-        jira: data.mappingSuggestions!.jira ?? m.jira,
-        github: data.mappingSuggestions!.github ?? m.github,
-        inferredFrom: data.mappingSuggestions!.inferredFrom ?? m.inferredFrom,
-      }));
-    }
-  }
-
-  async function applyGithubIntrospection(githubRes: Response) {
-    if (!githubRes.ok) return;
-    const data = (await githubRes.json()) as {
-      snapshot?: GitHubSchemaSnapshot;
-      mappingSuggestions?: { github?: ToolchainMapping["github"] };
-    };
-    setSchema((s) => ({ ...s, github: data.snapshot ?? s.github }));
-    if (data.mappingSuggestions?.github) {
-      setMapping((m) => ({
-        ...m,
-        github: data.mappingSuggestions!.github ?? m.github,
-      }));
     }
   }
 

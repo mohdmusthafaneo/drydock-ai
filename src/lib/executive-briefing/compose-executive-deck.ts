@@ -294,7 +294,6 @@ const AGENT_TEAM_LINKS: Array<{
   claimId: string;
   id: string;
   audience: string;
-  labelKey: "level2" | "level3";
   title: string;
   fallbackSummary: string;
   href: string;
@@ -303,7 +302,6 @@ const AGENT_TEAM_LINKS: Array<{
     claimId: "qa-posture",
     id: "qa",
     audience: "QA lead",
-    labelKey: "level2",
     title: "QA posture detail",
     fallbackSummary: "Blocked issues, open bugs, and board health",
     href: "/qa",
@@ -312,7 +310,6 @@ const AGENT_TEAM_LINKS: Array<{
     claimId: "cloud-hygiene",
     id: "devops",
     audience: "DevOps / platform lead",
-    labelKey: "level3",
     title: "Cloud & deployment detail",
     fallbackSummary: "Cloud hygiene findings and deployment health",
     href: "/devops",
@@ -321,7 +318,6 @@ const AGENT_TEAM_LINKS: Array<{
     claimId: "code-risk",
     id: "code-health",
     audience: "Engineering lead",
-    labelKey: "level3",
     title: "Code change risk detail",
     fallbackSummary: "Hotspots, risk drivers, and review priority",
     href: "/code-health",
@@ -330,7 +326,6 @@ const AGENT_TEAM_LINKS: Array<{
     claimId: "productivity",
     id: "productivity",
     audience: "Engineering lead",
-    labelKey: "level3",
     title: "Delivery cadence detail",
     fallbackSummary: "Contributor concentration and commit signals",
     href: "/productivity",
@@ -343,7 +338,6 @@ export function buildTeamLinks(
   hasDelivery: boolean,
   hasEngineering: boolean,
   hasObservability: boolean,
-  labels?: Ctx["approvalLevelLabels"],
 ): TeamDrillDown[] {
   const links: TeamDrillDown[] = [];
 
@@ -351,7 +345,7 @@ export function buildTeamLinks(
     const blocked = briefing.claims.find((c) => c.id === "delivery");
     links.push({
       id: "delivery",
-      audience: labels?.level2 ?? "Delivery lead",
+      audience: "Delivery lead",
       title: "Backlog & sprint detail",
       summary: blocked?.context ?? "Ticket flow, blockers, and sprint progress",
       href: "/delivery-analysis",
@@ -361,7 +355,7 @@ export function buildTeamLinks(
   if (hasEngineering) {
     links.push({
       id: "engineering",
-      audience: labels?.level3 ?? "Engineering lead",
+      audience: "Engineering lead",
       title: "Code & contributor activity",
       summary: "Commit velocity, AI-assisted changes, and repo health",
       href: "/code-analysis",
@@ -371,7 +365,7 @@ export function buildTeamLinks(
   if (hasObservability || ctx.stats.openIncidents > 0) {
     links.push({
       id: "stability",
-      audience: labels?.level3 ?? "Platform / SRE lead",
+      audience: "Platform / SRE lead",
       title: "Production signals",
       summary:
         ctx.stats.openIncidents > 0
@@ -384,7 +378,7 @@ export function buildTeamLinks(
   if (ctx.releases.length > 0) {
     links.push({
       id: "releases",
-      audience: labels?.level2 ?? "Release manager",
+      audience: "Release manager",
       title: "Release governance detail",
       summary: "QA gates, risk scores, and approval workflows",
       href: "/releases",
@@ -396,7 +390,7 @@ export function buildTeamLinks(
     if (!claim || claim.verdict === "good") continue;
     links.push({
       id: agentLink.id,
-      audience: agentLink.labelKey ? (labels?.[agentLink.labelKey] ?? agentLink.audience) : agentLink.audience,
+      audience: agentLink.audience,
       title: agentLink.title,
       summary: claim.context || agentLink.fallbackSummary,
       href: agentLink.href,
@@ -435,7 +429,6 @@ export function composeExecutiveDeck(input: {
       input.hasDelivery,
       input.hasEngineering,
       input.hasObservability,
-      input.ctx.approvalLevelLabels,
     ),
   };
 }

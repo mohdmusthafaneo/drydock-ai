@@ -98,7 +98,6 @@ export default async function DevOpsIntelligencePage({
 
       <AgentPageShell
         view={view}
-        approvalLevelLabels={ctx.approvalLevelLabels}
         afterHighlights={
           devopsRun ? (
             <div className="grid gap-4 lg:grid-cols-2">

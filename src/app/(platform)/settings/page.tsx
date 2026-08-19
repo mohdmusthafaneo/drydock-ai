@@ -3,8 +3,11 @@ import Link from "next/link";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { ROLE_LABELS } from "@/lib/roles";
+import { hasPermission } from "@/lib/rbac";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { TeamInviteForm } from "@/components/team/team-invite-form";
 
 export default async function SettingsPage() {
   const session = await getSession();
@@ -18,6 +21,8 @@ export default async function SettingsPage() {
     }),
     prisma.deliveryDNA.findUnique({ where: { organizationId: session.organizationId } }),
   ]);
+
+  const canInvite = hasPermission(session, "admin", "manage_team");
 
   return (
     <div className="mx-auto max-w-3xl space-y-8">
@@ -36,8 +41,16 @@ export default async function SettingsPage() {
             <span className="text-muted">Your role: </span>
             <span className="text-primary">{ROLE_LABELS[session.role]}</span>
           </p>
+          {dna && (
+            <p>
+              <span className="text-muted">Autonomy mode: </span>
+              <Badge variant="ai">{dna.autonomyMode}</Badge>
+              <span className="ml-2 text-muted">(recommend-only in Phase 1)</span>
+            </p>
+          )}
         </CardContent>
       </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Quick links</CardTitle>
@@ -55,29 +68,37 @@ export default async function SettingsPage() {
               Delivery DNA
             </Link>
           )}
+          {(session.role === "ORG_ADMIN" || session.role === "DELIVERY_MANAGER") && (
+            <Link href="/admin" className="text-ink underline-offset-4 hover:underline">
+              Admin console
+            </Link>
+          )}
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
           <CardTitle>Team management</CardTitle>
-          <CardDescription>Manage team members and their RBAC roles.</CardDescription>
+          <CardDescription>Invite users with RBAC roles — Phase 1 foundation.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-2">
-          {members.map((m) => (
-            <div
-              key={m.id}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-elevated px-4 py-2 text-sm"
-            >
-              <span className="text-primary">
-                {m.name} · {m.email}
-              </span>
-              <span className="text-muted">
-                {ROLE_LABELS[m.role]}
-                {m.lastLoginAt && ` · last login ${m.lastLoginAt.toLocaleDateString()}`}
-              </span>
-            </div>
-          ))}
+        <CardContent className="space-y-6">
+          <TeamInviteForm canInvite={canInvite} />
+          <div className="space-y-2 border-t border-border pt-4">
+            {members.map((m) => (
+              <div
+                key={m.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-elevated px-4 py-2 text-sm"
+              >
+                <span className="text-primary">
+                  {m.name} · {m.email}
+                </span>
+                <span className="text-muted">
+                  {ROLE_LABELS[m.role]}
+                  {m.lastLoginAt && ` · last login ${m.lastLoginAt.toLocaleDateString()}`}
+                </span>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
     </div>
