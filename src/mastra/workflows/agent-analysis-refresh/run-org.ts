@@ -268,11 +268,9 @@ async function runDomainAgent(
 export async function runAgentAnalysisForOrg(
   mastra: Mastra,
   organizationId: string,
-  options?: { domains?: AgentDomain[] },
 ): Promise<OrgRunResult> {
   const targets = await resolveOrgAgentTargets(organizationId);
-  const domains: AgentDomain[] =
-    options?.domains ?? ["qa", "devops", "productivity", "governance"];
+  const domains: AgentDomain[] = ["qa", "devops", "productivity", "governance"];
   const results: DomainRunResult[] = [];
 
   // Sequential per org — AWS scans and git clones are heavy.

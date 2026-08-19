@@ -1,19 +1,18 @@
 "use client";
 
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useState, useCallback, useEffect } from "react";
-import type { JiraDeliverySnapshot } from "@/lib/jira-meta";
-import { formatFixedLocaleDateTime } from "@/lib/format-date";
-import { isJiraReconnectMessage } from "@/lib/jira-errors";
+import { ExternalLink, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   DisconnectButton,
   JiraOAuthConnect,
-  RotateTokenButton,
 } from "@/components/integrations/integration-actions";
 import { ExternalConnectLinkPanel } from "@/components/integrations/external-connect-link-panel";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { ExternalLink, RefreshCw } from "lucide-react";
+import { isJiraReconnectMessage, JIRA_RECONNECT_MESSAGE } from "@/lib/jira-errors";
+import { formatFixedLocaleDateTime } from "@/lib/format-date";
+import type { JiraDeliverySnapshot } from "@/lib/jira-meta";
 
 type JiraProjectOption = { key: string; name: string };
 
@@ -284,38 +283,22 @@ export function JiraIntegrationPanel({
 
         {availableSitesCount != null && availableSitesCount > 1 && (
           <p className="text-xs text-muted">
-            {availableSitesCount} Jira sites connected — syncing from primary site ({siteName ?? "unknown"}) only.
+            {availableSitesCount} Jira sites available — using the primary site for now.
           </p>
         )}
 
         {lastError && showConnectionIssue && (
           <div className="space-y-1">
-            {isJiraReconnectMessage(lastError) ? (
-              <>
-                <p className="text-xs text-warning-soft">
-                  Jira authorization expired or was revoked. Reconnect to restore sync.
-                </p>
-                {canManage && (
-                  <p className="text-xs text-muted">
-                    Use <span className="font-medium text-primary">Reconnect</span> to issue new
-                    OAuth tokens.
-                  </p>
-                )}
-              </>
-            ) : (
-              <>
-                <p className="text-xs text-warning-soft">
-                  Jira connection failed. Check your credentials and try again.
-                </p>
-                <details className="group marker:content-['']">
-                  <summary className="cursor-pointer text-xs text-muted hover:text-secondary list-none">
-                    <span className="text-xs text-muted hover:text-secondary">Technical details</span>
-                  </summary>
-                  <pre className="mt-1 whitespace-pre-wrap break-all text-xs bg-muted/50 p-2 rounded border border-border overflow-auto">
-                    {lastError}
-                  </pre>
-                </details>
-              </>
+            <p className="text-xs text-warning-soft">
+              {isJiraReconnectMessage(lastError)
+                ? "Jira authorization expired or was revoked. Reconnect to restore sync."
+                : lastError}
+            </p>
+            {canManage && isJiraReconnectMessage(lastError) && (
+              <p className="text-xs text-muted">
+                Use <span className="font-medium text-primary">Reconnect</span> to issue new
+                OAuth tokens.
+              </p>
             )}
           </div>
         )}
@@ -359,7 +342,7 @@ export function JiraIntegrationPanel({
       <div className="space-y-2 rounded-lg border border-border bg-elevated/40 p-3">
         <p className="text-xs font-medium text-primary">Projects to sync</p>
         <p className="text-xs text-muted">
-          Choose which Jira projects this organization syncs from {siteName ?? "the connected Jira site"}. Each org manages its own selection.
+          Choose which Jira projects this organization syncs. Each org manages its own selection.
         </p>
 
         {canManage ? (
@@ -490,25 +473,10 @@ export function JiraIntegrationPanel({
         </Button>
       )}
 
-      {canManage && (
-        <details className="rounded-lg border border-border bg-elevated/40 p-3">
-          <summary className="cursor-pointer text-xs font-medium text-primary">
-            Manage connection
-          </summary>
-          <div className="mt-3 space-y-2">
-            <p className="text-xs text-muted">
-              Rotate the Jira OAuth token if access was revoked or the previous token expired.
-              This disconnects the current token and redirects you to re-authorize with fresh
-              permissions.
-            </p>
-            <RotateTokenButton provider="JIRA" />
-          </div>
-        </details>
-      )}
-
       {!canManage && !hasSelection && (
         <p className="text-xs text-muted">An org admin must select projects before sync.</p>
       )}
+
       {deliverySnapshot && deliverySnapshot.projects.length > 0 && (
         <div className="space-y-1">
           <p className="text-xs font-medium text-primary">Delivery snapshot</p>

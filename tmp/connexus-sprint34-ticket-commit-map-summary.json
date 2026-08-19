@@ -1,0 +1,57 @@
+{
+  "ticketCount": 100,
+  "ticketsWithAtLeastOneCommit": 10,
+  "ticketsWithNoCommit": 90,
+  "totalCommitRows": 12,
+  "uniqueCommitsMatched": 12,
+  "commitsInWindowUnmatched": 3117,
+  "matchConfidenceBreakdown": {
+    "high": 11,
+    "medium": 1,
+    "low": 0,
+    "none": 90
+  },
+  "topTicketsByCommitCount": [
+    {
+      "key": "CX-3321",
+      "commitCount": 2
+    },
+    {
+      "key": "CX-3352",
+      "commitCount": 2
+    },
+    {
+      "key": "CX-2525",
+      "commitCount": 1
+    },
+    {
+      "key": "CX-3386",
+      "commitCount": 1
+    },
+    {
+      "key": "CX-3388",
+      "commitCount": 1
+    },
+    {
+      "key": "CX-3390",
+      "commitCount": 1
+    },
+    {
+      "key": "CX-3392",
+      "commitCount": 1
+    },
+    {
+      "key": "CX-3393",
+      "commitCount": 1
+    },
+    {
+      "key": "CX-3394",
+      "commitCount": 1
+    },
+    {
+      "key": "CX-3421",
+      "commitCount": 1
+    }
+  ],
+  "generatedAt": "2026-07-08T09:18:21.980032+00:00"
+}

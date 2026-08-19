@@ -13,8 +13,19 @@ function DeltaBadge({
   suffix?: string;
   invert?: boolean;
 }) {
-  if (delta === undefined || delta === 0) {
-    return null;
+  if (delta === undefined) {
+    return (
+      <span className="text-xs text-muted" title="Trends after two syncs">
+        —
+      </span>
+    );
+  }
+  if (delta === 0) {
+    return (
+      <span className="inline-flex items-center gap-0.5 text-xs text-muted">
+        <Minus className="h-3 w-3" />0 {suffix}
+      </span>
+    );
   }
   const up = delta > 0;
   const good = invert ? !up : up;
@@ -100,7 +111,6 @@ export function KpiStrip({ kpis, projectCount }: { kpis: DeliveryAnalysisKpis; p
         const value = kpis[item.key];
         const delta = item.deltaKey ? kpis[item.deltaKey] : undefined;
         const jiraHref = item.jiraLinkKey ? kpis.jiraLinks?.[item.jiraLinkKey] : undefined;
-        const hasDelta = typeof delta === "number" && delta !== 0;
         return (
           <Card key={item.key} className="min-w-0">
             <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
@@ -112,10 +122,10 @@ export function KpiStrip({ kpis, projectCount }: { kpis: DeliveryAnalysisKpis; p
                 {item.suffix}
               </p>
               <p className="mt-1 text-xs text-secondary">{scopeLabel}</p>
-              {hasDelta && (
+              {item.deltaKey && (
                 <p className="mt-1.5 text-secondary">
                   vs prior sync ·{" "}
-                  <DeltaBadge delta={delta} invert={item.invertDelta} />
+                  <DeltaBadge delta={delta as number | undefined} invert={item.invertDelta} />
                 </p>
               )}
               <p className="mt-1 text-[10px] text-muted">{item.subtitle}</p>

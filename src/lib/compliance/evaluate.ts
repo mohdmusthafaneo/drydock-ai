@@ -10,7 +10,6 @@ import type {
   ComplianceFindingCandidate,
   EvaluateComplianceResult,
 } from "@/lib/compliance/types";
-import { determineActorType } from "@/lib/audit-helpers";
 
 function isMissingComplianceTables(error: unknown): boolean {
   return (
@@ -236,7 +235,6 @@ async function evaluateComplianceInner(
           reopened,
           newCritical,
         }),
-        actorType: determineActorType(null, "compliance.evaluated"),
       },
     });
 

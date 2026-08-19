@@ -54,47 +54,42 @@ export default async function SlackConnectEntryPage({ params }: PageProps) {
     const authorizeUrl = buildSlackAuthorizeUrl(state, "external");
 
     return (
-      <>
-        <div className="mb-4 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-          Set up integration on behalf of customer
-        </div>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">
-              Add AIDOS to Slack for {invite.organization.name}
-            </CardTitle>
-            <CardDescription>
-              Install the AIDOS Slack app so your team can ask read-only operational
-              questions from Slack.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-secondary">
-              You are connecting Slack to <strong>{invite.organization.name}</strong> on
-              AIDOS. Choose the workspace that belongs to this organization when Slack
-              prompts you.
-            </p>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">
+            Add AIDOS to Slack for {invite.organization.name}
+          </CardTitle>
+          <CardDescription>
+            Install the AIDOS Slack app so your team can ask read-only operational
+            questions from Slack.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-secondary">
+            You are connecting Slack to <strong>{invite.organization.name}</strong> on
+            AIDOS. Choose the workspace that belongs to this organization when Slack
+            prompts you.
+          </p>
 
-            <div className="rounded-lg border border-border bg-elevated/40 p-3">
-              <p className="text-xs font-medium text-primary">Bot scopes</p>
-              <ul className="mt-2 space-y-1 text-xs text-muted">
-                {SLACK_BOT_SCOPES.map((scope) => (
-                  <li key={scope}>{scope}</li>
-                ))}
-              </ul>
-            </div>
+          <div className="rounded-lg border border-border bg-elevated/40 p-3">
+            <p className="text-xs font-medium text-primary">Bot scopes</p>
+            <ul className="mt-2 space-y-1 text-xs text-muted">
+              {SLACK_BOT_SCOPES.map((scope) => (
+                <li key={scope}>{scope}</li>
+              ))}
+            </ul>
+          </div>
 
-            <Button asChild className="w-full">
-              <a href={authorizeUrl}>Continue to Slack</a>
-            </Button>
+          <Button asChild className="w-full">
+            <a href={authorizeUrl}>Continue to Slack</a>
+          </Button>
 
-            <p className="text-center text-[11px] text-muted">
-              No AIDOS account required. This link expires in 24 hours and can only be
-              used once.
-            </p>
-          </CardContent>
-        </Card>
-      </>
+          <p className="text-center text-[11px] text-muted">
+            No AIDOS account required. This link expires in 24 hours and can only be
+            used once.
+          </p>
+        </CardContent>
+      </Card>
     );
   } catch (err) {
     if (err instanceof ConnectInviteError) {

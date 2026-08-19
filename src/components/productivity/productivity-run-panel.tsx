@@ -2,7 +2,6 @@ import Link from "next/link";
 import type { ProductivityPageView } from "@/lib/agent-analysis/presentation";
 import type { LatestProductivityRunSummary } from "@/lib/agent-analysis/types";
 import { humanizeSignalLabel } from "@/lib/agent-analysis/presentation";
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 
 /**
@@ -66,27 +65,7 @@ export function ProductivityRunPanel({
                 <p className="font-medium text-primary">{c.authorName}</p>
                 <p className="text-xs text-muted">{c.commits} commits</p>
               </div>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span>
-                      <Badge variant={c.sharePct >= 50 ? "warning" : "muted"}>
-                        {c.sharePct}%
-                      </Badge>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent side="left">
-                    <p className="text-xs font-medium">Source: repowise · commit attribution</p>
-                    <p className="text-xs">
-                      {c.sharePct >= 50
-                        ? "High risk — one person owns most commits. Rotation recommended."
-                        : c.sharePct >= 40
-                          ? "Moderate concentration — consider pairing."
-                          : "Within healthy range."}
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Badge variant={c.sharePct >= 50 ? "warning" : "muted"}>{c.sharePct}%</Badge>
             </div>
           ))}
         </div>

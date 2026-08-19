@@ -5,9 +5,8 @@ import { getSession } from "@/lib/session";
 import { parseSlackMeta } from "@/lib/slack-meta";
 import { invalidateSlackTenantCache } from "@/lib/slack/tenant";
 
-import { determineActorType } from "@/lib/audit-helpers";
 const schema = z.object({
-  provider: z.enum(["GITHUB", "JIRA", "GRAFANA", "PROMETHEUS", "SLACK", "AWS"]),
+  provider: z.enum(["GITHUB", "JIRA", "JENKINS", "GRAFANA", "PROMETHEUS", "SLACK", "AWS"]),
 });
 
 export async function POST(request: Request) {
@@ -54,7 +53,6 @@ export async function POST(request: Request) {
           userId: session.userId,
           action: `integration.${provider.toLowerCase()}.disconnected`,
           entityType: "Integration",
-          actorType: determineActorType(session.userId, `integration.${provider.toLowerCase()}.disconnected`),
         },
       });
     });

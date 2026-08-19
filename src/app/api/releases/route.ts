@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
-import { determineActorType } from "@/lib/audit-helpers";
+
 const createSchema = z.object({
   name: z.string().min(1).max(120),
   version: z.string().max(40).optional(),
@@ -20,7 +20,7 @@ export async function GET() {
 
   const releases = await prisma.release.findMany({
     where: { organizationId: session.organizationId },
-    orderBy: [{ detectedAt: "desc" }, { createdAt: "desc" }],
+    orderBy: { createdAt: "desc" },
   });
 
   return NextResponse.json({ releases });
@@ -69,7 +69,6 @@ export async function POST(request: Request) {
         entityType: "Release",
         entityId: release.id,
         metadataJson: JSON.stringify({ environment: body.environment }),
-        actorType: determineActorType(session.userId, "release.detected"),
       },
     });
 
@@ -77,20 +76,7 @@ export async function POST(request: Request) {
       ok: true,
       release,
     });
-  } catch (err) {
-    if (err instanceof z.ZodError) {
-      const fieldErrors: Record<string, string> = {};
-      for (const issue of err.issues) {
-        const key = issue.path.join(".");
-        if (!fieldErrors[key]) {
-          fieldErrors[key] = issue.message;
-        }
-      }
-      return NextResponse.json(
-        { error: "Validation failed", fieldErrors },
-        { status: 400 }
-      );
-    }
+  } catch {
     return NextResponse.json({ error: "Invalid release data" }, { status: 400 });
   }
 }

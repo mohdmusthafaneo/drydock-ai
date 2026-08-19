@@ -91,32 +91,3 @@ export function DisconnectButton({ provider }: { provider: string }) {
     </Button>
   );
 }
-
-export function RotateTokenButton({ provider }: { provider: string }) {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-
-  async function rotateToken() {
-    setLoading(true);
-    await fetch("/api/integrations/disconnect", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "same-origin",
-      body: JSON.stringify({ provider }),
-    });
-    setLoading(false);
-    // Redirect to the OAuth authorize flow for the provider to obtain fresh tokens.
-    const routes: Record<string, string> = {
-      JIRA: "/api/integrations/jira/authorize",
-      GITHUB: "/api/integrations/github/authorize",
-      SLACK: "/api/integrations/slack/authorize",
-    };
-    router.push(routes[provider] ?? "/integrations");
-  }
-
-  return (
-    <Button size="sm" variant="ghost" disabled={loading} onClick={rotateToken}>
-      {loading ? "Rotating…" : "Rotate token"}
-    </Button>
-  );
-}

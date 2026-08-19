@@ -30,7 +30,6 @@ import {
 } from "@/lib/observability-metrics/run-promql-sync";
 import type { MetricsProvenance } from "@/lib/observability-metrics/types";
 import type { ObservabilityAnalysisSnapshot } from "@/lib/observability-analysis/types";
-import { determineActorType } from "@/lib/audit-helpers";
 import type { MetricSource } from "@/generated/prisma/client";
 
 const GRAFANA_SOURCE: MetricSource = "GRAFANA";
@@ -388,7 +387,6 @@ export async function syncGrafanaIntegration(input: {
           metricsSynced: Boolean(metricsResult),
           metricsHealthScore: metricsResult?.metricsSnapshot.kpis.healthScore,
         }),
-        actorType: determineActorType(input.userId, metricsResult ? "grafana.metrics_sync.completed" : "integration.grafana.synced"),
       },
     });
   });

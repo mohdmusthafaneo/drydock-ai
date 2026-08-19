@@ -351,7 +351,7 @@ export const persistDevOpsAccountScanTool = createTool({
         resourceRef: f.resourceRef ?? null,
       }));
 
-      const rowCounts = {
+      let rowCounts = {
         severityStats: 0,
         resourceTypeStats: 0,
         resources: 0,

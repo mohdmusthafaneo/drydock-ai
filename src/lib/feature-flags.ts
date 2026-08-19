@@ -16,6 +16,7 @@ export type NavFeatureFlagId =
   | "nav.recommendations"
   | "nav.approvals"
   | "nav.governance"
+  | "nav.reports"
   | "nav.audit"
   | "nav.agent_threads"
   | "nav.integrations"
@@ -37,6 +38,7 @@ export const NAV_FEATURE_FLAGS: Record<NavFeatureFlagId, boolean> = {
   "nav.recommendations": true,
   "nav.approvals": true,
   "nav.governance": true,
+  "nav.reports": false,
   "nav.audit": true,
   "nav.agent_threads": true,
   "nav.integrations": true,
@@ -58,11 +60,14 @@ const NAV_HREF_TO_FLAG: Record<string, NavFeatureFlagId> = {
   "/recommendations": "nav.recommendations",
   "/approvals": "nav.approvals",
   "/governance": "nav.governance",
+  "/reports": "nav.reports",
   "/audit": "nav.audit",
   "/agent-threads": "nav.agent_threads",
   "/integrations": "nav.integrations",
   "/admin": "nav.admin",
   "/settings": "nav.settings",
+  "/accelerator": "nav.mvp_launchpad",
+  "/accelerator/new": "nav.mvp_new",
 };
 
 /** Related routes not listed in the sidebar but tied to a nav flag */
@@ -78,37 +83,50 @@ export function isNavFeatureEnabled(id: NavFeatureFlagId): boolean {
 
 export function isNavHrefEnabled(href: string): boolean {
   const flag = NAV_HREF_TO_FLAG[href];
-  return flag ? NAV_FEATURE_FLAGS[flag] : true;
+  if (!flag) return true;
+  return isNavFeatureEnabled(flag);
 }
 
 function resolvePathFlag(pathname: string): NavFeatureFlagId | null {
-  // Exact match
-  if (pathname in NAV_HREF_TO_FLAG) return NAV_HREF_TO_FLAG[pathname];
-  // Prefix match — most specific (longest) match wins
-  let best: NavFeatureFlagId | null = null;
-  let bestLen = 0;
-  for (const [prefix, flag] of Object.entries(NAV_HREF_TO_FLAG)) {
-    if (
-      (pathname === prefix || pathname.startsWith(prefix + "/")) &&
-      prefix.length > bestLen
-    ) {
-      best = flag;
-      bestLen = prefix.length;
+  if (pathname === "/accelerator/new" || pathname.startsWith("/accelerator/new/")) {
+    return "nav.mvp_new";
+  }
+  if (pathname === "/accelerator" || pathname.startsWith("/accelerator/")) {
+    return "nav.mvp_launchpad";
+  }
+
+  const exact = NAV_HREF_TO_FLAG[pathname];
+  if (exact) return exact;
+
+  const sortedHrefs = Object.keys(NAV_HREF_TO_FLAG)
+    .filter((h) => h !== "/accelerator" && h !== "/accelerator/new")
+    .sort((a, b) => b.length - a.length);
+
+  for (const href of sortedHrefs) {
+    if (pathname === href || pathname.startsWith(`${href}/`)) {
+      return NAV_HREF_TO_FLAG[href];
     }
   }
-  return best;
+
+  for (const { prefix, flag } of EXTRA_PATH_PREFIXES) {
+    if (pathname === prefix || pathname.startsWith(`${prefix}/`)) {
+      return flag;
+    }
+  }
+
+  return null;
 }
 
 /** Whether a platform pathname is allowed under current nav flags */
 export function isNavPathEnabled(pathname: string): boolean {
-  // Extra prefixes bypass NAV_HREF_TO_FLAG
-  for (const { prefix, flag } of EXTRA_PATH_PREFIXES) {
-    if (pathname.startsWith(prefix)) return !!NAV_FEATURE_FLAGS[flag];
-  }
+  if (!pathname) return true;
   const flag = resolvePathFlag(pathname);
-  return flag ? !!NAV_FEATURE_FLAGS[flag] : true;
+  if (!flag) return true;
+  return isNavFeatureEnabled(flag);
 }
 
 export function getDefaultLandingPath(): string {
-  return "/dashboard";
+  if (isNavHrefEnabled("/integrations")) return "/integrations";
+  if (isNavHrefEnabled("/settings")) return "/settings";
+  return "/integrations";
 }

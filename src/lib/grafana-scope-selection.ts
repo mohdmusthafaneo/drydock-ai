@@ -14,7 +14,6 @@ import {
 } from "@/lib/grafana-meta";
 import type { Integration } from "@/generated/prisma/client";
 
-import { determineActorType } from "@/lib/audit-helpers";
 export const MAX_GRAFANA_SCOPES = 15;
 
 export type GrafanaScopeOption = {
@@ -210,7 +209,6 @@ export async function saveOrgGrafanaScopes(input: {
           scopeCount: scopes.length,
           tagFilter,
         }),
-        actorType: determineActorType(input.userId, "integration.grafana.scopes_updated"),
       },
     });
 

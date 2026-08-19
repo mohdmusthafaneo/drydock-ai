@@ -17,26 +17,6 @@ export type DiscoveryFormInitial = {
   workflows: string[];
 };
 
-/**
- * Get tool IDs for integrations that are already connected for this org.
- * Used to pre-select only connected integrations in the Discovery wizard,
- * rather than always hardcoding ['github', 'jira'].
- */
-async function getConnectedTools(organizationId: string): Promise<string[]> {
-  const integrations = await prisma.integration.findMany({
-    where: { organizationId, status: "CONNECTED" },
-    select: { provider: true },
-  });
-  const connected = new Set(integrations.map((i: { provider: string }) => i.provider.toLowerCase()));
-  const toolIds: string[] = [];
-  if (connected.has("github")) toolIds.push("github");
-  if (connected.has("jira")) toolIds.push("jira");
-  if (connected.has("grafana")) toolIds.push("grafana");
-  if (connected.has("prometheus")) toolIds.push("prometheus");
-  if (connected.has("slack")) toolIds.push("slack");
-  return toolIds;
-}
-
 function profileToInitial(
   profile: NonNullable<Awaited<ReturnType<typeof prisma.organizationProfile.findUnique>>>,
 ): DiscoveryFormInitial {
@@ -57,41 +37,17 @@ export default async function GovernanceSetupPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const [profile, org, connectedTools] = await Promise.all([
+  const [profile, org] = await Promise.all([
     prisma.organizationProfile.findUnique({
-      where: { organizationId: session!.organizationId },
+      where: { organizationId: session.organizationId },
     }),
     prisma.organization.findUnique({
-      where: { id: session!.organizationId },
+      where: { id: session.organizationId },
       select: { name: true },
     }),
-    getConnectedTools(session!.organizationId),
   ]);
 
-  let initialForm: DiscoveryFormInitial | undefined;
-  if (profile?.completedAt) {
-    initialForm = profileToInitial(profile);
-  } else {
-    // New profile: pre-select only actually-connected tools
-    // Feature flag: NEXT_PUBLIC_DISCOVERY_CONNECTED_TOOLS=1 enables this behavior
-    const useConnectedToolsPreSelect =
-      process.env.ENABLE_CONNECTED_TOOLS_PRESELECT === "1";
-    const tools =
-      useConnectedToolsPreSelect && connectedTools.length > 0
-        ? connectedTools
-        : ["github", "jira"];
-    initialForm = {
-      industryType: "technology",
-      teamSize: "11-50",
-      sdlcMaturity: 3,
-      devopsMaturity: 3,
-      governanceLevel: 3,
-      complianceType: "none",
-      deploymentStrategy: "continuous",
-      tools,
-      workflows: ["scrum", "devops"],
-    };
-  }
+  const initialForm = profile?.completedAt ? profileToInitial(profile) : undefined;
 
   return (
     <div className="mx-auto max-w-3xl">

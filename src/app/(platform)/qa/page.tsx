@@ -7,12 +7,13 @@ import { syncAgentAnalysisRecommendations } from "@/lib/agent-analysis/sync-reco
 import { dismissStaleSetupRecommendations } from "@/lib/agent-analysis/dismiss-stale-setup-recs";
 import { formatDistanceToNow } from "@/lib/format-date";
 import { QACockpit } from "@/components/qa/qa-cockpit";
+import { QaAgentRunPanel } from "@/components/qa/qa-agent-run-panel";
 import { AgentAnalysisRefreshButton } from "@/components/agent-analysis/agent-analysis-refresh-button";
 import { AgentPageShell } from "@/components/agent-analysis/agent-page-shell";
+import { EngineeringDetailSection } from "@/components/agent-analysis/engineering-detail-section";
 import { BriefingContextChip } from "@/components/briefing/briefing-context-chip";
 import { DataTrustStrip } from "@/components/trust/data-trust-strip";
 import { PageHeader } from "@/components/layout/page-header";
-import { QaEvidenceSection } from "@/components/qa/qa-evidence-section";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -48,6 +49,8 @@ export default async function QAIntelligencePage({
   const showReleaseCockpit = assessedReleases.length > 0;
 
   const view = buildQaPageView(qaRun);
+  const blockedCount = qaRun?.evidence.filter((e) => e.preset === "BLOCKED").length ?? 0;
+  const bugCount = qaRun?.evidence.filter((e) => e.preset === "OPEN_BUGS").length ?? 0;
 
   const lastSyncLabel = qaRun?.analyzedAt
     ? formatDistanceToNow(new Date(qaRun.analyzedAt))
@@ -69,9 +72,22 @@ export default async function QAIntelligencePage({
       <BriefingContextChip from={sp.from} />
       <DataTrustStrip lastSyncLabel={lastSyncLabel} blindSpots={blindSpots} />
 
-      <AgentPageShell view={view} approvalLevelLabels={ctx.approvalLevelLabels}>
+      <AgentPageShell view={view}>
         <div className="space-y-4 border-t border-border-subtle pt-8">
-          <QaEvidenceSection run={qaRun} />
+          <EngineeringDetailSection
+            title="Blocked issue evidence"
+            description="Sample evidence from the latest scan — prioritize these before release."
+            count={blockedCount}
+          >
+            <QaAgentRunPanel run={qaRun} section="blocked" />
+          </EngineeringDetailSection>
+          <EngineeringDetailSection
+            title="Open bug evidence"
+            description="Representative open bugs from the QA agent evidence set."
+            count={bugCount}
+          >
+            <QaAgentRunPanel run={qaRun} section="bugs" />
+          </EngineeringDetailSection>
         </div>
       </AgentPageShell>
 

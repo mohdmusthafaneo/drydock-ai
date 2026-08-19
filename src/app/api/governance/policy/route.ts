@@ -12,7 +12,6 @@ import {
   type GovernancePolicyConfig,
   type GovernancePolicyDocument,
 } from "@/lib/governance/policy";
-import { determineActorType } from "@/lib/audit-helpers";
 
 const deploymentThresholdsSchema = z.object({
   minReadinessScore: z.number().min(0).max(100).optional(),
@@ -126,7 +125,6 @@ export async function POST(request: Request) {
             projectOverrideCount: Object.keys(body.projectOverrides ?? {}).length,
             minReadinessScore: body.baseline.deploymentThresholds?.minReadinessScore,
           }),
-          actorType: determineActorType(session.userId, "governance.policy.updated"),
         },
       });
     });

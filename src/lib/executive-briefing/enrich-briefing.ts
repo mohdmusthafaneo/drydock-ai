@@ -12,7 +12,6 @@ import {
 } from "@/lib/executive-briefing/snapshot-utils";
 import { runMeteredLlmCall } from "@/lib/llm/cost-governor";
 import { isLlmFeatureEnabled } from "@/lib/llm/feature-flags";
-import { determineActorType } from "@/lib/audit-helpers";
 
 export type EnrichExecutiveBriefingResult =
   | { status: "enriched"; generatedAt: string; expiresAt: string }
@@ -251,7 +250,6 @@ export async function enrichExecutiveBriefingForOrg(
           generatedAt: generatedAt.toISOString(),
           expiresAt: expiresAt.toISOString(),
         }),
-        actorType: determineActorType(undefined, "executive_briefing.enriched"),
       },
     });
 

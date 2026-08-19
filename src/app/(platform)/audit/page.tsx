@@ -19,7 +19,6 @@ export default async function AuditLogsPage() {
     entityId: log.entityId,
     createdAt: log.createdAt.toISOString(),
     userName: log.user?.name ?? null,
-    actorType: log.actorType ?? null,
   }));
 
   return (

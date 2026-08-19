@@ -174,7 +174,7 @@ See §5 for the service design.
 | pgvector | Enable extension; add `Embedding` model (`vector(384)`, `organizationId`, HNSW index). Reuse `@mastra/pg`'s `PgVector` where it fits. |
 | Python inference service | FastAPI service exposing `/embed` and `/score`; model pinned + swappable; containerized separately. |
 | Node `ml` worker role | Consumes pg-boss `ml.embed` / `ml.codeQuality` / `evidence.recompute`; calls the Python service; writes vectors/results; tenant-scoped. |
-| Evidence feature | Promote the previous sprint-evidence one-off pipeline into `src/lib/evidence/` per the RFC; run as `evidence.recompute` jobs. |
+| Evidence feature | Promote `tmp/connexus-sprint34-*` into `src/lib/evidence/` per the RFC; run as `evidence.recompute` jobs. |
 | LLM cost governor | One metered client: per-org token budget, content-hash cache (generalize the briefing `factsHash`), cheap-model routing, per-feature kill-switch. |
 
 **Exit:** first AI/ML feature (Sprint Evidence) runs as a scheduled, metered, retryable job with a swappable embedding model.

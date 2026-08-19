@@ -137,7 +137,7 @@ async function findMatchingReleaseId(
 
   const release = await prisma.release.findFirst({
     where: { organizationId, name: releaseName },
-    orderBy: [{ detectedAt: "desc" }, { createdAt: "desc" }],
+    orderBy: { createdAt: "desc" },
     select: { id: true },
   });
   return release?.id ?? null;

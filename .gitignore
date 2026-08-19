@@ -51,4 +51,3 @@ next-env.d.ts
 .data/
 .env.docker
 .repowise
-.mastra

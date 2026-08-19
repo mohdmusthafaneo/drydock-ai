@@ -5,6 +5,7 @@ import type { IntegrationGateKey, IntegrationNavGates } from "@/lib/nav-availabi
 import { DEFAULT_INTEGRATION_NAV_GATES } from "@/lib/nav-availability";
 import {
   LayoutDashboard,
+  Rocket,
   GitBranch,
   Kanban,
   FlaskConical,
@@ -13,12 +14,15 @@ import {
   Lightbulb,
   CheckSquare,
   Shield,
+  BarChart3,
   ScrollText,
   MessagesSquare,
   Server,
   AlertTriangle,
   Plug,
   Settings,
+  Users,
+  Plus,
   HeartPulse,
   TrendingUp,
 } from "lucide-react";
@@ -38,15 +42,15 @@ export const WORKSPACE_META: Record<
 > = {
   MVP: {
     label: "MVP Workspace",
-    tagline: "",
+    tagline: "Idea to launch, fast",
     description: "Build products — PRD, architecture, Jira epics, and launch plans.",
-    homePath: "/dashboard",
+    homePath: "/accelerator",
     accentClass: "from-mvp to-violet-400",
     badgeClass: "bg-mvp-muted text-mvp",
   },
   ENTERPRISE: {
     label: "Enterprise Workspace",
-    tagline: "",
+    tagline: "Phase 1 · Governance & observability foundation",
     description:
       "Enterprise operational intelligence shell — govern, observe, and orchestrate AI-native delivery (no autonomous agents yet).",
     homePath: "/dashboard",
@@ -98,6 +102,20 @@ export type ResolvedEnterpriseNavLayout = {
   sections: ResolvedNavSection[];
   bottomItems: ResolvedNavItem[];
 };
+
+/** Master FRD §9 — Application Pages (full catalog) */
+export function getNavForMode(mode: WorkspaceMode): NavItem[] {
+  if (mode === "MVP") {
+    return [
+      { href: "/accelerator", label: "Launchpad", icon: Rocket, primary: true },
+      { href: "/accelerator/new", label: "New MVP", icon: Plus },
+      { href: "/integrations", label: "Integrations", icon: Plug },
+      { href: "/settings", label: "Settings", icon: Settings },
+    ];
+  }
+
+  return flattenEnterpriseNavLayout(getEnterpriseNavLayout());
+}
 
 export function getEnterpriseNavLayout(): EnterpriseNavLayout {
   return {
@@ -156,12 +174,20 @@ export function getEnterpriseNavLayout(): EnterpriseNavLayout {
         id: "govern",
         label: "Govern",
         icon: Shield,
+        defaultCollapsed: true,
         items: [
           { href: "/approvals", label: "Approval center", icon: CheckSquare },
           { href: "/recommendations", label: "Recommendations", icon: Lightbulb },
           { href: "/governance", label: "Delivery DNA", icon: Shield },
           { href: "/workflow", label: "Workflow center", icon: GitBranch },
+          { href: "/reports", label: "Reports", icon: BarChart3 },
           { href: "/audit", label: "Audit logs", icon: ScrollText },
+          {
+            href: "/admin",
+            label: "Admin",
+            icon: Users,
+            roleGate: ["ORG_ADMIN", "DELIVERY_MANAGER"],
+          },
         ],
       },
     ],
@@ -250,11 +276,15 @@ export function getResolvedEnterpriseNavLayout(
   };
 }
 
-/** Sidebar items after nav feature flags (flat list for all modes) */
+/** Sidebar items after nav feature flags (flat list for MVP and legacy callers) */
 export function getEnabledNavForMode(
-  _mode: WorkspaceMode,
+  mode: WorkspaceMode,
   gates: IntegrationNavGates = DEFAULT_INTEGRATION_NAV_GATES,
 ): NavItem[] {
+  if (mode === "MVP") {
+    return getNavForMode(mode).filter((item) => isNavHrefEnabled(item.href));
+  }
+
   const layout = getResolvedEnterpriseNavLayout(gates);
   return [
     ...layout.topItems,
@@ -282,6 +312,10 @@ export function getEnabledHomePath(mode: WorkspaceMode): string {
 
 /** @deprecated Prefer resolveLandingPath from @/lib/landing-path or getLandingPathForOrganization */
 export function getHomePath(mode: WorkspaceMode, hasDna: boolean): string {
+  if (mode === "MVP") {
+    if (isNavHrefEnabled("/accelerator")) return WORKSPACE_META.MVP.homePath;
+    return getEnabledHomePath("MVP");
+  }
   if (!hasDna) return "/activate";
   if (isNavHrefEnabled("/dashboard")) return "/dashboard";
   if (isNavHrefEnabled("/workflow")) return "/workflow";
@@ -305,14 +339,26 @@ export function isEnterpriseOnlyPath(pathname: string): boolean {
     "/recommendations",
     "/approvals",
     "/governance",
+    "/reports",
     "/audit",
     "/agent-threads",
+    "/admin",
   ];
   return prefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
+export function isMvpOnlyPath(pathname: string): boolean {
+  return pathname.startsWith("/accelerator");
+}
+
 export function isNavItemActive(pathname: string, href: string): boolean {
-  return pathname === href || pathname.startsWith(`${href}/`);
+  return (
+    pathname === href ||
+    (href !== "/accelerator" && pathname.startsWith(`${href}/`)) ||
+    (href === "/accelerator" &&
+      pathname.startsWith("/accelerator") &&
+      pathname !== "/accelerator/new")
+  );
 }
 
 /** Best-effort page title from pathname for the app header. */
@@ -330,7 +376,7 @@ export function resolvePageTitleForPath(
   if (segments.length === 0) return WORKSPACE_META[mode].label;
 
   const last = segments[segments.length - 1]!;
-  if (looksLikeOpaqueId(last)) {
+  if (/^[a-f0-9-]{8,}$/i.test(last) || /^\d+$/.test(last)) {
     const parent = segments[segments.length - 2];
     if (parent) {
       return parent
@@ -338,39 +384,10 @@ export function resolvePageTitleForPath(
         .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
         .join(" ");
     }
-    return parentSlugFallback(segments);
   }
 
   return last
     .split("-")
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");
-}
-
-/** True when a URL segment looks like a database id rather than a human-readable slug.
- * Catches: hex/UUID (existing pattern), all-digit ids, CUIDv1/v2 (e.g. `cms640nhu001c4s0mnjw5esgw`),
- * and any alphanumeric token that is long enough to not be a real slug.
- */
-function looksLikeOpaqueId(segment: string): boolean {
-  if (!segment) return false;
-  // Keep treating short numeric and hex strings as ids.
-  if (/^[a-f0-9-]{8,}$/i.test(segment)) return true;
-  if (/^\d+$/.test(segment)) return true;
-  // CUIDs and similar: starts with a letter, then mix of alphanumerics with no dashes,
-  // length >= 16. A real slug will either be short or contain dashes separating words.
-  if (/^[a-z][a-z0-9]+$/i.test(segment) && segment.length >= 16) return true;
-  return false;
-}
-
-function parentSlugFallback(segments: string[]): string {
-  for (let i = segments.length - 2; i >= 0; i--) {
-    const seg = segments[i]!;
-    if (!looksLikeOpaqueId(seg)) {
-      return seg
-        .split("-")
-        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-        .join(" ");
-    }
-  }
-  return WORKSPACE_META["ENTERPRISE"].label;
 }

@@ -49,36 +49,31 @@ export default async function GitHubConnectEntryPage({ params }: PageProps) {
     const installUrl = `https://github.com/apps/${appSlug}/installations/new?state=${encodeURIComponent(state)}`;
 
     return (
-      <>
-        <div className="mb-4 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-          Set up integration on behalf of customer
-        </div>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">
-              Install AIDOS GitHub App for {invite.organization.name}
-            </CardTitle>
-            <CardDescription>
-              Grant read access to pull requests, commits, and Actions for repositories you select.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-secondary">
-              You are installing the AIDOS GitHub App for{" "}
-              <strong>{invite.organization.name}</strong>. Choose which repositories to grant on
-              GitHub — your AIDOS administrator will finish setup in the app.
-            </p>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">
+            Install AIDOS GitHub App for {invite.organization.name}
+          </CardTitle>
+          <CardDescription>
+            Grant read access to pull requests, commits, and Actions for repositories you select.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-secondary">
+            You are installing the AIDOS GitHub App for{" "}
+            <strong>{invite.organization.name}</strong>. Choose which repositories to grant on
+            GitHub — your AIDOS administrator will finish setup in the app.
+          </p>
 
-            <Button asChild className="w-full">
-              <a href={installUrl}>Continue to GitHub</a>
-            </Button>
+          <Button asChild className="w-full">
+            <a href={installUrl}>Continue to GitHub</a>
+          </Button>
 
-            <p className="text-center text-[11px] text-muted">
-              No AIDOS account required. This link expires in 24 hours and can only be used once.
-            </p>
-          </CardContent>
-        </Card>
-      </>
+          <p className="text-center text-[11px] text-muted">
+            No AIDOS account required. This link expires in 24 hours and can only be used once.
+          </p>
+        </CardContent>
+      </Card>
     );
   } catch (err) {
     if (err instanceof ConnectInviteError) {

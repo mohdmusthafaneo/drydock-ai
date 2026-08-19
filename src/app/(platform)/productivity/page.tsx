@@ -35,7 +35,6 @@ export default async function ProductivityPage() {
 
       <AgentPageShell
         view={view}
-        approvalLevelLabels={ctx.approvalLevelLabels}
         afterHighlights={
           run ? (
             <div className="space-y-4">

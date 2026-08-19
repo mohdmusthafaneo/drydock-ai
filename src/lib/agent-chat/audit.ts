@@ -1,5 +1,4 @@
 import type { Prisma } from "@/generated/prisma/client";
-import { determineActorType } from "@/lib/audit-helpers";
 
 type Tx = Prisma.TransactionClient;
 
@@ -43,7 +42,6 @@ export async function logChatAudit(
       entityType: input.entityType,
       entityId: input.entityId,
       metadataJson: JSON.stringify(input.metadata ?? {}),
-      actorType: determineActorType(input.userId, input.action),
     },
   });
 }

@@ -2,9 +2,9 @@
 
 **Status:** Draft for implementation  
 **Last updated:** 2026-07-08  
-**Source artefact:** One-off run on 2026-07-08 against the Connexus org, Sprint 34 — see the sprint-evidence one-off pipeline output (moved out of the tree during cleanup) for the source-of-truth narrative. [TODO: post-tmp-cleanup note] re-point this RFC to wherever the Sprint 34 reproducibility baseline now lives.
+**Source artefact:** One-off run on 2026-07-08 against the Connexus org, Sprint 34 — see `tmp/connexus-sprint34-evidence-summary.md` for the source-of-truth narrative.
 
-> **This RFC proposes how to turn the offline sprint-evidence one-off script chain into a first-class AIDOS feature called "Sprint Ticket ↔ Commit Evidence."**
+> **This RFC proposes how to turn the current offline `tmp/connexus-sprint34-*.py` script chain into a first-class AIDOS feature called "Sprint Ticket ↔ Commit Evidence."**
 
 ---
 
@@ -212,7 +212,7 @@ src/lib/
 
 ### 5.2 Integration with existing pieces
 
-- Jira integration contract: `src/lib/jira-api.ts` already exposes `resolveJiraAccessToken` + `searchIssuesWithDescriptions`. Add a new `searchIssuesForEvidence(accessToken, cloudId, keys)` that returns the same fields without the 20-key cap (see the sprint-ticket-commit-map agent instructions — moved out of the tree during cleanup — §4.2 for the bypass).
+- Jira integration contract: `src/lib/jira-api.ts` already exposes `resolveJiraAccessToken` + `searchIssuesWithDescriptions`. Add a new `searchIssuesForEvidence(accessToken, cloudId, keys)` that returns the same fields without the 20-key cap (use the bypass described in `tmp/AGENT-INSTRUCTIONS-sprint34-ticket-commit-map.md` §4.2).
 - GitHub integration: `connexus-github-env.ts` (already exposes the `git` clones) — see §11.
 - Agent registration: per `AGENTS.md`, register the new `EvidenceJob` worker in `src/mastra/index.ts`.
 
@@ -325,7 +325,7 @@ Pick whichever the deployment story supports. The rest of the algorithm is ident
 | `/api/orgs/:orgId/evidence/jobs` | POST | Trigger a re-run on demand; returns job id. |
 | `/api/orgs/:orgId/evidence/jobs/:jobId` | GET | Job status (queued / running / completed / failed). |
 
-The output shape mirrors the previous sprint-evidence pipeline's code-similarity candidates CSV (moved out of the tree during cleanup):
+The output shape mirrors `tmp/connexus-sprint34-code-similarity-candidates.csv`:
 
 ```jsonc
 {
@@ -411,7 +411,7 @@ Every table carries `organizationId`. Cross-tenant embedding similarity is forbi
 | Phase | Goal | Acceptance test |
 |-------|------|-----------------|
 | **0** (already done in this one-off) | Prove the technique on real Connexus Sprint 34 data | Output matches §1 numbers within ±5% |
-| **1** | Add the `evidence/` library + a CLI script that runs the pipeline offline, reading from existing Jira+GitHub integrations | Re-runs reproduce the previous sprint-evidence pipeline output to 1e-9 |
+| **1** | Add the `evidence/` library + a CLI script that runs the pipeline offline, reading from existing Jira+GitHub integrations | Re-runs reproduce `tmp/connexus-sprint34-*` output to 1e-9 |
 | **2** | Persist `TicketSnapshot`, `CommitSnapshot`, `Embedding`, `EvidenceLink`, `EvidenceReview`. Schedule daily job. | Sprint 34 repro shows 80/100 confident in DB; same numbers as phase 0 |
 | **3** | API endpoints (`GET /api/.../evidence`) | API returns same shape as `connexus-sprint34-code-similarity-candidates.csv` JSONified |
 | **4** | UI table on sprint detail page | A user can see the evidence table and click [Confirm]/[Reject] |
@@ -423,11 +423,10 @@ Every table carries `organizationId`. Cross-tenant embedding similarity is forbi
 
 ### 11.1 Use Sprint 34 as a regression set
 
-The artefacts from the one-off run (moved out of the tree during cleanup) are the fixtures:
+The artefacts in `tmp/` after this run are the fixtures:
 
-- 100 tickets in the done-list CSV (input)
-- Expected output ranking in the code-similarity candidates CSV (1st 8 candidates per ticket)
-
+- 100 tickets in `tmp/connexus-sprint34-done.csv` (input)
+- Expected output ranking in `tmp/connexus-sprint34-code-similarity-candidates.csv` (1st 8 candidates per ticket)
 
 ### 11.2 Acceptance: against the Connexus data, the pipeline reproduces:
 
@@ -443,7 +442,7 @@ Numerical limits should remain stable for as long as the embedding model is pinn
 
 ## 12. Pitfalls I hit during the one-off run (must-haves for the v1 implementation)
 
-These were all real bugs in the agent-instructions interpretation (the instruction file was moved out of the tree during cleanup) that the team should bake in as known fixed-tests:
+These were all real bugs in the `tmp/AGENT-INSTRUCTIONS-…` interpretation that the team should bake in as known fixed-tests:
 
 1. **Date parsing** — Python 3.9's `fromisoformat` rejects `+0530` (no colon). Normalise offsets or require Python ≥ 3.11.
 2. **Author-format drift** — git user names are wildly inconsistent (`rakhesh.j`, `Rakhesh-NeoITO`, `Rakhesh J`, `varunw92`, `Varun Wilson`, `Ramesh P R`, `rameshpr`, `ajaydev`, `AJAY DEV`). Implement `name_match_score` exactly as in §4.5; the existing `normalizeJiraDescription` does not solve this.
@@ -477,13 +476,11 @@ These need decisions before merging the first PR:
 
 | File | Purpose |
 |------|---------|
-| One-off run CSV/JSON/JSONL output (moved out of the tree) | One-off run output (input for phase 0 → 1 migration) |
-| Direct-key matcher script (moved out of the tree) | Direct-key matcher (phase 0) |
-| Multi-signal matcher script (moved out of the tree) | Multi-signal matcher (phase 1) |
-| Code-embedding matcher script (moved out of the tree) | Code-embedding matcher (phase 1 with vector sim) |
-| One-off-run narrative (moved out of the tree) | Narrative of the one-off run; numbers in the executive summary |
-
-
+| `tmp/connexus-sprint34-*.csv` / `.json` / `.jsonl` | One-off run output (input for phase 0 → 1 migration) |
+| `tmp/connexus-sprint34-map-tickets-to-commits.py` | Direct-key matcher (phase 0) |
+| `tmp/connexus-sprint34-candidate-matches.py` | Multi-signal matcher (phase 1) |
+| `tmp/connexus-sprint34-code-similarity.py` | Code-embedding matcher (phase 1 with vector sim) |
+| `tmp/connexus-sprint34-evidence-summary.md` | Narrative of the one-off run; numbers in the executive summary |
 | `src/lib/jira-api.ts` | Existing OAuth + search; the place to add `searchIssuesForEvidence` |
 | `src/lib/jira-oauth.ts` | Existing refresh-token logic |
 | `scripts/connexus-fetch-and-analyze-commits.sh` | Existing commit-window fetch — produces the manifest the evidence job consumes |

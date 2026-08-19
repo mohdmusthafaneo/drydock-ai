@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { prisma } from "../src/lib/prisma";
 import { resolveJiraAccessToken, listJiraFields } from "../src/lib/jira-api";
-import { parseJiraMeta, type JiraIntegrationMeta } from "../src/lib/jira-meta";
+import { parseJiraMeta } from "../src/lib/jira-meta";
 
 const CLOUD_ID = "212728dc-9989-4872-b3f6-b6ab9cad7d40";
 const SPRINT_ID = 807;
@@ -67,6 +67,11 @@ function isReviewOrTesting(status: string): boolean {
   return /review|test|qa|verify|validation|uat|staging/i.test(status);
 }
 
+function isTrulyDone(status: string, category: StatusCategoryKey): boolean {
+  if (category !== "done") return false;
+  return !isReviewOrTesting(status);
+}
+
 async function fetchAllSprintIssues(
   token: string,
   sprintId: number,
@@ -121,53 +126,31 @@ async function fetchAllSprintIssues(
   return issues;
 }
 
-type SprintMeta = {
-  id: number;
-  name: string;
-  state: string;
-  startDate?: string;
-  endDate?: string;
-  goal?: string;
-  source: string;
-};
+async function main() {
+  const now = new Date();
 
-type SprintAggregations = {
-  byCategory: { todo: number; inProgress: number; done: number; other: number };
-  byStatusName: Record<string, { count: number; category: string }>;
-  byIssueType: Record<string, number>;
-  priorityOpen: Record<string, number>;
-  storyPoints: { committed: number; completed: number; remaining: number; unestimated: number };
-  openIssues: Array<{
-    key: string;
-    status: string;
-    priority: string;
-    issueType: string;
-    created: string;
-    daysOpen: number;
-    storyPoints: number | null;
-  }>;
-  funnel: {
-    inReviewOrTesting: number;
-    trulyDone: number;
-    notDone: number;
-    reviewTestingStatuses: Record<string, number>;
-    doneStatuses: Record<string, number>;
-  };
-};
-
-async function loadConnexusContext() {
   const org = await prisma.organization.findFirst({ where: { slug: "connexus" } });
   if (!org) throw new Error("Organization connexus not found");
+
   const integration = await prisma.integration.findUnique({
     where: { organizationId_provider: { organizationId: org.id, provider: "JIRA" } },
   });
   if (!integration) throw new Error("JIRA integration not found for connexus");
-  const meta = parseJiraMeta(integration.metadataJson);
-  const access = await resolveJiraAccessToken(integration);
-  return { org, integration, meta, accessToken: access.accessToken, cloudId: access.cloudId };
-}
 
-async function loadSprintMeta(token: string, sprintId: number, boardId: number): Promise<SprintMeta> {
+  const meta = parseJiraMeta(integration.metadataJson);
+  const { accessToken, cloudId } = await resolveJiraAccessToken(integration);
+
+  // Sprint metadata — try agile API first, fall back to JQL-only context
+  let sprintMeta: {
+    id: number;
+    name: string;
+    state: string;
+    startDate?: string;
+    endDate?: string;
+    goal?: string;
+    source: string;
+  };
+
   try {
     const sprint = await jiraGet<{
       id: number;
@@ -176,8 +159,8 @@ async function loadSprintMeta(token: string, sprintId: number, boardId: number):
       startDate?: string;
       endDate?: string;
       goal?: string;
-    }>(token, `/rest/agile/1.0/sprint/${sprintId}`);
-    return { ...sprint, source: "agile-api" };
+    }>(accessToken, `/rest/agile/1.0/sprint/${SPRINT_ID}`);
+    sprintMeta = { ...sprint, source: "agile-api" };
   } catch {
     const boardSprints = await jiraGet<{
       values?: Array<{
@@ -188,46 +171,76 @@ async function loadSprintMeta(token: string, sprintId: number, boardId: number):
         endDate?: string;
         goal?: string;
       }>;
-    }>(token, `/rest/agile/1.0/board/${boardId}/sprint?state=active,closed&maxResults=100`);
-    const found = boardSprints.values?.find((s) => s.id === sprintId);
+    }>(accessToken, `/rest/agile/1.0/board/${BOARD_ID}/sprint?state=active,closed&maxResults=100`);
+    const found = boardSprints.values?.find((s) => s.id === SPRINT_ID);
     if (!found) {
-      return {
-        id: sprintId,
+      sprintMeta = {
+        id: SPRINT_ID,
         name: "Sprint 35 (metadata unavailable)",
         state: "unknown",
         source: "fallback",
       };
+    } else {
+      sprintMeta = { ...found, source: "board-sprint-list" };
     }
-    return { ...found, source: "board-sprint-list" };
   }
-}
 
-async function resolveStoryPointField(
-  token: string,
-  cloudId: string,
-  meta: Partial<JiraIntegrationMeta>,
-) {
+  const endDate = sprintMeta.endDate ? new Date(sprintMeta.endDate) : null;
+  const startDate = sprintMeta.startDate ? new Date(sprintMeta.startDate) : null;
+  const daysOverdue = endDate && now > endDate ? daysBetween(endDate, now) : 0;
+  const sprintDurationDays =
+    startDate && endDate ? daysBetween(startDate, endDate) : null;
+
+  // Story point field
   let storyPointFieldId: string | undefined =
     meta.jiraSchemaSnapshot?.suggestions?.storyPointField?.id;
   let storyPointFieldName: string | undefined =
     meta.jiraSchemaSnapshot?.suggestions?.storyPointField?.name;
+
   if (!storyPointFieldId) {
-    const fields = await listJiraFields(token, cloudId);
+    const fields = await listJiraFields(accessToken, cloudId);
     const sp = fields.find((f) => /story point/i.test(f.name));
     storyPointFieldId = sp?.id;
     storyPointFieldName = sp?.name;
   }
-  return { storyPointFieldId, storyPointFieldName };
-}
 
-function aggregateSprintIssues(issues: IssueRow[], now: Date): SprintAggregations {
+  const searchFields = [
+    "summary",
+    "status",
+    "issuetype",
+    "priority",
+    "assignee",
+    "created",
+  ];
+  if (storyPointFieldId) searchFields.push(storyPointFieldId);
+
+  const issues = await fetchAllSprintIssues(accessToken, SPRINT_ID, searchFields);
+
+  // Count cross-check
+  const countData = await jiraPost<{ count?: number }>(
+    accessToken,
+    "/rest/api/3/search/approximate-count",
+    { jql: `sprint = ${SPRINT_ID} AND project = ${PROJECT_KEY}` },
+  );
+
+  // Aggregations
   const byCategory = { todo: 0, inProgress: 0, done: 0, other: 0 };
   const byStatusName: Record<string, { count: number; category: string }> = {};
   const byIssueType: Record<string, number> = {};
   const priorityOpen: Record<string, number> = {};
-  const storyPoints = { committed: 0, completed: 0, remaining: 0, unestimated: 0 };
-  const openIssues: SprintAggregations["openIssues"] = [];
-  const funnel = {
+  const sp = { committed: 0, completed: 0, remaining: 0, unestimated: 0 };
+
+  const openIssues: Array<{
+    key: string;
+    status: string;
+    priority: string;
+    issueType: string;
+    created: string;
+    daysOpen: number;
+    storyPoints: number | null;
+  }> = [];
+
+  const doneFunnel = {
     inReviewOrTesting: 0,
     trulyDone: 0,
     notDone: 0,
@@ -238,30 +251,27 @@ function aggregateSprintIssues(issues: IssueRow[], now: Date): SprintAggregation
   for (const issue of issues) {
     const cat = categorize(issue.statusCategory);
     byCategory[cat]++;
-    const statusEntry = byStatusName[issue.status] ?? {
-      count: 0,
-      category: issue.statusCategoryName,
-    };
-    statusEntry.count++;
-    byStatusName[issue.status] = statusEntry;
+    byStatusName[issue.status] = byStatusName[issue.status] ?? { count: 0, category: issue.statusCategoryName };
+    byStatusName[issue.status].count++;
+
     byIssueType[issue.issueType] = (byIssueType[issue.issueType] ?? 0) + 1;
 
     const pts = issue.storyPoints;
     if (pts == null) {
-      storyPoints.unestimated++;
+      sp.unestimated++;
     } else {
-      storyPoints.committed += pts;
-      if (cat === "done") storyPoints.completed += pts;
-      else storyPoints.remaining += pts;
+      sp.committed += pts;
+      if (cat === "done") sp.completed += pts;
+      else sp.remaining += pts;
     }
 
     if (cat !== "done") {
-      const priority = issue.priority ?? "Unset";
-      priorityOpen[priority] = (priorityOpen[priority] ?? 0) + 1;
+      const pri = issue.priority ?? "Unset";
+      priorityOpen[pri] = (priorityOpen[pri] ?? 0) + 1;
       openIssues.push({
         key: issue.key,
         status: issue.status,
-        priority,
+        priority: pri,
         issueType: issue.issueType,
         created: issue.created,
         daysOpen: daysBetween(new Date(issue.created), now),
@@ -271,105 +281,69 @@ function aggregateSprintIssues(issues: IssueRow[], now: Date): SprintAggregation
 
     if (cat === "done") {
       if (isReviewOrTesting(issue.status)) {
-        funnel.inReviewOrTesting++;
-        funnel.reviewTestingStatuses[issue.status] =
-          (funnel.reviewTestingStatuses[issue.status] ?? 0) + 1;
+        doneFunnel.inReviewOrTesting++;
+        doneFunnel.reviewTestingStatuses[issue.status] =
+          (doneFunnel.reviewTestingStatuses[issue.status] ?? 0) + 1;
+      } else if (isTrulyDone(issue.status, issue.statusCategory)) {
+        doneFunnel.trulyDone++;
+        doneFunnel.doneStatuses[issue.status] =
+          (doneFunnel.doneStatuses[issue.status] ?? 0) + 1;
       } else {
-        funnel.trulyDone++;
-        funnel.doneStatuses[issue.status] = (funnel.doneStatuses[issue.status] ?? 0) + 1;
+        doneFunnel.trulyDone++;
+        doneFunnel.doneStatuses[issue.status] =
+          (doneFunnel.doneStatuses[issue.status] ?? 0) + 1;
       }
     } else {
-      funnel.notDone++;
+      doneFunnel.notDone++;
       if (isReviewOrTesting(issue.status)) {
-        funnel.inReviewOrTesting++;
-        funnel.reviewTestingStatuses[issue.status] =
-          (funnel.reviewTestingStatuses[issue.status] ?? 0) + 1;
+        doneFunnel.inReviewOrTesting++;
+        doneFunnel.reviewTestingStatuses[issue.status] =
+          (doneFunnel.reviewTestingStatuses[issue.status] ?? 0) + 1;
       }
     }
   }
 
   openIssues.sort((a, b) => b.daysOpen - a.daysOpen);
-  return { byCategory, byStatusName, byIssueType, priorityOpen, storyPoints, openIssues, funnel };
-}
 
-function buildCompletionReport(input: {
-  now: Date;
-  org: { slug: string; name: string };
-  cloudId: string;
-  siteUrl: string | undefined;
-  projectKey: string;
-  boardId: number;
-  meta: SprintMeta;
-
-  sprintDurationDays: number | null;
-  daysOverdue: number;
-  storyPointFieldId: string | undefined;
-  storyPointFieldName: string | undefined;
-  issues: IssueRow[];
-  approximateCount: number | null;
-  aggregations: SprintAggregations;
-}) {
-  const {
-    now,
-    org,
-    cloudId,
-    siteUrl,
-    projectKey,
-    boardId,
-    meta,
-
-    sprintDurationDays,
-    daysOverdue,
-    storyPointFieldId,
-    storyPointFieldName,
-    issues,
-    approximateCount,
-    aggregations,
-  } = input;
-  const { byCategory, byStatusName, byIssueType, priorityOpen, storyPoints, openIssues, funnel } =
-    aggregations;
   const total = issues.length;
   const doneCount = byCategory.done;
-  const issueCompletionPct =
-    total > 0 ? Math.round((doneCount / total) * 1000) / 10 : 0;
+  const issueCompletionPct = total > 0 ? Math.round((doneCount / total) * 1000) / 10 : 0;
   const spCompletionPct =
-    storyPoints.committed > 0
-      ? Math.round((storyPoints.completed / storyPoints.committed) * 1000) / 10
-      : null;
-  const unestimatedPct =
-    total > 0 ? Math.round((storyPoints.unestimated / total) * 1000) / 10 : 0;
+    sp.committed > 0 ? Math.round((sp.completed / sp.committed) * 1000) / 10 : null;
+  const unestimatedPct = total > 0 ? Math.round((sp.unestimated / total) * 1000) / 10 : 0;
   const sprintEnded = endDate ? now > endDate : false;
-  const pct = (n: number) => (total ? Math.round((n / total) * 1000) / 10 : 0);
-  const issuesRemaining = byCategory.todo + byCategory.inProgress + byCategory.other;
 
-  return {
+  const report = {
     generatedAt: now.toISOString(),
     org: { slug: "connexus", name: org.name },
-    jira: { cloudId, siteUrl, project: projectKey, boardId },
+    jira: { cloudId, siteUrl: meta.siteUrl, project: PROJECT_KEY, boardId: BOARD_ID },
     sprint: {
-      id: meta.id,
-      name: meta.name,
-      state: meta.state,
-      goal: meta.goal ?? null,
-      startDate: meta.startDate ?? null,
-      endDate: meta.endDate ?? null,
+      id: sprintMeta.id,
+      name: sprintMeta.name,
+      state: sprintMeta.state,
+      goal: sprintMeta.goal ?? null,
+      startDate: sprintMeta.startDate ?? null,
+      endDate: sprintMeta.endDate ?? null,
       durationDays: sprintDurationDays,
       daysOverdue,
       sprintEnded,
-      metadataSource: meta.source,
+      metadataSource: sprintMeta.source,
     },
     inventory: {
       totalIssues: total,
-      approximateCountApi: approximateCount,
+      approximateCountApi: countData.count ?? null,
     },
     statusBreakdown: {
       byCategory: {
-        todo: { count: byCategory.todo, pct: pct(byCategory.todo) },
-        inProgress: { count: byCategory.inProgress, pct: pct(byCategory.inProgress) },
-        done: { count: byCategory.done, pct: pct(byCategory.done) },
-        other: { count: byCategory.other, pct: pct(byCategory.other) },
+        todo: { count: byCategory.todo, pct: total ? Math.round((byCategory.todo / total) * 1000) / 10 : 0 },
+        inProgress: {
+          count: byCategory.inProgress,
+          pct: total ? Math.round((byCategory.inProgress / total) * 1000) / 10 : 0,
+        },
+        done: { count: byCategory.done, pct: total ? Math.round((byCategory.done / total) * 1000) / 10 : 0 },
+        other: { count: byCategory.other, pct: total ? Math.round((byCategory.other / total) * 1000) / 10 : 0 },
       },
-      notDone: issuesRemaining,
+      notDone: byCategory.todo + byCategory.inProgress + byCategory.other,
       byStatusName: Object.entries(byStatusName)
         .map(([name, v]) => ({ status: name, category: v.category, count: v.count }))
         .sort((a, b) => b.count - a.count),
@@ -377,16 +351,16 @@ function buildCompletionReport(input: {
     storyPoints: storyPointFieldId
       ? {
           field: { id: storyPointFieldId, name: storyPointFieldName ?? "Story Points" },
-          committed: storyPoints.committed,
-          completed: storyPoints.completed,
-          remaining: storyPoints.remaining,
+          committed: sp.committed,
+          completed: sp.completed,
+          remaining: sp.remaining,
           completionPct: spCompletionPct,
-          unestimatedIssues: storyPoints.unestimated,
+          unestimatedIssues: sp.unestimated,
           unestimatedPct,
         }
-      : { available: false, unestimatedIssues: storyPoints.unestimated, unestimatedPct },
+      : { available: false, unestimatedIssues: sp.unestimated, unestimatedPct },
     issueTypes: Object.entries(byIssueType)
-      .map(([type, count]) => ({ type, count, pct: pct(count) }))
+      .map(([type, count]) => ({ type, count, pct: total ? Math.round((count / total) * 1000) / 10 : 0 }))
       .sort((a, b) => b.count - a.count),
     openItems: {
       count: openIssues.length,
@@ -414,74 +388,21 @@ function buildCompletionReport(input: {
       })),
     },
     doneFunnel: {
-      inReviewOrTesting: funnel.inReviewOrTesting,
-      trulyDoneCategory: funnel.trulyDone,
-      notDone: funnel.notDone,
-      reviewTestingByStatus: funnel.reviewTestingStatuses,
-      doneByStatus: funnel.doneStatuses,
+      inReviewOrTesting: doneFunnel.inReviewOrTesting,
+      trulyDoneCategory: doneFunnel.trulyDone,
+      notDone: doneFunnel.notDone,
+      reviewTestingByStatus: doneFunnel.reviewTestingStatuses,
+      doneByStatus: doneFunnel.doneStatuses,
     },
     commitmentRealism: {
       sprintEnded,
       daysOverdue,
       issuesShippedPct: issueCompletionPct,
       storyPointsShippedPct: spCompletionPct,
-      issuesRemaining,
-      storyPointsRemaining: storyPoints.remaining,
+      issuesRemaining: byCategory.todo + byCategory.inProgress + byCategory.other,
+      storyPointsRemaining: sp.remaining,
     },
   };
-}
-
-async function main() {
-  const now = new Date();
-  const { org, meta, accessToken, cloudId } = await loadConnexusContext();
-  const sprintMeta = await loadSprintMeta(accessToken, SPRINT_ID, BOARD_ID);
-  const { storyPointFieldId, storyPointFieldName } = await resolveStoryPointField(
-    accessToken,
-    cloudId,
-    meta,
-  );
-
-  const searchFields = [
-    "summary",
-    "status",
-    "issuetype",
-    "priority",
-    "assignee",
-    "created",
-  ];
-  if (storyPointFieldId) searchFields.push(storyPointFieldId);
-
-  const issues = await fetchAllSprintIssues(accessToken, SPRINT_ID, searchFields);
-  const { count: approximateCount } = await jiraPost<{ count?: number }>(
-    accessToken,
-    "/rest/api/3/search/approximate-count",
-    { jql: `sprint = ${SPRINT_ID} AND project = ${PROJECT_KEY}` },
-  );
-
-  const aggregations = aggregateSprintIssues(issues, now);
-  const endDate = sprintMeta.endDate ? new Date(sprintMeta.endDate) : null;
-  const startDate = sprintMeta.startDate ? new Date(sprintMeta.startDate) : null;
-  const daysOverdue = endDate && now > endDate ? daysBetween(endDate, now) : 0;
-  const sprintDurationDays =
-    startDate && endDate ? daysBetween(startDate, endDate) : null;
-
-  const report = buildCompletionReport({
-    now,
-    org,
-    cloudId,
-    siteUrl: meta.siteUrl,
-    projectKey: PROJECT_KEY,
-    boardId: BOARD_ID,
-    meta: sprintMeta,
-
-    sprintDurationDays,
-    daysOverdue,
-    storyPointFieldId,
-    storyPointFieldName,
-    issues,
-    approximateCount: approximateCount ?? null,
-    aggregations,
-  });
 
   console.log(JSON.stringify(report, null, 2));
 }

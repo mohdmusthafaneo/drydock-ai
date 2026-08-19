@@ -9,14 +9,13 @@ type Props = {
   children?: React.ReactNode;
   /** Optional content between highlights and decisions (e.g. clustered findings). */
   afterHighlights?: React.ReactNode;
-  /** Optional org-configurable role labels for dynamic audience naming. */
-  approvalLevelLabels?: Record<string, string>;
 };
+
 /**
  * Shared executive layout for agent analysis pages:
  * verdict hero → scope → highlights → optional mid slot → decide/delegate → detail children.
  */
-export function AgentPageShell({ view, children, afterHighlights, approvalLevelLabels }: Props) {
+export function AgentPageShell({ view, children, afterHighlights }: Props) {
   return (
     <div className="space-y-8">
       <div className="space-y-3">
@@ -40,7 +39,8 @@ export function AgentPageShell({ view, children, afterHighlights, approvalLevelL
       ) : null}
 
       {afterHighlights}
-      <AgentDecisionList decisions={view.decisions} approvalLevelLabels={approvalLevelLabels} />
+
+      <AgentDecisionList decisions={view.decisions} />
 
       {children}
     </div>

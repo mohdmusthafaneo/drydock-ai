@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
-import { auditReadOnlyFilter } from "@/lib/audit-helpers";
 
 export async function GET() {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
   const logs = await prisma.auditLog.findMany({
-    where: { organizationId: session.organizationId, ...auditReadOnlyFilter() },
+    where: { organizationId: session.organizationId },
     orderBy: { createdAt: "desc" },
     take: 500,
     include: { user: true },

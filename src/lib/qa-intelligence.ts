@@ -243,7 +243,7 @@ function computeWeightedReadiness(input: {
   components.push({ weight: 0.2, score: input.dna.governanceScore });
 
   const totalWeight = components.reduce((sum, c) => sum + c.weight, 0);
-  const blended =
+  let blended =
     totalWeight > 0
       ? components.reduce((sum, c) => sum + c.score * (c.weight / totalWeight), 0)
       : 88;
@@ -424,21 +424,120 @@ export function assessQAIntelligence(input: {
     });
   }
 
-  const testGaps = collectQATestGaps({
-    hasJira,
-    jiraSynced,
-    jiraHealth,
-    hasGithub,
-    githubSynced,
-    codeAnalysis,
-    github,
-    dna: input.dna,
-    environment: input.environment,
-    liveObs,
-    metrics,
-    grafana: input.grafana,
-  });
+  const testGaps: TestGap[] = [];
+  if (!hasJira) {
+    testGaps.push({
+      area: "Traceability",
+      gap: "Release not linked to Jira test cycles",
+      priority: "high",
+    });
+  } else if (!jiraSynced) {
+    testGaps.push({
+      area: "Traceability",
+      gap: "Run Jira sync on Integrations to load delivery health",
+      priority: "high",
+    });
+  } else if (jiraHealth) {
+    for (const gap of jiraHealth.gaps) {
+      testGaps.push({
+        area: gap.area,
+        gap: gap.gap,
+        priority: gap.priority,
+      });
+    }
+  }
 
+  if (!hasGithub) {
+    testGaps.push({
+      area: "Automation",
+      gap: "No automated regression signal from CI",
+      priority: "high",
+    });
+  } else if (!githubSynced) {
+    testGaps.push({
+      area: "Automation",
+      gap: "Run GitHub sync on Integrations for CI pass rate",
+      priority: "high",
+    });
+  } else if (github?.ci?.passRatePct == null) {
+    testGaps.push({
+      area: "Automation",
+      gap: "No workflow runs found in synced repositories",
+      priority: "medium",
+    });
+  } else if (github.ci.passRatePct < 80) {
+    testGaps.push({
+      area: "Automation",
+      gap: `CI pass rate ${github.ci.passRatePct}% below 80% target`,
+      priority: "high",
+    });
+  }
+
+  if (input.dna.governanceScore < 60) {
+    testGaps.push({
+      area: "Governance",
+      gap: "Governance score below org threshold — expand sign-off coverage",
+      priority: "medium",
+    });
+  }
+
+  if (
+    codeAnalysis?.synced &&
+    codeAnalysis.aiLinesPct != null &&
+    codeAnalysis.reviewCoverageOnAiPrsPct != null &&
+    codeAnalysis.aiLinesPct > 30 &&
+    codeAnalysis.reviewCoverageOnAiPrsPct < 70
+  ) {
+    testGaps.push({
+      area: "Governance",
+      gap: `AI-assisted changes at ${codeAnalysis.aiLinesPct}% with only ${codeAnalysis.reviewCoverageOnAiPrsPct}% review coverage on AI PRs`,
+      priority: "high",
+    });
+  }
+
+  if (input.environment === "PRODUCTION" && !liveObs.any) {
+    testGaps.push({
+      area: "Observability",
+      gap: "Production release without live telemetry correlation",
+      priority: "high",
+    });
+  }
+
+  if (liveObs.any && !metrics.synced) {
+    testGaps.push({
+      area: "Observability",
+      gap: "Run sync on Integrations for live metrics",
+      priority: "high",
+    });
+  }
+
+  if (input.grafana?.connected && !input.grafana.synced) {
+    testGaps.push({
+      area: "Observability",
+      gap: "Run Grafana sync on Integrations for alert and deployment signals",
+      priority: "medium",
+    });
+  }
+
+  if (metrics.synced && metrics.snapshot) {
+    for (const gap of metrics.snapshot.gaps ?? []) {
+      testGaps.push({
+        area: gap.area,
+        gap: gap.gap,
+        priority: gap.priority,
+      });
+    }
+  }
+
+  if (input.grafana?.synced && input.grafana.snapshot?.gaps) {
+    for (const gap of input.grafana.snapshot.gaps) {
+      testGaps.push({
+        area: gap.area,
+        gap: gap.gap,
+        priority: gap.priority,
+      });
+    }
+  }
 
   const readinessScore = computeWeightedReadiness({
     dna: input.dna,
@@ -488,137 +587,4 @@ export function assessQAIntelligence(input: {
   }
 
   return { signals, testGaps, readinessScore, regressionNotes };
-}
-
-function collectQATestGaps(input: {
-  hasJira: boolean;
-  jiraSynced: boolean;
-  jiraHealth: { gaps: TestGap[] } | null;
-  hasGithub: boolean;
-  githubSynced: boolean;
-  codeAnalysis: CodeAnalysisAssessContext | undefined;
-  github: GitHubAssessContext | undefined;
-  dna: DeliveryDNA;
-  environment: string;
-  liveObs: { any: boolean };
-  metrics: MetricsAssessContext;
-  grafana: GrafanaAssessContext | undefined;
-}): TestGap[] {
-  const testGaps: TestGap[] = [];
-
-  if (!input.hasJira) {
-    testGaps.push({
-      area: "Traceability",
-      gap: "Release not linked to Jira test cycles",
-      priority: "high",
-    });
-  } else if (!input.jiraSynced) {
-    testGaps.push({
-      area: "Traceability",
-      gap: "Run Jira sync on Integrations to load delivery health",
-      priority: "high",
-    });
-  } else if (input.jiraHealth) {
-    for (const gap of input.jiraHealth.gaps) {
-      testGaps.push({
-        area: gap.area,
-        gap: gap.gap,
-        priority: gap.priority,
-      });
-    }
-  }
-
-  if (!input.hasGithub) {
-    testGaps.push({
-      area: "Automation",
-      gap: "No automated regression signal from CI",
-      priority: "high",
-    });
-  } else if (!input.githubSynced) {
-    testGaps.push({
-      area: "Automation",
-      gap: "Run GitHub sync on Integrations for CI pass rate",
-      priority: "high",
-    });
-  } else if (input.github?.ci?.passRatePct == null) {
-    testGaps.push({
-      area: "Automation",
-      gap: "No workflow runs found in synced repositories",
-      priority: "medium",
-    });
-  } else if (input.github.ci.passRatePct < 80) {
-    testGaps.push({
-      area: "Automation",
-      gap: `CI pass rate ${input.github.ci.passRatePct}% below 80% target`,
-      priority: "high",
-    });
-  }
-
-  if (input.dna.governanceScore < 60) {
-    testGaps.push({
-      area: "Governance",
-      gap: "Governance score below org threshold — expand sign-off coverage",
-      priority: "medium",
-    });
-  }
-
-  if (
-    input.codeAnalysis?.synced &&
-    input.codeAnalysis.aiLinesPct != null &&
-    input.codeAnalysis.reviewCoverageOnAiPrsPct != null &&
-    input.codeAnalysis.aiLinesPct > 30 &&
-    input.codeAnalysis.reviewCoverageOnAiPrsPct < 70
-  ) {
-    testGaps.push({
-      area: "Governance",
-      gap: `AI-assisted changes at ${input.codeAnalysis.aiLinesPct}% with only ${input.codeAnalysis.reviewCoverageOnAiPrsPct}% review coverage on AI PRs`,
-      priority: "high",
-    });
-  }
-
-  if (input.environment === "PRODUCTION" && !input.liveObs.any) {
-    testGaps.push({
-      area: "Observability",
-      gap: "Production release without live telemetry correlation",
-      priority: "high",
-    });
-  }
-
-  if (input.liveObs.any && !input.metrics.synced) {
-    testGaps.push({
-      area: "Observability",
-      gap: "Run sync on Integrations for live metrics",
-      priority: "high",
-    });
-  }
-
-  if (input.grafana?.connected && !input.grafana.synced) {
-    testGaps.push({
-      area: "Observability",
-      gap: "Run Grafana sync on Integrations for alert and deployment signals",
-      priority: "medium",
-    });
-  }
-
-  if (input.metrics.synced && input.metrics.snapshot) {
-    for (const gap of input.metrics.snapshot.gaps ?? []) {
-      testGaps.push({
-        area: gap.area,
-        gap: gap.gap,
-        priority: gap.priority,
-      });
-    }
-  }
-
-  if (input.grafana?.synced && input.grafana.snapshot?.gaps) {
-    for (const gap of input.grafana.snapshot.gaps) {
-      testGaps.push({
-        area: gap.area,
-        gap: gap.gap,
-        priority: gap.priority,
-      });
-    }
-  }
-
-  return testGaps;
 }
