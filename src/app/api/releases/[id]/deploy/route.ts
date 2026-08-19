@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { ingestTelemetryForOrganization } from "@/lib/telemetry-service";
 import { parsePostDeployComparison } from "@/lib/release-assess-snapshot";
-
+import { determineActorType } from "@/lib/audit-helpers";
 export async function POST(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -67,6 +67,7 @@ export async function POST(
         correlationId: telemetry.collected.correlationId,
         degradation: telemetry.collected.degradationDetected,
       }),
+      actorType: determineActorType(session.userId, "release.deployed"),
     },
   });
 

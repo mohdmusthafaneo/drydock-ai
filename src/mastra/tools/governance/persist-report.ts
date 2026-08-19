@@ -382,7 +382,7 @@ export const persistGovernanceReportTool = createTool({
         cleanupReady: d.cleanupReady,
       }));
 
-      let rowCounts = {
+      const rowCounts = {
         kpis: 0,
         worstFiles: 0,
         riskDrivers: 0,

@@ -63,12 +63,7 @@ export function AnalysisFiltersBar({
             ]}
             onChange={(v) => onChange({ range: v as DeliveryAnalysisFilters["range"] })}
           />
-          <FilterSelect
-            label="Compare"
-            value={filters.compare}
-            options={[{ value: "previous_sync", label: "vs prior sync" }]}
-            onChange={(v) => onChange({ compare: v as DeliveryAnalysisFilters["compare"] })}
-          />
+
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

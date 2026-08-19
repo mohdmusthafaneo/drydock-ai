@@ -32,23 +32,7 @@ export async function verifyOAuthState(token: string): Promise<OAuthState> {
   const raw = payload as Record<string, unknown>;
 
   if (raw.flow === "external") {
-    if (
-      typeof raw.organizationId !== "string" ||
-      typeof raw.inviteId !== "string" ||
-      typeof raw.createdById !== "string" ||
-      (raw.provider !== "GITHUB" &&
-        raw.provider !== "JIRA" &&
-        raw.provider !== "SLACK")
-    ) {
-      throw new Error("Invalid external OAuth state");
-    }
-    return {
-      flow: "external",
-      organizationId: raw.organizationId,
-      inviteId: raw.inviteId,
-      provider: raw.provider,
-      createdById: raw.createdById,
-    };
+    return parseExternalOAuthState(raw);
   }
 
   if (typeof raw.organizationId !== "string" || typeof raw.userId !== "string") {
@@ -59,5 +43,27 @@ export async function verifyOAuthState(token: string): Promise<OAuthState> {
     flow: "session",
     organizationId: raw.organizationId,
     userId: raw.userId,
+  };
+}
+
+function isExternalProvider(value: unknown): value is "GITHUB" | "JIRA" | "SLACK" {
+  return value === "GITHUB" || value === "JIRA" || value === "SLACK";
+}
+
+function parseExternalOAuthState(raw: Record<string, unknown>) {
+  if (
+    typeof raw.organizationId !== "string" ||
+    typeof raw.inviteId !== "string" ||
+    typeof raw.createdById !== "string" ||
+    !isExternalProvider(raw.provider)
+  ) {
+    throw new Error("Invalid external OAuth state");
+  }
+  return {
+    flow: "external" as const,
+    organizationId: raw.organizationId,
+    inviteId: raw.inviteId,
+    provider: raw.provider,
+    createdById: raw.createdById,
   };
 }

@@ -10,20 +10,27 @@ export type ReleaseRules = {
   requireApprovalForProduction?: boolean;
 };
 
+export type ApprovalLevelLabels = {
+  level1?: string;
+  level2?: string;
+  level3?: string;
+  level4?: string;
+};
+
 export type ApprovalRequirements = {
   minApprovers?: number;
   qaLeadForHighRisk?: boolean;
+  approvalLevelLabels?: ApprovalLevelLabels;
 };
-
 export type EscalationChains = {
   levels?: string[];
 };
-
 export type GovernancePolicyConfig = {
   deploymentThresholds?: DeploymentThresholds;
   releaseRules?: ReleaseRules;
   approvalRequirements?: ApprovalRequirements;
   escalationChains?: EscalationChains;
+  approvalLevelLabels?: ApprovalLevelLabels;
 };
 
 export type GovernancePolicyDocument = GovernancePolicyConfig & {
@@ -45,6 +52,25 @@ export const SYSTEM_DEFAULT_POLICY: GovernancePolicyConfig = {
   escalationChains: {
     levels: ["DELIVERY_MANAGER", "ORG_ADMIN"],
   },
+};
+
+/** Maps approval-level role constants to their level number (1–4). */
+export const ROLE_TO_LEVEL: Record<string, number> = {
+  DEVELOPER: 1,
+  QA_LEAD: 2,
+  DEVOPS_LEAD: 2,
+  ENGINEERING_MANAGER: 3,
+  DELIVERY_MANAGER: 3,
+  ORG_ADMIN: 4,
+  COMPLIANCE_OFFICER: 4,
+};
+
+/** Default labels keyed by level number. Merged with org-configured labels in displayRoleLabel. */
+export const DEFAULT_APPROVAL_LEVEL_LABELS: ApprovalLevelLabels = {
+  level1: "Developer",
+  level2: "QA Lead / DevOps Lead",
+  level3: "Engineering Lead",
+  level4: "Org Admin",
 };
 
 function safeParseJson<T>(json: unknown): T | undefined {
@@ -73,6 +99,10 @@ export function mergePolicyConfig(
       ...base.escalationChains,
       ...override.escalationChains,
     },
+    approvalLevelLabels: {
+      ...base.approvalLevelLabels,
+      ...override.approvalLevelLabels,
+    },
   };
 }
 
@@ -83,6 +113,7 @@ export function parseGovernancePolicy(
         releaseRulesJson?: unknown;
         approvalRequirements?: unknown;
         escalationChainsJson?: unknown;
+        approvalLevelLabelsJson?: unknown;
         projectOverridesJson?: unknown;
       }
     | null
@@ -99,6 +130,7 @@ export function parseGovernancePolicy(
     releaseRules: safeParseJson<ReleaseRules>(row.releaseRulesJson),
     approvalRequirements: safeParseJson<ApprovalRequirements>(row.approvalRequirements),
     escalationChains: safeParseJson<EscalationChains>(row.escalationChainsJson),
+    approvalLevelLabels: safeParseJson<ApprovalLevelLabels>(row.approvalLevelLabelsJson),
     projectOverrides:
       projectOverrides && typeof projectOverrides === "object" ? projectOverrides : {},
   };
@@ -125,11 +157,13 @@ export function serializeGovernancePolicyBaseline(
   releaseRulesJson: Prisma.InputJsonValue;
   approvalRequirements: Prisma.InputJsonValue;
   escalationChainsJson: Prisma.InputJsonValue;
+  approvalLevelLabelsJson: Prisma.InputJsonValue;
 } {
   return {
     deploymentThresholds: asJsonInput(config.deploymentThresholds ?? {}),
     releaseRulesJson: asJsonInput(config.releaseRules ?? {}),
     approvalRequirements: asJsonInput(config.approvalRequirements ?? {}),
     escalationChainsJson: asJsonInput(config.escalationChains ?? {}),
+    approvalLevelLabelsJson: asJsonInput(config.approvalLevelLabels ?? {}),
   };
 }

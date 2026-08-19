@@ -1,3 +1,4 @@
+import { displayRoleLabel } from "@/lib/governance/presentation";
 import { loadLatestAgentAnalysis } from "@/lib/agent-analysis/load-latest-runs";
 import { buildAgentAnalysisClaims } from "@/lib/agent-analysis/claims";
 import {
@@ -121,6 +122,7 @@ function buildBriefingCharts(input: {
   recommendations: Awaited<ReturnType<typeof getOrganizationContext>>["recommendations"];
   approvals: Awaited<ReturnType<typeof getOrganizationContext>>["approvals"];
   integrations: Awaited<ReturnType<typeof getOrganizationContext>>["integrations"];
+  approvalLevelLabels: Record<string, string>;
 }): BriefingCharts {
   const latestAssessed = [...input.releases]
     .filter((r) => r.assessedAt)
@@ -150,7 +152,9 @@ function buildBriefingCharts(input: {
         pendingRecs
           .map((r) => r.requiredRole)
           .filter((role): role is NonNullable<typeof role> => role != null)
-          .map((role) => role.replace(/_/g, " ")),
+          .map((role) =>
+            displayRoleLabel(role, input.approvalLevelLabels as Parameters<typeof displayRoleLabel>[1]),
+          ),
       ),
     ];
     const sourceFreshness = resolveAssessSourceFreshness(input.integrations);
@@ -362,7 +366,6 @@ export async function loadExecutiveBriefing(
 
     briefing = mergeExecutiveBriefingSnapshot(deterministic, snapshot);
   }
-
   const charts = buildBriefingCharts({
     deliverySnapshot,
     codeSnapshot,
@@ -372,6 +375,7 @@ export async function loadExecutiveBriefing(
     recommendations: ctx.recommendations,
     approvals: ctx.approvals,
     integrations: ctx.integrations,
+    approvalLevelLabels: ctx.approvalLevelLabels,
   });
 
   return {

@@ -5,6 +5,7 @@ import { getSession } from "@/lib/session";
 import { requirePermission } from "@/lib/rbac";
 import { revokeConnectInvite } from "@/lib/integration-connect-invite";
 
+import { determineActorType } from "@/lib/audit-helpers";
 const schema = z
   .object({
     provider: z.enum(["GITHUB", "JIRA", "SLACK"]).optional(),
@@ -50,6 +51,7 @@ export async function POST(request: Request) {
           provider: body.provider,
           inviteId: body.inviteId,
         }),
+        actorType: determineActorType(session.userId, "integration.connect_invite.revoked"),
       },
     });
 

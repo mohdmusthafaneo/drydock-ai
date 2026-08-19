@@ -11,6 +11,7 @@ import {
 } from "@/lib/slack-meta";
 import { invalidateSlackTenantCache } from "@/lib/slack/tenant";
 
+import { determineActorType } from "@/lib/audit-helpers";
 export type CompleteSlackOAuthConnectionInput = {
   organizationId: string;
   userId: string;
@@ -134,6 +135,7 @@ export async function completeSlackOAuthConnection(
         action: auditAction,
         entityType: "Integration",
         metadataJson: JSON.stringify(auditMetadata),
+        actorType: determineActorType(input.auditUserId ?? input.userId, auditAction),
       },
     });
 

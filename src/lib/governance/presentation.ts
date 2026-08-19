@@ -14,12 +14,41 @@ import {
 import { isLeadershipApprovalCenterItem } from "@/lib/recommendation-queue";
 import type { getOrganizationContext } from "@/lib/org-data";
 import { ENTERPRISE_WORKFLOW_STEPS } from "@/lib/enterprise-workflow";
+import {
+  ROLE_TO_LEVEL,
+  DEFAULT_APPROVAL_LEVEL_LABELS,
+  type ApprovalLevelLabels,
+} from "@/lib/governance/policy";
 
 type Ctx = Awaited<ReturnType<typeof getOrganizationContext>>;
 type ApprovalRow = Ctx["approvals"][number];
 
+/**
+ * Resolve a display label for a required-role value.
+ * Priority: org-configured role-keyed label → org-configured level-keyed label → DEFAULT_APPROVAL_LEVEL_LABELS → humanize raw string.
+ */
+export function displayRoleLabel(
+  role: string,
+  customLabels?: ApprovalLevelLabels,
+): string {
+  if (!role) return "";
+  // Cast to allow role-keyed (e.g. "QA_LEAD") and level-keyed (e.g. "level2") lookups
+  const merged = {
+    ...DEFAULT_APPROVAL_LEVEL_LABELS,
+    ...customLabels,
+  } as Record<string, string>;
+  // Org configured a role-keyed label directly
+  if (merged[role]) return merged[role]!;
+  // Fall back: derive level from role, then use level-keyed label
+  const level = ROLE_TO_LEVEL[role];
+  if (level) {
+    const levelLabel = merged[`level${level}`];
+    if (levelLabel) return levelLabel;
+  }
+  return role.replace(/_/g, " ");
+}
+
 const IMPACT_RANK: Record<string, number> = {
-  CRITICAL: 0,
   HIGH: 1,
   MEDIUM: 2,
   LOW: 3,
@@ -245,11 +274,14 @@ export function autonomyModeLabel(mode: string): string {
   return AUTONOMY_MODE_LABELS[mode] ?? mode.replace(/_/g, " ").toLowerCase();
 }
 
-export function approvalLevelLabel(level: number): string {
-  if (level <= 1) return "Team lead sign-off";
-  if (level === 2) return "Manager approval";
-  if (level === 3) return "Director + compliance";
-  if (level >= 4) return "Executive escalation";
+export function approvalLevelLabel(
+  level: number,
+  customLabels?: { level1?: string; level2?: string; level3?: string; level4?: string },
+): string {
+  if (level <= 1) return customLabels?.level1 ?? "Team lead sign-off";
+  if (level === 2) return customLabels?.level2 ?? "Manager approval";
+  if (level === 3) return customLabels?.level3 ?? "Director + compliance";
+  if (level >= 4) return customLabels?.level4 ?? "Executive escalation";
   return `Level ${level}`;
 }
 
@@ -271,8 +303,9 @@ export function buildGovernanceHeadlineSegments(
     summary: string | null;
   },
   orgName: string,
+  customLabels?: { level1?: string; level2?: string; level3?: string; level4?: string },
 ): HeadlineSegment[] {
-  return buildGovernanceDnaOverview(dna, orgName).headlineSegments;
+  return buildGovernanceDnaOverview(dna, orgName, customLabels).headlineSegments;
 }
 
 export function buildGovernanceDnaOverview(
@@ -284,10 +317,11 @@ export function buildGovernanceDnaOverview(
     observabilityStrategy: string | null;
   },
   orgName: string,
+  customLabels?: { level1?: string; level2?: string; level3?: string; level4?: string },
 ): { headlineSegments: HeadlineSegment[]; bullets: string[] } {
   const workflow = workflowModeLabel(dna.workflowMode);
   const autonomy = autonomyModeLabel(dna.autonomyMode);
-  const approval = approvalLevelLabel(dna.approvalLevel);
+  const approval = approvalLevelLabel(dna.approvalLevel, customLabels);
   const riskPct = Math.round(dna.riskThreshold * 100);
 
   const headlineSegments: HeadlineSegment[] = [
@@ -350,12 +384,15 @@ export function buildGovernancePolicyHighlights(ctx: Ctx): BriefingHighlight[] {
   return highlights.slice(0, 4);
 }
 
-export function buildAutonomyVerdictStrip(dna: {
-  autonomyMode: string;
-  approvalLevel: number;
-}): { label: string; detail: string; tone: BriefingClaimVerdict } {
+export function buildAutonomyVerdictStrip(
+  dna: {
+    autonomyMode: string;
+    approvalLevel: number;
+  },
+  customLabels?: { level1?: string; level2?: string; level3?: string; level4?: string },
+): { label: string; detail: string; tone: BriefingClaimVerdict } {
   const mode = autonomyModeLabel(dna.autonomyMode);
-  const approval = approvalLevelLabel(dna.approvalLevel);
+  const approval = approvalLevelLabel(dna.approvalLevel, customLabels);
   const tone: BriefingClaimVerdict =
     dna.autonomyMode === "OBSERVE" || dna.autonomyMode === "RECOMMEND"
       ? "good"
@@ -616,7 +653,7 @@ export function buildQaOrgVerdict(input: {
       headline: `${pendingDecisions + holdCount} release${pendingDecisions + holdCount === 1 ? "" : "s"} need leadership attention`,
       subcopy: `Org readiness ${orgReadinessIndex}% · review gate verdicts before the next deploy.`,
       verdict: "attention",
-      verdictLabel: "Hold",
+      verdictLabel: "Override and proceed",
     };
   }
 
@@ -864,7 +901,7 @@ export function buildReleaseDetailVerdict(release: {
       headline: `${release.name} awaits human sign-off`,
       subcopy: `Readiness ${readiness}% · leadership approval required before deployment.`,
       gateVerdict: gateVerdict ?? "HOLD",
-      verdictLabel: "Hold",
+      verdictLabel: "Override and proceed",
     };
   }
 
@@ -941,49 +978,32 @@ export function buildWorkflowAttentionSummary(
   };
 }
 
-export type AuditFilterCategory = "all" | "approvals" | "releases" | "integrations" | "agents";
+export type AuditFilterCategory = "all" | "human" | "system" | "integration";
 
-export function categorizeAuditAction(action: string): AuditFilterCategory {
-  if (
-    action.startsWith("recommendation.") ||
-    action.startsWith("agent_action.") ||
-    action.startsWith("agent.hire.")
-  ) {
-    return "approvals";
-  }
-  if (action.startsWith("release.")) return "releases";
-  if (
-    action.startsWith("integration.") ||
-    action.startsWith("sync.") ||
-    action.startsWith("prometheus.") ||
-    action.startsWith("github.") ||
-    action.startsWith("jira.") ||
-    action.startsWith("delivery_dna.")
-  ) {
-    return "integrations";
-  }
-  if (action.startsWith("agent.")) return "agents";
+export function categorizeByActorType(actorType: string | null | undefined): AuditFilterCategory {
+  if (actorType === "human") return "human";
+  if (actorType === "integration") return "integration";
+  if (actorType === "system") return "system";
   return "all";
 }
 
-export function filterAuditLogs<T extends { action: string }>(
+export function filterAuditLogs<T extends { actorType?: string | null }>(
   logs: T[],
   category: AuditFilterCategory,
 ): T[] {
   if (category === "all") return logs;
-  return logs.filter((log) => categorizeAuditAction(log.action) === category);
+  return logs.filter((log) => categorizeByActorType(log.actorType) === category);
 }
 
-export function countAuditByCategory(logs: { action: string }[]): Record<AuditFilterCategory, number> {
+export function countAuditByCategory(logs: { actorType?: string | null }[]): Record<AuditFilterCategory, number> {
   const counts: Record<AuditFilterCategory, number> = {
     all: logs.length,
-    approvals: 0,
-    releases: 0,
-    integrations: 0,
-    agents: 0,
+    human: 0,
+    system: 0,
+    integration: 0,
   };
   for (const log of logs) {
-    const cat = categorizeAuditAction(log.action);
+    const cat = categorizeByActorType(log.actorType);
     if (cat !== "all") counts[cat]++;
   }
   return counts;

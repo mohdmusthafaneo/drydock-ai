@@ -22,8 +22,10 @@ import {
   resolveGovernancePolicyForProject,
 } from "@/lib/governance/policy";
 import { readJsonField } from "@/lib/json-field";
+import { determineActorType } from "@/lib/audit-helpers";
 
 const REASSESSABLE_STATUSES = new Set(["DETECTED", "ASSESSED", "PENDING_APPROVAL", "BLOCKED"]);
+
 
 function parseServiceScope(raw: string | null | undefined): string[] {
   if (!raw?.trim()) return [];
@@ -219,8 +221,11 @@ export async function POST(
         assessedAt: new Date(),
       },
     });
-
-    if (assessment.riskLevel === "HIGH" || assessment.riskLevel === "CRITICAL") {
+    if (
+      (assessment.riskLevel === "HIGH" || assessment.riskLevel === "CRITICAL") &&
+      release.jiraFixVersion &&
+      assessment.primaryRecommendation !== "HOLD"
+    ) {
       await tx.incident.create({
         data: {
           organizationId: session.organizationId,
@@ -282,6 +287,7 @@ export async function POST(
         governanceRiskScore: assessment.governanceRiskScore,
         primaryRecommendation: assessment.primaryRecommendation,
       }),
+      actorType: determineActorType(session.userId, "release.assessed"),
     },
   });
 

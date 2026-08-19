@@ -11,7 +11,7 @@
     "lint": "eslint",
     "test:agent-presentation": "tsx --test src/lib/agent-analysis/presentation.test.ts",
     "test:briefing": "tsx --test src/lib/executive-briefing/*.test.ts",
-    "test:agent-chat": "tsx --test src/lib/agent-chat/context.test.ts",
+    "test:agent-chat": "tsx --test src/lib/agent-chat/context.test.ts src/lib/agent-chat/index.test.ts",
     "test:env": "tsx --test src/lib/env.test.ts",
     "test:json-field": "tsx --test src/lib/json-field.test.ts",
     "test:prisma-tenant": "tsx --test src/lib/prisma-tenant.test.ts",

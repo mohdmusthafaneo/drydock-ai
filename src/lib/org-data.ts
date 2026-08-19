@@ -1,9 +1,11 @@
 import { forOrgRead } from "@/lib/prisma";
+import { parseGovernancePolicy } from "@/lib/governance/policy";
+import type { ApprovalLevelLabels } from "@/lib/governance/policy";
 import { computeCompletedStepIds } from "@/lib/enterprise-workflow";
 import { hasObservabilitySynced } from "@/lib/observability-connectivity";
 import { isJiraCalibrationComplete } from "@/lib/jira-calibration/status";
 import { isLeadershipPendingApproval } from "@/lib/recommendation-queue";
-
+import { auditReadOnlyFilter } from "@/lib/audit-helpers";
 export async function getOrganizationContext(organizationId: string) {
   const db = forOrgRead(organizationId);
   const [
@@ -53,7 +55,7 @@ export async function getOrganizationContext(organizationId: string) {
     }),
     db.release.findMany({
       where: { organizationId },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ detectedAt: "desc" }, { createdAt: "desc" }],
     }),
     db.deliveryWorkflow.findUnique({ where: { organizationId } }),
     db.incident.findMany({
@@ -63,7 +65,7 @@ export async function getOrganizationContext(organizationId: string) {
       include: { release: true },
     }),
     db.auditLog.findMany({
-      where: { organizationId },
+      where: { organizationId, ...auditReadOnlyFilter() },
       orderBy: { createdAt: "desc" },
       take: 50,
       include: { user: true },
@@ -149,6 +151,8 @@ export async function getOrganizationContext(organizationId: string) {
     (d) => d.health === "DEGRADED" || d.health === "FAILED",
   );
 
+  const parsedPolicy = parseGovernancePolicy(governancePolicy);
+
   return {
     org,
     profile,
@@ -166,6 +170,7 @@ export async function getOrganizationContext(organizationId: string) {
     telemetryEvents,
     webhookEvents,
     governancePolicy,
+    approvalLevelLabels: parsedPolicy.approvalLevelLabels ?? {},
     completedStepIds,
     stats: {
       governanceScore: dna?.governanceScore ?? 0,

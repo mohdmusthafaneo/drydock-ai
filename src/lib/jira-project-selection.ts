@@ -10,6 +10,7 @@ import {
 import { mergeJiraMeta, parseJiraMeta } from "@/lib/jira-meta";
 import type { Integration } from "@/generated/prisma/client";
 
+import { determineActorType } from "@/lib/audit-helpers";
 export const MAX_JIRA_SYNC_PROJECTS = 10;
 
 export async function getConnectedJiraIntegration(
@@ -105,6 +106,7 @@ export async function saveOrgJiraProjectKeys(input: {
         entityType: "Integration",
         entityId: integration.id,
         metadataJson: JSON.stringify({ projectKeys: keys }),
+        actorType: determineActorType(input.userId, "integration.jira.projects_updated"),
       },
     });
 

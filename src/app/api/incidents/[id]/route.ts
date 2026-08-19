@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { invalidateExecutiveBriefingSnapshot } from "@/lib/executive-briefing/invalidate-snapshot";
+import { determineActorType } from "@/lib/audit-helpers";
 
 const DEVOPS_ROLES = new Set(["ORG_ADMIN", "DEVOPS_LEAD", "ENGINEERING_MANAGER", "DELIVERY_MANAGER"]);
 
@@ -57,6 +58,7 @@ export async function PATCH(
         entityType: "Incident",
         entityId: id,
         metadataJson: JSON.stringify(body),
+        actorType: determineActorType(session.userId, "incident.updated"),
       },
     });
 

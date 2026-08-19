@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { readJsonField } from "@/lib/json-field";
 import { canApproveRequiredRole } from "@/lib/permissions";
 import { invalidateExecutiveBriefingSnapshot } from "@/lib/executive-briefing/invalidate-snapshot";
+import { determineActorType } from "@/lib/audit-helpers";
 
 export type DecideApprovalInput = {
   organizationId: string;
@@ -92,6 +93,7 @@ export async function decideApproval(
           entityType: "Approval",
           entityId: approval.id,
           metadataJson: JSON.stringify({ comment }),
+          actorType: determineActorType(userId, `agent_action.${decision.toLowerCase()}`),
         },
       });
     });
@@ -161,6 +163,7 @@ export async function decideApproval(
         entityType: "Recommendation",
         entityId: approval.recommendationId!,
         metadataJson: JSON.stringify({ comment }),
+        actorType: determineActorType(userId, `recommendation.${decision.toLowerCase()}`),
       },
     });
 

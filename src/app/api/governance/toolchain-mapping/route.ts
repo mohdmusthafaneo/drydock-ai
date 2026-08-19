@@ -15,6 +15,7 @@ import { listCalibrationProfiles } from "@/lib/jira-calibration/persist";
 import { parseCalibrationObservations } from "@/lib/jira-calibration/types";
 import { buildJiraHygieneLinksMap, type JiraLinkContext } from "@/lib/jira-issue-links";
 
+import { determineActorType } from "@/lib/audit-helpers";
 const fieldRefSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -198,6 +199,7 @@ export async function POST(request: Request) {
               jiraMethodology: mapping.jira?.methodology,
               githubBranchStrategy: mapping.github?.branchStrategy,
             }),
+            actorType: determineActorType(session.userId, "toolchain.mapping.confirmed"),
           },
         });
       }

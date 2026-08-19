@@ -170,25 +170,7 @@ export async function fetchProjectStatuses(
   const seen = new Set<string>();
 
   for (const projectKey of projectKeys) {
-    try {
-      const issueTypeStatuses = await listProjectStatuses(accessToken, cloudId, projectKey);
-      for (const group of issueTypeStatuses) {
-        for (const status of group.statuses) {
-          const key = `${projectKey}:${status.id}`;
-          if (seen.has(key)) continue;
-          seen.add(key);
-          statuses.push({
-            id: status.id,
-            name: status.name,
-            statusCategory: status.statusCategory,
-            scope: { projectKey },
-          });
-        }
-      }
-    } catch (e) {
-      if (e instanceof JiraApiError && [403, 404].includes(e.status)) continue;
-      throw e;
-    }
+    await collectStatusesForProject(accessToken, cloudId, projectKey, statuses, seen);
   }
 
   return statuses;
@@ -359,4 +341,32 @@ export function clientSafeJiraSchema(snapshot: JiraSchemaSnapshot): JiraSchemaSn
     ...snapshot,
     fields: mappableFields(snapshot.fields),
   };
+}
+
+async function collectStatusesForProject(
+  accessToken: string,
+  cloudId: string,
+  projectKey: string,
+  statuses: JiraSchemaSnapshot["statuses"],
+  seen: Set<string>,
+): Promise<void> {
+  try {
+    const issueTypeStatuses = await listProjectStatuses(accessToken, cloudId, projectKey);
+    for (const group of issueTypeStatuses) {
+      for (const status of group.statuses) {
+        const key = `${projectKey}:${status.id}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        statuses.push({
+          id: status.id,
+          name: status.name,
+          statusCategory: status.statusCategory,
+          scope: { projectKey },
+        });
+      }
+    }
+  } catch (e) {
+    if (e instanceof JiraApiError && [403, 404].includes(e.status)) return;
+    throw e;
+  }
 }

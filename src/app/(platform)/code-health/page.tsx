@@ -26,13 +26,14 @@ export default async function CodeHealthPage() {
     <div className="space-y-8">
       <PageHeader
         title="Code health"
-        description="Change-risk scoring, hotspot files, and dead-code findings from the governance agent (auto-refreshed on schedule)."
+        description="Change-risk scoring, hotspot files, and dead-code findings from repowise (auto-refreshed on schedule)."
       >
         <AgentAnalysisRefreshButton label="Refresh all agents" />
       </PageHeader>
 
       <AgentPageShell
         view={view}
+        approvalLevelLabels={ctx.approvalLevelLabels}
         afterHighlights={
           <CodeHealthHotspots hotspots={view.topHotspots} drivers={view.riskDrivers} />
         }
@@ -56,8 +57,8 @@ export default async function CodeHealthPage() {
             title={`${view.cleanupReadyCount} cleanup-ready`}
             description={
               run && run.deadCodeCount > 0
-                ? `${run.deadCodeCount} dead-code candidates from the governance agent`
-                : "Dead-code candidates from the governance agent"
+                ? `${run.deadCodeCount} dead-code candidates from repowise`
+                : "Dead-code candidates from repowise"
             }
             count={run?.deadCodeCount}
           >
@@ -66,7 +67,7 @@ export default async function CodeHealthPage() {
           {view.agentNotes ? (
             <EngineeringDetailSection
               title="Agent notes"
-              description="Raw summary string from the governance agent"
+              description="Raw summary string from repowise"
             >
               <GovernanceRunPanel run={run} section="notes" />
             </EngineeringDetailSection>

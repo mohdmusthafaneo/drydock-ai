@@ -232,7 +232,7 @@ export const aidosListReleasesTool = createTool({
         organizationId,
         ...(input.status ? { status: input.status } : {}),
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ detectedAt: "desc" }, { createdAt: "desc" }],
       take: limit,
       select: {
         id: true,

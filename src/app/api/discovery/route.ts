@@ -7,6 +7,7 @@ import { hasLiveObservability } from "@/lib/observability-connectivity";
 import { seedEnterpriseFoundation } from "@/lib/enterprise-seed";
 import { getLandingPathForOrganization } from "@/lib/landing-path-org";
 
+import { determineActorType } from "@/lib/audit-helpers";
 const schema = z.object({
   industryType: z.string().default("technology"),
   teamSize: z.string().default("11-50"),
@@ -101,7 +102,7 @@ export async function POST(request: Request) {
 
       // Seed Integration rows as DISCONNECTED only — DNA tool chips are intent,
       // not connectivity. Real connect happens on /integrations.
-      const providers = ["GITHUB", "JIRA", "JENKINS", "GRAFANA", "PROMETHEUS", "SLACK", "AWS"] as const;
+      const providers = ["GITHUB", "JIRA", "GRAFANA", "PROMETHEUS", "SLACK", "AWS"] as const;
       for (const provider of providers) {
         const existing = await tx.integration.findUnique({
           where: {
@@ -153,15 +154,6 @@ export async function POST(request: Request) {
         });
       }
 
-      await tx.activityEvent.create({
-        data: {
-          organizationId: session.organizationId,
-          type: "discovery.completed",
-          title: "Organization discovery completed",
-          description: "Delivery DNA generated from discovery wizard",
-        },
-      });
-
       await tx.auditLog.create({
         data: {
           organizationId: session.organizationId,
@@ -169,6 +161,7 @@ export async function POST(request: Request) {
           action: "delivery_dna.generated",
           entityType: "DeliveryDNA",
           metadataJson: JSON.stringify({ workflowMode: dnaResult.workflowMode }),
+          actorType: determineActorType(session.userId, "delivery_dna.generated"),
         },
       });
 

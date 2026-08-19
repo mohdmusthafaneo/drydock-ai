@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { normalizeTelemetryEvent, type RawTelemetryInput } from "@/lib/telemetry-normalizer";
 import { ingestTelemetryForOrganization } from "@/lib/telemetry-service";
+import { determineActorType } from "@/lib/audit-helpers";
 export async function ingestNormalizedEvents(input: {
   organizationId: string;
   userId: string;
@@ -45,6 +46,7 @@ export async function ingestNormalizedEvents(input: {
       action: "telemetry.events.ingested",
       entityType: "TelemetryEvent",
       metadataJson: JSON.stringify({ count: created.length }),
+      actorType: determineActorType(input.userId, "telemetry.events.ingested"),
     },
   });
 
