@@ -19,7 +19,7 @@
     "mastra:studio": "MASTRA_DEV=1 mastra dev -d src/mastra --request-context-presets ./mastra-request-context-presets.json",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "postinstall": "prisma generate",
+    "postinstall": "prisma generate --schema=prisma/schema.prisma",
     "sanitize:landing": "node scripts/sanitize-portkey-html.mjs",
     "build:landing": "node scripts/build-landing-assets.mjs && node scripts/patch-landing-html.mjs && node scripts/optimize-landing.mjs"
   },

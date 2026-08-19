@@ -2,17 +2,25 @@ import type { Mastra } from "@mastra/core/mastra";
 
 import { createMastraInstance } from "./server";
 
-/** Eager instance for `mastra dev` / Studio (expects `export const mastra`). */
-export const mastra = createMastraInstance();
-
 let mastraInstance: Mastra | null = null;
 
-/** Lazy Mastra singleton for Next.js worker and API routes (no top-level await). */
-export async function getMastra(): Promise<Mastra> {
+function getOrCreateMastra(): Mastra {
   if (!mastraInstance) {
-    mastraInstance = mastra;
+    mastraInstance = createMastraInstance();
   }
   return mastraInstance;
+}
+
+/** Lazy instance for `mastra dev` / Studio (expects `export const mastra`). */
+export const mastra = new Proxy({} as Mastra, {
+  get(_target, prop) {
+    return (getOrCreateMastra() as unknown as Record<string | symbol, unknown>)[prop];
+  },
+});
+
+/** Lazy Mastra singleton for Next.js worker and API routes. */
+export async function getMastra(): Promise<Mastra> {
+  return getOrCreateMastra();
 }
 
 export { createMastraInstance } from "./server";
