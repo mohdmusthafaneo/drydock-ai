@@ -1,0 +1,218 @@
+name: Build and Push Docker Images (Prod)
+
+on:
+  push:
+    branches:
+      - prod
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  ML_IMAGE_NAME: ${{ github.repository }}/ml-inference
+  COOLIFY_DEPLOY_WEB: http://15.207.73.151:8000/api/v1/deploy?uuid=fm3b4mbpdrxafigy2rffd7nc&force=false
+  COOLIFY_DEPLOY_WORKER: http://15.207.73.151:8000/api/v1/deploy?uuid=z66wre1mtrprk7zrkavdu8lj&force=false
+  COOLIFY_DEPLOY_ML: http://15.207.73.151:8000/api/v1/deploy?uuid=ruvpq8tf8wiig39krcgvpk5f&force=false
+
+jobs:
+  # ------------------------------------------------------------
+  # Detect whether services/ml-inference changed in this push to `prod`
+  # (not vs `main` — we don't use that as the comparison base)
+  # ------------------------------------------------------------
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      ml-inference: ${{ steps.result.outputs.ml-inference }}
+    steps:
+      - name: Checkout repository
+        if: github.event_name == 'push'
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Filter paths
+        id: filter
+        if: github.event_name == 'push'
+        uses: dorny/paths-filter@v4
+        with:
+          # Only files changed by this push (before → after), including direct pushes to `prod`
+          base: ${{ github.event.before }}
+          ref: ${{ github.sha }}
+          filters: |
+            ml-inference:
+              - 'services/ml-inference/**'
+
+      - name: Resolve ML change output
+        id: result
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "ml-inference=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ml-inference=${{ steps.filter.outputs.ml-inference }}" >> "$GITHUB_OUTPUT"
+          fi
+
+  # ------------------------------------------------------------
+  # App image (web + worker via AIDOS_PROCESS_ROLE)
+  # ------------------------------------------------------------
+  build-app:
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      image-tags: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          version: latest
+
+      - name: Log in to Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=prod
+            type=sha,prefix=prod-
+
+      - name: Build and push app image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=app
+          cache-to: type=gha,mode=max,scope=app
+          provenance: true
+          sbom: true
+
+      - name: Image digest
+        if: github.event_name != 'pull_request'
+        run: "echo 'Digest: ${{ steps.build.outputs.digest }}'"
+
+  # ------------------------------------------------------------
+  # ML inference sidecar (Python FastAPI) — only when that service changes
+  # ------------------------------------------------------------
+  build-ml-inference:
+    needs: changes
+    if: >-
+      needs.changes.outputs.ml-inference == 'true' ||
+      github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      image-tags: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          version: latest
+
+      - name: Log in to Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.ML_IMAGE_NAME }}
+          tags: |
+            type=raw,value=prod
+            type=sha,prefix=prod-
+
+      - name: Build and push ML inference image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ./services/ml-inference
+          file: ./services/ml-inference/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=ml-inference
+          cache-to: type=gha,mode=max,scope=ml-inference
+          provenance: true
+          sbom: true
+
+      - name: Image digest
+        if: github.event_name != 'pull_request'
+        run: "echo 'Digest: ${{ steps.build.outputs.digest }}'"
+
+  # ------------------------------------------------------------
+  # Coolify deploys (after respective image builds)
+  # ------------------------------------------------------------
+  deploy-web:
+    needs: build-app
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Coolify web deploy
+        env:
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_DEPLOY_API_KEY }}
+        run: |
+          curl -fsS -X GET \
+            -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
+            -H "Accept: application/json" \
+            "${{ env.COOLIFY_DEPLOY_WEB }}"
+
+  deploy-worker:
+    needs: build-app
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Coolify worker deploy
+        env:
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_DEPLOY_API_KEY }}
+        run: |
+          curl -fsS -X GET \
+            -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
+            -H "Accept: application/json" \
+            "${{ env.COOLIFY_DEPLOY_WORKER }}"
+
+  deploy-ml:
+    needs: build-ml-inference
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Coolify ML deploy
+        env:
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_DEPLOY_API_KEY }}
+        run: |
+          curl -fsS -X GET \
+            -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
+            -H "Accept: application/json" \
+            "${{ env.COOLIFY_DEPLOY_ML }}"
