@@ -74,7 +74,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
               </CardTitle>
               <CardDescription className="mt-1.5 text-ash">
                 {mode === "login"
-                  ? "Sign in to your AIDOS workspace"
+                  ? "Sign in to your DryDock workspace"
                   : "Create your organization workspace for governed AI operations"}
               </CardDescription>
             </div>

@@ -1,28 +1,24 @@
 import {
-  ENTERPRISE_WORKFLOW_STEPS,
-} from "@/lib/enterprise-workflow";
+  getEnabledHomePath,
+} from "@/lib/workspace-mode";
 import { isNavHrefEnabled } from "@/lib/feature-flags";
-import { getEnabledHomePath } from "@/lib/workspace-mode";
 
 export function isEnterpriseWorkflowComplete(completedStepIds: string[]): boolean {
-  const done = new Set(completedStepIds);
-  return ENTERPRISE_WORKFLOW_STEPS.every((step) => done.has(step.id));
+  // Retained for callers; DryDock no longer gates on AIDOS workflow steps.
+  return completedStepIds.length > 0;
 }
 
-export function resolveLandingPath(input: {
+export function resolveLandingPath(_input: {
   hasDna: boolean;
   completedStepIds?: string[];
 }): string {
-  if (!input.hasDna) {
-    return "/activate";
+  // DryDock: Briefing is home. DNA activation funnel is sunsetted for the pilot.
+  if (isNavHrefEnabled("/briefing")) {
+    return "/briefing";
   }
 
-  if (isNavHrefEnabled("/dashboard")) {
-    return "/dashboard";
-  }
-
-  if (isNavHrefEnabled("/workflow")) {
-    return "/workflow";
+  if (isNavHrefEnabled("/ledger")) {
+    return "/ledger";
   }
 
   return getEnabledHomePath("ENTERPRISE");

@@ -11,7 +11,7 @@ export function AidosLogo({
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src="/images/aidos-logo.svg"
-      alt="AIDOS"
+      alt="DryDock"
       width={size}
       height={size}
       className={cn("shrink-0", className)}

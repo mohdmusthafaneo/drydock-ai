@@ -19,7 +19,7 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 
 const SIDEBAR_STORAGE_KEY = "aidos-sidebar-collapsed";
 
-const AUTO_COLLAPSE_PATHS = ["/dashboard", "/agent-threads"];
+const AUTO_COLLAPSE_PATHS = ["/briefing", "/ledger"];
 
 function shouldAutoCollapse(pathname: string): boolean {
   return AUTO_COLLAPSE_PATHS.some(
@@ -138,7 +138,7 @@ export function AppShell({
           >
             <AidosLogo size={32} />
             {sidebarExpanded && (
-              <p className="truncate text-[15px] font-medium tracking-tight text-ink">AIDOS</p>
+              <p className="truncate text-[15px] font-medium tracking-tight text-ink">DryDock</p>
             )}
           </Link>
         </div>

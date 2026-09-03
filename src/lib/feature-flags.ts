@@ -5,6 +5,8 @@
  */
 
 export type NavFeatureFlagId =
+  | "nav.briefing"
+  | "nav.ledger"
   | "nav.dashboard"
   | "nav.workflow"
   | "nav.qa"
@@ -26,27 +28,31 @@ export type NavFeatureFlagId =
 
 /** Toggle nav pages here. Set to false to hide a route from nav and block direct access. */
 export const NAV_FEATURE_FLAGS: Record<NavFeatureFlagId, boolean> = {
-  "nav.dashboard": true,
-  "nav.workflow": true,
-  "nav.qa": true,
-  "nav.code_analysis": true,
-  "nav.delivery_analysis": true,
-  "nav.observability": true,
-  "nav.devops": true,
-  "nav.incidents": true,
-  "nav.recommendations": true,
-  "nav.approvals": true,
-  "nav.governance": true,
-  "nav.audit": true,
-  "nav.agent_threads": true,
+  "nav.briefing": true,
+  "nav.ledger": true,
+  "nav.dashboard": false,
+  "nav.workflow": false,
+  "nav.qa": false,
+  "nav.code_analysis": false,
+  "nav.delivery_analysis": false,
+  "nav.observability": false,
+  "nav.devops": false,
+  "nav.incidents": false,
+  "nav.recommendations": false,
+  "nav.approvals": false,
+  "nav.governance": false,
+  "nav.audit": false,
+  "nav.agent_threads": false,
   "nav.integrations": true,
   "nav.admin": false,
   "nav.settings": true,
-  "nav.mvp_launchpad": true,
-  "nav.mvp_new": true,
+  "nav.mvp_launchpad": false,
+  "nav.mvp_new": false,
 };
 
 const NAV_HREF_TO_FLAG: Record<string, NavFeatureFlagId> = {
+  "/briefing": "nav.briefing",
+  "/ledger": "nav.ledger",
   "/dashboard": "nav.dashboard",
   "/workflow": "nav.workflow",
   "/qa": "nav.qa",
@@ -67,7 +73,7 @@ const NAV_HREF_TO_FLAG: Record<string, NavFeatureFlagId> = {
 
 /** Related routes not listed in the sidebar but tied to a nav flag */
 const EXTRA_PATH_PREFIXES: { prefix: string; flag: NavFeatureFlagId }[] = [
-  { prefix: "/releases", flag: "nav.workflow" },
+  { prefix: "/releases", flag: "nav.briefing" },
   { prefix: "/discovery", flag: "nav.governance" },
   { prefix: "/delivery-dna", flag: "nav.governance" },
 ];
@@ -110,5 +116,5 @@ export function isNavPathEnabled(pathname: string): boolean {
 }
 
 export function getDefaultLandingPath(): string {
-  return "/dashboard";
+  return "/briefing";
 }

@@ -33,13 +33,8 @@ function pickEnterpriseMobileItems(
 ): ResolvedNavItem[] {
   const layout = getResolvedEnterpriseNavLayout(gates, userRole, options);
   const pinnedHrefs = options?.activationMode
-    ? [
-        options.hasDna ? "/dashboard" : "/activate",
-        "/integrations",
-        "/governance/setup",
-        "/settings",
-      ]
-    : ["/dashboard", "/integrations", "/agent-threads", "/approvals"];
+    ? ["/briefing", "/integrations", "/ledger", "/settings"]
+    : ["/briefing", "/ledger", "/releases", "/integrations"];
   const pinned = pinnedHrefs
     .map((href) => findNavItem(layout, href))
     .filter((item): item is ResolvedNavItem => Boolean(item));

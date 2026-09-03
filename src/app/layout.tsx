@@ -30,9 +30,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AIDOS — AI Delivery Intelligence",
+  title: "DryDock — Which green checks mean something",
   description:
-    "Human-governed AI delivery intelligence and orchestration platform",
+    "Signal integrity for the QA Architect. Trust counts, the Ledger, and today's Briefing.",
 };
 
 export default function RootLayout({

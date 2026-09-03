@@ -5,22 +5,10 @@ import type { IntegrationGateKey, IntegrationNavGates } from "@/lib/nav-availabi
 import { DEFAULT_INTEGRATION_NAV_GATES } from "@/lib/nav-availability";
 import {
   LayoutDashboard,
-  GitBranch,
-  Kanban,
-  FlaskConical,
-  Code2,
-  Activity,
-  Lightbulb,
-  CheckSquare,
-  Shield,
-  ScrollText,
-  MessagesSquare,
-  Server,
-  AlertTriangle,
+  BookOpen,
+  Package,
   Plug,
   Settings,
-  HeartPulse,
-  TrendingUp,
 } from "lucide-react";
 
 export type WorkspaceMode = "MVP" | "ENTERPRISE";
@@ -40,16 +28,16 @@ export const WORKSPACE_META: Record<
     label: "MVP Workspace",
     tagline: "",
     description: "Build products — PRD, architecture, Jira epics, and launch plans.",
-    homePath: "/dashboard",
+    homePath: "/briefing",
     accentClass: "from-mvp to-violet-400",
     badgeClass: "bg-mvp-muted text-mvp",
   },
   ENTERPRISE: {
-    label: "Enterprise Workspace",
-    tagline: "",
+    label: "DryDock",
+    tagline: "Trust green",
     description:
-      "Enterprise operational intelligence shell — govern, observe, and orchestrate AI-native delivery (no autonomous agents yet).",
-    homePath: "/dashboard",
+      "Signal integrity for the QA Architect — trust counts, the Ledger, and today's Briefing.",
+    homePath: "/briefing",
     accentClass: "from-accent to-amber-300",
     badgeClass: "bg-accent/15 text-accent",
   },
@@ -102,89 +90,19 @@ export type ResolvedEnterpriseNavLayout = {
 export function getEnterpriseNavLayout(): EnterpriseNavLayout {
   return {
     topItems: [
-      { href: "/dashboard", label: "Today", icon: LayoutDashboard, primary: true },
+      { href: "/briefing", label: "Briefing", icon: LayoutDashboard, primary: true },
+      { href: "/ledger", label: "Ledger", icon: BookOpen },
+      { href: "/releases", label: "Releases", icon: Package },
       { href: "/integrations", label: "Connect", icon: Plug },
-    ],
-    sections: [
-      {
-        id: "investigate",
-        label: "Investigate",
-        icon: Code2,
-        items: [
-          {
-            href: "/delivery-analysis",
-            label: "Delivery analysis",
-            icon: Kanban,
-            integrationGate: "deliveryAnalysis",
-            lockedHint: "Connect Jira",
-          },
-          { href: "/qa", label: "QA intelligence", icon: FlaskConical },
-          { href: "/devops", label: "DevOps", icon: Server },
-          {
-            href: "/code-analysis",
-            label: "Code analysis",
-            icon: Code2,
-            integrationGate: "codeAnalysis",
-            lockedHint: "Connect GitHub",
-          },
-          {
-            href: "/observability",
-            label: "Observability",
-            icon: Activity,
-            integrationGate: "observability",
-            lockedHint: "Connect Prometheus",
-          },
-          { href: "/code-health", label: "Code health", icon: HeartPulse },
-          { href: "/productivity", label: "Productivity", icon: TrendingUp },
-          { href: "/incidents", label: "Incidents", icon: AlertTriangle },
-        ],
-      },
-      {
-        id: "ask",
-        label: "Ask AIDOS",
-        icon: MessagesSquare,
-        items: [
-          {
-            href: "/agent-threads",
-            label: "Conversations",
-            icon: MessagesSquare,
-            roleGate: ["ORG_ADMIN", "DELIVERY_MANAGER", "ENGINEERING_MANAGER", "DEVOPS_LEAD"],
-          },
-        ],
-      },
-      {
-        id: "govern",
-        label: "Govern",
-        icon: Shield,
-        items: [
-          { href: "/approvals", label: "Approval center", icon: CheckSquare },
-          { href: "/recommendations", label: "Recommendations", icon: Lightbulb },
-          { href: "/governance", label: "Delivery DNA", icon: Shield },
-          { href: "/workflow", label: "Workflow center", icon: GitBranch },
-          { href: "/audit", label: "Audit logs", icon: ScrollText },
-        ],
-      },
-    ],
-    bottomItems: [{ href: "/settings", label: "Settings", icon: Settings }],
-  };
-}
-
-/** Constrained IA until DNA + first Jira/GitHub sync — Activate → Connect → DNA. */
-export function getActivationNavLayout(hasDna: boolean): EnterpriseNavLayout {
-  return {
-    topItems: [
-      {
-        href: hasDna ? "/dashboard" : "/activate",
-        label: hasDna ? "Today" : "Activate",
-        icon: LayoutDashboard,
-        primary: true,
-      },
-      { href: "/integrations", label: "Connect", icon: Plug },
-      { href: "/governance/setup", label: "Delivery DNA", icon: Shield },
     ],
     sections: [],
     bottomItems: [{ href: "/settings", label: "Settings", icon: Settings }],
   };
+}
+
+/** DryDock skips the AIDOS activation funnel — Briefing is always available. */
+export function getActivationNavLayout(_hasDna: boolean): EnterpriseNavLayout {
+  return getEnterpriseNavLayout();
 }
 
 function flattenEnterpriseNavLayout(layout: EnterpriseNavLayout): NavItem[] {
@@ -281,15 +199,16 @@ export function getEnabledHomePath(mode: WorkspaceMode): string {
 }
 
 /** @deprecated Prefer resolveLandingPath from @/lib/landing-path or getLandingPathForOrganization */
-export function getHomePath(mode: WorkspaceMode, hasDna: boolean): string {
-  if (!hasDna) return "/activate";
-  if (isNavHrefEnabled("/dashboard")) return "/dashboard";
-  if (isNavHrefEnabled("/workflow")) return "/workflow";
+export function getHomePath(_mode: WorkspaceMode, _hasDna: boolean): string {
+  if (isNavHrefEnabled("/briefing")) return "/briefing";
+  if (isNavHrefEnabled("/ledger")) return "/ledger";
   return getEnabledHomePath("ENTERPRISE");
 }
 
 export function isEnterpriseOnlyPath(pathname: string): boolean {
   const prefixes = [
+    "/briefing",
+    "/ledger",
     "/activate",
     "/discovery",
     "/delivery-dna",

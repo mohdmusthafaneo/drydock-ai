@@ -3,7 +3,10 @@
 Phased delivery plan for the pivot from AIDOS to DryDock.
 Concept and invariants: `docs/DRYDOCK-CONCEPT.md`.
 
-**Status:** planning. No phase started.
+**Status:** Phase 1–2 UI pilot in progress (mock data). Phase 0 foundations not started.
+
+**Current slice:** Briefing + Ledger surfaces with mock Signal Integrity data for UI
+confirmation. Real ingest / detectors deferred until the architect signs off the surfaces.
 
 ---
 
