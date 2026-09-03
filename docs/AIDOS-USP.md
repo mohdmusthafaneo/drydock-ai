@@ -1,5 +1,10 @@
 # AIDOS — Positioning & USP
 
+> **SUPERSEDED — 2026-09-03.** AIDOS is sunsetted. The active product is DryDock; see
+> `docs/DRYDOCK-CONCEPT.md` for canonical positioning and `docs/DRYDOCK-BUILD-PLAN.md` for the
+> active plan. This document is retained for reference only and must not be used to justify
+> product decisions.
+
 **Canonical reference for product, engineering, and marketing.**  
 When building features, UI copy, docs, or demos, align with this document.
 

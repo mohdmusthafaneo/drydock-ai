@@ -1,5 +1,8 @@
 # AIDOS Enterprise Implementation Roadmap
 
+> **SUPERSEDED — 2026-09-03.** AIDOS is sunsetted. See `docs/DRYDOCK-CONCEPT.md` and
+> `docs/DRYDOCK-BUILD-PLAN.md`. Retained for reference only.
+
 **AI Governance + QA Intelligence + Observability Platform**  
 Enterprise milestones and execution blueprint.
 

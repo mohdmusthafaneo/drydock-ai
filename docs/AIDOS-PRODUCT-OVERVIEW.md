@@ -1,5 +1,8 @@
 # AIDOS — Product Overview
 
+> **SUPERSEDED — 2026-09-03.** AIDOS is sunsetted. See `docs/DRYDOCK-CONCEPT.md`.
+> Retained for reference only.
+
 ## What it is
 
 AIDOS (AI Delivery Intelligence Platform) is a **governance and operational intelligence layer** for AI-native software delivery. It is not an AI coding assistant, copilot, or autonomous agent builder.

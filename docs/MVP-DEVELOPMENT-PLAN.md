@@ -1,5 +1,8 @@
 # AIDOS MVP Development Plan — MVP Accelerator Focus
 
+> **SUPERSEDED — 2026-09-03.** AIDOS is sunsetted and the Accelerator is out of scope. The
+> active plan is `docs/DRYDOCK-BUILD-PLAN.md`. Retained for reference only.
+
 **Last updated:** 2026-05-17  
 **Primary wedge:** **MVP Delivery Accelerator** (startup & innovation teams)  
 **Supporting layer:** Discovery, Delivery DNA, human governance  

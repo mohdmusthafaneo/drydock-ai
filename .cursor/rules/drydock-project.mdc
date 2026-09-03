@@ -1,0 +1,31 @@
+---
+description: DryDock core product context and engineering invariants for all agents
+alwaysApply: true
+---
+
+# DryDock — Project invariants
+
+- **Concept (required reading)**: `docs/DRYDOCK-CONCEPT.md` — DryDock tells a QA Architect which of their green checks actually mean something. Not a test runner, coverage tool, review bot, or dashboard product.
+- **Active build plan**: `docs/DRYDOCK-BUILD-PLAN.md` — check phase status before starting work.
+- **Audience**: one persona, the QA Architect. No manager, team, or leadership views.
+- **Decision unit**: the release.
+- **Loop**: Ingest → Ledger → Briefing → Ruling → Certificate.
+
+## Hard rules
+
+- **No metric is ever grouped by contributor.** No author, team, or vendor as a reporting dimension anywhere in schema or UI. Evidence links to files and PRs, never to people.
+- **Nothing is silently suppressed.** Every hidden finding is one click away with its reason and originating ruling.
+- **The architect can always overrule, on the record.**
+- **Recommend-only.** Never write to GitHub or Jira, modify tests, quarantine, or gate a pipeline.
+- **Every claim traces to evidence.** Inference is labelled as inference.
+- **Trust is a count, not a score.** No gauges, no composite index.
+- **No charts in v1.** Sentences, counts, and lists. A chart must justify a specific decision it changes.
+- **Neutral evidentiary voice** in UI copy. An instrument, not a chatbot.
+- **Tenancy**: all data scoped by `organizationId` from session.
+- **Build**: run `npm run build` before marking work complete.
+
+## Legacy
+
+AIDOS is sunsetted. `docs/AIDOS-*.md` and `docs/MVP-DEVELOPMENT-PLAN.md` are superseded and kept for reference only. Where they conflict with `docs/DRYDOCK-CONCEPT.md`, the concept doc wins.
+
+Use `/frontend`, `/backend`, `/architect`, or `/orchestrator` subagents for specialized work.

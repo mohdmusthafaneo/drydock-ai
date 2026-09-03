@@ -1,5 +1,8 @@
 # AIDOS Phase 1 — Detailed Execution Plan
 
+> **SUPERSEDED — 2026-09-03.** AIDOS is sunsetted. The active plan is
+> `docs/DRYDOCK-BUILD-PLAN.md`. Retained for reference only.
+
 **Enterprise Core Platform · 4–6 weeks**
 
 > Phase 1 is **not** AI automation. It is the **enterprise-grade governance & observability foundation**.  
