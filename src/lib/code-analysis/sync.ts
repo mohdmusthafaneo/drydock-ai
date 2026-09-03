@@ -44,8 +44,8 @@ import type {
 } from "@/lib/code-analysis/types";
 
 const FETCH_WINDOW_DAYS = 90;
-const MAX_COMMITS_PER_REPO = 50;
-const MAX_PRS_PER_REPO = 25;
+const MAX_COMMITS_PER_REPO = 100;
+const MAX_PRS_PER_REPO = 100;
 
 export function getStoredCodeAnalysisSnapshot(
   metadataJson: unknown,

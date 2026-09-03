@@ -156,6 +156,16 @@ model Organization {
   commitSnapshots         CommitSnapshot[]
   evidenceLinks           EvidenceLink[]
   evidenceReviews         EvidenceReview[]
+  ciRuns                  CiRun[]
+  testCases               TestCase[]
+  testCaseAliases         TestCaseAlias[]
+  testExecutions          TestExecution[]
+  testTrustStates         TestTrustState[]
+  findings                Finding[]
+  rulings                 Ruling[]
+  precedents              Precedent[]
+  standardPatterns        StandardPattern[]
+  releaseCertificates     ReleaseCertificate[]
 }
 
 enum EmbeddingRefType {
@@ -530,6 +540,7 @@ model Release {
   telemetryMetrics TelemetryMetric[]
   telemetryEvents  TelemetryEvent[]
   deploymentEvents DeploymentEvent[]
+  certificate      ReleaseCertificate?
 
   @@unique([organizationId, jiraSprintId])
   @@unique([organizationId, jiraFixVersion, serviceScope])
@@ -1622,4 +1633,331 @@ model DevOpsAccountScanWarning {
 
   @@unique([runId, warningText])
   @@index([organizationId, runId])
+}
+
+// ---------------------------------------------------------------------------
+// DryDock — Signal Integrity substrate (no author/team/vendor fields)
+// ---------------------------------------------------------------------------
+
+enum CiRunConclusion {
+  SUCCESS
+  FAILURE
+  CANCELLED
+  SKIPPED
+  NEUTRAL
+  UNKNOWN
+}
+
+enum TestOutcome {
+  PASSED
+  FAILED
+  SKIPPED
+  ERROR
+}
+
+enum TestCategory {
+  E2E
+  CONTRACT
+  SMOKE
+  UNIT
+  UNKNOWN
+}
+
+enum TestLifecycleState {
+  ACTIVE
+  SKIPPED
+  QUARANTINED
+  RETIRED
+}
+
+enum TrustDeficitReason {
+  NEVER_FAILED
+  FLAKE
+  RETRY_MASKED
+  SKIPPED
+  PERMAFAIL
+  SIGNAL_DECAY
+  SEMANTIC_DUPLICATE
+  NONE
+}
+
+enum FindingStatus {
+  OPEN
+  RULED
+  DEMOTED
+  RESOLVED
+}
+
+enum AttentionVerb {
+  RULE
+  ROUTE
+  SNOOZE
+  SIGN_OFF
+}
+
+enum FindingSeverity {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum RulingReasonCode {
+  INTENTIONAL_THIS_TEST
+  CORRECT_FOR_KIND
+  REQUIRED_BY_INTEGRATION
+  KNOWN_BEING_FIXED
+  ACCEPTED_RISK
+  FINDING_WRONG
+  CUSTOM
+}
+
+/// A CI workflow run. Evidence links to repo/commit/workflow — never a person.
+model CiRun {
+  id             String         @id @default(cuid())
+  organizationId String
+  repository     String
+  workflowName   String
+  workflowRunId  String
+  commitSha      String
+  branch         String
+  conclusion     CiRunConclusion
+  startedAt      DateTime?
+  finishedAt     DateTime?
+  htmlUrl        String?
+  ingestedAt     DateTime       @default(now())
+  createdAt      DateTime       @default(now())
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  executions   TestExecution[]
+
+  @@unique([organizationId, repository, workflowRunId])
+  @@index([organizationId, finishedAt])
+  @@index([organizationId, commitSha])
+  @@index([organizationId, repository, branch])
+}
+
+/// Stable identity for a test. No contributor fields.
+model TestCase {
+  id             String             @id @default(cuid())
+  organizationId String
+  repository     String
+  filePath       String
+  suitePath      String
+  name           String
+  stableKey      String
+  category       TestCategory       @default(UNKNOWN)
+  lifecycleState TestLifecycleState @default(ACTIVE)
+  firstSeenAt    DateTime           @default(now())
+  lastSeenAt     DateTime           @default(now())
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  aliases      TestCaseAlias[]
+  executions   TestExecution[]
+  trustState   TestTrustState?
+  findings     Finding[]
+
+  @@unique([organizationId, stableKey])
+  @@index([organizationId, repository, filePath])
+  @@index([organizationId, lifecycleState])
+}
+
+/// Prior identities for history re-linking across renames/moves.
+model TestCaseAlias {
+  id             String   @id @default(cuid())
+  organizationId String
+  testCaseId     String
+  repository     String
+  filePath       String
+  suitePath      String
+  name           String
+  stableKey      String
+  confidence     Float    @default(1)
+  confirmed      Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  testCase     TestCase     @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, stableKey])
+  @@index([organizationId, testCaseId])
+}
+
+/// Per-test, per-run outcome. Timescale hypertable (partition: executedAt).
+model TestExecution {
+  id                String      @default(cuid())
+  organizationId    String
+  testCaseId        String
+  ciRunId           String
+  outcome           TestOutcome
+  durationMs        Int?
+  retryCount        Int         @default(0)
+  /// Passes that only succeeded after retry (retry masking signal).
+  passedOnRetry     Boolean     @default(false)
+  errorMessage      String?
+  errorFingerprint  String?
+  executedAt        DateTime
+  ingestedAt        DateTime    @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  testCase     TestCase     @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+  ciRun        CiRun        @relation(fields: [ciRunId], references: [id], onDelete: Cascade)
+
+  @@id([id, executedAt])
+  @@index([organizationId, executedAt])
+  @@index([testCaseId, executedAt])
+  @@index([ciRunId, executedAt])
+  @@index([organizationId, errorFingerprint])
+  @@index([organizationId, testCaseId, outcome])
+}
+
+/// Derived per-test rollup recomputed on ingest.
+model TestTrustState {
+  id              String              @id @default(cuid())
+  organizationId  String
+  testCaseId      String              @unique
+  trusted         Boolean             @default(true)
+  deficitReason   TrustDeficitReason  @default(NONE)
+  executionCount  Int                 @default(0)
+  failCount       Int                 @default(0)
+  passCount       Int                 @default(0)
+  skipCount       Int                 @default(0)
+  retryPassCount  Int                 @default(0)
+  flakeScore      Float               @default(0)
+  lastOutcome     TestOutcome?
+  lastExecutedAt  DateTime?
+  evidenceSummary String?
+  recomputedAt    DateTime            @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  testCase     TestCase     @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, trusted])
+  @@index([organizationId, deficitReason])
+}
+
+/// Observation needing architect attention. Evidence via file/PR paths only.
+model Finding {
+  id              String           @id @default(cuid())
+  organizationId  String
+  testCaseId      String?
+  reason          TrustDeficitReason
+  status          FindingStatus    @default(OPEN)
+  verb            AttentionVerb    @default(RULE)
+  severity        FindingSeverity  @default(MEDIUM)
+  title           String
+  plainSentence   String
+  clusterKey      String
+  clusterSize     Int              @default(1)
+  repository      String?
+  filePath        String?
+  evidenceJson    Json             @default("{}")
+  inference       Boolean          @default(false)
+  estimatedMinutes Int             @default(5)
+  sinceLastRelease Boolean         @default(true)
+  demoted         Boolean          @default(false)
+  sourceChipsJson Json             @default("[]")
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  resolvedAt      DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  testCase     TestCase?    @relation(fields: [testCaseId], references: [id], onDelete: SetNull)
+  rulings      Ruling[]
+
+  @@index([organizationId, status, createdAt])
+  @@index([organizationId, reason, status])
+  @@index([organizationId, clusterKey])
+  @@index([organizationId, demoted])
+}
+
+/// Architect decision on a finding. Reason carries scope.
+model Ruling {
+  id             String           @id @default(cuid())
+  organizationId String
+  findingId      String
+  reasonCode     RulingReasonCode
+  customReason   String?
+  scopeSummary   String
+  expiresAt      DateTime?
+  createdAt      DateTime         @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  finding      Finding      @relation(fields: [findingId], references: [id], onDelete: Cascade)
+  precedent    Precedent?
+
+  @@index([organizationId, createdAt])
+  @@index([findingId])
+}
+
+/// Ruling promoted after corroboration + ratification.
+model Precedent {
+  id             String              @id @default(cuid())
+  organizationId String
+  rulingId       String              @unique
+  reason         TrustDeficitReason
+  patternKey     String
+  plainSentence  String
+  active         Boolean             @default(true)
+  ratifiedAt     DateTime            @default(now())
+  createdAt      DateTime            @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  ruling       Ruling       @relation(fields: [rulingId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, active, reason])
+  @@index([organizationId, patternKey])
+}
+
+enum StandardPatternStatus {
+  CANDIDATE
+  RATIFIED
+  REJECTED
+}
+
+/// Mined corpus pattern waiting for or holding architect ratification.
+model StandardPattern {
+  id               String                 @id @default(cuid())
+  organizationId   String
+  patternKey       String
+  shapeLabel       String
+  plainSentence    String
+  exampleNamesJson Json                   @default("[]")
+  occurrenceCount  Int                    @default(1)
+  status           StandardPatternStatus  @default(CANDIDATE)
+  ratifiedAt       DateTime?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, patternKey])
+  @@index([organizationId, status])
+}
+
+enum CertificateDecision {
+  SHIP
+  HOLD
+  ACCEPT_RISK
+}
+
+/// Signed release artifact: what was verified, what was not, what is unreliable.
+model ReleaseCertificate {
+  id               String               @id @default(cuid())
+  organizationId   String
+  releaseId        String               @unique
+  verifiedCount    Int
+  unverifiedCount  Int
+  unreliableCount  Int
+  acceptedRisk     String
+  decision         CertificateDecision
+  rationale        String
+  signedAt         DateTime             @default(now())
+  createdAt        DateTime             @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  release      Release      @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, signedAt])
 }

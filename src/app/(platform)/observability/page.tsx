@@ -14,13 +14,15 @@ import { isGrafanaTrulyConnected, parseGrafanaMeta } from "@/lib/grafana-meta";
 import { getAvailableMockServiceScopes } from "@/lib/observability-analysis/mock-data";
 import { ObservabilityPageClient } from "@/components/observability/observability-page-client";
 import type { ObservabilityAnalysisSnapshot } from "@/lib/observability-analysis/types";
+import { isObservabilityEnabled } from "@/lib/process-role";
 
 export default async function ObservabilityPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
+  if (!isObservabilityEnabled()) redirect("/briefing");
+
   const ctx = await getOrganizationContext(session.organizationId);
-  if (!ctx.dna) redirect("/governance/setup");
 
   const prometheus = ctx.integrations.find(
     (i) => i.provider === "PROMETHEUS" && i.status === "CONNECTED",

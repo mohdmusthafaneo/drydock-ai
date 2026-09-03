@@ -41,7 +41,7 @@ export const NAV_FEATURE_FLAGS: Record<NavFeatureFlagId, boolean> = {
   "nav.recommendations": false,
   "nav.approvals": false,
   "nav.governance": false,
-  "nav.audit": false,
+  "nav.audit": true,
   "nav.agent_threads": false,
   "nav.integrations": true,
   "nav.admin": false,
@@ -74,6 +74,9 @@ const NAV_HREF_TO_FLAG: Record<string, NavFeatureFlagId> = {
 /** Related routes not listed in the sidebar but tied to a nav flag */
 const EXTRA_PATH_PREFIXES: { prefix: string; flag: NavFeatureFlagId }[] = [
   { prefix: "/releases", flag: "nav.briefing" },
+  { prefix: "/standard", flag: "nav.briefing" },
+  { prefix: "/certificate", flag: "nav.briefing" },
+  { prefix: "/escapes", flag: "nav.briefing" },
   { prefix: "/discovery", flag: "nav.governance" },
   { prefix: "/delivery-dna", flag: "nav.governance" },
 ];

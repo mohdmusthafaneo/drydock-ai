@@ -12,14 +12,46 @@ import {
 
 type Props = {
   briefing: MockBriefing;
+  dataSource?: "db" | "mock";
 };
 
-export function BriefingView({ briefing }: Props) {
+type DemotedItem = {
+  id: string;
+  title: string;
+  plainSentence: string;
+  demoted: boolean;
+  status: string;
+  reasonCode: string | null;
+  scopeSummary: string | null;
+};
+
+export function BriefingView({ briefing, dataSource = "mock" }: Props) {
   const [ruledIds, setRuledIds] = useState<string[]>([]);
+  const [demotedOpen, setDemotedOpen] = useState(false);
+  const [demotedItems, setDemotedItems] = useState<DemotedItem[] | null>(null);
+  const [demotedLoading, setDemotedLoading] = useState(false);
+
   const remainingMinutes = briefing.findings
     .filter((f) => !ruledIds.includes(f.id))
     .reduce((sum, f) => sum + f.estimatedMinutes, 0);
   const openCount = briefing.findings.length - ruledIds.length;
+
+  async function openDemoted() {
+    setDemotedOpen(true);
+    if (demotedItems || dataSource === "mock") return;
+    setDemotedLoading(true);
+    try {
+      const res = await fetch("/api/drydock/suppressed", {
+        credentials: "same-origin",
+      });
+      if (res.ok) {
+        const json = (await res.json()) as { items: DemotedItem[] };
+        setDemotedItems(json.items);
+      }
+    } finally {
+      setDemotedLoading(false);
+    }
+  }
 
   if (briefing.silence || openCount === 0) {
     return (
@@ -84,23 +116,61 @@ export function BriefingView({ briefing }: Props) {
 
       <div className="space-y-4">
         {briefing.findings.map((finding) => (
-          <FindingCard
-            key={finding.id}
-            finding={finding}
-            onRuled={(id) => setRuledIds((prev) => [...prev, id])}
-          />
-        ))}
+            <FindingCard
+              key={finding.id}
+              finding={finding}
+              persist={dataSource === "db"}
+              onRuled={(id) => setRuledIds((prev) => [...prev, id])}
+            />
+          ))}
       </div>
 
-      <button
-        type="button"
-        className="w-full rounded-[16px] border border-dashed border-dove/70 bg-fog/40 px-4 py-3 text-left text-[14px] text-ash hover:border-dove hover:bg-fog/70"
-      >
-        {briefing.demotedSummary} — open in one click. Nothing was suppressed.
-      </button>
+      <div className="rounded-[16px] border border-dashed border-dove/70 bg-fog/40">
+        <button
+          type="button"
+          onClick={() => {
+            if (demotedOpen) setDemotedOpen(false);
+            else void openDemoted();
+          }}
+          className="w-full px-4 py-3 text-left text-[14px] text-ash hover:bg-fog/70"
+        >
+          {briefing.demotedSummary} — open in one click. Nothing was suppressed.
+        </button>
+        {demotedOpen ? (
+          <div className="border-t border-dove/40 px-4 py-3 text-[13px] leading-relaxed text-ash">
+            {dataSource === "mock" ? (
+              <p>
+                Mock: demoted items appear here with the ruling that covered
+                them. Nothing disappears.
+              </p>
+            ) : demotedLoading ? (
+              <p>Loading…</p>
+            ) : demotedItems && demotedItems.length > 0 ? (
+              <ul className="space-y-2">
+                {demotedItems.map((item) => (
+                  <li key={item.id} className="rounded-[12px] bg-pure-white/80 px-3 py-2">
+                    <p className="font-medium text-ink">{item.title}</p>
+                    <p className="mt-0.5">{item.plainSentence}</p>
+                    {item.scopeSummary ? (
+                      <p className="mt-1 text-[12px] text-graphite">
+                        Scope: {item.scopeSummary}
+                        {item.reasonCode ? ` · ${item.reasonCode}` : ""}
+                      </p>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No demoted or ruled items yet.</p>
+            )}
+          </div>
+        ) : null}
+      </div>
 
       <p className="text-[12px] text-graphite">
-        Mock data for UI confirmation. Rulings are recorded in-session only.
+        {dataSource === "db"
+          ? "Loaded from ingested CI results for this organization."
+          : "Mock data — seed pilot Signal Integrity to bind this surface."}
       </p>
     </div>
   );

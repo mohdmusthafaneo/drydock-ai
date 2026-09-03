@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-ROLE="${AIDOS_PROCESS_ROLE:-web}"
+ROLE="${DRYDOCK_PROCESS_ROLE:-${AIDOS_PROCESS_ROLE:-web}}"
 
 case "$ROLE" in
   web)
@@ -33,7 +33,7 @@ case "$ROLE" in
     ;;
 
   *)
-    echo "ERROR: Unknown AIDOS_PROCESS_ROLE=$ROLE (use 'web' or 'worker')"
+    echo "ERROR: Unknown DRYDOCK_PROCESS_ROLE/AIDOS_PROCESS_ROLE=$ROLE (use 'web' or 'worker')"
     exit 1
     ;;
 esac

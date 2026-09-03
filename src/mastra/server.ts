@@ -42,7 +42,7 @@ export function createMastraInstance(_options: CreateMastraOptions = {}): Mastra
     observability: new Observability({
       configs: {
         default: {
-          serviceName: "aidos",
+          serviceName: "drydock",
           exporters: [
             new MastraStorageExporter(),
             new MastraPlatformExporter(),

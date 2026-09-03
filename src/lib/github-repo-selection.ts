@@ -10,7 +10,7 @@ import { mergeGitHubMeta, parseIntegrationMeta } from "@/lib/integration-meta";
 import type { Integration } from "@/generated/prisma/client";
 
 import { determineActorType } from "@/lib/audit-helpers";
-export const MAX_GITHUB_SYNC_REPOS = 10;
+export const MAX_GITHUB_SYNC_REPOS = 50;
 
 export type GitHubRepoOption = {
   fullName: string;

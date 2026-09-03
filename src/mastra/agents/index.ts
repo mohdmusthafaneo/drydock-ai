@@ -31,4 +31,5 @@ export {
 export {
   AIDOS_ASSISTANT_ID,
   AIDOS_ASSISTANT_INSTRUCTIONS,
+  DRYDOCK_ASSISTANT_ID,
 } from "./aidos-assistant";

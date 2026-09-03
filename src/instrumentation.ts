@@ -5,8 +5,9 @@ export async function register() {
   const { logServerStartup } = await import("@/lib/logger");
 
   validateRuntimeEnv();
-  const role = process.env.AIDOS_PROCESS_ROLE ?? "web";
-  logServerStartup("AIDOS server runtime environment validated", {
+  const { getProcessRole } = await import("@/lib/process-role");
+  const role = getProcessRole();
+  logServerStartup("DryDock server runtime environment validated", {
     nodeEnv: process.env.NODE_ENV,
     role,
   });

@@ -262,8 +262,8 @@ export function GitHubIntegrationPanel({
     return (
       <div className="space-y-3">
         <p className="text-xs text-muted">
-          Install the AIDOS GitHub App to grant read access to PRs, commits, and Actions across the
-          repositories you select. Approval is per-organization and managed by your GitHub admin.
+          Install the DryDock GitHub App to grant read access to Actions artifacts, PRs, and commits
+          across the repositories you select. Approval is per-organization and managed by your GitHub admin.
         </p>
         <Button size="sm" asChild>
           <Link href={installUrl}>Install GitHub App</Link>

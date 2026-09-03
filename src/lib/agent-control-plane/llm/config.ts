@@ -42,6 +42,7 @@ export function assertAnthropicConfigured(config: AnthropicConfig): void {
 
 export function resolveAidosApiBaseUrl(): string {
   const url =
+    process.env.DRYDOCK_API_URL?.trim() ||
     process.env.AIDOS_API_URL?.trim() ||
     process.env.NEXT_PUBLIC_APP_URL?.trim() ||
     "http://localhost:3000";

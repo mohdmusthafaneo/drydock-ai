@@ -28,8 +28,8 @@ export function ConnectHandoffBanner({
           <p className="text-[15px] font-medium text-ink">First snapshot in progress</p>
           <p className="mt-1 text-[14px] leading-relaxed text-ash">
             {label
-              ? `${label} is connected. AIDOS is pulling read-only delivery signals. Open the briefing when you\u2019re ready; it improves as sync completes.`
-              : "AIDOS is pulling read-only delivery signals. Open the briefing when you\u2019re ready; it improves as sync completes."}
+              ? `${label} is connected. DryDock is pulling read-only signals. Open the briefing when you\u2019re ready; it improves as sync completes.`
+              : "DryDock is pulling read-only signals. Open the briefing when you\u2019re ready; it improves as sync completes."}
           </p>
         </div>
         <Button asChild variant="ink" size="lg" className="shrink-0">

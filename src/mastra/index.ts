@@ -40,6 +40,7 @@ export {
   productIntelligenceAgent,
   AIDOS_ASSISTANT_ID,
   AIDOS_ASSISTANT_INSTRUCTIONS,
+  DRYDOCK_ASSISTANT_ID,
 } from "./agents";
 export {
   aidosWorkflows,

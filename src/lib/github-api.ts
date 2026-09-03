@@ -122,10 +122,15 @@ export async function listBranches(
   );
 }
 
-export async function listOpenPulls(accessToken: string, owner: string, repo: string) {
+export async function listOpenPulls(
+  accessToken: string,
+  owner: string,
+  repo: string,
+  perPage = 100,
+) {
   return githubFetch<GitHubPull[]>(
     accessToken,
-    `/repos/${owner}/${repo}/pulls?state=open&per_page=10&sort=updated`,
+    `/repos/${owner}/${repo}/pulls?state=open&per_page=${perPage}&sort=updated`,
   );
 }
 
@@ -146,7 +151,7 @@ export async function listCommits(
   repo: string,
   options?: { since?: string; perPage?: number; sha?: string },
 ) {
-  const perPage = options?.perPage ?? 50;
+  const perPage = options?.perPage ?? 100;
   const since = options?.since ? `&since=${encodeURIComponent(options.since)}` : "";
   const sha = options?.sha ? `&sha=${encodeURIComponent(options.sha)}` : "";
   return githubFetch<GitHubCommitListItem[]>(
@@ -193,7 +198,7 @@ export async function listClosedPulls(
   accessToken: string,
   owner: string,
   repo: string,
-  perPage = 30,
+  perPage = 100,
 ) {
   return githubFetch<GitHubClosedPull[]>(
     accessToken,
@@ -276,6 +281,7 @@ export type GitHubWorkflowRun = {
   conclusion: string | null;
   html_url: string;
   head_branch: string;
+  head_sha: string;
   created_at: string;
   updated_at: string;
 };
@@ -284,13 +290,67 @@ export async function listWorkflowRuns(
   accessToken: string,
   owner: string,
   repo: string,
-  perPage = 5,
+  perPage = 100,
 ) {
   const data = await githubFetch<{ workflow_runs: GitHubWorkflowRun[] }>(
     accessToken,
     `/repos/${owner}/${repo}/actions/runs?per_page=${perPage}`,
   );
   return data.workflow_runs ?? [];
+}
+
+export type GitHubArtifact = {
+  id: number;
+  name: string;
+  size_in_bytes: number;
+  expired: boolean;
+  archive_download_url: string;
+};
+
+/** List Actions artifacts for a workflow run (requires actions:read). */
+export async function listWorkflowRunArtifacts(
+  accessToken: string,
+  owner: string,
+  repo: string,
+  runId: number,
+) {
+  const data = await githubFetch<{ artifacts: GitHubArtifact[] }>(
+    accessToken,
+    `/repos/${owner}/${repo}/actions/runs/${runId}/artifacts`,
+  );
+  return data.artifacts ?? [];
+}
+
+/**
+ * Download an artifact zip. Caller parses JUnit XML from the archive.
+ * Recommend-only — never uploads or mutates the workflow.
+ */
+export async function downloadArtifactArchive(
+  accessToken: string,
+  owner: string,
+  repo: string,
+  artifactId: number,
+): Promise<ArrayBuffer> {
+  const path = `/repos/${owner}/${repo}/actions/artifacts/${artifactId}/zip`;
+  let res: Response;
+  try {
+    res = await httpFetch({
+      url: `${GITHUB_API}${path}`,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+      scope: { provider: "github" },
+    });
+  } catch (err) {
+    const status = err instanceof HttpResponseError ? err.status : 502;
+    throw new GitHubApiError("artifact download failed", status);
+  }
+  if (!res.ok) {
+    throw new GitHubApiError(`artifact download failed (${res.status})`, res.status);
+  }
+  return res.arrayBuffer();
 }
 
 export function parseOwnerRepo(fullName: string) {

@@ -9,6 +9,7 @@ import {
   listWorkflowRuns,
   parseOwnerRepo,
 } from "@/lib/github-api";
+import { ingestWorkflowRunArtifacts } from "@/lib/drydock/github-artifacts";
 import { resolveSyncRepoFullNames } from "@/lib/github-repo-selection";
 import { resolveGitHubTokenForIntegration } from "@/lib/github-token";
 import {
@@ -87,8 +88,8 @@ export async function syncGitHubIntegration(input: {
     const { owner, repo: repoName } = parseOwnerRepo(repo.fullName);
     try {
       const [pulls, runs] = await Promise.all([
-        listOpenPulls(token, owner, repoName),
-        listWorkflowRuns(token, owner, repoName, 10),
+        listOpenPulls(token, owner, repoName, 100),
+        listWorkflowRuns(token, owner, repoName, 50),
       ]);
 
       repo.openPrs = pulls.length;
@@ -151,6 +152,33 @@ export async function syncGitHubIntegration(input: {
           },
           occurredAt: run.updated_at,
         });
+      }
+
+      try {
+        const ingest = await ingestWorkflowRunArtifacts({
+          organizationId: input.organizationId,
+          accessToken: token,
+          owner,
+          repo: repoName,
+          repositoryFullName: repo.fullName,
+          runs,
+        });
+        if (ingest.reportsIngested > 0 || ingest.errors.length > 0) {
+          telemetryEvents.push({
+            eventType: "cicd",
+            source: "github",
+            severity: ingest.errors.length ? "warning" : "info",
+            service: repo.fullName,
+            payload: {
+              action: "drydock.junit_ingest",
+              reportsIngested: ingest.reportsIngested,
+              artifactsDownloaded: ingest.artifactsDownloaded,
+              errorCount: ingest.errors.length,
+            },
+          });
+        }
+      } catch {
+        // Artifact ingest is best-effort; GitHub metadata sync still succeeds.
       }
     } catch (e) {
       if (e instanceof GitHubApiError && e.status === 403) {

@@ -15,15 +15,46 @@ import { cn } from "@/lib/utils";
 
 type Props = {
   ledger: MockLedger;
+  dataSource?: "db" | "mock";
 };
 
-export function LedgerView({ ledger }: Props) {
+type SuppressedItem = {
+  id: string;
+  title: string;
+  plainSentence: string;
+  demoted: boolean;
+  status: string;
+  reasonCode: string | null;
+  scopeSummary: string | null;
+};
+
+export function LedgerView({ ledger, dataSource = "mock" }: Props) {
   const [selected, setSelected] = useState<TrustDeficitReason | null>(null);
   const [suppressedOpen, setSuppressedOpen] = useState(false);
+  const [suppressed, setSuppressed] = useState<SuppressedItem[] | null>(null);
+  const [loadingSuppressed, setLoadingSuppressed] = useState(false);
 
   const bucket: MockTrustBucket | undefined = ledger.buckets.find(
     (b) => b.reason === selected,
   );
+
+  async function openSuppressed() {
+    const next = !suppressedOpen;
+    setSuppressedOpen(next);
+    if (!next || suppressed || dataSource === "mock") return;
+    setLoadingSuppressed(true);
+    try {
+      const res = await fetch("/api/drydock/suppressed", {
+        credentials: "same-origin",
+      });
+      if (res.ok) {
+        const json = (await res.json()) as { items: SuppressedItem[] };
+        setSuppressed(json.items);
+      }
+    } finally {
+      setLoadingSuppressed(false);
+    }
+  }
 
   return (
     <div className="space-y-8">
@@ -130,7 +161,7 @@ export function LedgerView({ ledger }: Props) {
       <div className="rounded-[16px] border border-dove/50 bg-fog/50">
         <button
           type="button"
-          onClick={() => setSuppressedOpen((v) => !v)}
+          onClick={() => void openSuppressed()}
           className="flex w-full items-center justify-between px-4 py-3 text-left text-[14px] font-medium text-ink"
         >
           Suppressed findings
@@ -140,17 +171,37 @@ export function LedgerView({ ledger }: Props) {
         </button>
         {suppressedOpen ? (
           <div className="border-t border-dove/40 px-4 py-3 text-[13px] leading-relaxed text-ash">
-            <p>
-              Mock: no rulings have suppressed findings yet. When they do, each
-              hidden item appears here with its reason and originating ruling.
-            </p>
+            {dataSource === "mock" ? (
+              <p>
+                Mock: no rulings have suppressed findings yet. When they do, each
+                hidden item appears here with its reason and originating ruling.
+              </p>
+            ) : loadingSuppressed ? (
+              <p>Loading…</p>
+            ) : suppressed && suppressed.length > 0 ? (
+              <ul className="space-y-2">
+                {suppressed.map((item) => (
+                  <li key={item.id} className="rounded-[12px] bg-pure-white/80 px-3 py-2">
+                    <p className="font-medium text-ink">{item.title}</p>
+                    <p className="mt-0.5">{item.plainSentence}</p>
+                    <p className="mt-1 text-[12px] text-graphite">
+                      {item.demoted ? "Demoted" : item.status}
+                      {item.scopeSummary ? ` · ${item.scopeSummary}` : ""}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No suppressed findings. Nothing was hidden.</p>
+            )}
           </div>
         ) : null}
       </div>
 
       <p className="text-[12px] text-graphite">
-        Mock data for UI confirmation. Counts will bind to ingested CI results
-        after sign-off.
+        {dataSource === "db"
+          ? "Counts bound to ingested CI results for this organization."
+          : "Mock data for UI confirmation. Seed pilot to bind counts."}
       </p>
     </div>
   );

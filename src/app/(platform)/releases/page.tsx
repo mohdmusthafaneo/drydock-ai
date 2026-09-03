@@ -1,100 +1,59 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
-import { getOrganizationContext } from "@/lib/org-data";
-import {
-  buildReleasePortfolioHighlights,
-  releaseListVerdict,
-  releaseStatusLabel,
-  sortReleasesByRisk,
-} from "@/lib/governance/presentation";
-import { verdictBadgeVariant, releaseStatusBadgeVariant } from "@/lib/release-gate-brief";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/layout/page-header";
-import { BriefingHighlights } from "@/components/executive-briefing/briefing-highlights";
-import { RevealSection } from "@/components/motion/reveal-section";
 
 export default async function ReleasesPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const ctx = await getOrganizationContext(session.organizationId);
-  if (!ctx.dna) redirect("/governance/setup");
-
-  const releases = sortReleasesByRisk(ctx.releases);
-  const highlights = buildReleasePortfolioHighlights(ctx.releases);
+  const releases = await prisma.release.findMany({
+    where: { organizationId: session.organizationId },
+    include: { certificate: true, incidents: { select: { id: true } } },
+    orderBy: { createdAt: "desc" },
+  });
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Release governance"
-        description="Portfolio verdict at a glance — then drill into each release gate."
+        title="Releases"
+        description="The decision unit. Open a release to inspect trust counts and sign a Certificate."
       >
-        <Button asChild variant="ink" size="lg">
-          <Link href="/releases/new">+ Register release</Link>
-        </Button>
+        <Link
+          href="/releases/new"
+          className="rounded-full bg-ink px-4 py-2 text-[14px] text-pure-white"
+        >
+          Register release
+        </Link>
       </PageHeader>
 
-      {releases.length > 0 && (
-        <RevealSection>
-          <BriefingHighlights highlights={highlights} />
-        </RevealSection>
-      )}
-
       {releases.length === 0 ? (
-        <div className="rounded-[var(--radius-card)] border border-dashed border-dove bg-sky-wash/40 px-6 py-12 text-center">
-          <p className="text-ash">No releases yet. Register a release event to start the workflow.</p>
-          <Button asChild variant="ink" size="lg" className="mt-4">
-            <Link href="/releases/new">Register release</Link>
-          </Button>
-        </div>
+        <p className="text-[15px] text-ash">
+          No releases registered. The Ledger still holds the current trust count.
+        </p>
       ) : (
-        <div className="space-y-3">
-          {releases.map((r) => {
-            const verdict = releaseListVerdict(r);
-            const statusLabel = releaseStatusLabel(r.status);
-
-            return (
+        <ul className="space-y-3">
+          {releases.map((release) => (
+            <li key={release.id}>
               <Link
-                key={r.id}
-                href={`/releases/${r.id}`}
-                className="block rounded-[var(--radius-card)] border border-border-subtle bg-surface p-5 shadow-[var(--shadow-subtle)] transition-colors hover:bg-hover"
+                href="/certificate"
+                className="block rounded-[20px] border border-dove/50 bg-pure-white p-5 shadow-[var(--shadow)] hover:border-dove"
               >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <p className="text-lg font-medium text-ink">
-                      {r.name}
-                      {r.version ? ` · ${r.version}` : ""}
-                    </p>
-                    <p className="text-sm text-muted">
-                      {r.environment}
-                      {r.serviceScope ? ` · ${r.serviceScope}` : ""}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {verdict && (
-                      <Badge variant={verdictBadgeVariant(verdict)} className="px-2.5 py-1">
-                        {verdict}
-                      </Badge>
-                    )}
-                    <Badge variant={releaseStatusBadgeVariant(r.status)}>
-                      {statusLabel}
-                    </Badge>
-
-                  </div>
-                </div>
-                {r.readinessScore != null && (
-                  <p className="mt-2 text-sm text-ash">
-                    QA readiness {Math.round(r.readinessScore)}% · governance risk{" "}
-                    {r.governanceRiskScore != null ? Math.round(r.governanceRiskScore) : "—"}%
-                    {r.jiraSprintId != null ? " · synced from Jira sprint" : ""}
-                  </p>
-                )}
+                <p className="text-[16px] font-medium text-ink">{release.name}</p>
+                <p className="mt-1 text-[14px] text-ash">
+                  {release.status.toLowerCase()}
+                  {release.version ? ` · ${release.version}` : ""} ·{" "}
+                  {release.incidents.length}{" "}
+                  {release.incidents.length === 1 ? "escape" : "escapes"}
+                  {release.certificate
+                    ? ` · certificate ${release.certificate.decision.toLowerCase()}`
+                    : " · unsigned"}
+                </p>
               </Link>
-            );
-          })}
-        </div>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );

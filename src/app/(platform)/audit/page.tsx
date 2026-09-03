@@ -10,7 +10,6 @@ export default async function AuditLogsPage() {
   if (!session) redirect("/login");
 
   const ctx = await getOrganizationContext(session.organizationId);
-  if (!ctx.dna) redirect("/governance/setup");
 
   const logs = ctx.auditLogs.map((log) => ({
     id: log.id,
@@ -25,8 +24,8 @@ export default async function AuditLogsPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Audit logs"
-        description="Compliance officer view — filter by decision type, inspect approvals, export reports."
+        title="Decision log"
+        description="Every ruling, certificate, and connector action on the record. Nothing is silently suppressed."
       >
         <Button asChild variant="ink" size="lg">
           <a href="/api/audit/export">Export CSV</a>

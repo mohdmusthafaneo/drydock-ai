@@ -68,6 +68,17 @@ export const TENANT_MODELS = new Set([
   "DevOpsResourceInventory",
   "DevOpsHygieneFinding",
   "DevOpsAccountScanWarning",
+
+  "CiRun",
+  "TestCase",
+  "TestCaseAlias",
+  "TestExecution",
+  "TestTrustState",
+  "Finding",
+  "Ruling",
+  "Precedent",
+  "StandardPattern",
+  "ReleaseCertificate",
 ]);
 
 const READ_OPS = new Set([

@@ -17,9 +17,9 @@ import { AidosLogo } from "@/components/brand/aidos-logo";
 import { EnterpriseSidebarNav } from "@/components/layout/enterprise-sidebar-nav";
 import { MobileNav } from "@/components/layout/mobile-nav";
 
-const SIDEBAR_STORAGE_KEY = "aidos-sidebar-collapsed";
+const SIDEBAR_STORAGE_KEY = "drydock-sidebar-collapsed";
 
-const AUTO_COLLAPSE_PATHS = ["/briefing", "/ledger"];
+const AUTO_COLLAPSE_PATHS = ["/briefing", "/ledger", "/standard", "/certificate"];
 
 function shouldAutoCollapse(pathname: string): boolean {
   return AUTO_COLLAPSE_PATHS.some(

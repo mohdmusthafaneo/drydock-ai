@@ -12,7 +12,10 @@ import { getSlackInstallationForAdapter } from "@/lib/slack/tenant";
  * module init during `next build` when NEXT_PUBLIC_APP_URL is unset.
  */
 export function buildAidosSlackChannelConfig(): ChannelConfig | null {
-  const role = process.env.AIDOS_PROCESS_ROLE ?? "web";
+  const role =
+    process.env.DRYDOCK_PROCESS_ROLE?.trim() ||
+    process.env.AIDOS_PROCESS_ROLE?.trim() ||
+    "web";
   // Worker and Studio should not own Slack webhooks / Chat SDK init.
   if (role === "worker") return null;
   if (process.env.MASTRA_STUDIO === "1" || process.env.MASTRA_DEV === "1") {

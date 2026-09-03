@@ -1,6 +1,6 @@
 /** Session-scoped bootstrap for new-chat first turn (client-only). */
 
-const KEY_PREFIX = "aidos:pending-message:";
+const KEY_PREFIX = "drydock:pending-message:";
 
 /** Threads currently starting their first streamed turn (survives Strict Mode remount). */
 const bootstrapInFlight = new Set<string>();

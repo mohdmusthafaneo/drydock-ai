@@ -21,7 +21,11 @@ const envSchema = z.object({
 
   PLATFORM_WORKER_SECRET: z.string().optional(),
   AIDOS_PROCESS_ROLE: z.enum(["web", "worker"]).default("web"),
+  DRYDOCK_PROCESS_ROLE: z.enum(["web", "worker"]).optional(),
   AIDOS_API_URL: z.string().url().optional(),
+  DRYDOCK_API_URL: z.string().url().optional(),
+  /** Parked Grafana/Prometheus surface. Off by default. */
+  DRYDOCK_OBSERVABILITY_ENABLED: optionalBoolean,
   /** Comma-separated worker queue roles: all | agents | refresh | enrich | ml | retention */
   WORKER_QUEUES: z.string().optional(),
   /** Base URL for the Python ML inference sidecar (Phase 4). */
@@ -80,7 +84,13 @@ function formatZodError(error: z.ZodError): string {
 export function getEnv(): Env {
   if (cachedEnv) return cachedEnv;
 
-  const result = envSchema.safeParse(process.env);
+  const merged = {
+    ...process.env,
+    AIDOS_PROCESS_ROLE:
+      process.env.DRYDOCK_PROCESS_ROLE || process.env.AIDOS_PROCESS_ROLE,
+    AIDOS_API_URL: process.env.DRYDOCK_API_URL || process.env.AIDOS_API_URL,
+  };
+  const result = envSchema.safeParse(merged);
   if (!result.success) {
     throw new Error(`Invalid environment configuration: ${formatZodError(result.error)}`);
   }

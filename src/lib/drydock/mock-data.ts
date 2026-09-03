@@ -9,7 +9,8 @@ export type TrustDeficitReason =
   | "retry_masked"
   | "skipped"
   | "permafail"
-  | "signal_decay";
+  | "signal_decay"
+  | "semantic_duplicate";
 
 export type AttentionVerb = "rule" | "route" | "snooze" | "sign_off";
 

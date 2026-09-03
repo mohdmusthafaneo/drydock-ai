@@ -4,7 +4,7 @@ import { PrismaClient } from "@/generated/prisma/client";
 import { createTenantExtension } from "@/lib/prisma-tenant";
 
 /** Bump when schema changes so dev hot-reload picks up a fresh client. */
-const PRISMA_SCHEMA_VERSION = 22;
+const PRISMA_SCHEMA_VERSION = 24;
 
 /** Delegates that must exist on a valid client (guards stale dev cache). */
 const REQUIRED_DELEGATES = [
@@ -25,6 +25,16 @@ const REQUIRED_DELEGATES = [
   "commitSnapshot",
   "evidenceLink",
   "evidenceReview",
+  "ciRun",
+  "testCase",
+  "testCaseAlias",
+  "testExecution",
+  "testTrustState",
+  "finding",
+  "ruling",
+  "precedent",
+  "standardPattern",
+  "releaseCertificate",
 ] as const;
 
 const globalForPrisma = globalThis as unknown as {

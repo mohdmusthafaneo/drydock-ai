@@ -19,14 +19,17 @@ const VERB_STYLES: Record<MockFinding["verb"], string> = {
 
 type Props = {
   finding: MockFinding;
+  persist?: boolean;
   onRuled?: (findingId: string, reasonCode: string) => void;
 };
 
-export function FindingCard({ finding, onRuled }: Props) {
+export function FindingCard({ finding, persist = false, onRuled }: Props) {
   const [open, setOpen] = useState(false);
   const [rulingOpen, setRulingOpen] = useState(false);
   const [selectedReason, setSelectedReason] = useState<string>("");
   const [done, setDone] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (done) {
     return (
@@ -132,16 +135,40 @@ export function FindingCard({ finding, onRuled }: Props) {
               </li>
             ))}
           </ul>
+          {error ? (
+            <p className="text-[13px] text-rust">{error}</p>
+          ) : null}
           <Button
             type="button"
-            disabled={!selectedReason}
-            onClick={() => {
+            disabled={!selectedReason || saving}
+            onClick={async () => {
+              setError(null);
+              if (persist) {
+                setSaving(true);
+                try {
+                  const res = await fetch("/api/drydock/rulings", {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      findingId: finding.id,
+                      reasonCode: selectedReason,
+                    }),
+                  });
+                  if (!res.ok) {
+                    setError("Could not record ruling.");
+                    return;
+                  }
+                } finally {
+                  setSaving(false);
+                }
+              }
               onRuled?.(finding.id, selectedReason);
               setDone(true);
             }}
             className="rounded-full bg-ink px-5 text-[14px] text-pure-white disabled:opacity-40"
           >
-            Record ruling
+            {saving ? "Recording…" : "Record ruling"}
           </Button>
         </div>
       ) : null}

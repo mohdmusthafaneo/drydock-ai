@@ -1,14 +1,19 @@
 import { SignJWT } from "jose";
 import { NextResponse } from "next/server";
 import type { SessionPayload } from "@/lib/session";
+import {
+  DEV_AUTH_SECRET_FALLBACK,
+  LEGACY_SESSION_COOKIE_NAME,
+  SESSION_COOKIE_NAME,
+  SESSION_MAX_AGE,
+} from "@/lib/session-cookie";
 
-const COOKIE_NAME = "aidos_session";
-const MAX_AGE = 60 * 60 * 24 * 7;
+const COOKIE_NAME = SESSION_COOKIE_NAME;
+const MAX_AGE = SESSION_MAX_AGE;
 
 function getSecret() {
   return new TextEncoder().encode(
-    process.env.AUTH_SECRET ||
-      "aidos-dev-secret-change-me-in-production-32chars",
+    process.env.AUTH_SECRET || DEV_AUTH_SECRET_FALLBACK,
   );
 }
 
@@ -31,5 +36,6 @@ export async function jsonWithSession(
     path: "/",
     maxAge: MAX_AGE,
   });
+  response.cookies.delete(LEGACY_SESSION_COOKIE_NAME);
   return response;
 }

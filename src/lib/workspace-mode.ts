@@ -3,13 +3,7 @@ import type { UserRole } from "@/generated/prisma/client";
 import { isNavHrefEnabled } from "@/lib/feature-flags";
 import type { IntegrationGateKey, IntegrationNavGates } from "@/lib/nav-availability";
 import { DEFAULT_INTEGRATION_NAV_GATES } from "@/lib/nav-availability";
-import {
-  LayoutDashboard,
-  BookOpen,
-  Package,
-  Plug,
-  Settings,
-} from "lucide-react";
+import { LayoutDashboard, BookOpen, Scale, FileCheck, Bug, Package, Plug, ScrollText, Settings } from "lucide-react";
 
 export type WorkspaceMode = "MVP" | "ENTERPRISE";
 
@@ -92,11 +86,17 @@ export function getEnterpriseNavLayout(): EnterpriseNavLayout {
     topItems: [
       { href: "/briefing", label: "Briefing", icon: LayoutDashboard, primary: true },
       { href: "/ledger", label: "Ledger", icon: BookOpen },
+      { href: "/standard", label: "Standard", icon: Scale },
+      { href: "/certificate", label: "Certificate", icon: FileCheck },
+      { href: "/escapes", label: "Escapes", icon: Bug },
       { href: "/releases", label: "Releases", icon: Package },
       { href: "/integrations", label: "Connect", icon: Plug },
     ],
     sections: [],
-    bottomItems: [{ href: "/settings", label: "Settings", icon: Settings }],
+    bottomItems: [
+      { href: "/audit", label: "Decision log", icon: ScrollText },
+      { href: "/settings", label: "Settings", icon: Settings },
+    ],
   };
 }
 
@@ -209,11 +209,9 @@ export function isEnterpriseOnlyPath(pathname: string): boolean {
   const prefixes = [
     "/briefing",
     "/ledger",
-    "/activate",
-    "/discovery",
-    "/delivery-dna",
-    "/dashboard",
-    "/workflow",
+    "/standard",
+    "/certificate",
+    "/escapes",
     "/releases",
     "/qa",
     "/delivery-analysis",

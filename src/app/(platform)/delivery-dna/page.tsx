@@ -1,5 +1,1 @@
-import { redirect } from "next/navigation";
-
-export default function DeliveryDnaRedirectPage() {
-  redirect("/governance?highlight=dna");
-}
+export { default } from "@/lib/drydock/sunset-page";

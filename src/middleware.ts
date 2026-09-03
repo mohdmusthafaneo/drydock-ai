@@ -2,8 +2,13 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 import { appUrl } from "@/lib/app-url";
+import {
+  DEV_AUTH_SECRET_FALLBACK,
+  LEGACY_SESSION_COOKIE_NAME,
+  SESSION_COOKIE_NAME,
+} from "@/lib/session-cookie";
 
-const COOKIE_NAME = "aidos_session";
+const COOKIE_NAME = SESSION_COOKIE_NAME;
 const publicPaths = [
   "/",
   "/login",
@@ -34,8 +39,7 @@ function isPublicPath(pathname: string): boolean {
 
 function getSecret() {
   return new TextEncoder().encode(
-    process.env.AUTH_SECRET ||
-      "aidos-dev-secret-change-me-in-production-32chars",
+    process.env.AUTH_SECRET || DEV_AUTH_SECRET_FALLBACK,
   );
 }
 
@@ -71,7 +75,9 @@ export async function middleware(request: NextRequest) {
     });
   }
 
-  const token = request.cookies.get(COOKIE_NAME)?.value;
+  const token =
+    request.cookies.get(COOKIE_NAME)?.value ??
+    request.cookies.get(LEGACY_SESSION_COOKIE_NAME)?.value;
   if (!token) {
     return NextResponse.redirect(appUrl("/login"));
   }
@@ -84,6 +90,7 @@ export async function middleware(request: NextRequest) {
   } catch {
     const response = NextResponse.redirect(appUrl("/login"));
     response.cookies.delete(COOKIE_NAME);
+    response.cookies.delete(LEGACY_SESSION_COOKIE_NAME);
     return response;
   }
 }

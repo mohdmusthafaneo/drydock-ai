@@ -6,6 +6,8 @@ test("TENANT_MODELS excludes Organization root", () => {
   assert.equal(TENANT_MODELS.has("Organization"), false);
   assert.equal(TENANT_MODELS.has("Integration"), true);
   assert.equal(TENANT_MODELS.has("Release"), true);
+  assert.equal(TENANT_MODELS.has("StandardPattern"), true);
+  assert.equal(TENANT_MODELS.has("ReleaseCertificate"), true);
 });
 
 test("createTenantExtension rejects empty organizationId", () => {
