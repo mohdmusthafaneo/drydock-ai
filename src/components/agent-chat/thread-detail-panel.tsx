@@ -152,10 +152,9 @@ export function ThreadDetailPanel({ threadId }: ThreadDetailPanelProps) {
               emptyState={
                 <div className="flex flex-col items-center gap-3 py-8 text-center">
                   <div>
-                    <p className="font-display text-xl text-ink">AIDOS</p>
+                    <p className="font-display text-xl text-ink">DryDock</p>
                     <p className="mt-1 text-sm text-ash">
-                      Ask about Jira, releases, or the latest QA / DevOps /
-                      productivity / governance analysis runs.
+                      Ask about test signal integrity, releases, Jira, or agent analysis runs.
                     </p>
                   </div>
                   <div className="flex flex-wrap justify-center gap-2">
@@ -178,7 +177,7 @@ export function ThreadDetailPanel({ threadId }: ThreadDetailPanelProps) {
             {needsRetry ? (
               <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3 rounded-2xl border border-border-subtle bg-fog px-4 py-3">
                 <p className="text-sm text-ash">
-                  AIDOS didn&apos;t reply to this message.
+                  DryDock didn&apos;t reply to this message.
                 </p>
                 <Button
                   type="button"

@@ -76,7 +76,17 @@ export function AuditLogsPanel({ logs }: { logs: AuditLogItem[] }) {
             {lastDecision.entityType}
             {lastDecision.userName ? ` · ${lastDecision.userName}` : ""}
             {" · "}
-            {new Date(lastDecision.createdAt).toLocaleString()}
+            <span suppressHydrationWarning>
+              {new Date(lastDecision.createdAt).toLocaleString("en-US", {
+                month: "numeric",
+                day: "numeric",
+                year: "numeric",
+                hour: "numeric",
+                minute: "2-digit",
+                second: "2-digit",
+                hour12: true,
+              })}
+            </span>
           </p>
         </section>
       )}
@@ -123,8 +133,16 @@ export function AuditLogsPanel({ logs }: { logs: AuditLogItem[] }) {
                     <span className="font-medium text-ink">{auditActionLabel(log.action)}</span>
                     <div className="flex items-center gap-2">
                       <ActorTypeBadge actorType={log.actorType} />
-                      <span className="text-xs text-muted">
-                        {new Date(log.createdAt).toLocaleString()}
+                      <span className="text-xs text-muted" suppressHydrationWarning>
+                        {new Date(log.createdAt).toLocaleString("en-US", {
+                          month: "numeric",
+                          day: "numeric",
+                          year: "numeric",
+                          hour: "numeric",
+                          minute: "2-digit",
+                          second: "2-digit",
+                          hour12: true,
+                        })}
                       </span>
                     </div>
                   </div>

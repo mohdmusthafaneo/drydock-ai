@@ -45,7 +45,7 @@ function authorLabel(message: TimelineMessage): string {
     return message.authorUser?.name ?? "You";
   }
   if (isAssistantKind(message.kind)) {
-    return "AIDOS";
+    return "DryDock";
   }
   return "System";
 }
@@ -161,7 +161,7 @@ export function MessageTimeline({
     return (
       emptyState ?? (
         <div className="flex flex-1 items-center justify-center py-16 text-sm text-graphite">
-          Ask AIDOS about delivery, releases, Jira, or agent analysis runs.
+          Ask DryDock about test signal, releases, Jira, or agent analysis runs.
         </div>
       )
     );

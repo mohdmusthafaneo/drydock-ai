@@ -57,8 +57,8 @@ export default async function ConnectDonePage({
         </div>
 
         <p className="text-sm text-muted">
-          You can close this window. Your AIDOS administrator will finish project and repository
-          setup in AIDOS.
+          You can close this window. Your DryDock administrator will finish project and repository
+          setup in DryDock.
         </p>
       </CardContent>
     </Card>

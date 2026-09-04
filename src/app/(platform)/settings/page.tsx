@@ -10,20 +10,19 @@ export default async function SettingsPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const [org, members, dna] = await Promise.all([
+  const [org, members] = await Promise.all([
     prisma.organization.findUnique({ where: { id: session.organizationId } }),
     prisma.user.findMany({
       where: { organizationId: session.organizationId },
       orderBy: { createdAt: "asc" },
     }),
-    prisma.deliveryDNA.findUnique({ where: { organizationId: session.organizationId } }),
   ]);
 
   return (
     <div className="mx-auto max-w-3xl space-y-8">
       <PageHeader
         title="Settings"
-        description="Your profile, team, and workspace shortcuts — governance operations live in Admin."
+        description="Your profile, team, and workspace shortcuts."
       />
 
       <Card>
@@ -44,17 +43,27 @@ export default async function SettingsPage() {
           <CardDescription>Operational shortcuts for your workspace.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-4 text-sm">
+          <Link href="/briefing" className="text-ink underline-offset-4 hover:underline">
+            Briefing
+          </Link>
+          <Link href="/ledger" className="text-ink underline-offset-4 hover:underline">
+            The Ledger
+          </Link>
+          <Link href="/standard" className="text-ink underline-offset-4 hover:underline">
+            The Standard
+          </Link>
+          <Link href="/certificate" className="text-ink underline-offset-4 hover:underline">
+            Certificate
+          </Link>
+          <Link href="/escapes" className="text-ink underline-offset-4 hover:underline">
+            Escapes
+          </Link>
           <Link href="/integrations" className="text-ink underline-offset-4 hover:underline">
-            Integrations
+            Connect
           </Link>
           <Link href="/audit" className="text-ink underline-offset-4 hover:underline">
-            Audit logs
+            Decision log
           </Link>
-          {dna && (
-            <Link href="/governance" className="text-ink underline-offset-4 hover:underline">
-              Delivery DNA
-            </Link>
-          )}
         </CardContent>
       </Card>
 
@@ -74,7 +83,11 @@ export default async function SettingsPage() {
               </span>
               <span className="text-muted">
                 {ROLE_LABELS[m.role]}
-                {m.lastLoginAt && ` · last login ${m.lastLoginAt.toLocaleDateString()}`}
+                {m.lastLoginAt && (
+                  <span suppressHydrationWarning>
+                    {` · last login ${m.lastLoginAt.toLocaleDateString("en-US")}`}
+                  </span>
+                )}
               </span>
             </div>
           ))}

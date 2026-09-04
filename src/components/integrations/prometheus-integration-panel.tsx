@@ -150,7 +150,7 @@ export function PrometheusIntegrationPanel({
         </div>
 
         <p className="text-xs text-muted">
-          Connect your Prometheus instance with read-only query access. AIDOS runs PromQL templates
+          Connect your Prometheus instance with read-only query access. DryDock runs PromQL templates
           at sync time — it never writes to Prometheus.
         </p>
 

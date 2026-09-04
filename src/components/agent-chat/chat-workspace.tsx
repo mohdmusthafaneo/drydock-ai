@@ -161,11 +161,10 @@ function NewChatEmpty() {
       <div className="w-full max-w-xl space-y-5">
         <div className="text-center">
           <h1 className="font-display text-[28px] leading-tight tracking-[-0.28px] text-ink sm:text-[34px]">
-            AIDOS
+            DryDock
           </h1>
           <p className="mt-2 text-sm text-ash">
-            Ask about Jira, releases, or the latest QA / DevOps / productivity /
-            governance analysis runs.
+            Ask about test signal integrity, releases, Jira, or agent analysis runs.
           </p>
         </div>
         <NewChatComposer />

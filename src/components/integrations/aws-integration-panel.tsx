@@ -88,8 +88,8 @@ export function AwsIntegrationPanel({
     return (
       <div className="space-y-3">
         <p className="text-xs text-muted">
-          Store the customer IAM role AIDOS assumes for multi-region inventory and hygiene
-          scans. The role trust policy must allow AIDOS
+          Store the customer IAM role DryDock assumes for multi-region inventory and hygiene
+          scans. The role trust policy must allow DryDock
           {trustedAccountId ? (
             <>
               {" "}
@@ -104,7 +104,7 @@ export function AwsIntegrationPanel({
           <input
             type="text"
             className="w-full rounded-lg border border-border bg-base px-3 py-2 font-mono text-sm text-primary"
-            placeholder="arn:aws:iam::123456789012:role/AidosScanRole"
+            placeholder="arn:aws:iam::123456789012:role/DryDockScanRole"
             value={arn}
             onChange={(e) => setArn(e.target.value)}
             autoComplete="off"

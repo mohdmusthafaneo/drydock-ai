@@ -166,7 +166,7 @@ export function NewChatComposer({
         className="flex items-end gap-2 rounded-2xl border border-border bg-input p-2 shadow-none"
       >
         <PromptInputTextarea
-          placeholder="Ask AIDOS anything about your delivery operations…"
+          placeholder="Ask DryDock anything about test signal, releases, or Jira…"
           className="!min-h-[40px] max-h-[120px] flex-1 py-2 text-sm text-ink"
           disabled={loading}
         />

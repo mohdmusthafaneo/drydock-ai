@@ -237,7 +237,7 @@ export default async function IntegrationsPage({
     <div className="space-y-8">
       <PageHeader
         title="Connect"
-        description="Connect the systems AIDOS needs for a trustworthy briefing."
+        description="Connect the systems DryDock needs for a trustworthy briefing."
       >
         {canManage && <SyncIntegrationsButton />}
       </PageHeader>
@@ -270,7 +270,7 @@ export default async function IntegrationsPage({
             <CardTitle className="text-base">GitHub App setup required</CardTitle>
             <CardDescription>
               Set <code>GITHUB_APP_SLUG</code> in <code>.env</code> (e.g.{" "}
-              <code>aidos-neo</code>) so org admins can install the AIDOS GitHub App.
+              <code>drydock</code>) so org admins can install the DryDock GitHub App.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -281,7 +281,7 @@ export default async function IntegrationsPage({
           <SectionHeading
             step={1}
             title="Source control"
-            description="Start with GitHub so AIDOS can read repos, PRs, and delivery signals."
+            description="Start with GitHub so DryDock can read repos, PRs, and test runs."
           />
           <div className="grid gap-4 md:grid-cols-2">
             {primary
@@ -305,7 +305,7 @@ export default async function IntegrationsPage({
           <SectionHeading
             step={3}
             title="Team chat"
-            description="Install Slack so org members can ask the AIDOS assistant read-only questions from channels and DMs."
+            description="Install Slack so org members can ask the DryDock assistant read-only questions from channels and DMs."
           />
           <div className="grid gap-4 md:grid-cols-2">
             {primary.filter((i) => i.provider === "SLACK").map((i) => renderCard(i))}
@@ -505,7 +505,7 @@ function IntegrationConnectorCard({
     );
     body =
       canManage && !prometheusTruly ? (
-        <ConnectorConfigureDisclosure summary="Connect Prometheus with a URL and read-only credentials so AIDOS can pull service metrics.">
+        <ConnectorConfigureDisclosure summary="Connect Prometheus with a URL and read-only credentials so DryDock can pull service metrics.">
           {panel}
         </ConnectorConfigureDisclosure>
       ) : (
@@ -542,7 +542,7 @@ function IntegrationConnectorCard({
     );
     body =
       canManage && !grafanaTruly ? (
-        <ConnectorConfigureDisclosure summary="Connect Grafana with a URL and service-account token so AIDOS can read dashboards and alerts.">
+        <ConnectorConfigureDisclosure summary="Connect Grafana with a URL and service-account token so DryDock can read dashboards and alerts.">
           {panel}
         </ConnectorConfigureDisclosure>
       ) : (

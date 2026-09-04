@@ -56,7 +56,7 @@ export default async function GitHubConnectEntryPage({ params }: PageProps) {
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">
-              Install AIDOS GitHub App for {invite.organization.name}
+              Install DryDock GitHub App for {invite.organization.name}
             </CardTitle>
             <CardDescription>
               Grant read access to pull requests, commits, and Actions for repositories you select.
@@ -64,9 +64,9 @@ export default async function GitHubConnectEntryPage({ params }: PageProps) {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-secondary">
-              You are installing the AIDOS GitHub App for{" "}
+              You are installing the DryDock GitHub App for{" "}
               <strong>{invite.organization.name}</strong>. Choose which repositories to grant on
-              GitHub — your AIDOS administrator will finish setup in the app.
+              GitHub — your DryDock administrator will finish setup in the app.
             </p>
 
             <Button asChild className="w-full">
@@ -74,7 +74,7 @@ export default async function GitHubConnectEntryPage({ params }: PageProps) {
             </Button>
 
             <p className="text-center text-[11px] text-muted">
-              No AIDOS account required. This link expires in 24 hours and can only be used once.
+              No DryDock account required. This link expires in 24 hours and can only be used once.
             </p>
           </CardContent>
         </Card>

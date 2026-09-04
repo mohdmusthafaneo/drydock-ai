@@ -224,7 +224,7 @@ export function JiraIntegrationPanel({
     return (
       <div className="space-y-3">
         <p className="text-xs text-muted">
-          Connect Jira Cloud with read-only OAuth scopes. AIDOS never writes to your issues,
+          Connect Jira Cloud with read-only OAuth scopes. DryDock never writes to your issues,
           epics, or versions.
         </p>
         <JiraOAuthConnect />

@@ -286,7 +286,7 @@ export function GrafanaIntegrationPanel({
     return (
       <div className="space-y-3">
         <p className="text-xs text-muted">
-          Connect your Grafana instance with read-only access. AIDOS reads dashboard health,
+          Connect your Grafana instance with read-only access. DryDock reads dashboard health,
           firing alerts, and annotations — it never writes to Grafana.
         </p>
 
@@ -614,7 +614,7 @@ export function GrafanaIntegrationPanel({
           </div>
           <p className="mt-1 text-[11px] text-muted">
             Add this URL as a Grafana contact point for unified alerting. Real-time firing alerts
-            create incidents in AIDOS.
+            create escapes in DryDock.
           </p>
           {!appUrlConfigured && (
             <p className="mt-2 text-[11px] text-warning-soft">
@@ -636,7 +636,7 @@ export function GrafanaIntegrationPanel({
           <p className="mt-2 text-[11px] text-muted">
             Grafana contact point: Webhook · Method POST · Include{" "}
             <code className="text-secondary">secret</code> query param or{" "}
-            <code className="text-secondary">X-AIDOS-Webhook-Secret</code> header.
+            <code className="text-secondary">X-DryDock-Webhook-Secret</code> header.
           </p>
         </div>
       )}

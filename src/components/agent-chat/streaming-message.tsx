@@ -36,8 +36,8 @@ export function StreamingMessageBubble({
     <Message className="items-start">
       <MessageAvatar
         src=""
-        alt="AIDOS"
-        fallback="A"
+        alt="DryDock"
+        fallback="D"
         className="bg-apricot-wash text-rust"
       />
       <div className="flex min-w-0 flex-1 flex-col gap-2">

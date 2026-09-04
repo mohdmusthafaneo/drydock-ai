@@ -42,8 +42,8 @@ export function SlackIntegrationPanel({
     return (
       <div className="space-y-3">
         <p className="text-sm text-secondary">
-          Install the AIDOS Slack app in your workspace so members can ask
-          read-only operational questions via @mention or DM.
+          Install the DryDock Slack app in your workspace so members can ask
+          read-only questions via @mention or DM.
         </p>
         {!configured && (
           <p className="text-xs text-warning-soft">
@@ -118,8 +118,8 @@ export function SlackIntegrationPanel({
       )}
 
       <p className="text-xs text-muted">
-        Mention @AIDOS in a channel or DM the bot. Only workspace members whose
-        Slack email matches an active AIDOS user with Agents access will get
+        Mention @DryDock in a channel or DM the bot. Only workspace members whose
+        Slack email matches an active DryDock user with access will get
         answers. Conversations appear under Agent Threads.
       </p>
 
