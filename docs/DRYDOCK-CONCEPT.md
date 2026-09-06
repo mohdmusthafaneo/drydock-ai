@@ -34,15 +34,16 @@ which parts of their safety net are real.
 
 ## 2. Who it is for
 
-**Primary and only persona: the QA Architect.**
+**Primary personas (2026-09 redirect):**
 
-They own test strategy across the platform, review automation work they did not write, and
-sign off on release quality. Their scarce resource is attention. Their professional risk is
-a production miss they cleared.
+1. **QA Architect** — owns test strategy, reviews automation they did not write, and signs
+   off on release quality. Scarce resource: attention. Professional risk: a production miss
+   they cleared.
+2. **Engineering leadership** — uses the Overview dashboard for delivery confidence, pillar
+   scores, attention items, and pending leadership decisions (approvals).
 
-Everything in DryDock is designed for one expert user with limited time and real
-accountability. There is no manager view, no team view, and no rollup for leadership in the
-initial product. Adding audiences later is a deliberate decision, not a default.
+The Overview is the landing surface. Test-trust workflows (Tests / Today / Conventions /
+Sign-off / Misses) remain available beside Delivery, Code, QA, Risk, Compliance, and Reports.
 
 ---
 
@@ -50,11 +51,10 @@ initial product. Adding audiences later is a deliberate decision, not a default.
 
 These are hard rules. Breaking one is a product defect, not a tradeoff.
 
-1. **No metric is ever grouped by contributor.** The system has no concept of author, team, or
-   vendor as a reporting dimension. The unit of analysis is always the test, the suite, or the
-   surface — never the person who wrote it. Evidence links out to real files and real pull
-   requests so findings are auditable; the schema contains no path that aggregates findings to
-   a human.
+1. **No metric is ever grouped by person.** Author, vendor, and individual contributor are
+   never reporting dimensions. **Team / project** (e.g. a Jira project key) may filter
+   Overview and delivery metrics. Evidence still links to files and PRs — never to people.
+   The schema must not aggregate findings to a human.
 
 2. **Nothing is silently suppressed.** Every issue the system hides is reachable in one
    click, with the reason and the decision that hid it. Discovering that DryDock concealed
@@ -126,8 +126,9 @@ Keep these internally; do not surface them as primary labels:
 | Corpus | Your tests / the suite |
 | Recommend-only | DryDock only advises — it never blocks CI or deploys |
 
-Deprecated AIDOS vocabulary: Delivery DNA, Delivery Confidence score, Governance Score,
-Recommendations queue, Approvals, Accelerator.
+Reintroduced on the Overview (2026-09): Delivery Confidence score, pillar breakdown,
+Approvals as “Waiting on leadership.” Deprecated elsewhere: Delivery DNA wizard framing,
+Accelerator.
 
 ---
 
@@ -272,10 +273,12 @@ the rules that prevent us from building one.
    what needs me?* Everything else is a click away.
 2. **Decisions, not metrics.** Every card ends in an action — rule, route, snooze, sign off. A
    card with no available action is a report, and reports live in a drawer.
-3. **Trust is a count, not a score.** *"1,247 tests. 891 are giving you real signal. 356 are
-   not."* The deficit decomposes into the entire work queue. No gauges, no composite index.
-4. **No charts in v1.** Sentences, counts, and lists only. A chart may be added when someone can
-   name the specific decision it changes.
+3. **Trust on test surfaces is a count, not a score.** *"1,247 tests. 891 are giving you real
+   signal. 356 are not."* On the **Overview**, a composite delivery-confidence score and
+   gauge are permitted (see 2026-09 redirect).
+4. **Charts on Overview are in scope.** Delivery trend, sprint burndown, and activity heatmap
+   ship on `/dashboard`. Other surfaces still prefer sentences, counts, and lists unless a
+   chart names the decision it changes.
 5. **Answer first, evidence on demand.** Lead with a plain sentence, disclose progressively down
    to the actual test file and the actual run history.
 6. **Deltas over levels.** *"Four new critical-path gaps since the last release"* is read.
@@ -297,24 +300,27 @@ labelled with the kind of attention it needs before the reader parses the conten
 
 ## 9. Out of scope
 
-Removed from the AIDOS surface and not part of DryDock:
+Removed from the AIDOS surface and not part of DryDock (unless reintroduced below):
 
-Engineering productivity · code health and Repowise · DevOps and AWS hygiene · the MVP
-Accelerator · the discovery wizard in its current form · Delivery DNA · governance policy and
-compliance rules · executive briefing for leadership · Grafana and Prometheus observability
-(deferred, not deleted).
+MVP Accelerator · the discovery wizard in its current form · Delivery DNA as an activation
+funnel · Grafana and Prometheus observability (deferred, not deleted).
 
-Retained and repurposed: authentication, tenancy, RBAC, the GitHub and Jira connectors, the
-approval and audit machinery (reframed as decisions and the decision log), releases, pgvector
-embeddings, the Mastra runtime, and the incident model — which becomes **production misses**,
-used to check whether release advice matches reality.
+**Re-scoped into product (2026-09 Overview redirect):** engineering productivity Overview
+(delivery / code / QA / compliance pillars), Delivery Analysis, Code Analysis, QA cockpit,
+Risk and Reports placeholders, governance/compliance findings, Approvals as leadership
+decisions, executive-style delivery confidence on `/dashboard`.
+
+Retained: authentication, tenancy, RBAC, GitHub and Jira connectors, audit / decision log,
+releases, pgvector embeddings, Mastra runtime, production misses (escapes).
 
 ---
 
 ## 10. Related docs
 
-- `docs/DRYDOCK-BUILD-PLAN.md` — phased delivery plan and current status
-- `.cursor/rules/aidos-project.mdc` — engineering invariants for agents
+- `docs/DRYDOCK-BUILD-PLAN.md` — phased delivery plan and current status (Phase 5 Overview)
+- `docs/DESIGN.md` — Connexus Overview design tokens
+- `docs/design/overview-mockup.jpg` — pixel reference for Overview + shell
+- `.cursor/rules/drydock-project.mdc` — engineering invariants for agents
 
 Superseded: `docs/AIDOS-USP.md`, `docs/AIDOS-ENTERPRISE-ROADMAP.md`,
 `docs/AIDOS-PHASE-1-EXECUTION.md`, `docs/MVP-DEVELOPMENT-PLAN.md`,
@@ -322,5 +328,26 @@ Superseded: `docs/AIDOS-USP.md`, `docs/AIDOS-ENTERPRISE-ROADMAP.md`,
 
 ---
 
-*Last updated: 2026-09-03. Update this file when the concept evolves; do not fork competing
+## 11. Product redirect — 2026-09 Overview
+
+Dated decision: ship a Connexus-style Overview as the landing page and app shell, matching
+[`docs/design/overview-mockup.jpg`](design/overview-mockup.jpg).
+
+| Revoked / amended | New rule |
+|-------------------|----------|
+| QA Architect only | + engineering leadership on Overview |
+| No team dimension | Project/team filter allowed; never person |
+| No gauges / composite score | Delivery confidence score + gauge on Overview |
+| No charts in v1 | Trend, burndown, heatmap on Overview |
+| Sunsetted Delivery/Code/Compliance | Re-enabled as top tabs + pillar tiles |
+
+Preserved: advise-only, nothing silently suppressed, evidence traceability, tenancy by
+`organizationId`, no metrics by person.
+
+Visual system: `docs/DESIGN.md`. Shell: org name in sidebar, section tabs in top bar,
+workspace list = Jira projects.
+
+---
+
+*Last updated: 2026-09-06. Update this file when the concept evolves; do not fork competing
 definitions elsewhere.*

@@ -4,7 +4,8 @@ import type { ComplianceFindingSummary } from "@/lib/compliance/types";
 export async function loadComplianceFindingSummary(
   organizationId: string,
 ): Promise<ComplianceFindingSummary> {
-  const [openFindings, latest] = await Promise.all([
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const [openFindings, latest, resolvedThisWeek] = await Promise.all([
     prisma.complianceFinding.findMany({
       where: { organizationId, status: "open" },
       select: { severity: true },
@@ -13,6 +14,13 @@ export async function loadComplianceFindingSummary(
       where: { organizationId },
       orderBy: { lastSeenAt: "desc" },
       select: { lastSeenAt: true },
+    }),
+    prisma.complianceFinding.count({
+      where: {
+        organizationId,
+        status: "resolved",
+        resolvedAt: { gte: weekAgo },
+      },
     }),
   ]);
 
@@ -32,5 +40,6 @@ export async function loadComplianceFindingSummary(
     warningOpen,
     infoOpen,
     lastEvaluatedAt: latest?.lastSeenAt.toISOString() ?? null,
+    resolvedThisWeek,
   };
 }

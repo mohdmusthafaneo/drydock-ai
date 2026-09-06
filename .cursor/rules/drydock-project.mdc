@@ -5,28 +5,30 @@ alwaysApply: true
 
 # DryDock — Project invariants
 
-- **Concept (required reading)**: `docs/DRYDOCK-CONCEPT.md` — DryDock tells a QA Architect which of their green checks actually mean something. Not a test runner, coverage tool, review bot, or dashboard product.
-- **Active build plan**: `docs/DRYDOCK-BUILD-PLAN.md` — check phase status before starting work.
-- **Audience**: one persona, the QA Architect. No manager, team, or leadership views.
-- **Decision unit**: the release.
-- **Loop**: Ingest → Tests → Today → Decision → Sign-off.
-  (Engineering aliases: Ledger, Briefing, Ruling, Certificate — see concept doc §4.)
+- **Concept (required reading)**: `docs/DRYDOCK-CONCEPT.md` — includes the **2026-09 Overview redirect**. DryDock remains the product; landing is the Connexus-style Overview.
+- **Visual reference**: `docs/design/overview-mockup.jpg` — pixel target for `/dashboard` and shell.
+- **Design tokens**: `docs/DESIGN.md` — Connexus daylight (orange accent `#E8590C`, canvas `#F9F9F9`, Inter).
+- **Active build plan**: `docs/DRYDOCK-BUILD-PLAN.md` — Phase 5 is Overview dashboard and shell.
+- **Audience**: QA Architect **and** engineering leadership (Overview). Test-trust loop remains for the architect.
+- **Decision unit**: the release (test trust) and the sprint/Overview attention set (leadership).
+- **Loop (test trust)**: Ingest → Tests → Today → Decision → Sign-off.
+- **Landing**: `/dashboard` (Overview). Sidebar shows **tenant org name**; workspaces = Jira projects.
 
 ## Hard rules
 
-- **No metric is ever grouped by contributor.** No author, team, or vendor as a reporting dimension anywhere in schema or UI. Evidence links to files and PRs, never to people.
+- **No metric is ever grouped by person.** Author/vendor/individual are never dimensions. **Team/project** filter is allowed on Overview and delivery metrics. Evidence links to files and PRs, never to people.
 - **Nothing is silently suppressed.** Every hidden finding is one click away with its reason and originating decision.
 - **The architect can always overrule, on the record.**
 - **DryDock only advises.** Never write to GitHub or Jira, modify tests, disable suites, or block CI.
-- **Every claim traces to evidence.** Inference is labelled as an educated guess.
-- **Trust is a count, not a score.** No gauges, no composite index.
-- **No charts in v1.** Sentences, counts, and lists. A chart must justify a specific decision it changes.
+- **Every claim traces to evidence.** Inference is labelled as an educated guess. Overview ⓘ tips cite sources.
+- **Trust on test surfaces is a count, not a score.** Overview may show a composite delivery-confidence score and gauge.
+- **Charts are permitted on Overview** (trend, burndown, heatmap). Prefer sentences/counts elsewhere unless a chart changes a named decision.
 - **Neutral evidentiary voice** in UI copy — plain English, not jargon. An instrument, not a chatbot.
 - **Tenancy**: all data scoped by `organizationId` from session.
 - **Build**: run `npm run build` before marking work complete.
 
 ## Legacy
 
-AIDOS is sunsetted. `docs/AIDOS-*.md` and `docs/MVP-DEVELOPMENT-PLAN.md` are superseded and kept for reference only. Where they conflict with `docs/DRYDOCK-CONCEPT.md`, the concept doc wins.
+AIDOS is sunsetted as a separate product line, but Delivery / Code / QA / Compliance surfaces are **re-enabled** for the Overview redirect. `docs/AIDOS-*.md` and `docs/MVP-DEVELOPMENT-PLAN.md` are reference only. Where they conflict with `docs/DRYDOCK-CONCEPT.md` (including §11 redirect), the concept doc wins.
 
 Use `/frontend`, `/backend`, `/architect`, or `/orchestrator` subagents for specialized work.

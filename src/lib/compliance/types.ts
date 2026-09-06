@@ -26,6 +26,8 @@ export type ComplianceFindingSummary = {
   warningOpen: number;
   infoOpen: number;
   lastEvaluatedAt: string | null;
+  /** Findings moved to resolved in the last 7 days. */
+  resolvedThisWeek: number;
 };
 
 export type ComplianceFindingView = {

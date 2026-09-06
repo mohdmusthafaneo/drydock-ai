@@ -48,6 +48,7 @@ export async function middleware(request: NextRequest) {
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-pathname", pathname);
+  requestHeaders.set("x-search", request.nextUrl.search);
 
   const correlationId =
     request.headers.get("x-correlation-id")?.trim() || crypto.randomUUID();

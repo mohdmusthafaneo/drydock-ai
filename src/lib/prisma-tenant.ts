@@ -79,6 +79,7 @@ export const TENANT_MODELS = new Set([
   "Precedent",
   "StandardPattern",
   "ReleaseCertificate",
+  "OverviewSnapshot",
 ]);
 
 const READ_OPS = new Set([

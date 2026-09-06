@@ -486,6 +486,7 @@ describe("composeExecutiveBriefing", () => {
         warningOpen: 1,
         infoOpen: 0,
         lastEvaluatedAt: new Date().toISOString(),
+        resolvedThisWeek: 1,
       },
       predictionSummary: {
         openCount: 2,

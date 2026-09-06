@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { PlatformShell } from "@/components/layout/platform-shell";
 import { getSession } from "@/lib/session";
@@ -12,5 +13,9 @@ export default async function PlatformLayout({
     redirect("/login");
   }
 
-  return <PlatformShell session={session}>{children}</PlatformShell>;
+  return (
+    <Suspense fallback={<div className="min-h-dvh bg-base" />}>
+      <PlatformShell session={session}>{children}</PlatformShell>
+    </Suspense>
+  );
 }

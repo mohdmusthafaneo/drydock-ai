@@ -166,6 +166,7 @@ model Organization {
   precedents              Precedent[]
   standardPatterns        StandardPattern[]
   releaseCertificates     ReleaseCertificate[]
+  overviewSnapshots       OverviewSnapshot[]
 }
 
 enum EmbeddingRefType {
@@ -900,6 +901,21 @@ model ExecutiveBriefingSnapshot {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, generatedAt])
+}
+
+/// Point-in-time Overview pillar scores + KPI counts for WoW / sprint deltas.
+model OverviewSnapshot {
+  id             String   @id @default(cuid())
+  organizationId String
+  projectKey     String?
+  capturedAt     DateTime @default(now())
+  /// Pillar scores + KPI counts (JSON object).
+  payloadJson    Json
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, capturedAt])
+  @@index([organizationId, projectKey, capturedAt])
 }
 
 model AgentChatThread {

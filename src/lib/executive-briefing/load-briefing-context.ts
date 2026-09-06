@@ -238,6 +238,7 @@ export async function loadExecutiveBriefing(
       warningOpen: 0,
       infoOpen: 0,
       lastEvaluatedAt: null,
+      resolvedThisWeek: 0,
     })),
     loadPredictionSummary(organizationId).catch(() => ({
       openCount: 0,

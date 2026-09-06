@@ -6,11 +6,11 @@ alwaysApply: false
 
 # Frontend scope
 
-- Design tokens: Steep editorial light theme per `docs/DESIGN.md` — ink, fog, rust, apricot/sky washes.
-- Reuse `src/components/ui/*`, `AppShell`, `MobileNav`, `OnboardingBanner`.
+- Design tokens: Connexus Overview daylight theme per `docs/DESIGN.md` — ink `#111827`, canvas `#F9F9F9`, accent `#E8590C`, soft `#FDEEE3`, Inter only. Visual target: `docs/design/overview-mockup.jpg`.
+- Reuse `src/components/ui/*`, `AppShell` (Sidebar + TopBar), `MobileNav`, overview cards under `src/components/overview/*`.
 - `fetch` must use `credentials: "same-origin"`.
 - Prefer Server Components for auth redirects and static shells; use **TanStack Query client islands** for live agent/thread data (`src/lib/queries/*`, `DataRefreshButton`).
-- Client components: forms, wizards, nav, and query-backed tables/timelines that need refetch or polling.
+- Client components: forms, wizards, nav, command palette, and query-backed tables/timelines that need refetch or polling.
 - Keep mobile bottom nav visible; pad main content (`pb-24` on mobile).
 
 @src/components/layout/app-shell.tsx

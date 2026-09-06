@@ -12,7 +12,10 @@ export function resolveLandingPath(_input: {
   hasDna: boolean;
   completedStepIds?: string[];
 }): string {
-  // DryDock: Briefing is home. DNA activation funnel is sunsetted for the pilot.
+  if (isNavHrefEnabled("/dashboard")) {
+    return "/dashboard";
+  }
+
   if (isNavHrefEnabled("/briefing")) {
     return "/briefing";
   }

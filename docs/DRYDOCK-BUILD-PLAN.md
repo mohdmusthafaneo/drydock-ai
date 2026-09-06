@@ -122,6 +122,19 @@ individual tests are not yet automated.
 
 ---
 
+## Phase 5 — Overview dashboard and shell (2026-09)
+
+**Status: landed.** Product redirect to Connexus-style Overview.
+
+- Theme: Connexus daylight tokens (`docs/DESIGN.md`); visual reference `docs/design/overview-mockup.jpg`
+- Shell: org-branded sidebar (workspace = Jira projects), top section tabs, ⌘K palette
+- Landing: `/dashboard` with delivery confidence, pillars, trend, burndown, heatmap, attention, leadership
+- Data: `loadOverviewDashboard`, `OverviewSnapshot`, `GET /api/overview`
+- Tabs restored: Delivery, Code, QA, Risk, Compliance, Reports (Risk/Reports placeholders)
+- Concept/rules amended for team filter, composite score, and charts on Overview
+
+---
+
 ## Blockers
 
 Client questions that gate Phase 0. None are design decisions.
@@ -139,4 +152,4 @@ Client questions that gate Phase 0. None are design decisions.
 
 ---
 
-*Last updated: 2026-09-04.*
+*Last updated: 2026-09-06.*

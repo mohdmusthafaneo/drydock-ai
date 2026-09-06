@@ -28,14 +28,32 @@ export const WORKSPACE_META: Record<
   },
   ENTERPRISE: {
     label: "DryDock",
-    tagline: "Which greens are trustworthy",
+    tagline: "Engineering overview",
     description:
-      "For the QA Architect — which of your green checks actually mean something, and what needs you today.",
-    homePath: "/briefing",
+      "Delivery, code, QA, and compliance signals for the release in front of you — so you know which greens are trustworthy.",
+    homePath: "/dashboard",
     accentClass: "from-accent to-amber-300",
     badgeClass: "bg-accent/15 text-accent",
   },
 };
+
+export type SectionTab = {
+  href: string;
+  label: string;
+};
+
+/** Top-bar section tabs for the Connexus Overview shell. */
+export function getSectionTabs(): SectionTab[] {
+  return [
+    { href: "/dashboard", label: "Overview" },
+    { href: "/delivery-analysis", label: "Delivery" },
+    { href: "/code-analysis", label: "Code" },
+    { href: "/qa", label: "QA" },
+    { href: "/risk", label: "Risk" },
+    { href: "/governance", label: "Compliance" },
+    { href: "/reports", label: "Reports" },
+  ].filter((tab) => isNavHrefEnabled(tab.href));
+}
 
 export type NavItem = {
   href: string;
@@ -183,6 +201,9 @@ export function getEnabledNavForMode(
 
 export function getEnabledHomePath(mode: WorkspaceMode): string {
   if (mode === "ENTERPRISE") {
+    if (isNavHrefEnabled("/dashboard")) return "/dashboard";
+    const tabs = getSectionTabs();
+    if (tabs.length > 0) return tabs[0]!.href;
     const layout = getResolvedEnterpriseNavLayout();
     const primary = layout.topItems.find((item) => item.primary);
     if (primary) return primary.resolvedHref;
@@ -200,6 +221,7 @@ export function getEnabledHomePath(mode: WorkspaceMode): string {
 
 /** @deprecated Prefer resolveLandingPath from @/lib/landing-path or getLandingPathForOrganization */
 export function getHomePath(_mode: WorkspaceMode, _hasDna: boolean): string {
+  if (isNavHrefEnabled("/dashboard")) return "/dashboard";
   if (isNavHrefEnabled("/briefing")) return "/briefing";
   if (isNavHrefEnabled("/ledger")) return "/ledger";
   return getEnabledHomePath("ENTERPRISE");
@@ -216,6 +238,9 @@ export function isEnterpriseOnlyPath(pathname: string): boolean {
     "/qa",
     "/delivery-analysis",
     "/code-analysis",
+    "/dashboard",
+    "/risk",
+    "/reports",
     "/observability",
     "/devops",
     "/incidents",

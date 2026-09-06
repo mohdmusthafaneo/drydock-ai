@@ -30,17 +30,17 @@ export type NavFeatureFlagId =
 export const NAV_FEATURE_FLAGS: Record<NavFeatureFlagId, boolean> = {
   "nav.briefing": true,
   "nav.ledger": true,
-  "nav.dashboard": false,
+  "nav.dashboard": true,
   "nav.workflow": false,
-  "nav.qa": false,
-  "nav.code_analysis": false,
-  "nav.delivery_analysis": false,
+  "nav.qa": true,
+  "nav.code_analysis": true,
+  "nav.delivery_analysis": true,
   "nav.observability": false,
   "nav.devops": false,
   "nav.incidents": false,
   "nav.recommendations": false,
-  "nav.approvals": false,
-  "nav.governance": false,
+  "nav.approvals": true,
+  "nav.governance": true,
   "nav.audit": true,
   "nav.agent_threads": false,
   "nav.integrations": true,
@@ -77,10 +77,11 @@ const EXTRA_PATH_PREFIXES: { prefix: string; flag: NavFeatureFlagId }[] = [
   { prefix: "/standard", flag: "nav.briefing" },
   { prefix: "/certificate", flag: "nav.briefing" },
   { prefix: "/escapes", flag: "nav.briefing" },
+  { prefix: "/risk", flag: "nav.dashboard" },
+  { prefix: "/reports", flag: "nav.dashboard" },
   { prefix: "/discovery", flag: "nav.governance" },
   { prefix: "/delivery-dna", flag: "nav.governance" },
 ];
-
 export function isNavFeatureEnabled(id: NavFeatureFlagId): boolean {
   return NAV_FEATURE_FLAGS[id] ?? false;
 }
@@ -119,5 +120,5 @@ export function isNavPathEnabled(pathname: string): boolean {
 }
 
 export function getDefaultLandingPath(): string {
-  return "/briefing";
+  return "/dashboard";
 }

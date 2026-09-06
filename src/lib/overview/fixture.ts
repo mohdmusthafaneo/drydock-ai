@@ -1,0 +1,188 @@
+import type { OverviewDashboardModel } from "@/lib/overview/types";
+
+/** Pixel-target fixture matching the Connexus Overview mockup. */
+export function getOverviewFixture(
+  overrides?: Partial<Pick<OverviewDashboardModel, "greetingName" | "teamKey">>,
+): OverviewDashboardModel {
+  return {
+    greetingName: overrides?.greetingName ?? "Krishna",
+    sprint: {
+      id: "37",
+      name: "Sprint 37",
+      startLabel: "Aug 10",
+      endLabel: "Aug 24",
+      rangeLabel: "Aug 10 – Aug 24, 2026",
+    },
+    teamKey: overrides?.teamKey ?? null,
+    teams: [
+      { key: "WEB", name: "Connexus Web" },
+      { key: "MOB", name: "Mobile App" },
+      { key: "DATA", name: "Data Platform" },
+      { key: "INFRA", name: "Infrastructure" },
+    ],
+    deliveryConfidence: {
+      score: 48,
+      band: "Caution",
+      caption: "Sprint 37 is at risk of delay",
+      metrics: [
+        {
+          id: "completion",
+          label: "Sprint completion",
+          value: "59%",
+          progress: 59,
+          annotation: "69/117",
+          icon: "target",
+        },
+        {
+          id: "blocked",
+          label: "Blocked",
+          value: 31,
+          progress: 31,
+          icon: "ban",
+        },
+        {
+          id: "at-risk",
+          label: "Items at risk",
+          value: 16,
+          progress: 16,
+          icon: "alert",
+        },
+        {
+          id: "ai-risk",
+          label: "AI code risk",
+          value: "6%",
+          progress: 6,
+          icon: "spark",
+        },
+      ],
+    },
+    keyTakeaways: [
+      {
+        id: "blocked",
+        title: "Blocked work up +11",
+        subtitle: "31 items blocked vs last sprint — review dependency chain",
+        href: "/delivery-analysis",
+        tone: "danger",
+        needsAction: true,
+      },
+      {
+        id: "at-risk",
+        title: "16 items at risk",
+        subtitle: "Due before sprint end with incomplete tests or open bugs",
+        href: "/qa",
+        tone: "warning",
+        needsAction: true,
+      },
+      {
+        id: "ai",
+        title: "No high-risk AI areas",
+        subtitle: "AI-assisted merges stay within governance thresholds",
+        href: "/code-analysis",
+        tone: "success",
+      },
+      {
+        id: "compliance",
+        title: "4 compliance findings",
+        subtitle: "Open findings need owner acknowledgement before sign-off",
+        href: "/governance",
+        tone: "info",
+        needsAction: true,
+      },
+    ],
+    pillars: [
+      {
+        id: "delivery",
+        name: "Delivery",
+        score: 59,
+        delta: -8,
+        footnote: "69 / 117 completed",
+        progress: 59,
+        tone: "warning",
+      },
+      {
+        id: "code",
+        name: "Code",
+        score: 66,
+        delta: -12,
+        footnote: "30 blocked issues",
+        progress: 66,
+        tone: "warning",
+      },
+      {
+        id: "qa",
+        name: "QA",
+        score: 44,
+        delta: 3,
+        footnote: "223 open bugs",
+        progress: 44,
+        tone: "danger",
+      },
+      {
+        id: "compliance",
+        name: "Compliance",
+        score: 65,
+        delta: 5,
+        footnote: "4 open findings",
+        progress: 65,
+        tone: "steady",
+      },
+    ],
+    deliveryTrend: {
+      rangeLabel: "Last 6 weeks",
+      target: 80,
+      points: [
+        { label: "Jul 13", value: 42 },
+        { label: "Jul 20", value: 55 },
+        { label: "Jul 27", value: 48 },
+        { label: "Aug 3", value: 61 },
+        { label: "Aug 10", value: 72 },
+        { label: "Aug 17", value: 58 },
+        { label: "Aug 24", value: 48 },
+      ],
+    },
+    burndown: {
+      completed: 69,
+      total: 117,
+      ideal: [
+        { label: "Aug 10", value: 117 },
+        { label: "Aug 12", value: 100 },
+        { label: "Aug 14", value: 83 },
+        { label: "Aug 17", value: 66 },
+        { label: "Aug 19", value: 50 },
+        { label: "Aug 21", value: 33 },
+        { label: "Aug 24", value: 0 },
+      ],
+      actual: [
+        { label: "Aug 10", value: 117 },
+        { label: "Aug 12", value: 108 },
+        { label: "Aug 14", value: 98 },
+        { label: "Aug 17", value: 88 },
+        { label: "Aug 19", value: 78 },
+        { label: "Aug 21", value: 72 },
+        { label: "Aug 24", value: 48 },
+      ],
+    },
+    heatmap: {
+      rangeLabel: "Last 14 days",
+      dayLabels: ["M", "T", "W", "T", "F", "S", "S", "M", "T", "W", "T", "F", "S", "S"],
+      rows: [
+        { label: "Commits", cells: [1, 2, 3, 2, 4, 0, 0, 3, 4, 2, 5, 3, 1, 0] },
+        { label: "PRs", cells: [0, 1, 2, 1, 3, 0, 0, 2, 3, 1, 2, 4, 0, 0] },
+        { label: "Jira updates", cells: [2, 3, 4, 3, 5, 1, 0, 4, 5, 3, 4, 5, 2, 1] },
+        { label: "Deployments", cells: [0, 0, 1, 0, 2, 0, 0, 1, 0, 1, 2, 1, 0, 0] },
+      ],
+    },
+    attention: {
+      count: 2,
+      message:
+        "30 blocked issues are in the evidence set — ask engineering for an owner and ETA.",
+      href: "/delivery-analysis",
+    },
+    leadership: {
+      count: 1,
+      href: "/approvals",
+    },
+    lastSyncAt: "2026-08-24T14:30:00.000Z",
+    empty: false,
+  };
+}
