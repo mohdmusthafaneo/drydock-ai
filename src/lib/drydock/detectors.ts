@@ -320,22 +320,22 @@ function titleFor(
   switch (reason) {
     case "NEVER_FAILED":
       return clusterSize > 1
-        ? `Never-failed cluster (${clusterSize})`
-        : `Never-failed: ${testName}`;
+        ? `Always-green cluster (${clusterSize})`
+        : `Always green: ${testName}`;
     case "FLAKE":
-      return `Flake on same commit: ${testName}`;
+      return `Unstable on the same commit: ${testName}`;
     case "RETRY_MASKED":
-      return `Retry-masked: ${testName}`;
+      return `Only passes on retry: ${testName}`;
     case "SKIPPED":
-      return `Skipped / quarantined: ${testName}`;
+      return `Skipped or disabled: ${testName}`;
     case "PERMAFAIL":
-      return `Permafail: ${testName}`;
+      return `Always failing: ${testName}`;
     case "SIGNAL_DECAY":
-      return `Signal decay: ${testName}`;
+      return `Hasn’t caught a real bug lately: ${testName}`;
     case "SEMANTIC_DUPLICATE":
       return clusterSize > 1
-        ? `Semantic duplicates (${clusterSize})`
-        : `Semantic duplicate: ${testName}`;
+        ? `Near-duplicate tests (${clusterSize})`
+        : `Near-duplicate: ${testName}`;
     default:
       return testName;
   }

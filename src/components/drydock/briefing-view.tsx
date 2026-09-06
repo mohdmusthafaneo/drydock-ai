@@ -73,7 +73,7 @@ export function BriefingView({ briefing, dataSource = "mock" }: Props) {
           </p>
           <p className="mx-auto mt-3 max-w-lg text-[15px] leading-relaxed text-ash">
             {briefing.ledger.trustedCount.toLocaleString("en-US")} of{" "}
-            {briefing.ledger.totalTests.toLocaleString("en-US")} holding. Next
+            {briefing.ledger.totalTests.toLocaleString("en-US")} still look trustworthy. Next
             release checkpoint {briefing.nextReleaseLabel}.
           </p>
         </div>
@@ -99,10 +99,10 @@ export function BriefingView({ briefing, dataSource = "mock" }: Props) {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="font-display text-[22px] tracking-[-0.2px] text-ink">
-            Today&apos;s queue
+            Needs attention
           </p>
           <p className="mt-1 text-[14px] text-ash">
-            About {remainingMinutes || briefing.queueMinutes} minutes. Lens:{" "}
+            About {remainingMinutes || briefing.queueMinutes} minutes. Looking at:{" "}
             {briefing.ledger.sinceLastReleaseLabel}.
           </p>
         </div>
@@ -110,7 +110,7 @@ export function BriefingView({ briefing, dataSource = "mock" }: Props) {
           href="/ledger"
           className="text-[14px] font-medium text-ink underline decoration-dove underline-offset-4 hover:decoration-ink"
         >
-          Full Ledger
+          See all tests
         </Link>
       </div>
 
@@ -134,14 +134,14 @@ export function BriefingView({ briefing, dataSource = "mock" }: Props) {
           }}
           className="w-full px-4 py-3 text-left text-[14px] text-ash hover:bg-fog/70"
         >
-          {briefing.demotedSummary} — open in one click. Nothing was suppressed.
+          {briefing.demotedSummary} — open in one click. Nothing was hidden without a reason.
         </button>
         {demotedOpen ? (
           <div className="border-t border-dove/40 px-4 py-3 text-[13px] leading-relaxed text-ash">
             {dataSource === "mock" ? (
               <p>
-                Mock: demoted items appear here with the ruling that covered
-                them. Nothing disappears.
+                Demo: items covered by earlier decisions appear here with the decision that
+                covered them. Nothing disappears.
               </p>
             ) : demotedLoading ? (
               <p>Loading…</p>
@@ -153,7 +153,7 @@ export function BriefingView({ briefing, dataSource = "mock" }: Props) {
                     <p className="mt-0.5">{item.plainSentence}</p>
                     {item.scopeSummary ? (
                       <p className="mt-1 text-[12px] text-graphite">
-                        Scope: {item.scopeSummary}
+                        Applies to: {item.scopeSummary}
                         {item.reasonCode ? ` · ${item.reasonCode}` : ""}
                       </p>
                     ) : null}
@@ -161,7 +161,7 @@ export function BriefingView({ briefing, dataSource = "mock" }: Props) {
                 ))}
               </ul>
             ) : (
-              <p>No demoted or ruled items yet.</p>
+              <p>No items covered by earlier decisions yet.</p>
             )}
           </div>
         ) : null}
@@ -170,7 +170,7 @@ export function BriefingView({ briefing, dataSource = "mock" }: Props) {
       <p className="text-[12px] text-graphite">
         {dataSource === "db"
           ? "Loaded from ingested CI results for this organization."
-          : "Mock data — seed pilot Signal Integrity to bind this surface."}
+          : "Demo data — seed pilot data to bind this page to real CI results."}
       </p>
     </div>
   );

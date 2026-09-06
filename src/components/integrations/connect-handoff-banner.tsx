@@ -28,12 +28,12 @@ export function ConnectHandoffBanner({
           <p className="text-[15px] font-medium text-ink">First snapshot in progress</p>
           <p className="mt-1 text-[14px] leading-relaxed text-ash">
             {label
-              ? `${label} is connected. DryDock is pulling read-only signals. Open the briefing when you\u2019re ready; it improves as sync completes.`
-              : "DryDock is pulling read-only signals. Open the briefing when you\u2019re ready; it improves as sync completes."}
+              ? `${label} is connected. DryDock is reading your data (read-only). Open Today when you\u2019re ready; it improves as sync completes.`
+              : "DryDock is reading your data (read-only). Open Today when you\u2019re ready; it improves as sync completes."}
           </p>
         </div>
         <Button asChild variant="ink" size="lg" className="shrink-0">
-          <Link href="/dashboard">View briefing</Link>
+          <Link href="/dashboard">Open Today</Link>
         </Button>
       </div>
     </div>

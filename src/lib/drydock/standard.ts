@@ -35,7 +35,7 @@ function shapeFor(name: string, filePath: string): { key: string; label: string 
     return { key: "smoke", label: "Smoke check" };
   }
   const dir = filePath.split("/").slice(0, -1).join("/") || "root";
-  return { key: `dir:${dir}`, label: `Suite location: ${dir}` };
+  return { key: `dir:${dir}`, label: `Tests in ${dir}` };
 }
 
 export async function mineStandardPatterns(organizationId: string): Promise<number> {
@@ -65,7 +65,7 @@ export async function mineStandardPatterns(organizationId: string): Promise<numb
         organizationId,
         patternKey: key,
         shapeLabel: bucket.label,
-        plainSentence: `${count} tests share the shape “${bucket.label}”. Which form is canonical?`,
+        plainSentence: `${count} tests follow the pattern “${bucket.label}”. Which form should we prefer?`,
         exampleNamesJson: bucket.names,
         occurrenceCount: count,
         status: "CANDIDATE",
@@ -74,7 +74,7 @@ export async function mineStandardPatterns(organizationId: string): Promise<numb
         shapeLabel: bucket.label,
         exampleNamesJson: bucket.names,
         occurrenceCount: count,
-        plainSentence: `${count} tests share the shape “${bucket.label}”. Which form is canonical?`,
+        plainSentence: `${count} tests follow the pattern “${bucket.label}”. Which form should we prefer?`,
       },
     });
     upserts += 1;

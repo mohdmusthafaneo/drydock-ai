@@ -11,6 +11,17 @@ type Pattern = {
   status: "CANDIDATE" | "RATIFIED" | "REJECTED";
 };
 
+function statusLabel(status: Pattern["status"]): string {
+  switch (status) {
+    case "RATIFIED":
+      return "approved";
+    case "REJECTED":
+      return "rejected";
+    case "CANDIDATE":
+      return "pending";
+  }
+}
+
 export function StandardView({ patterns }: { patterns: Pattern[] }) {
   const [rows, setRows] = useState(patterns);
   const [busy, setBusy] = useState<string | null>(null);
@@ -26,7 +37,7 @@ export function StandardView({ patterns }: { patterns: Pattern[] }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ patternId: id, status }),
       });
-      if (!res.ok) throw new Error("Ruling did not persist");
+      if (!res.ok) throw new Error("Couldn’t save your decision");
       setRows((prev) => prev.map((p) => (p.id === id ? { ...p, status } : p)));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");
@@ -41,10 +52,10 @@ export function StandardView({ patterns }: { patterns: Pattern[] }) {
   return (
     <div className="space-y-8">
       <div>
-        <p className="font-display text-[26px] tracking-[-0.23px] text-ink">The Standard</p>
+        <p className="font-display text-[26px] tracking-[-0.23px] text-ink">Conventions</p>
         <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-ash">
-          Patterns mined from the corpus. Ratify a canonical form — one or two decisions a week.
-          Nothing here is grouped by who wrote the test.
+          Patterns found in your tests. Pick the preferred way to write each one — one or two
+          decisions a week. Nothing here is grouped by who wrote the test.
         </p>
       </div>
 
@@ -52,9 +63,9 @@ export function StandardView({ patterns }: { patterns: Pattern[] }) {
 
       {open.length === 0 ? (
         <div className="rounded-[24px] border border-dove/50 bg-pure-white px-6 py-10 text-center shadow-[var(--shadow)]">
-          <p className="font-display text-[22px] text-ink">No ratification needed this week.</p>
+          <p className="font-display text-[22px] text-ink">No convention decisions needed this week.</p>
           <p className="mt-2 text-[14px] text-ash">
-            New drift will surface here as the corpus changes.
+            New pattern differences will show up here as your tests change.
           </p>
         </div>
       ) : (
@@ -65,7 +76,7 @@ export function StandardView({ patterns }: { patterns: Pattern[] }) {
               className="rounded-[24px] border border-dove/50 bg-pure-white p-6 shadow-[var(--shadow)]"
             >
               <p className="text-[11px] font-semibold uppercase tracking-wider text-graphite">
-                Ratify
+                Choose
               </p>
               <p className="mt-2 font-display text-[20px] text-ink">{p.shapeLabel}</p>
               <p className="mt-2 text-[15px] text-ash">{p.plainSentence}</p>
@@ -81,7 +92,7 @@ export function StandardView({ patterns }: { patterns: Pattern[] }) {
                   onClick={() => void decide(p.id, "RATIFIED")}
                   className="rounded-full bg-ink px-4 py-2 text-[14px] text-pure-white disabled:opacity-50"
                 >
-                  This form is canonical
+                  Use this as our preferred form
                 </button>
                 <button
                   type="button"
@@ -105,7 +116,7 @@ export function StandardView({ patterns }: { patterns: Pattern[] }) {
           {rest.map((p) => (
             <div key={p.id} className="rounded-xl border border-dove/40 bg-pure-white px-4 py-3">
               <p className="text-[14px] text-ink">
-                {p.shapeLabel} · {p.status.toLowerCase()} · {p.occurrenceCount} tests
+                {p.shapeLabel} · {statusLabel(p.status)} · {p.occurrenceCount} tests
               </p>
             </div>
           ))}

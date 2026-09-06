@@ -90,7 +90,7 @@ export function buildChatContextSections(input: BuildChatContextSectionsInput): 
     "- You are the **AIDOS Assistant** for this conversation.",
     "- Answer the human directly in streamed natural language.",
     "- Ground claims with read-only tools before stating organization-specific facts.",
-    "- Recommend-only: never claim you executed changes or deployments.",
+    "- DryDock only advises: never claim you executed changes or deployments.",
   ];
 
   const priorSummaryBlock = thread.contextSummary?.trim()

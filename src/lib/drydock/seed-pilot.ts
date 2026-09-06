@@ -109,12 +109,52 @@ const SPECIALTY: SeedSpec[] = [
   },
 ];
 
+const TRUSTED_SPECS: Array<{ repository: string; filePath: string; suitePath: string; name: string }> = [
+  { repository: "storefront-web", filePath: "e2e/account/address-book.spec.ts", suitePath: "account › addresses", name: "user profile loads address book" },
+  { repository: "payments-api", filePath: "e2e/orders/confirmation-email.spec.ts", suitePath: "orders › email", name: "order confirmation email dispatched" },
+  { repository: "storefront-web", filePath: "e2e/cart/quantity-update.spec.ts", suitePath: "cart › quantity", name: "cart quantity updates instantly" },
+  { repository: "payments-api", filePath: "e2e/checkout/tax-calc.spec.ts", suitePath: "checkout › tax", name: "tax rate computed for zip code" },
+  { repository: "storefront-web", filePath: "e2e/catalog/category-filter.spec.ts", suitePath: "catalog › filters", name: "category filter refines product list" },
+  { repository: "storefront-web", filePath: "e2e/cart/coupon-validation.spec.ts", suitePath: "cart › promo", name: "discount coupon code validated" },
+  { repository: "payments-api", filePath: "e2e/checkout/saved-payment.spec.ts", suitePath: "checkout › payment", name: "saved payment method selected at checkout" },
+  { repository: "fulfil-service", filePath: "e2e/fulfil/inventory-hold.spec.ts", suitePath: "fulfil › hold", name: "inventory reservation expires after 15m" },
+  { repository: "storefront-web", filePath: "e2e/pdp/recommendations.spec.ts", suitePath: "pdp › related", name: "product recommendations carousel renders" },
+  { repository: "storefront-web", filePath: "e2e/search/autocomplete.spec.ts", suitePath: "search › suggestions", name: "search autocomplete yields brand matches" },
+  { repository: "storefront-web", filePath: "e2e/pdp/reviews.spec.ts", suitePath: "pdp › reviews", name: "customer reviews render pagination" },
+  { repository: "payments-api", filePath: "e2e/checkout/billing-sync.spec.ts", suitePath: "checkout › billing", name: "billing address syncs with shipping" },
+  { repository: "payments-api", filePath: "e2e/orders/cancellation.spec.ts", suitePath: "orders › cancel", name: "order cancellation reflects in ledger" },
+  { repository: "fulfil-service", filePath: "e2e/fulfil/gift-receipt.spec.ts", suitePath: "fulfil › packing", name: "gift receipt option included in packlist" },
+  { repository: "storefront-web", filePath: "e2e/account/password-reset.spec.ts", suitePath: "account › auth", name: "password reset token expires in 1 hour" },
+  { repository: "storefront-web", filePath: "e2e/auth/session-renewal.spec.ts", suitePath: "auth › session", name: "session cookie renewed on activity" },
+  { repository: "storefront-web", filePath: "e2e/cart/wishlist-move.spec.ts", suitePath: "cart › wishlist", name: "wishlist item moves to active cart" },
+  { repository: "payments-api", filePath: "e2e/pricing/multi-currency.spec.ts", suitePath: "pricing › fx", name: "currency conversion rates applied" },
+  { repository: "fulfil-service", filePath: "e2e/fulfil/store-pickup.spec.ts", suitePath: "fulfil › pickup", name: "store pickup availability check" },
+  { repository: "payments-api", filePath: "e2e/checkout/wallet-express.spec.ts", suitePath: "checkout › wallet", name: "express checkout redirects to wallet" },
+  { repository: "storefront-web", filePath: "e2e/pdp/variant-sku.spec.ts", suitePath: "pdp › variants", name: "variant selector switches sku image" },
+  { repository: "storefront-web", filePath: "e2e/marketing/newsletter.spec.ts", suitePath: "marketing › signup", name: "newsletter subscription confirms email" },
+  { repository: "fulfil-service", filePath: "e2e/orders/return-label.spec.ts", suitePath: "orders › returns", name: "return label generation succeeds" },
+  { repository: "payments-api", filePath: "e2e/payments/fraud-velocity.spec.ts", suitePath: "payments › fraud", name: "fraud scoring flags velocity breach" },
+  { repository: "storefront-web", filePath: "e2e/account/loyalty-points.spec.ts", suitePath: "account › loyalty", name: "loyalty tier points accrued on purchase" },
+  { repository: "fulfil-service", filePath: "e2e/fulfil/tracking-webhook.spec.ts", suitePath: "fulfil › webhook", name: "shipment tracking webhook updates status" },
+  { repository: "storefront-web", filePath: "e2e/pdp/size-guide.spec.ts", suitePath: "pdp › modal", name: "size guide modal opens without layout shift" },
+  { repository: "storefront-web", filePath: "e2e/cart/cart-merge.spec.ts", suitePath: "cart › merge", name: "guest cart persists after user sign in" },
+  { repository: "payments-api", filePath: "e2e/payments/refund-batch.spec.ts", suitePath: "payments › refund", name: "refund batch dispatches to gateway" },
+  { repository: "storefront-web", filePath: "e2e/marketing/promo-banner.spec.ts", suitePath: "marketing › banner", name: "promo banner dismiss state saved" },
+  { repository: "storefront-web", filePath: "e2e/auth/2fa-sms.spec.ts", suitePath: "auth › 2fa", name: "two factor authentication sms verification" },
+  { repository: "storefront-web", filePath: "e2e/seo/sitemap.spec.ts", suitePath: "seo › catalog", name: "sitemap xml generates active catalog" },
+  { repository: "storefront-web", filePath: "e2e/catalog/stock-badge.spec.ts", suitePath: "catalog › stock", name: "out of stock badge replaces add to cart" },
+  { repository: "payments-api", filePath: "e2e/pricing/bundle-discount.spec.ts", suitePath: "pricing › bundles", name: "bundle price reflects tiered discount" },
+  { repository: "payments-api", filePath: "e2e/payments/apple-pay.spec.ts", suitePath: "payments › applepay", name: "apple pay token validated on ios user agent" },
+  { repository: "storefront-web", filePath: "e2e/cart/bogo-promo.spec.ts", suitePath: "cart › bogo", name: "bogo promotion applies to eligible pairs" },
+  { repository: "payments-api", filePath: "e2e/orders/invoice-download.spec.ts", suitePath: "orders › invoice", name: "order invoice pdf downloadable" },
+  { repository: "storefront-web", filePath: "e2e/pdp/delivery-estimate.spec.ts", suitePath: "pdp › shipping", name: "estimated delivery date shown on pdp" },
+  { repository: "storefront-web", filePath: "e2e/auth/session-timeout.spec.ts", suitePath: "auth › timeout", name: "session timeout prompts graceful re-auth" },
+  { repository: "storefront-web", filePath: "e2e/account/gdpr-export.spec.ts", suitePath: "account › privacy", name: "gdpr personal data export archives order history" },
+];
+
 function trustedFiller(): SeedSpec[] {
-  return Array.from({ length: 40 }, (_, i) => ({
-    repository: i % 2 === 0 ? "storefront-web" : "payments-api",
-    filePath: `e2e/trusted/case-${i}.spec.ts`,
-    suitePath: "trusted › batch",
-    name: `trusted path ${i}`,
+  return TRUSTED_SPECS.map((spec) => ({
+    ...spec,
     kind: "trusted" as const,
   }));
 }
@@ -332,7 +372,7 @@ export async function seedPilotSignalIntegrity(
         severity: "LOW",
         title: `Demoted never-failed #${i + 1}`,
         plainSentence:
-          "Looks covered by earlier rulings on similar smoke coverage.",
+          "Looks covered by earlier decisions on similar smoke coverage.",
         clusterKey: `demoted|never_failed|${i}`,
         clusterSize: 1,
         repository: "storefront-web",

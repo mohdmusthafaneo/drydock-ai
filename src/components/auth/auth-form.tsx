@@ -56,10 +56,12 @@ export function AuthForm({ mode }: { mode: Mode }) {
           <span className="block text-rust">actually mean something.</span>
         </h1>
         <p className="mt-4 max-w-sm text-[16px] leading-relaxed text-ash">
-          DryDock is the instrument for the QA Architect. Trust counts, the Ledger, and today&apos;s
-          Briefing — never a dashboard of scores.
+          DryDock is the instrument for the QA Architect. Trust counts, the full test inventory,
+          and what needs you today — never a dashboard of scores.
         </p>
-        <p className="mt-3 max-w-sm text-[14px] text-graphite">Recommend-only. The architect decides.</p>
+        <p className="mt-3 max-w-sm text-[14px] text-graphite">
+          DryDock only advises — you decide.
+        </p>
       </div>
 
       <div className="relative z-10 flex flex-1 items-center justify-center p-4 lg:p-8">

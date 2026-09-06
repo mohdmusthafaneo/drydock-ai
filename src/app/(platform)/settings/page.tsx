@@ -22,13 +22,13 @@ export default async function SettingsPage() {
     <div className="mx-auto max-w-3xl space-y-8">
       <PageHeader
         title="Settings"
-        description="Your profile, team, and workspace shortcuts."
+        description="Your workspace settings, team members, and shortcuts."
       />
 
       <Card>
         <CardHeader>
           <CardTitle>{org?.name}</CardTitle>
-          <CardDescription>Organization slug: {org?.slug}</CardDescription>
+          <CardDescription>Workspace identifier: {org?.slug}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           <p>
@@ -44,19 +44,22 @@ export default async function SettingsPage() {
         </CardHeader>
         <CardContent className="flex flex-wrap gap-4 text-sm">
           <Link href="/briefing" className="text-ink underline-offset-4 hover:underline">
-            Briefing
+            Today
           </Link>
           <Link href="/ledger" className="text-ink underline-offset-4 hover:underline">
-            The Ledger
+            Tests
           </Link>
           <Link href="/standard" className="text-ink underline-offset-4 hover:underline">
-            The Standard
+            Conventions
           </Link>
           <Link href="/certificate" className="text-ink underline-offset-4 hover:underline">
-            Certificate
+            Sign-off
           </Link>
           <Link href="/escapes" className="text-ink underline-offset-4 hover:underline">
-            Escapes
+            Misses
+          </Link>
+          <Link href="/releases" className="text-ink underline-offset-4 hover:underline">
+            Releases
           </Link>
           <Link href="/integrations" className="text-ink underline-offset-4 hover:underline">
             Connect
@@ -70,7 +73,7 @@ export default async function SettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Team management</CardTitle>
-          <CardDescription>Manage team members and their RBAC roles.</CardDescription>
+          <CardDescription>Manage team members and their roles.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
           {members.map((m) => (

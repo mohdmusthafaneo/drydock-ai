@@ -32,7 +32,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "DryDock — Which green checks mean something",
   description:
-    "Signal integrity for the QA Architect. Trust counts, the Ledger, and today's Briefing.",
+    "For the QA Architect — which of your green checks actually mean something, and what needs you today.",
 };
 
 export default function RootLayout({

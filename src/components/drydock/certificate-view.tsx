@@ -31,7 +31,7 @@ export function CertificateView({
           acceptedRisk,
         }),
       });
-      if (!res.ok) throw new Error("Certificate did not persist");
+      if (!res.ok) throw new Error("Couldn’t save the release sign-off");
       setSigned({
         decision,
         rationale,
@@ -48,28 +48,28 @@ export function CertificateView({
   return (
     <div className="space-y-8">
       <div>
-        <p className="font-display text-[26px] tracking-[-0.23px] text-ink">Certificate</p>
+        <p className="font-display text-[26px] tracking-[-0.23px] text-ink">Release sign-off</p>
         <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-ash">
-          The signed release artifact. What was verified, what was not, what is unreliable, and
-          the architect&apos;s decision. Recommend-only — this does not gate a pipeline.
+          What was verified, what was not, what is unreliable, and your decision. DryDock only
+          advises — it never blocks CI or deploys.
         </p>
       </div>
 
       <p className="text-[18px] leading-relaxed text-ink">
         {view.totalTests.toLocaleString("en-US")} tests. {view.verifiedCount.toLocaleString("en-US")}{" "}
-        giving real signal. {view.unverifiedCount.toLocaleString("en-US")} are not.{" "}
+        look trustworthy. {view.unverifiedCount.toLocaleString("en-US")} don&apos;t.{" "}
         {view.unreliableCount.toLocaleString("en-US")} known unreliable. {view.escapeCount}{" "}
-        {view.escapeCount === 1 ? "escape" : "escapes"} on the record.
+        {view.escapeCount === 1 ? "production miss" : "production misses"} on the record.
       </p>
 
       {view.release ? (
         <p className="text-[14px] text-ash">
-          Decision unit: {view.release.name}
+          Release: {view.release.name}
           {view.release.version ? ` (${view.release.version})` : ""} · {view.release.status}
         </p>
       ) : (
         <p className="text-[14px] text-ash">
-          No release registered yet. Counts above are the current Ledger. Register a release to
+          No release added yet. Counts above are the current test inventory. Add a release to
           attach a signed decision.
         </p>
       )}

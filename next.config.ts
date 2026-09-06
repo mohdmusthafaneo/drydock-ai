@@ -26,6 +26,15 @@ const nextConfig: NextConfig = {
     "@aws-sdk/client-s3",
     "@aws-sdk/client-sts",
   ],
+  async redirects() {
+    return [
+      { source: "/today", destination: "/briefing", permanent: false },
+      { source: "/tests", destination: "/ledger", permanent: false },
+      { source: "/conventions", destination: "/standard", permanent: false },
+      { source: "/sign-off", destination: "/certificate", permanent: false },
+      { source: "/misses", destination: "/escapes", permanent: false },
+    ];
+  },
   async rewrites() {
     return [
       {

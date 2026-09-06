@@ -25,7 +25,7 @@ export default async function AuditLogsPage() {
     <div className="space-y-8">
       <PageHeader
         title="Decision log"
-        description="Every ruling, certificate, and connector action on the record. Nothing is silently suppressed."
+        description="Every decision, release sign-off, and connector action on the record. Nothing is hidden without a reason."
       >
         <Button asChild variant="ink" size="lg">
           <a href="/api/audit/export">Export CSV</a>

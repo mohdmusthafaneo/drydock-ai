@@ -154,7 +154,7 @@ export function ThreadDetailPanel({ threadId }: ThreadDetailPanelProps) {
                   <div>
                     <p className="font-display text-xl text-ink">DryDock</p>
                     <p className="mt-1 text-sm text-ash">
-                      Ask about test signal integrity, releases, Jira, or agent analysis runs.
+                      Ask about which greens are trustworthy, releases, Jira, or agent analysis runs.
                     </p>
                   </div>
                   <div className="flex flex-wrap justify-center gap-2">

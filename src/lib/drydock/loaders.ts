@@ -35,13 +35,13 @@ const REASON_MAP: Record<DbReason, TrustDeficitReason | null> = {
 };
 
 const REASON_LABEL: Record<TrustDeficitReason, string> = {
-  never_failed: "Never failed",
-  flake: "Flake contamination",
-  retry_masked: "Retry-masked",
-  skipped: "Skipped / quarantined",
-  permafail: "Permafail",
-  signal_decay: "Signal decay",
-  semantic_duplicate: "Semantic duplicates",
+  never_failed: "Always green (never been red)",
+  flake: "Unstable on the same commit",
+  retry_masked: "Only passes on retry",
+  skipped: "Skipped or disabled",
+  permafail: "Always failing",
+  signal_decay: "Hasn’t caught a real bug lately",
+  semantic_duplicate: "Near-duplicate tests",
 };
 
 const REASON_SENTENCE: Record<TrustDeficitReason, (n: number) => string> = {
@@ -51,16 +51,16 @@ const REASON_SENTENCE: Record<TrustDeficitReason, (n: number) => string> = {
     `${n} ${n === 1 ? "test" : "tests"} produced different outcomes on the same commit.`,
   retry_masked: (n) =>
     n === 1
-      ? "1 test only passes on a second attempt — green while lying."
-      : `${n} tests only pass on a second attempt — green while lying.`,
+      ? "1 test only passes on a second attempt — the pipeline stays green even though the first run failed."
+      : `${n} tests only pass on a second attempt — the pipeline stays green even though the first run failed.`,
   skipped: (n) =>
-    `${n} ${n === 1 ? "test is" : "tests are"} skipped or quarantined; the disabled count is rising.`,
+    `${n} ${n === 1 ? "test is" : "tests are"} skipped or disabled; the disabled count is rising.`,
   permafail: (n) =>
-    `${n} ${n === 1 ? "test has" : "tests have"} been red beyond the threshold and ${n === 1 ? "is" : "are"} being routed around.`,
+    `${n} ${n === 1 ? "test has" : "tests have"} been failing for a long time and ${n === 1 ? "is" : "are"} being worked around.`,
   signal_decay: (n) =>
     `${n} ${n === 1 ? "suite has" : "suites have"} not caught a confirmed regression recently despite running green.`,
   semantic_duplicate: (n) =>
-    `${n} ${n === 1 ? "test looks" : "tests look"} like a near-duplicate of another assertion (inference from names).`,
+    `${n} ${n === 1 ? "test looks" : "tests look"} like a near-duplicate of another check (educated guess from names).`,
 };
 
 function mapVerb(verb: DbVerb): AttentionVerb {
@@ -222,7 +222,7 @@ export async function loadLedger(organizationId: string): Promise<{
       untrustedCount: Math.max(0, untrustedCount),
       sinceLastReleaseLabel: "since last release",
       blindSpots: blind.length
-        ? ["Demoted items present — open from Briefing or Ledger"]
+        ? ["Items covered by earlier decisions — open from Today or Tests"]
         : ["Connect GitHub and sync to ingest JUnit artifacts, or seed the pilot"],
       buckets,
     },
@@ -330,7 +330,7 @@ export async function loadBriefing(organizationId: string): Promise<{
       silence: findings.length === 0 && ruled >= 0,
       nextReleaseLabel: "in four days",
       demotedCount,
-      demotedSummary: `${demotedCount} items look covered by earlier rulings`,
+      demotedSummary: `${demotedCount} items look covered by earlier decisions`,
       findings,
       ledger,
     },

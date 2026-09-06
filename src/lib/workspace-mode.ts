@@ -28,9 +28,9 @@ export const WORKSPACE_META: Record<
   },
   ENTERPRISE: {
     label: "DryDock",
-    tagline: "Trust green",
+    tagline: "Which greens are trustworthy",
     description:
-      "Signal integrity for the QA Architect — trust counts, the Ledger, and today's Briefing.",
+      "For the QA Architect — which of your green checks actually mean something, and what needs you today.",
     homePath: "/briefing",
     accentClass: "from-accent to-amber-300",
     badgeClass: "bg-accent/15 text-accent",
@@ -84,11 +84,11 @@ export type ResolvedEnterpriseNavLayout = {
 export function getEnterpriseNavLayout(): EnterpriseNavLayout {
   return {
     topItems: [
-      { href: "/briefing", label: "Briefing", icon: LayoutDashboard, primary: true },
-      { href: "/ledger", label: "Ledger", icon: BookOpen },
-      { href: "/standard", label: "Standard", icon: Scale },
-      { href: "/certificate", label: "Certificate", icon: FileCheck },
-      { href: "/escapes", label: "Escapes", icon: Bug },
+      { href: "/briefing", label: "Today", icon: LayoutDashboard, primary: true },
+      { href: "/ledger", label: "Tests", icon: BookOpen },
+      { href: "/standard", label: "Conventions", icon: Scale },
+      { href: "/certificate", label: "Sign-off", icon: FileCheck },
+      { href: "/escapes", label: "Misses", icon: Bug },
       { href: "/releases", label: "Releases", icon: Package },
       { href: "/integrations", label: "Connect", icon: Plug },
     ],

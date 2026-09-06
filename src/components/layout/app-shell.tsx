@@ -19,14 +19,6 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 
 const SIDEBAR_STORAGE_KEY = "drydock-sidebar-collapsed";
 
-const AUTO_COLLAPSE_PATHS = ["/briefing", "/ledger", "/standard", "/certificate"];
-
-function shouldAutoCollapse(pathname: string): boolean {
-  return AUTO_COLLAPSE_PATHS.some(
-    (path) => pathname === path || pathname.startsWith(`${path}/`),
-  );
-}
-
 function isChatPath(pathname: string): boolean {
   return pathname === "/agent-threads" || pathname.startsWith("/agent-threads/");
 }
@@ -41,22 +33,16 @@ function isWizardPath(pathname: string): boolean {
 }
 
 function HeaderTagline({ text }: { text: string }) {
-  const short = text.split("·")[0]?.trim() ?? text;
-
+  if (!text) return null;
   return (
     <span
       className={cn(
-        "group/tag hidden shrink-0 sm:inline-flex items-center justify-end overflow-hidden",
-        "rounded-full border border-dove/40 bg-pure-white/80 px-3 py-1.5",
+        "hidden shrink-0 items-center justify-end sm:inline-flex",
+        "rounded-full border border-dove/40 bg-pure-white/80 px-3.5 py-1.5",
         "text-xs font-medium leading-none text-graphite shadow-[0_1px_2px_rgba(22,22,22,0.04)]",
-        "max-w-[5.5rem] transition-[max-width,background-color,border-color,padding,box-shadow] duration-300 ease-out",
-        "hover:max-w-[24rem] hover:border-dove/55 hover:bg-pure-white hover:px-3.5 hover:text-ash hover:shadow-[0_2px_10px_rgba(22,22,22,0.06)]",
       )}
     >
-      <span className="whitespace-nowrap">
-        <span className="group-hover/tag:hidden">{short}</span>
-        <span className="hidden group-hover/tag:inline">{text}</span>
-      </span>
+      <span className="whitespace-nowrap">{text}</span>
     </span>
   );
 }
@@ -93,24 +79,14 @@ export function AppShell({
     if (stored === "true") setSidebarCollapsed(true);
   }, []);
 
-  useEffect(() => {
-    if (shouldAutoCollapse(pathname)) {
-      setSidebarCollapsed(true);
-      localStorage.setItem(SIDEBAR_STORAGE_KEY, "true");
-    }
-  }, [pathname]);
-
   function setCollapsed(next: boolean) {
     setSidebarCollapsed(next);
     localStorage.setItem(SIDEBAR_STORAGE_KEY, String(next));
   }
 
   function handleMainInteract() {
-    if (sidebarExpanded && sidebarCollapsed === false && shouldAutoCollapse(pathname)) {
-      setCollapsed(true);
-    }
+    // no-op on desktop
   }
-
   const pageTitle = resolvePageTitleForPath(pathname, "ENTERPRISE", integrationGates);
   const chatMode = isChatPath(pathname);
   const hideMobileNav = isWizardPath(pathname);

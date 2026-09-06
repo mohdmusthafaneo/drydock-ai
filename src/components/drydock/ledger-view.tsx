@@ -74,14 +74,14 @@ export function LedgerView({ ledger, dataSource = "mock" }: Props) {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-[14px] text-ash">
-          Decomposition of the {ledger.untrustedCount.toLocaleString("en-US")}{" "}
-          without real signal. {ledger.sinceLastReleaseLabel}.
+          Breakdown of the {ledger.untrustedCount.toLocaleString("en-US")}{" "}
+          that aren&apos;t trustworthy. {ledger.sinceLastReleaseLabel}.
         </p>
         <Link
           href="/briefing"
           className="text-[14px] font-medium text-ink underline decoration-dove underline-offset-4 hover:decoration-ink"
         >
-          Back to Briefing
+          Back to Today
         </Link>
       </div>
 
@@ -164,7 +164,7 @@ export function LedgerView({ ledger, dataSource = "mock" }: Props) {
           onClick={() => void openSuppressed()}
           className="flex w-full items-center justify-between px-4 py-3 text-left text-[14px] font-medium text-ink"
         >
-          Suppressed findings
+          Hidden by earlier decisions
           <span className="text-[12px] font-normal text-graphite">
             {suppressedOpen ? "Hide" : "One click away"}
           </span>
@@ -173,8 +173,8 @@ export function LedgerView({ ledger, dataSource = "mock" }: Props) {
           <div className="border-t border-dove/40 px-4 py-3 text-[13px] leading-relaxed text-ash">
             {dataSource === "mock" ? (
               <p>
-                Mock: no rulings have suppressed findings yet. When they do, each
-                hidden item appears here with its reason and originating ruling.
+                Demo: when you hide an issue with a decision, it appears here with the reason
+                and the decision that hid it.
               </p>
             ) : loadingSuppressed ? (
               <p>Loading…</p>
@@ -185,14 +185,14 @@ export function LedgerView({ ledger, dataSource = "mock" }: Props) {
                     <p className="font-medium text-ink">{item.title}</p>
                     <p className="mt-0.5">{item.plainSentence}</p>
                     <p className="mt-1 text-[12px] text-graphite">
-                      {item.demoted ? "Demoted" : item.status}
+                      {item.demoted ? "Covered by earlier decision" : item.status}
                       {item.scopeSummary ? ` · ${item.scopeSummary}` : ""}
                     </p>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p>No suppressed findings. Nothing was hidden.</p>
+              <p>Nothing hidden. No issues were set aside.</p>
             )}
           </div>
         ) : null}
@@ -201,7 +201,7 @@ export function LedgerView({ ledger, dataSource = "mock" }: Props) {
       <p className="text-[12px] text-graphite">
         {dataSource === "db"
           ? "Counts bound to ingested CI results for this organization."
-          : "Mock data for UI confirmation. Seed pilot to bind counts."}
+          : "Demo data for UI confirmation. Seed pilot to bind counts."}
       </p>
     </div>
   );

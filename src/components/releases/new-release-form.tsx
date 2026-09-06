@@ -138,7 +138,7 @@ export function NewReleaseForm() {
           </div>
           {generalError && <p className="text-sm text-error">{generalError}</p>}
           <Button type="submit" disabled={loading} variant="ink" size="lg" className="w-full">
-            {loading ? "Registering…" : "Register release event"}
+            {loading ? "Saving…" : "Add release"}
           </Button>
         </form>
       </CardContent>

@@ -97,7 +97,7 @@ const NEVER_FAILED_TESTS: MockTestCase[] = [
     retryPassCount: 0,
     lastSeenAt: "2026-09-03T06:12:00Z",
     evidenceSummary:
-      "412 consecutive passes. Covered path changed 18 times in 30 days. Inference: assertions may be vacuous.",
+      "412 consecutive passes. Covered path changed 18 times in 30 days. Educated guess: assertions may not check anything real.",
   },
   {
     id: "tc-nf-2",
@@ -222,7 +222,8 @@ const PERMAFAIL_TESTS: MockTestCase[] = [
     failCount: 64,
     retryPassCount: 0,
     lastSeenAt: "2026-09-03T03:20:00Z",
-    evidenceSummary: "Red for 19 consecutive days. Pipeline still green via allow-failure.",
+    evidenceSummary:
+      "Red for 19 consecutive days. Pipeline stays green because the step is marked allowed to fail.",
   },
 ];
 
@@ -259,7 +260,7 @@ export const MOCK_LEDGER: MockLedger = {
   buckets: [
     {
       reason: "never_failed",
-      label: "Never failed",
+      label: "Always green (never been red)",
       count: 184,
       plainSentence:
         "184 tests have never been red while their covered paths keep changing.",
@@ -267,35 +268,37 @@ export const MOCK_LEDGER: MockLedger = {
     },
     {
       reason: "flake",
-      label: "Flake contamination",
+      label: "Unstable on the same commit",
       count: 61,
       plainSentence: "61 tests produced different outcomes on the same commit.",
       tests: FLAKE_TESTS,
     },
     {
       reason: "retry_masked",
-      label: "Retry-masked",
+      label: "Only passes on retry",
       count: 43,
-      plainSentence: "43 tests only pass on a second attempt — green while lying.",
+      plainSentence:
+        "43 tests only pass on a second attempt — the pipeline stays green even though the first run failed.",
       tests: RETRY_TESTS,
     },
     {
       reason: "skipped",
-      label: "Skipped / quarantined",
+      label: "Skipped or disabled",
       count: 38,
-      plainSentence: "38 tests are skipped or quarantined; the disabled count is rising.",
+      plainSentence: "38 tests are skipped or disabled; the disabled count is rising.",
       tests: SKIPPED_TESTS,
     },
     {
       reason: "permafail",
-      label: "Permafail",
+      label: "Always failing",
       count: 12,
-      plainSentence: "12 tests have been red beyond the threshold and are being routed around.",
+      plainSentence:
+        "12 tests have been failing for a long time and are being worked around.",
       tests: PERMAFAIL_TESTS,
     },
     {
       reason: "signal_decay",
-      label: "Signal decay",
+      label: "Hasn’t caught a real bug lately",
       count: 18,
       plainSentence:
         "18 suites have not caught a confirmed regression recently despite running green.",
@@ -310,13 +313,13 @@ export const MOCK_BRIEFING: MockBriefing = {
   silence: false,
   nextReleaseLabel: "in four days",
   demotedCount: 14,
-  demotedSummary: "14 items look covered by earlier rulings",
+  demotedSummary: "14 items look covered by earlier decisions",
   ledger: MOCK_LEDGER,
   findings: [
     {
       id: "f-1",
       verb: "rule",
-      title: "Never-failed cluster on guest checkout",
+      title: "Always-green cluster on guest checkout",
       plainSentence:
         "Three guest-checkout tests have never failed while checkout code changed 18 times this month.",
       clusterSize: 3,
@@ -336,7 +339,7 @@ export const MOCK_BRIEFING: MockBriefing = {
     {
       id: "f-2",
       verb: "route",
-      title: "Payment webhook flake on same commit",
+      title: "Payment webhook unstable on the same commit",
       plainSentence:
         "payment confirmation webhook acknowledged passed and failed on commit a3f91c2 within 40 minutes.",
       clusterSize: 2,
@@ -357,7 +360,7 @@ export const MOCK_BRIEFING: MockBriefing = {
     {
       id: "f-3",
       verb: "snooze",
-      title: "Retry-masked gallery timing",
+      title: "Gallery timing only passes on retry",
       plainSentence:
         "PDP image gallery loads within budget only passed after retry in 47 of the last 60 green runs.",
       clusterSize: 1,
@@ -377,7 +380,7 @@ export const MOCK_BRIEFING: MockBriefing = {
     {
       id: "f-4",
       verb: "rule",
-      title: "Quarantine creep in payments",
+      title: "Growing skip list in payments",
       plainSentence:
         "Disabled count in the payments suite rose from 3 to 11 since the last release.",
       clusterSize: 2,
@@ -397,9 +400,9 @@ export const MOCK_BRIEFING: MockBriefing = {
     {
       id: "f-5",
       verb: "sign_off",
-      title: "3DS permafail still allowed",
+      title: "3DS always failing still allowed",
       plainSentence:
-        "3DS challenge completes on Visa has been red for 19 days while the workflow remains green via allow-failure.",
+        "3DS challenge completes on Visa has been red for 19 days while the workflow stays green because the step is marked allowed to fail.",
       clusterSize: 1,
       reason: "permafail",
       severity: "high",
@@ -427,7 +430,7 @@ export const RULING_REASONS = [
   {
     code: "correct_for_kind",
     label: "Correct for this kind of test",
-    scope: "Test category",
+    scope: "This kind of test",
   },
   {
     code: "required_by_integration",
@@ -446,8 +449,8 @@ export const RULING_REASONS = [
   },
   {
     code: "finding_wrong",
-    label: "This finding is wrong",
-    scope: "Defect report — not a ruling",
+    label: "This issue is wrong",
+    scope: "Report a DryDock mistake",
   },
 ] as const;
 
@@ -466,12 +469,12 @@ export function formatAsOf(iso: string): string {
 export function verbLabel(verb: AttentionVerb): string {
   switch (verb) {
     case "rule":
-      return "Rule";
+      return "Decide";
     case "route":
-      return "Route";
+      return "Send on";
     case "snooze":
-      return "Snooze";
+      return "Remind later";
     case "sign_off":
-      return "Sign off";
+      return "Accept";
   }
 }

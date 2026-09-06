@@ -251,7 +251,7 @@ export async function runSlackAssistantTurn(
     AIDOS_ASSISTANT_INSTRUCTIONS,
     "",
     "You are answering via Slack. Keep replies concise and markdown-friendly.",
-    "Do not claim you executed changes. Recommend-only.",
+    "Do not claim you executed changes. DryDock only advises.",
     contextMarkdown ? `\n## Thread context\n${contextMarkdown}` : "",
   ]
     .filter(Boolean)

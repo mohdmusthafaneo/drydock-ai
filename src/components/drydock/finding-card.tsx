@@ -34,8 +34,8 @@ export function FindingCard({ finding, persist = false, onRuled }: Props) {
   if (done) {
     return (
       <article className="rounded-[24px] border border-dove/40 bg-fog/80 px-5 py-4 text-[14px] text-graphite">
-        Ruled and recorded. Scope follows the reason you chose. Nothing was
-        silently suppressed — open Suppressed from the Ledger to review.
+        Decision recorded. How widely it applies follows the reason you chose. Nothing was
+        hidden without a reason — open Hidden by earlier decisions from Tests to review.
       </article>
     );
   }
@@ -55,8 +55,11 @@ export function FindingCard({ finding, persist = false, onRuled }: Props) {
           <span className="text-[12px] text-graphite">Since last release</span>
         ) : null}
         {finding.inference ? (
-          <span className="rounded-full border border-dove/70 px-2 py-0.5 text-[11px] text-ash">
-            Inference
+          <span
+            className="rounded-full border border-dove/70 px-2 py-0.5 text-[11px] text-ash"
+            title="Educated guess from history, not proof"
+          >
+            Educated guess
           </span>
         ) : null}
         <span className="ml-auto text-[12px] text-graphite">
@@ -75,7 +78,7 @@ export function FindingCard({ finding, persist = false, onRuled }: Props) {
             key={chip}
             className="rounded-full border border-dove/60 bg-fog px-2.5 py-0.5 text-[12px] text-graphite"
           >
-            {chip}
+            {chip === "Inference" ? "Educated guess" : chip}
           </span>
         ))}
         {finding.clusterSize > 1 ? (
@@ -109,7 +112,7 @@ export function FindingCard({ finding, persist = false, onRuled }: Props) {
       {rulingOpen ? (
         <div className="mt-4 space-y-3 rounded-[16px] border border-dove/50 bg-fog/70 p-4">
           <p className="text-[13px] text-ash">
-            The reason carries the scope. Disagree on the record.
+            Your reason decides how widely this applies. Disagree on the record.
           </p>
           <ul className="space-y-2">
             {RULING_REASONS.map((reason) => (
@@ -128,7 +131,7 @@ export function FindingCard({ finding, persist = false, onRuled }: Props) {
                       {reason.label}
                     </span>
                     <span className="block text-[12px] text-graphite">
-                      Scope: {reason.scope}
+                      Applies to: {reason.scope}
                     </span>
                   </span>
                 </label>
@@ -156,7 +159,7 @@ export function FindingCard({ finding, persist = false, onRuled }: Props) {
                     }),
                   });
                   if (!res.ok) {
-                    setError("Could not record ruling.");
+                    setError("Couldn’t save your decision.");
                     return;
                   }
                 } finally {
@@ -168,7 +171,7 @@ export function FindingCard({ finding, persist = false, onRuled }: Props) {
             }}
             className="rounded-full bg-ink px-5 text-[14px] text-pure-white disabled:opacity-40"
           >
-            {saving ? "Recording…" : "Record ruling"}
+            {saving ? "Saving…" : "Record decision"}
           </Button>
         </div>
       ) : null}

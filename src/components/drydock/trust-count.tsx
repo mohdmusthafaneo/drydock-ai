@@ -27,16 +27,16 @@ export function TrustCount({
     <div className={cn("space-y-3", className)}>
       <p className="font-display text-[28px] leading-[1.15] tracking-[-0.4px] text-ink sm:text-[36px] sm:tracking-[-0.55px]">
         {formatted.total} tests.{" "}
-        <span className="text-ink">{formatted.trusted} are giving you real signal.</span>{" "}
-        <span className="text-rust">{formatted.untrusted} are not.</span>
+        <span className="text-ink">{formatted.trusted} look trustworthy.</span>{" "}
+        <span className="text-rust">{formatted.untrusted} don&apos;t.</span>
       </p>
       <p className="text-[15px] text-ash">
-        The deficit is the work queue.{" "}
+        The ones that aren&apos;t are your work queue.{" "}
         <Link
           href={href}
           className="font-medium text-ink underline decoration-dove underline-offset-4 hover:decoration-ink"
         >
-          Open the Ledger
+          See all tests
         </Link>
       </p>
     </div>

@@ -9,18 +9,19 @@ alwaysApply: true
 - **Active build plan**: `docs/DRYDOCK-BUILD-PLAN.md` — check phase status before starting work.
 - **Audience**: one persona, the QA Architect. No manager, team, or leadership views.
 - **Decision unit**: the release.
-- **Loop**: Ingest → Ledger → Briefing → Ruling → Certificate.
+- **Loop**: Ingest → Tests → Today → Decision → Sign-off.
+  (Engineering aliases: Ledger, Briefing, Ruling, Certificate — see concept doc §4.)
 
 ## Hard rules
 
 - **No metric is ever grouped by contributor.** No author, team, or vendor as a reporting dimension anywhere in schema or UI. Evidence links to files and PRs, never to people.
-- **Nothing is silently suppressed.** Every hidden finding is one click away with its reason and originating ruling.
+- **Nothing is silently suppressed.** Every hidden finding is one click away with its reason and originating decision.
 - **The architect can always overrule, on the record.**
-- **Recommend-only.** Never write to GitHub or Jira, modify tests, quarantine, or gate a pipeline.
-- **Every claim traces to evidence.** Inference is labelled as inference.
+- **DryDock only advises.** Never write to GitHub or Jira, modify tests, disable suites, or block CI.
+- **Every claim traces to evidence.** Inference is labelled as an educated guess.
 - **Trust is a count, not a score.** No gauges, no composite index.
 - **No charts in v1.** Sentences, counts, and lists. A chart must justify a specific decision it changes.
-- **Neutral evidentiary voice** in UI copy. An instrument, not a chatbot.
+- **Neutral evidentiary voice** in UI copy — plain English, not jargon. An instrument, not a chatbot.
 - **Tenancy**: all data scoped by `organizationId` from session.
 - **Build**: run `npm run build` before marking work complete.
 

@@ -18,19 +18,19 @@ export default async function ReleasesPage() {
     <div className="space-y-6">
       <PageHeader
         title="Releases"
-        description="The decision unit. Open a release to inspect trust counts and sign a Certificate."
+        description="Each release is a decision. Open one to review trust counts and record a sign-off."
       >
         <Link
           href="/releases/new"
           className="rounded-full bg-ink px-4 py-2 text-[14px] text-pure-white"
         >
-          Register release
+          Add release
         </Link>
       </PageHeader>
 
       {releases.length === 0 ? (
         <p className="text-[15px] text-ash">
-          No releases registered. The Ledger still holds the current trust count.
+          No releases added yet. The Tests page still shows the current trust count.
         </p>
       ) : (
         <ul className="space-y-3">
@@ -42,13 +42,16 @@ export default async function ReleasesPage() {
               >
                 <p className="text-[16px] font-medium text-ink">{release.name}</p>
                 <p className="mt-1 text-[14px] text-ash">
-                  {release.status.toLowerCase()}
-                  {release.version ? ` · ${release.version}` : ""} ·{" "}
-                  {release.incidents.length}{" "}
-                  {release.incidents.length === 1 ? "escape" : "escapes"}
-                  {release.certificate
-                    ? ` · certificate ${release.certificate.decision.toLowerCase()}`
-                    : " · unsigned"}
+                  {[
+                    release.status.toLowerCase(),
+                    release.version,
+                    `${release.incidents.length} ${release.incidents.length === 1 ? "production miss" : "production misses"}`,
+                    release.certificate
+                      ? `sign-off ${release.certificate.decision.toLowerCase().replace("_", " ")}`
+                      : "not signed yet",
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </p>
               </Link>
             </li>

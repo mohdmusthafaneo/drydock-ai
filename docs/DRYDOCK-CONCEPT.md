@@ -38,7 +38,7 @@ which parts of their safety net are real.
 
 They own test strategy across the platform, review automation work they did not write, and
 sign off on release quality. Their scarce resource is attention. Their professional risk is
-an escape they cleared.
+a production miss they cleared.
 
 Everything in DryDock is designed for one expert user with limited time and real
 accountability. There is no manager view, no team view, and no rollup for leadership in the
@@ -56,15 +56,15 @@ These are hard rules. Breaking one is a product defect, not a tradeoff.
    requests so findings are auditable; the schema contains no path that aggregates findings to
    a human.
 
-2. **Nothing is silently suppressed.** Every finding the system hides is reachable in one
-   click, with the reason and the ruling that hid it. Discovering that DryDock concealed
+2. **Nothing is silently suppressed.** Every issue the system hides is reachable in one
+   click, with the reason and the decision that hid it. Discovering that DryDock concealed
    something without recourse would end its credibility permanently.
 
 3. **The architect can always overrule the system, on the record.** A tool that cannot be
    corrected gets ignored. Disagreement is a first-class input, not an error state.
 
-4. **Recommend-only.** DryDock never writes to GitHub or Jira, never modifies tests, never
-   quarantines anything on its own, and never gates a pipeline. It informs a human decision.
+4. **DryDock only advises.** DryDock never writes to GitHub or Jira, never modifies tests, never
+   disables anything on its own, and never blocks CI or deploys. It informs a human decision.
 
 5. **Every claim is traceable to evidence.** No number appears without a path to the raw
    material behind it — the test file, the run history, the error text. Inference is always
@@ -79,21 +79,52 @@ These are hard rules. Breaking one is a product defect, not a tradeoff.
 
 ## 4. Vocabulary
 
-Use these terms consistently in schema, code, and UI copy.
+### User-facing language (UI, agent replies, help text)
 
-| Term | Meaning |
-|------|---------|
-| **The Standard** | The ratified body of test conventions for an organization. Replaces Delivery DNA. Grown by ratification, not authored. |
-| **Trust** | The share of the suite that produces meaningful signal. Expressed as a count, never a score. |
-| **The Ledger** | The inventory of tests and their trust state. The substrate of the product. |
-| **The Briefing** | The daily surface: a bounded queue of things that need the architect. |
-| **The Certificate** | The signed release artifact stating what was verified, what was not, and the decision. |
-| **Finding** | A single observation about a test or suite that may need attention. |
-| **Ruling** | The architect's decision on a finding, with a reason that carries scope. |
-| **Precedent** | A ruling applied to later, materially similar findings. |
-| **Distinguishing** | Determining that a new finding is *not* covered by an existing precedent despite surface similarity. |
-| **Escape** | A production defect the suite should have caught. Ground truth for calibration. |
-| **Inspection** | A full analysis pass over the corpus and run history. |
+Prefer plain English. Users should not need a glossary.
+
+| User term | Meaning |
+|-----------|---------|
+| **Today** | What needs the architect’s attention now (bounded queue). |
+| **Tests** | Inventory of tests and whether each looks trustworthy. |
+| **Conventions** | Approved patterns for how tests should be written here. Grown by choosing preferred forms from existing practice, not by authoring a style guide up front. |
+| **Sign-off** | The signed release decision: what was verified, what was not, and the call. |
+| **Misses** / **Missed in production** | Production bugs the suite should have caught. Used to check whether DryDock’s release advice matches reality. |
+| **Issue** | A single observation about a test or suite that may need attention. |
+| **Decision** | The architect’s call on an issue, with a reason that sets how widely it applies. |
+| **Earlier decision** | A past decision that still covers later, materially similar issues. |
+| **Trustworthy** | Produces a meaningful check — expressed as a count, never a score. |
+| **Hidden by earlier decisions** | Issues set aside by a prior decision; always one click away with the reason. |
+
+### Problem category labels (UI)
+
+| User label | Meaning |
+|------------|---------|
+| **Always green (never been red)** | Passed consistently while covered code keeps changing — suspicious. |
+| **Unstable on the same commit** | Same commit, different outcomes. |
+| **Only passes on retry** | Green only after a second attempt; first run failed. |
+| **Skipped or disabled** | Disabled / skipped count rising over time. |
+| **Always failing** | Red for a long time; the team works around it. |
+| **Hasn’t caught a real bug lately** | Suite runs green but has not caught a confirmed regression recently. |
+| **Near-duplicate tests** | Same check under different names (educated guess from names). |
+
+### Engineering aliases (schema, code, URLs — not UI)
+
+Keep these internally; do not surface them as primary labels:
+
+| Internal | User-facing |
+|----------|-------------|
+| Briefing (`/briefing`) | Today |
+| Ledger (`/ledger`) | Tests |
+| Standard (`/standard`) | Conventions |
+| Certificate (`/certificate`) | Sign-off |
+| Escape (`/escapes`) | Misses |
+| Finding | Issue |
+| Ruling | Decision |
+| Precedent | Earlier decision |
+| Inspection | Full analysis pass |
+| Corpus | Your tests / the suite |
+| Recommend-only | DryDock only advises — it never blocks CI or deploys |
 
 Deprecated AIDOS vocabulary: Delivery DNA, Delivery Confidence score, Governance Score,
 Recommendations queue, Approvals, Accelerator.
@@ -102,40 +133,41 @@ Recommendations queue, Approvals, Accelerator.
 
 ## 5. Pillars
 
-### 5.1 Signal Integrity — the trust layer
+### 5.1 Which greens are trustworthy — the trust layer
 
 Which green results carry information. Derived entirely from CI run history and test reports,
 so it requires no knowledge of the test framework and no cooperation from any team.
 
-- **Never-failed tests** — passed consistently, never once red, in code that keeps changing.
-  Either the code is perfect or the test asserts nothing. The characteristic pathology of
-  AI-generated tests, and the highest-signal finding available from CI data alone.
-- **Flake contamination** — same commit, different outcomes.
-- **Retry masking** — tests that only pass on a second attempt. The pipeline is green and the
-  test is lying.
-- **Skip and quarantine creep** — the disabled count over time. Suites rot this way silently.
-- **Permafail** — red for weeks, everyone routing around it.
+- **Always green (never been red)** — passed consistently, never once red, in code that keeps
+  changing. Either the code is perfect or the test asserts nothing. The characteristic
+  pathology of AI-generated tests, and the highest-value issue available from CI data alone.
+- **Unstable on the same commit** — same commit, different outcomes.
+- **Only passes on retry** — tests that only pass on a second attempt. The pipeline is green
+  even though the first run failed.
+- **Skipped or disabled** — the disabled count over time. Suites rot this way silently.
+- **Always failing** — red for weeks, everyone working around it.
 - **Failure clustering** — group by normalized error fingerprint. Fourteen red tests with one
   root cause is one problem, not fourteen.
-- **Signal decay** — has this suite caught a real regression recently? A suite that only ever
-  goes red on flakes carries no information regardless of its size.
+- **Hasn’t caught a real bug lately** — has this suite caught a real regression recently? A
+  suite that only ever goes red on unstable runs carries no information regardless of its size.
 
-### 5.2 The Standard — codified taste
+### 5.2 Conventions — codified taste
 
 The architect's judgement, extracted without asking them to write a document.
 
-Mine the existing corpus for the patterns actually in use, then ask the architect to ratify a
-canonical form: *"there are six ways this codebase waits for an element — which is right?"*
-Ratification rather than authorship means the Standard is derived from real practice, takes an
-afternoon instead of a quarter, and imposes no single team's style on the others.
+Mine existing tests for the patterns actually in use, then ask the architect to pick a
+preferred form: *"there are six ways this codebase waits for an element — which is right?"*
+Choosing rather than authoring means Conventions are derived from real practice, take an
+afternoon instead of a quarter, and impose no single team's style on the others.
 
-Ratification is a **recurring ritual**, not a setup wizard. One or two pattern decisions a
-week, surfaced as new drift appears.
+Choosing conventions is a **recurring ritual**, not a setup wizard. One or two pattern
+decisions a week, surfaced as new inconsistencies appear.
 
-### 5.3 Conformance — the Standard applied at scale
+### 5.3 Conformance — Conventions applied at scale
 
-Every test evaluated against the ratified Standard, uniformly, on every push. The architect's
-review without the architect having to perform it, and without anyone being singled out.
+Every test evaluated against the approved Conventions, uniformly, on every push. The
+architect's review without the architect having to perform it, and without anyone being
+singled out.
 
 ### 5.4 Risk Coverage — where the exposure is
 
@@ -147,70 +179,70 @@ coverage, and it changed three times this sprint"* — not a percentage.
 Integration seams between modules are a specific focus: coverage falls through them and no one
 owns them.
 
-### 5.5 Release Confidence — the calibrated verdict
+### 5.5 Release confidence — the calibrated verdict
 
-The decision unit is a **release**. Confidence is composed from the four pillars above plus
-change volume in the affected areas, and it is **calibrated against escapes**: every production
-defect is replayed against the suite (was there a test, was it green, was it skipped, did it
-never exist) and the answer tunes the model.
+The decision is made per **release**. Confidence is composed from the four pillars above plus
+change volume in the affected areas, and it is **checked against production misses**: every
+production defect is replayed against the suite (was there a test, was it green, was it
+skipped, did it never exist) and the answer tunes the model.
 
-An escape is a suite failure. Never a person's failure. This is the most useful metric in the
-product and it is inherently blame-free.
+A production miss is a suite failure. Never a person's failure. This is the most useful metric
+in the product and it is inherently blame-free.
 
-Output is the **Certificate**: what was verified, what was not, what is known unreliable, what
-risk is being accepted, and the architect's decision with rationale.
+Output is the **release sign-off**: what was verified, what was not, what is known unreliable,
+what risk is being accepted, and the architect's decision with rationale.
 
 ---
 
-## 6. Rulings and precedent
+## 6. Decisions and earlier coverage
 
 How the architect disagrees, and how the system learns from it.
 
-### The reason carries the scope
+### The reason decides how widely it applies
 
-The architect never draws a boundary by hand. Each dismissal reason implies how far the ruling
-reaches:
+The architect never draws a boundary by hand. Each dismissal reason implies how far the
+decision reaches:
 
-| Reason | Scope |
-|--------|-------|
+| Reason | Applies to |
+|--------|------------|
 | Intentional for this specific test | This instance only. Never generalizes. |
-| Correct for this kind of test | The test category (smoke, contract, e2e). |
+| Correct for this kind of test | This kind of test (smoke, contract, e2e). |
 | Required by how we integrate with *X* | Anything touching that dependency. The most common useful generalization. |
-| Known, already being fixed | This instance, time-boxed. A snooze, not a ruling. |
+| Known, already being fixed | This instance, time-boxed. A reminder, not a lasting decision. |
 | Accepted risk for now | This instance, expires at the next release. |
-| This finding is wrong | No scope. Not a ruling — a defect report against DryDock. |
+| This issue is wrong | Report a DryDock mistake — not a lasting decision. |
 
 The last row matters. *"You're wrong"* and *"you're right but it's fine"* are different signals
 and most tools collapse them into one Dismiss button, then learn garbage from the mixture. Only
-the second teaches the Standard; the first degrades the detector's confidence.
+the second teaches Conventions; the first degrades the detector's confidence.
 
 A custom reason field is always available. Custom reasons are clustered over time and recurring
 ones are proposed for promotion into the list.
 
 ### The triple check
 
-Three independent gates before a ruling suppresses anything on its own.
+Three independent gates before a decision hides anything on its own.
 
 **Similarity** must match on more than shape: same rule, same structural pattern, *and* same
 context — dependency, tag, directory, journey. Embedding similarity may be one input and is
-never the decider. A finding in one place is not the same as a finding in another that merely
+never the decider. An issue in one place is not the same as an issue in another that merely
 looks alike.
 
-**Corroboration** means one ruling resolves its own instance and creates no rule. On the third
-consistent ruling of the same class, the system asks whether it should become part of the
-Standard. The generalization decision stays explicitly with the architect.
+**Corroboration** means one decision resolves its own instance and creates no rule. On the
+third consistent decision of the same class, the system asks whether it should become part of
+Conventions. The generalization decision stays explicitly with the architect.
 
-**Confidence** is not binary. Below the bar, findings are **demoted**, not suppressed: they
-collapse into a single line — *"14 items look covered by earlier rulings"* — that opens in one
-click. The queue stays short; nothing disappears.
+**Confidence** is not binary. Below the bar, issues are **covered by earlier decisions**, not
+silently removed: they collapse into a single line — *"14 items look covered by earlier
+decisions"* — that opens in one click. The queue stays short; nothing disappears.
 
 ### Expiry and re-raise
 
-A ruling is not forever. It re-raises when the test changes materially, when the rule's
-definition changes, when it ages past a major release, and — most importantly — **when an
-escape lands in territory the ruling covered.** A production defect in an area the architect
-declared fine is the strongest learning signal in the system, and it surfaces attached to the
-original ruling.
+A decision is not forever. It re-raises when the test changes materially, when the rule's
+definition changes, when it ages past a major release, and — most importantly — **when a
+production miss lands in territory the decision covered.** A production defect in an area the
+architect declared fine is the strongest learning signal in the system, and it surfaces
+attached to the original decision.
 
 ---
 
@@ -221,7 +253,7 @@ them. Analysis is layered by how much framework knowledge each layer requires.
 
 | Layer | Needs | Gives |
 |-------|-------|-------|
-| **Result plane** | Nothing. JUnit XML or equivalent. | Per-test outcome, duration, retry, skip history. All of Signal Integrity. |
+| **Result plane** | Nothing. JUnit XML or equivalent. | Per-test outcome, duration, retry, skip history. Which greens are trustworthy. |
 | **Text plane** | Source as plain text. | Hardcoded waits, naming, file bloat, semantic duplication via embeddings. |
 | **Judgment plane** | A model reading the test. | Assertion meaningfulness, intent-vs-name mismatch, missing negative cases. |
 | **Structure plane** | A per-framework AST adapter. | Assertion depth, selector strategy, fixture and setup analysis. |
@@ -273,9 +305,9 @@ compliance rules · executive briefing for leadership · Grafana and Prometheus 
 (deferred, not deleted).
 
 Retained and repurposed: authentication, tenancy, RBAC, the GitHub and Jira connectors, the
-approval and audit machinery (reframed as rulings and the decision log), releases, pgvector
-embeddings, the Mastra runtime, and the incident model — which becomes **escapes**, the
-calibration ground truth.
+approval and audit machinery (reframed as decisions and the decision log), releases, pgvector
+embeddings, the Mastra runtime, and the incident model — which becomes **production misses**,
+used to check whether release advice matches reality.
 
 ---
 

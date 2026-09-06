@@ -17,8 +17,8 @@ export default async function NewReleasePage() {
         ← Releases
       </Link>
       <PageHeader
-        title="Register release"
-        description="The Certificate attaches to this release. DryDock does not write to GitHub or Jira."
+        title="Add release"
+        description="The release sign-off attaches to this release. DryDock does not write to GitHub or Jira."
         className="pb-4"
       />
       <NewReleaseForm />

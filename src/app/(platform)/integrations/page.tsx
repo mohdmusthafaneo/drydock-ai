@@ -237,7 +237,7 @@ export default async function IntegrationsPage({
     <div className="space-y-8">
       <PageHeader
         title="Connect"
-        description="Connect the systems DryDock needs for a trustworthy briefing."
+        description="Connect the systems DryDock needs for today’s attention list."
       >
         {canManage && <SyncIntegrationsButton />}
       </PageHeader>

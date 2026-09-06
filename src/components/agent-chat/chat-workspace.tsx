@@ -164,7 +164,7 @@ function NewChatEmpty() {
             DryDock
           </h1>
           <p className="mt-2 text-sm text-ash">
-            Ask about test signal integrity, releases, Jira, or agent analysis runs.
+            Ask about which greens are trustworthy, releases, Jira, or agent analysis runs.
           </p>
         </div>
         <NewChatComposer />

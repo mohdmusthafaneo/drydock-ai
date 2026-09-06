@@ -30,7 +30,7 @@ export function HonestyBanner({
       </p>
       {blindSpots.length > 0 ? (
         <p className="mt-1 text-ash">
-          Partial sync: {blindSpots.join("; ")}.
+          Incomplete data: {blindSpots.join("; ")}.
         </p>
       ) : null}
     </div>

@@ -614,7 +614,7 @@ export function GrafanaIntegrationPanel({
           </div>
           <p className="mt-1 text-[11px] text-muted">
             Add this URL as a Grafana contact point for unified alerting. Real-time firing alerts
-            create escapes in DryDock.
+            create production misses in DryDock.
           </p>
           {!appUrlConfigured && (
             <p className="mt-2 text-[11px] text-warning-soft">
