@@ -2,8 +2,21 @@ export type EvidenceMeta = { source: string; asOf: string };
 
 export type ConfidenceBand = "Strong" | "Steady" | "Caution" | "At risk";
 
+export type OverviewSprintOption = {
+  id: string;
+  name: string;
+  startLabel: string;
+  endLabel: string;
+  rangeLabel: string;
+  /** ISO date for top-bar DateRangeButton (`YYYY-MM-DD`). */
+  start: string;
+  end: string;
+};
+
 export type OverviewDashboardModel = {
   greetingName: string;
+  /** Server-computed greeting phrase to avoid SSR/client hour mismatch. */
+  greeting: string;
   sprint: {
     id: string;
     name: string;
@@ -11,12 +24,15 @@ export type OverviewDashboardModel = {
     endLabel: string;
     rangeLabel: string;
   };
+  /** Sprint picker options for the header chip. */
+  sprints: OverviewSprintOption[];
   teamKey: string | null;
   teams: { key: string; name: string }[];
   deliveryConfidence: {
     score: number;
     band: ConfidenceBand;
     caption: string;
+    href: string;
     metrics: Array<{
       id: string;
       label: string;
@@ -24,6 +40,7 @@ export type OverviewDashboardModel = {
       progress: number;
       annotation?: string;
       icon: string;
+      href?: string;
     }>;
   };
   keyTakeaways: Array<{
@@ -46,6 +63,7 @@ export type OverviewDashboardModel = {
     tone: string;
     /** Designer glyph when present (e.g. ⚑, </>, ⚗, ♢). */
     glyph?: string;
+    href?: string;
   }>;
   deliveryTrend: {
     points: { label: string; value: number }[];

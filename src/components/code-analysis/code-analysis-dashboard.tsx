@@ -34,6 +34,10 @@ type Props = {
   complianceCriticalOpen?: number;
   showCompliancePanel?: boolean;
   canManageCompliance?: boolean;
+  /** When set, force AI risk KPI to match Overview fixture claim. */
+  alignOverviewAiRiskPct?: number | null;
+  /** Prefer mock snapshot (Overview fixture / no GitHub). */
+  preferMock?: boolean;
 };
 
 type SnapshotSource = "mock" | "github" | "loading";
@@ -46,6 +50,8 @@ export function CodeAnalysisDashboard({
   complianceCriticalOpen = 0,
   showCompliancePanel = false,
   canManageCompliance = false,
+  alignOverviewAiRiskPct = null,
+  preferMock = false,
 }: Props) {
   const allRepos = connectedRepos?.length ? connectedRepos : getAvailableMockRepos();
 
@@ -59,7 +65,7 @@ export function CodeAnalysisDashboard({
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
-  const [source, setSource] = useState<SnapshotSource>("loading");
+  const [source, setSource] = useState<SnapshotSource>(preferMock ? "mock" : "loading");
   const [syncedAt, setSyncedAt] = useState<string | null>(lastSyncedAt);
   const [liveSnapshot, setLiveSnapshot] = useState<CodeAnalysisSnapshot | null>(null);
   const [jiraSiteUrl, setJiraSiteUrl] = useState<string | null>(null);
@@ -76,7 +82,23 @@ export function CodeAnalysisDashboard({
     return getAvailableMockAuthors();
   }, [source, liveSnapshot]);
 
-  const snapshot = source === "github" && liveSnapshot ? liveSnapshot : mockSnapshot;
+  const baseSnapshot = source === "github" && liveSnapshot ? liveSnapshot : mockSnapshot;
+
+  const snapshot = useMemo(() => {
+    if (alignOverviewAiRiskPct == null) return baseSnapshot;
+    return {
+      ...baseSnapshot,
+      kpis: {
+        ...baseSnapshot.kpis,
+        aiLinesPct: alignOverviewAiRiskPct,
+      },
+      aiRisk: {
+        ...baseSnapshot.aiRisk,
+        aiLinesPct: alignOverviewAiRiskPct,
+        highRiskCount: 0,
+      },
+    };
+  }, [alignOverviewAiRiskPct, baseSnapshot]);
 
   const governanceHighlights = useMemo(
     () => buildCodeAnalysisGovernanceHighlights(snapshot.governanceSignals),
@@ -111,8 +133,12 @@ export function CodeAnalysisDashboard({
   }, [filters.range, filters.repos, filters.author]);
 
   useEffect(() => {
+    if (preferMock) {
+      setSource("mock");
+      return;
+    }
     void fetchSnapshot();
-  }, [fetchSnapshot]);
+  }, [fetchSnapshot, preferMock]);
 
   const lastSyncedLabel =
     source === "github" && syncedAt

@@ -1,14 +1,17 @@
-import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+"use client";
+
+import { Card, CardTitle } from "@/components/ui/card";
 import { InfoTip } from "@/components/ui/info-tip";
 import { Progress } from "@/components/ui/progress";
+import { OverviewLink } from "@/components/overview/overview-link";
 import type { OverviewDashboardModel } from "@/lib/overview/types";
+import { PILLAR_HREFS } from "@/lib/overview/nav-context";
 import { cn } from "@/lib/utils";
 
 function DeltaChip({ delta }: { delta: number | null }) {
   if (delta === null) {
     return (
-      <em className="ml-1.5 inline-block rounded-[5px] bg-elevated px-[5px] py-[3px] text-[10px] not-italic text-muted align-[3px]">
+      <em className="ml-1.5 inline-block rounded-[5px] bg-elevated px-[5px] py-[3px] text-[10px] leading-none not-italic text-muted align-[3px]">
         —
       </em>
     );
@@ -18,7 +21,7 @@ function DeltaChip({ delta }: { delta: number | null }) {
   return (
     <em
       className={cn(
-        "ml-1.5 inline-block rounded-[5px] px-[5px] py-[3px] text-[10px] not-italic align-[3px]",
+        "ml-1.5 inline-block rounded-[5px] px-[5px] py-[3px] text-[10px] leading-none not-italic align-[3px]",
         flat
           ? "bg-elevated text-muted"
           : up
@@ -45,15 +48,17 @@ export function ScoreBreakdownCard({
   pillars: OverviewDashboardModel["pillars"];
   className?: string;
 }) {
+  const primaryHref = pillars[0]?.href ?? PILLAR_HREFS.delivery ?? "/delivery-analysis";
+
   return (
     <Card
       className={cn(
-        "rounded-[var(--radius-card)] border-border shadow-[var(--shadow)]",
+        "rounded-[var(--radius-card)] border-border px-[18px] pt-4 pb-2.5 shadow-[var(--shadow)]",
         className,
       )}
       data-slot="score-breakdown-card"
     >
-      <CardHeader className="flex-row items-center justify-between space-y-0 px-[18px] pt-4 pb-0">
+      <div className="flex items-center justify-between">
         <div className="flex items-baseline gap-2.5">
           <div className="flex items-center gap-1.5">
             <CardTitle className="text-[16px] font-semibold tracking-[-0.2px] text-ink">
@@ -66,52 +71,52 @@ export function ScoreBreakdownCard({
           </div>
           <p className="text-[11px] text-muted">The 4 pillars of engineering productivity</p>
         </div>
-        <Link
-          href="/delivery-analysis"
+        <OverviewLink
+          href={primaryHref}
           className="rounded-[9px] border border-border bg-pure-white px-[11px] py-[7px] text-[11px] font-medium text-secondary hover:bg-hover"
         >
           View details
-        </Link>
-      </CardHeader>
-      <CardContent className="px-[18px] pt-3 pb-2.5">
-        <div className="grid gap-[11px] sm:grid-cols-2 xl:grid-cols-4">
-          {pillars.map((pillar) => {
-            const meta = PILLAR_META[pillar.id] ?? {
-              tone: "bg-accent-soft text-accent",
-              glyph: "•",
-            };
-            return (
-              <div
-                key={pillar.id}
-                className="relative min-h-[118px] rounded-[10px] border border-border-soft bg-pure-white px-3.5 py-[13px]"
+        </OverviewLink>
+      </div>
+      <div className="mt-3 grid gap-[11px] sm:grid-cols-2 xl:grid-cols-4">
+        {pillars.map((pillar) => {
+          const meta = PILLAR_META[pillar.id] ?? {
+            tone: "bg-accent-soft text-accent",
+            glyph: "•",
+          };
+          const href = pillar.href ?? PILLAR_HREFS[pillar.id] ?? "/delivery-analysis";
+          return (
+            <OverviewLink
+              key={pillar.id}
+              href={href}
+              className="relative min-h-[118px] rounded-[10px] border border-border-soft bg-pure-white px-[14px] py-[13px] transition-colors hover:border-border hover:bg-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+            >
+              <span
+                className={cn(
+                  "flex h-[30px] w-[30px] items-center justify-center rounded-[9px] text-[15px] font-bold",
+                  meta.tone,
+                )}
               >
-                <span
-                  className={cn(
-                    "flex h-[30px] w-[30px] items-center justify-center rounded-[9px] text-[15px] font-semibold",
-                    meta.tone,
-                  )}
-                >
-                  {pillar.glyph ?? meta.glyph}
-                </span>
-                <strong className="-mt-[26px] ml-[39px] block text-[14px] font-semibold text-ink">
-                  {pillar.name}
-                </strong>
-                <p className="mt-[13px] text-[24px] leading-none font-semibold tracking-[-0.7px] text-ink">
-                  {pillar.score}
-                  {meta.suffix ?? ""}
-                  <DeltaChip delta={pillar.delta} />
-                </p>
-                <Progress
-                  value={pillar.progress}
-                  className="mt-2 h-[7px]"
-                  indicatorClassName="bg-accent"
-                />
-                <small className="mt-[5px] block text-[11px] text-muted">{pillar.footnote}</small>
-              </div>
-            );
-          })}
-        </div>
-      </CardContent>
+                {pillar.glyph ?? meta.glyph}
+              </span>
+              <strong className="-mt-[26px] ml-[39px] block text-[14px] leading-[19px] font-bold text-ink">
+                {pillar.name}
+              </strong>
+              <p className="mt-[13px] text-[24px] leading-[32px] font-semibold tracking-[-0.7px] text-ink">
+                {pillar.score}
+                {meta.suffix ?? ""}
+                <DeltaChip delta={pillar.delta} />
+              </p>
+              <Progress
+                value={pillar.progress}
+                className="mt-2 h-[7px]"
+                indicatorClassName="bg-accent"
+              />
+              <small className="mt-[5px] block text-[11px] leading-[15px] text-muted">{pillar.footnote}</small>
+            </OverviewLink>
+          );
+        })}
+      </div>
     </Card>
   );
 }

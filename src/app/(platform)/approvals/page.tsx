@@ -17,6 +17,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { RecommendationApprovalCard } from "@/components/approvals/recommendation-approval-card";
 import { DecisionHistoryList } from "@/components/approvals/decision-history-list";
 import { RevealSection } from "@/components/motion/reveal-section";
+import { OVERVIEW_APPROVALS_FIXTURE } from "@/lib/overview/approvals-fixture";
+import { shouldUseOverviewFixture } from "@/lib/overview/fixture";
+
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+function firstParam(value: string | string[] | undefined): string | undefined {
+  if (Array.isArray(value)) return value[0];
+  return value;
+}
 
 function approvalTitle(approval: {
   title: string | null;
@@ -25,9 +34,73 @@ function approvalTitle(approval: {
   return approval.recommendation?.title ?? approval.title ?? "Approval";
 }
 
-export default async function ApprovalsPage() {
+export default async function ApprovalsPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
   const session = await getSession();
   if (!session) redirect("/login");
+
+  const sp = await searchParams;
+  const useFixture = shouldUseOverviewFixture(firstParam(sp.fixture));
+
+  if (useFixture) {
+    const fixture = OVERVIEW_APPROVALS_FIXTURE;
+    return (
+      <div className="space-y-8">
+        <PageHeader
+          title="Approval center"
+          description="Leadership decisions for the active release — demo fixture aligned with Overview."
+        />
+
+        <RevealSection className="rounded-[24px] border border-border-subtle bg-pure-white px-6 py-6 shadow-[var(--shadow)]">
+          <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-graphite">
+            Waiting on leadership
+          </p>
+          <h2 className="mt-2 font-display text-[26px] leading-[1.18] tracking-[-0.23px] text-ink">
+            {fixture.hero.headline}
+          </h2>
+          <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-ash">
+            {fixture.hero.subcopy}
+          </p>
+        </RevealSection>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Pending approvals</CardTitle>
+            <CardDescription>
+              {fixture.pending.length} leadership item
+              {fixture.pending.length === 1 ? "" : "s"} awaiting decision
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              {fixture.pending.map((item) => (
+                <RecommendationApprovalCard
+                  key={item.approvalId}
+                  approvalId={item.approvalId}
+                  riskScore={item.riskScore}
+                  recommendation={item.recommendation}
+                  demoMode
+                />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Decision history</CardTitle>
+            <CardDescription>Recent sign-off decisions for audit review</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <DecisionHistoryList items={[]} />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const ctx = await getOrganizationContext(session.organizationId);
 

@@ -1,4 +1,6 @@
-import Link from "next/link";
+"use client";
+
+import { OverviewLink } from "@/components/overview/overview-link";
 import type { OverviewDashboardModel } from "@/lib/overview/types";
 import { cn } from "@/lib/utils";
 
@@ -29,12 +31,12 @@ export function LeadershipCard({
           {leadership.count} decision{leadership.count === 1 ? "" : "s"} needed
         </p>
       </div>
-      <Link
+      <OverviewLink
         href={leadership.href}
         className="inline-flex h-[38px] shrink-0 items-center rounded-lg border border-border bg-pure-white px-[13px] text-[11px] font-medium text-[#344054] hover:bg-hover"
       >
         View details <span className="ml-1">→</span>
-      </Link>
+      </OverviewLink>
     </div>
   );
 }

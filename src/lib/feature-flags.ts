@@ -79,6 +79,7 @@ const EXTRA_PATH_PREFIXES: { prefix: string; flag: NavFeatureFlagId }[] = [
   { prefix: "/escapes", flag: "nav.briefing" },
   { prefix: "/risk", flag: "nav.dashboard" },
   { prefix: "/reports", flag: "nav.dashboard" },
+  { prefix: "/attention", flag: "nav.dashboard" },
   { prefix: "/discovery", flag: "nav.governance" },
   { prefix: "/delivery-dna", flag: "nav.governance" },
 ];

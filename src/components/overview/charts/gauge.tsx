@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 const BAND_PILL: Record<ConfidenceBand, string> = {
   Strong: "bg-success-soft text-success",
   Steady: "bg-info-soft text-info",
-  Caution: "bg-accent-soft text-accent",
+  Caution: "bg-[#fff0e8] text-[#ef5d1c]",
   "At risk": "bg-error-soft text-error",
 };
 
@@ -111,13 +111,13 @@ export function ConfidenceGauge({
         />
       </svg>
 
-      <div className="pointer-events-none absolute inset-x-0 top-[52%] flex flex-col items-center">
-        <p className="text-[36px] font-semibold leading-none tracking-tight text-ink">
+      <div className="pointer-events-none absolute inset-x-0 top-[48%] flex flex-col items-center">
+        <p className="text-[45px] font-semibold leading-none tracking-[-2px] text-ink">
           {Math.round(clamped)}
         </p>
         <span
           className={cn(
-            "mt-2.5 rounded-full px-3 py-1 text-[13px] font-semibold tracking-[-0.1px]",
+            "mt-1 rounded-[14px] px-[15px] py-[7px] text-[14px] font-semibold",
             BAND_PILL[band],
           )}
         >

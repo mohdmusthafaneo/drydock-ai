@@ -1,8 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import type { DeliveryAnalysisFilters, DeliveryAnalysisSnapshot } from "@/lib/delivery-analysis/types";
+import { useRouter, useSearchParams } from "next/navigation";
+import type {
+  DeliveryAnalysisFilters,
+  DeliveryAnalysisSnapshot,
+  RiskFocus,
+} from "@/lib/delivery-analysis/types";
 import { buildDeliveryConfidenceOneLiner } from "@/lib/governance/presentation";
 import { AnalysisFiltersBar } from "@/components/delivery-analysis/analysis-filters";
 import { ExecutiveVerdictBanner } from "@/components/executive-briefing/executive-verdict-banner";
@@ -27,18 +31,36 @@ type Props = {
 
 type LoadState = "loading" | "ready" | "missing" | "error" | "empty_filter";
 
+const RISK_FOCUS_VALUES: RiskFocus[] = [
+  "all",
+  "blockers",
+  "schedule",
+  "quality",
+  "sprint",
+];
+
+function parseRiskFocus(value: string | null): RiskFocus {
+  if (value && (RISK_FOCUS_VALUES as string[]).includes(value)) {
+    return value as RiskFocus;
+  }
+  return "all";
+}
+
 export function DeliveryAnalysisDashboard({
   projectKeys,
   lastSyncedAt,
   canSync,
 }: Props) {
   const router = useRouter();
-  const [filters, setFilters] = useState<DeliveryAnalysisFilters>({
-    projectKey: null,
-    riskFocus: "all",
+  const searchParams = useSearchParams();
+
+  const [filters, setFilters] = useState<DeliveryAnalysisFilters>(() => ({
+    projectKey:
+      searchParams.get("projectKey") ?? searchParams.get("team") ?? null,
+    riskFocus: parseRiskFocus(searchParams.get("riskFocus")),
     range: "30d",
     compare: "previous_sync",
-  });
+  }));
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);

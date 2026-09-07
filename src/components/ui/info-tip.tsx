@@ -1,6 +1,7 @@
 "use client";
 
 import { Info } from "lucide-react";
+import { useState } from "react";
 import {
   Tooltip,
   TooltipContent,
@@ -18,9 +19,11 @@ export function InfoTip({
   evidenceSource?: string;
   className?: string;
 }) {
+  const [open, setOpen] = useState(false);
+
   return (
-    <TooltipProvider delayDuration={200}>
-      <Tooltip>
+    <TooltipProvider delayDuration={0}>
+      <Tooltip open={open} onOpenChange={setOpen}>
         <TooltipTrigger asChild>
           <button
             type="button"
@@ -30,6 +33,12 @@ export function InfoTip({
               className,
             )}
             aria-label="More information"
+            aria-expanded={open}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setOpen((v) => !v);
+            }}
           >
             <Info className="h-3.5 w-3.5" strokeWidth={1.75} />
           </button>

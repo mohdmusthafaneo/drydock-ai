@@ -73,7 +73,7 @@ export async function PlatformShell({
     _max: { lastSyncAt: true },
   });
   const lastSyncAt = useFixtureProjects
-    ? new Date(Date.now() - 11 * 60 * 1000).toISOString()
+    ? "2026-08-24T10:49:00.000Z"
     : (syncAgg._max.lastSyncAt?.toISOString() ?? null);
 
   const fixtureSprints = useFixtureProjects
@@ -83,6 +83,18 @@ export async function PlatformShell({
           label: "Sprint 37 | Aug 10 – Aug 24",
           start: "2026-08-10",
           end: "2026-08-24",
+        },
+        {
+          id: "36",
+          label: "Sprint 36 | Jul 27 – Aug 9",
+          start: "2026-07-27",
+          end: "2026-08-09",
+        },
+        {
+          id: "38",
+          label: "Sprint 38 | Aug 25 – Sep 7",
+          start: "2026-08-25",
+          end: "2026-09-07",
         },
       ]
     : [];

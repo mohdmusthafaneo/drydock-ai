@@ -69,8 +69,12 @@ function emptyModel(input: {
   greetingName: string;
   teamKey?: string | null;
 }): OverviewDashboardModel {
+  const hour = new Date().getHours();
+  const greeting =
+    hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   return {
     greetingName: input.greetingName,
+    greeting,
     sprint: {
       id: "",
       name: "No active sprint",
@@ -78,12 +82,14 @@ function emptyModel(input: {
       endLabel: "—",
       rangeLabel: "No active sprint",
     },
+    sprints: [],
     teamKey: input.teamKey ?? null,
     teams: [],
     deliveryConfidence: {
       score: 0,
       band: "At risk",
       caption: "Connect Jira and sync to see delivery confidence.",
+      href: "/delivery-analysis",
       metrics: [],
     },
     keyTakeaways: [],
@@ -289,7 +295,7 @@ function buildTakeaways(input: {
       id: "blocked",
       title: `${input.blocked} blocked issue${input.blocked === 1 ? "" : "s"}${deltaPart}`,
       subtitle: "Ask engineering for an owner and ETA on each blocker.",
-      href: "/delivery-analysis",
+      href: "/delivery-analysis?riskFocus=blockers",
       tone: "danger",
       needsAction: true,
     });
@@ -300,7 +306,7 @@ function buildTakeaways(input: {
       id: "at-risk",
       title: `${input.atRisk} item${input.atRisk === 1 ? "" : "s"} at risk of spillover`,
       subtitle: "Open sprint work with little time left before end date.",
-      href: "/delivery-analysis",
+      href: "/delivery-analysis?riskFocus=schedule",
       tone: "warning",
       needsAction: true,
     });
@@ -368,6 +374,7 @@ export async function loadOverviewDashboard(input: {
     return getOverviewFixture({
       greetingName: input.userName.split(" ")[0] || input.userName,
       teamKey: input.teamKey ?? null,
+      sprintId: input.sprintId ?? null,
     });
   }
 
@@ -561,6 +568,7 @@ export async function loadOverviewDashboard(input: {
           committed > 0 ? `${done} / ${committed} completed` : "No sprint scope yet",
         progress: deliveryScore,
         tone: pillarTone(deliveryScore, deltaFor("delivery", deliveryScore)),
+        href: "/delivery-analysis",
       },
       {
         id: "code",
@@ -570,6 +578,7 @@ export async function loadOverviewDashboard(input: {
         footnote: `${blocked} blocked issue${blocked === 1 ? "" : "s"}`,
         progress: codeScore,
         tone: pillarTone(codeScore, deltaFor("code", codeScore)),
+        href: "/code-analysis",
       },
       {
         id: "qa",
@@ -579,6 +588,7 @@ export async function loadOverviewDashboard(input: {
         footnote: `${openBugs} open bug${openBugs === 1 ? "" : "s"}`,
         progress: qaScore,
         tone: pillarTone(qaScore, deltaFor("qa", qaScore)),
+        href: "/qa",
       },
       {
         id: "compliance",
@@ -588,6 +598,7 @@ export async function loadOverviewDashboard(input: {
         footnote: `${openFindings} open finding${openFindings === 1 ? "" : "s"}`,
         progress: complianceScore,
         tone: pillarTone(complianceScore, deltaFor("compliance", complianceScore)),
+        href: "/governance",
       },
     ];
 
@@ -651,7 +662,7 @@ export async function loadOverviewDashboard(input: {
         ? {
             count: needsAction.length,
             message: needsAction[0]!.subtitle,
-            href: needsAction[0]!.href,
+            href: "/attention",
           }
         : null;
 
@@ -669,8 +680,31 @@ export async function loadOverviewDashboard(input: {
         ctx.stats.connectedTools > 0,
     );
 
+    const liveSprints = (deliverySnapshot?.sprints ?? []).map((s) => {
+      const sStart = s.startDate ? new Date(s.startDate) : null;
+      const sEnd = s.endDate ? new Date(s.endDate) : null;
+      const sStartLabel =
+        sStart && !Number.isNaN(sStart.getTime()) ? dayLabel(sStart) : "—";
+      const sEndLabel =
+        sEnd && !Number.isNaN(sEnd.getTime()) ? dayLabel(sEnd) : "—";
+      return {
+        id: s.sprintId != null ? String(s.sprintId) : s.name,
+        name: s.name,
+        startLabel: sStartLabel,
+        endLabel: sEndLabel,
+        rangeLabel: `${sStartLabel} – ${sEndLabel}`,
+        start: s.startDate?.slice(0, 10) ?? "",
+        end: s.endDate?.slice(0, 10) ?? "",
+      };
+    });
+
+    const hour = new Date().getHours();
+    const greeting =
+      hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+
     const model: OverviewDashboardModel = {
       greetingName,
+      greeting,
       sprint: {
         id: sprint?.sprintId != null ? String(sprint.sprintId) : sprint?.name ?? "",
         name: sprintName,
@@ -681,12 +715,14 @@ export async function loadOverviewDashboard(input: {
             ? `${sprintName} | ${startLabel} – ${endLabel}`
             : sprintName,
       },
+      sprints: liveSprints,
       teamKey,
       teams,
       deliveryConfidence: {
         score: overall,
         band,
         caption,
+        href: "/delivery-analysis",
         metrics: [
           {
             id: "completion",
@@ -695,6 +731,7 @@ export async function loadOverviewDashboard(input: {
             progress: completionPct ?? 0,
             annotation: committed > 0 ? `${done} / ${committed}` : undefined,
             icon: "completion",
+            href: "/delivery-analysis?riskFocus=sprint",
           },
           {
             id: "blocked",
@@ -702,6 +739,7 @@ export async function loadOverviewDashboard(input: {
             value: blocked,
             progress: Math.min(100, blocked),
             icon: "blocked",
+            href: "/delivery-analysis?riskFocus=blockers",
           },
           {
             id: "at-risk",
@@ -709,6 +747,7 @@ export async function loadOverviewDashboard(input: {
             value: atRisk,
             progress: Math.min(100, atRisk),
             icon: "risk",
+            href: "/delivery-analysis?riskFocus=schedule",
           },
           {
             id: "ai-risk",
@@ -716,6 +755,7 @@ export async function loadOverviewDashboard(input: {
             value: `${aiLinesPct}%`,
             progress: Math.min(100, aiLinesPct),
             icon: "ai",
+            href: "/code-analysis",
           },
         ],
       },

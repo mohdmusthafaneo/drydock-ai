@@ -50,15 +50,19 @@ export function RecommendationApprovalCard({
   approvalId,
   recommendation,
   riskScore,
+  demoMode = false,
 }: {
   approvalId: string;
   recommendation: RecommendationApprovalData;
   riskScore: number | null;
+  /** When true, decisions stay local (Overview demo fixture). */
+  demoMode?: boolean;
 }) {
   const router = useRouter();
   const [comment, setComment] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [demoDecided, setDemoDecided] = useState<string | null>(null);
 
   const tone = impactTone(recommendation.impact);
   const roleHint = requiredRoleLabel(recommendation.requiredRole);
@@ -82,6 +86,12 @@ export function RecommendationApprovalCard({
       return;
     }
 
+    if (demoMode) {
+      setDemoDecided(decision);
+      setError(null);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -101,6 +111,19 @@ export function RecommendationApprovalCard({
     }
 
     router.refresh();
+  }
+
+  if (demoDecided) {
+    return (
+      <div className="rounded-[24px] border border-border-subtle bg-fog/40 px-5 py-4">
+        <p className="font-display text-[17px] text-ink">
+          Demo decision recorded: {demoDecided}
+        </p>
+        <p className="mt-1 text-[14px] text-ash">
+          This was a fixture approval — nothing was written to the ledger.
+        </p>
+      </div>
+    );
   }
 
   return (

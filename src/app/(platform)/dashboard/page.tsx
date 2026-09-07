@@ -31,7 +31,7 @@ export default async function OverviewDashboardPage({
   const greetingName = session.name.split(/\s+/)[0] || session.name;
 
   const model = useFixture
-    ? getOverviewFixture({ greetingName, teamKey: team })
+    ? getOverviewFixture({ greetingName, teamKey: team, sprintId: sprint })
     : await loadOverviewDashboard({
         organizationId: session.organizationId,
         userName: session.name,

@@ -10,10 +10,34 @@ import { resolveStoredCodeAnalysis } from "@/lib/code-analysis/sync";
 import { loadComplianceFindings } from "@/lib/compliance/load-findings";
 import { loadComplianceFindingSummary } from "@/lib/compliance/summary";
 import { hasPermission } from "@/lib/rbac";
+import { shouldUseOverviewFixture } from "@/lib/overview/fixture";
 
-export default async function CodeAnalysisPage() {
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+function firstParam(value: string | string[] | undefined): string | undefined {
+  if (Array.isArray(value)) return value[0];
+  return value;
+}
+
+function fixtureAiPct(team: string | null | undefined): number {
+  if (team === "WEB") return 8;
+  if (team === "MOB") return 4;
+  if (team === "DATA") return 5;
+  if (team === "INFRA") return 3;
+  return 6;
+}
+
+export default async function CodeAnalysisPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
   const session = await getSession();
   if (!session) redirect("/login");
+
+  const sp = await searchParams;
+  const alignOverviewFixture = shouldUseOverviewFixture(firstParam(sp.fixture));
+  const teamAiPct = fixtureAiPct(firstParam(sp.team));
 
   const ctx = await getOrganizationContext(session.organizationId);
 
@@ -44,7 +68,17 @@ export default async function CodeAnalysisPage() {
         loadComplianceFindings(session.organizationId, { status: "open", limit: 50 }),
         loadComplianceFindingSummary(session.organizationId),
       ])
-    : [[], { openCount: 0, criticalOpen: 0, warningOpen: 0, infoOpen: 0, lastEvaluatedAt: null, resolvedThisWeek: 0 }];
+    : [
+        [],
+        {
+          openCount: 0,
+          criticalOpen: 0,
+          warningOpen: 0,
+          infoOpen: 0,
+          lastEvaluatedAt: null,
+          resolvedThisWeek: 0,
+        },
+      ];
 
   return (
     <div className="w-full space-y-8 pb-24 lg:pb-8">
@@ -53,7 +87,7 @@ export default async function CodeAnalysisPage() {
         description="Measure how much of your merged code, commits, and pull requests are human-only, AI-assisted, or fully AI-generated — so leaders can govern AI-native delivery with evidence."
       />
 
-      {!githubConnected ? (
+      {!githubConnected && !alignOverviewFixture ? (
         <ConnectGitHubEmpty />
       ) : (
         <CodeAnalysisDashboard
@@ -64,6 +98,8 @@ export default async function CodeAnalysisPage() {
           complianceCriticalOpen={complianceSummary.criticalOpen}
           showCompliancePanel={canViewCompliance}
           canManageCompliance={canManageCompliance}
+          alignOverviewAiRiskPct={alignOverviewFixture ? teamAiPct : null}
+          preferMock={alignOverviewFixture || !githubConnected}
         />
       )}
     </div>

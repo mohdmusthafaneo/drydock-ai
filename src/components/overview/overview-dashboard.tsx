@@ -19,7 +19,7 @@ export function OverviewDashboard({
 }) {
   if (model.empty) {
     return (
-      <div className={cn("space-y-3", className)} data-slot="overview-dashboard">
+        <div className={cn("space-y-[13px]", className)} data-slot="overview-dashboard">
         <OverviewHeader model={model} />
         <div className="rounded-[var(--radius-card)] border border-border bg-pure-white px-6 py-12 text-center shadow-[var(--shadow)]">
           <p className="text-sm font-medium text-ink">No overview data yet</p>
@@ -32,7 +32,7 @@ export function OverviewDashboard({
   }
 
   return (
-    <div className={cn("space-y-3", className)} data-slot="overview-dashboard">
+    <div className={cn("space-y-[13px]", className)} data-slot="overview-dashboard">
       <OverviewHeader model={model} />
 
       {/* Row 1: Delivery confidence + Key takeaways — designer 2.15fr / 0.9fr */}
