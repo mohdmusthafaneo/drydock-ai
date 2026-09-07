@@ -7,6 +7,7 @@ import {
   Globe,
   LayoutGrid,
   Plug,
+  Search,
   Server,
   Settings,
   Smartphone,
@@ -42,9 +43,9 @@ export function Sidebar({
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const syncLabel = lastSyncAt
-    ? `Data synced · ${formatDistanceToNow(new Date(lastSyncAt))}`
-    : "Never synced";
+  const syncRelative = lastSyncAt
+    ? formatDistanceToNow(new Date(lastSyncAt))
+    : null;
 
   function setTeam(team: string | null) {
     const params = new URLSearchParams(searchParams.toString());
@@ -55,15 +56,23 @@ export function Sidebar({
     router.push(qs ? `${base}?${qs}` : base);
   }
 
+  const navItemClass = (active: boolean) =>
+    cn(
+      "relative flex min-h-10 w-full items-center gap-3 rounded-lg px-3 text-left text-sm",
+      active
+        ? "bg-brown-soft font-semibold text-brown"
+        : "text-[#5d6a80] hover:bg-[#f6f7f8] hover:text-ink",
+    );
+
   return (
     <aside
       data-slot="sidebar"
-      className="hidden h-full w-[240px] shrink-0 flex-col border-r border-border bg-pure-white lg:flex"
+      className="hidden h-full w-[206px] shrink-0 flex-col border-r border-border-soft bg-[rgba(255,255,255,0.72)] lg:flex"
     >
-      <div className="flex shrink-0 flex-col gap-4 p-4">
-        <Link href={homePath} className="flex min-w-0 items-center gap-2.5">
-          <OrgMark size={28} />
-          <span className="truncate text-[15px] font-semibold tracking-tight text-ink">
+      <div className="flex shrink-0 flex-col px-3.5 pt-[18px]">
+        <Link href={homePath} className="mb-[21px] flex min-w-0 items-center gap-2.5 px-2.5">
+          <OrgMark size={25} />
+          <span className="truncate text-[18px] font-bold tracking-[-0.35px] text-ink">
             {organizationName}
           </span>
         </Link>
@@ -71,34 +80,33 @@ export function Sidebar({
         <button
           type="button"
           onClick={onOpenCommandPalette}
-          className="flex h-9 w-full items-center gap-2 rounded-lg border border-border bg-surface px-3 text-left text-sm text-faint hover:bg-hover"
+          className="mb-[25px] flex h-10 w-full items-center gap-[9px] rounded-[10px] border border-border bg-pure-white px-[11px] text-left text-sm text-muted hover:bg-hover"
         >
-          <span className="flex-1 truncate">Search…</span>
-          <kbd className="rounded border border-border bg-elevated px-1.5 py-0.5 text-[10px] font-medium text-muted">
+          <Search className="h-[17px] w-[17px] shrink-0" strokeWidth={1.7} />
+          <span className="flex-1 truncate">Search...</span>
+          <kbd className="rounded-[5px] bg-[#f7f8f9] px-[5px] py-0.5 text-[11px] text-[#9aa2ae]">
             ⌘K
           </kbd>
         </button>
       </div>
 
-      <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-3">
-        <p className="px-2 py-2 text-[11px] font-medium tracking-[0.06em] text-muted uppercase">
+      <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3.5 pb-3">
+        <p className="px-2.5 pb-2 text-[10px] tracking-[0.08em] text-[#7f8a9c] uppercase">
           Workspace
         </p>
-        <ul className="space-y-0.5">
+        <ul className="grid gap-[3px]">
           <li>
             <button
               type="button"
               onClick={() => setTeam(null)}
-              className={cn(
-                "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm",
-                !activeTeam
-                  ? "bg-accent-soft font-medium text-ink"
-                  : "text-secondary hover:bg-hover",
-              )}
+              className={navItemClass(!activeTeam)}
             >
+              {!activeTeam ? (
+                <span className="absolute top-[5px] bottom-[5px] left-0 w-[3px] rounded-[3px] bg-accent" />
+              ) : null}
               <Users
-                className={cn("h-4 w-4 shrink-0", !activeTeam ? "text-accent" : "text-muted")}
-                strokeWidth={1.5}
+                className={cn("h-4 w-4 shrink-0", !activeTeam ? "text-brown" : "text-muted")}
+                strokeWidth={1.7}
               />
               All teams
             </button>
@@ -111,16 +119,14 @@ export function Sidebar({
                 <button
                   type="button"
                   onClick={() => setTeam(project.key)}
-                  className={cn(
-                    "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm",
-                    active
-                      ? "bg-accent-soft font-medium text-ink"
-                      : "text-secondary hover:bg-hover",
-                  )}
+                  className={navItemClass(active)}
                 >
+                  {active ? (
+                    <span className="absolute top-[5px] bottom-[5px] left-0 w-[3px] rounded-[3px] bg-accent" />
+                  ) : null}
                   <Icon
-                    className={cn("h-4 w-4 shrink-0", active ? "text-accent" : "text-muted")}
-                    strokeWidth={1.5}
+                    className={cn("h-4 w-4 shrink-0", active ? "text-brown" : "text-muted")}
+                    strokeWidth={1.7}
                   />
                   <span className="truncate">{project.name}</span>
                 </button>
@@ -130,30 +136,35 @@ export function Sidebar({
         </ul>
       </nav>
 
-      <div className="shrink-0 space-y-2 border-t border-border p-3">
-        <div className="rounded-lg border border-border bg-elevated/60 px-3 py-2.5">
-          <div className="flex items-center gap-2">
-            <span
-              className={cn(
-                "h-1.5 w-1.5 shrink-0 rounded-full",
-                lastSyncAt ? "bg-success" : "bg-faint",
-              )}
-            />
-            <p className="truncate text-xs text-secondary">{syncLabel}</p>
+      <div className="mt-auto shrink-0 space-y-1 px-3.5 pb-4">
+        <div className="mb-[15px] flex items-start gap-2.5 rounded-[11px] border border-border bg-pure-white px-3.5 py-[13px]">
+          <span
+            className={cn(
+              "mt-[3px] h-2.5 w-2.5 shrink-0 rounded-full shadow-[0_0_0_3px_#e9f8f0]",
+              lastSyncAt ? "bg-green" : "bg-faint shadow-none",
+            )}
+          />
+          <div className="min-w-0">
+            <strong className="block text-[12px] font-semibold text-ink">
+              {lastSyncAt ? "Data synced" : "Never synced"}
+            </strong>
+            {syncRelative ? (
+              <small className="mt-[3px] block text-[11px] text-muted">{syncRelative}</small>
+            ) : null}
           </div>
         </div>
         <Link
           href="/integrations"
-          className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-secondary hover:bg-hover hover:text-primary"
+          className="relative flex min-h-[39px] items-center gap-3 rounded-lg px-3 text-sm text-[#5d6a80] hover:bg-[#f6f7f8] hover:text-ink"
         >
-          <Plug className="h-4 w-4 shrink-0 text-muted" strokeWidth={1.5} />
+          <Plug className="h-4 w-4 shrink-0 text-muted" strokeWidth={1.7} />
           Integrations
         </Link>
         <Link
           href="/settings"
-          className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-secondary hover:bg-hover hover:text-primary"
+          className="relative flex min-h-[39px] items-center gap-3 rounded-lg px-3 text-sm text-[#5d6a80] hover:bg-[#f6f7f8] hover:text-ink"
         >
-          <Settings className="h-4 w-4 shrink-0 text-muted" strokeWidth={1.5} />
+          <Settings className="h-4 w-4 shrink-0 text-muted" strokeWidth={1.7} />
           Settings
         </Link>
       </div>

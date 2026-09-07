@@ -31,12 +31,26 @@ function initials(name: string): string {
   return `${parts[0]![0] ?? ""}${parts[1]![0] ?? ""}`.toUpperCase();
 }
 
+function formatExplicitRange(sprint: TopBarSprint): string {
+  const start = new Date(`${sprint.start}T12:00:00`);
+  const end = new Date(`${sprint.end}T12:00:00`);
+  const opts: Intl.DateTimeFormatOptions = {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  };
+  return `${start.toLocaleDateString("en-US", opts)} – ${end.toLocaleDateString("en-US", opts)}`;
+}
+
 function SectionTabs() {
   const pathname = usePathname();
   const tabs = getSectionTabs();
 
   return (
-    <nav className="flex min-w-0 flex-1 items-stretch gap-1 overflow-x-auto" aria-label="Sections">
+    <nav
+      className="flex min-w-0 flex-1 items-stretch gap-[29px] overflow-x-auto"
+      aria-label="Sections"
+    >
       {tabs.map((tab) => {
         const active = isNavItemActive(pathname, tab.href);
         return (
@@ -44,13 +58,15 @@ function SectionTabs() {
             key={tab.href}
             href={tab.href}
             className={cn(
-              "relative shrink-0 px-3 py-4 text-sm whitespace-nowrap transition-colors",
-              active ? "font-medium text-ink" : "text-muted hover:text-secondary",
+              "relative flex shrink-0 items-center text-[14px] whitespace-nowrap transition-colors",
+              active
+                ? "font-semibold text-brown-text"
+                : "text-[#65728a] hover:text-secondary",
             )}
           >
             {tab.label}
             {active ? (
-              <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-accent" />
+              <span className="absolute inset-x-0 bottom-0 h-[3px] rounded-t-[3px] bg-brown-underline" />
             ) : null}
           </Link>
         );
@@ -69,6 +85,10 @@ function DateRangeButton({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const selectedId = searchParams.get("sprint");
+  const selected =
+    sprints.find((s) => s.id === selectedId) ?? sprints[0] ?? null;
+  const displayLabel = selected ? formatExplicitRange(selected) : dateRangeLabel;
 
   function selectSprint(id: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -82,11 +102,11 @@ function DateRangeButton({
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="inline-flex h-9 max-w-[240px] items-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm text-secondary hover:bg-hover"
+          className="inline-flex h-9 max-w-[280px] items-center gap-2 rounded-[9px] border border-border bg-pure-white px-[11px] text-[12px] text-[#64748b] hover:bg-hover"
         >
-          <CalendarRange className="h-4 w-4 shrink-0 text-muted" strokeWidth={1.5} />
-          <span className="truncate">{dateRangeLabel}</span>
-          <ChevronDown className="h-3.5 w-3.5 shrink-0 text-faint" />
+          <CalendarRange className="h-4 w-4 shrink-0" strokeWidth={1.7} />
+          <span className="truncate">{displayLabel}</span>
+          <ChevronDown className="ml-[5px] h-3.5 w-3.5 shrink-0" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
@@ -100,7 +120,7 @@ function DateRangeButton({
               <div className="min-w-0">
                 <p className="truncate text-sm text-primary">{sprint.label}</p>
                 <p className="truncate text-xs text-muted">
-                  {sprint.start} – {sprint.end}
+                  {formatExplicitRange(sprint)}
                 </p>
               </div>
             </DropdownMenuItem>
@@ -119,18 +139,20 @@ function UserMenu({ session }: { session: SessionPayload }) {
           type="button"
           className="inline-flex items-center gap-2 rounded-lg px-1.5 py-1 hover:bg-hover"
         >
-          <Avatar className="size-8">
-            <AvatarFallback className="bg-accent-soft text-xs font-medium text-accent">
+          <Avatar className="size-[38px]">
+            <AvatarFallback className="bg-[#e9edf1] text-[12px] font-bold text-[#182230]">
               {initials(session.name)}
             </AvatarFallback>
           </Avatar>
           <span className="hidden min-w-0 text-left lg:block">
-            <span className="block truncate text-sm font-medium text-ink">{session.name}</span>
-            <span className="block truncate text-xs text-muted">
+            <span className="block truncate text-[12px] font-semibold text-ink">
+              {session.name}
+            </span>
+            <span className="mt-0.5 block truncate text-[11px] text-muted">
               {ROLE_LABELS[session.role]}
             </span>
           </span>
-          <ChevronDown className="hidden h-3.5 w-3.5 text-faint lg:block" />
+          <ChevronDown className="hidden h-3.5 w-3.5 text-[#475467] lg:block" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
@@ -171,10 +193,10 @@ export function TopBar({
   return (
     <header
       data-slot="top-bar"
-      className="z-10 flex h-14 shrink-0 items-center gap-4 border-b border-border bg-pure-white px-4 lg:px-6"
+      className="z-10 flex h-[54px] shrink-0 items-stretch justify-between border-b border-border-soft bg-[rgba(255,255,255,0.8)] pr-6 pl-[34px]"
     >
       <SectionTabs />
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex shrink-0 items-center gap-[11px]">
         <DateRangeButton dateRangeLabel={dateRangeLabel} sprints={sprints} />
         <UserMenu session={session} />
       </div>

@@ -1,13 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  AlertTriangle,
-  Ban,
-  Sparkles,
-  Target,
-  type LucideIcon,
-} from "lucide-react";
+import { CircleX, Flag, TrendingUp, X, type LucideIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { InfoTip } from "@/components/ui/info-tip";
 import { Progress } from "@/components/ui/progress";
@@ -23,21 +17,35 @@ import type { OverviewDashboardModel } from "@/lib/overview/types";
 import { cn } from "@/lib/utils";
 
 const ICONS: Record<string, LucideIcon> = {
-  target: Target,
-  ban: Ban,
-  alert: AlertTriangle,
-  spark: Sparkles,
-  completion: Target,
-  blocked: Ban,
-  risk: AlertTriangle,
-  ai: Sparkles,
+  flag: Flag,
+  "circle-x": CircleX,
+  "trend-up": TrendingUp,
+  x: X,
+  // legacy ids from live loader
+  target: Flag,
+  ban: CircleX,
+  alert: TrendingUp,
+  spark: X,
+  completion: Flag,
+  blocked: CircleX,
+  risk: TrendingUp,
+  ai: X,
+};
+
+const METRIC_ICON_TONE: Record<string, string> = {
+  completion: "bg-accent-soft text-accent",
+  blocked: "bg-coral-soft text-coral",
+  spillover: "bg-accent-soft text-accent",
+  "at-risk": "bg-accent-soft text-accent",
+  "ai-risk": "bg-blue-soft text-[#3978d4]",
 };
 
 const METRIC_BAR: Record<string, string> = {
   completion: "bg-accent",
-  blocked: "bg-error",
+  blocked: "bg-accent",
+  spillover: "bg-accent",
   "at-risk": "bg-accent",
-  "ai-risk": "bg-info",
+  "ai-risk": "bg-green",
 };
 
 export function DeliveryConfidenceCard({
@@ -62,15 +70,15 @@ export function DeliveryConfidenceCard({
   return (
     <Card
       className={cn(
-        "rounded-[12px] border-border shadow-[0_1px_2px_rgba(16,24,40,0.04)]",
+        "rounded-[var(--radius-card)] border-border shadow-[var(--shadow)]",
         className,
       )}
       data-slot="delivery-confidence-card"
     >
-      <CardHeader className="flex-row items-start justify-between space-y-0 p-5 pb-3">
+      <CardHeader className="flex-row items-start justify-between space-y-0 px-[21px] pt-[22px] pb-3">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
-            <CardTitle className="text-[15px] font-semibold text-ink">
+            <CardTitle className="text-[16px] font-semibold tracking-[-0.2px] text-ink">
               Delivery confidence
             </CardTitle>
             <InfoTip
@@ -78,12 +86,12 @@ export function DeliveryConfidenceCard({
               evidenceSource="Jira sprint + code analysis + compliance"
             />
           </div>
-          <p className="mt-0.5 text-xs text-muted">
+          <p className="mt-1 text-[12px] text-muted">
             Based on delivery, code, QA, and governance signals
           </p>
         </div>
         <Select value={teamKey ?? "all"} onValueChange={onTeamChange}>
-          <SelectTrigger className="h-8 w-auto min-w-[7.5rem] gap-1 border-border text-xs">
+          <SelectTrigger className="h-[33px] w-auto min-w-[128px] gap-1 border-border text-[12px]">
             <SelectValue placeholder="All teams" />
           </SelectTrigger>
           <SelectContent>
@@ -96,42 +104,47 @@ export function DeliveryConfidenceCard({
           </SelectContent>
         </Select>
       </CardHeader>
-      <CardContent className="p-5 pt-1">
-        <div className="grid gap-6 sm:grid-cols-[minmax(180px,1fr)_1.2fr] sm:items-center">
+      <CardContent className="px-[21px] pt-1 pb-[18px]">
+        <div className="grid min-h-[245px] gap-7 sm:grid-cols-[1.02fr_0.98fr] sm:items-center">
           <div className="text-center">
             <ConfidenceGauge score={dc.score} band={dc.band} />
-            <p className="mt-2 text-sm text-secondary">{dc.caption}</p>
+            <p className="mt-[22px] text-[15px] font-semibold text-ink">{dc.caption}</p>
           </div>
 
-          <ul className="space-y-3.5">
+          <ul className="grid gap-4 border-t border-border pt-4 sm:border-t-0 sm:border-l sm:pt-0 sm:pl-[21px]">
             {dc.metrics.map((metric) => {
-              const Icon = ICONS[metric.icon] ?? Target;
-              const bar = METRIC_BAR[metric.id] ?? "bg-info";
+              const Icon = ICONS[metric.icon] ?? Flag;
+              const iconTone = METRIC_ICON_TONE[metric.id] ?? "bg-accent-soft text-accent";
+              const bar = METRIC_BAR[metric.id] ?? "bg-accent";
               return (
-                <li key={metric.id} className="space-y-1.5">
-                  <div className="flex items-center gap-2.5">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent">
-                      <Icon className="h-4 w-4" strokeWidth={1.5} />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-baseline justify-between gap-2">
-                        <p className="truncate text-[13px] text-secondary">{metric.label}</p>
-                        <p className="shrink-0 text-sm font-semibold tabular-nums text-ink">
-                          {metric.value}
-                          {metric.annotation ? (
-                            <span className="ml-1.5 text-xs font-normal text-faint">
-                              {metric.annotation}
-                            </span>
-                          ) : null}
-                        </p>
-                      </div>
-                      <Progress
-                        value={Math.min(100, metric.progress)}
-                        className="mt-1.5 h-1.5"
-                        indicatorClassName={bar}
-                      />
-                    </div>
+                <li
+                  key={metric.id}
+                  className="grid grid-cols-[36px_105px_1fr_46px] items-center gap-2.5"
+                >
+                  <span
+                    className={cn(
+                      "flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[9px]",
+                      iconTone,
+                    )}
+                  >
+                    <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[16px] leading-none font-semibold tabular-nums text-ink">
+                      {metric.value}
+                    </p>
+                    <p className="mt-1 truncate text-[11px] whitespace-nowrap text-muted">
+                      {metric.label}
+                    </p>
                   </div>
+                  <Progress
+                    value={Math.min(100, metric.progress)}
+                    className="h-2"
+                    indicatorClassName={bar}
+                  />
+                  <small className="text-right text-[10px] text-[#687589]">
+                    {metric.annotation ?? ""}
+                  </small>
                 </li>
               );
             })}

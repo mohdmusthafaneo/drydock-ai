@@ -117,7 +117,7 @@ export function ConfidenceGauge({
         </p>
         <span
           className={cn(
-            "mt-2 rounded-full px-2.5 py-0.5 text-[11px] font-medium",
+            "mt-2.5 rounded-full px-3 py-1 text-[13px] font-semibold tracking-[-0.1px]",
             BAND_PILL[band],
           )}
         >

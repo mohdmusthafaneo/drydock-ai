@@ -1,5 +1,18 @@
 import { cn } from "@/lib/utils";
 
+const MARKER_STROKES = [
+  "#51a87e",
+  "#51a87e",
+  "#51a87e",
+  "#51a87e",
+  "#f0a91e",
+  "#f0a91e",
+  "#ef6b53",
+  "#ef6b53",
+] as const;
+
+const Y_LABELS = [100, 75, 50, 25, 0] as const;
+
 export function AreaTrendChart({
   points,
   target,
@@ -10,13 +23,13 @@ export function AreaTrendChart({
   className?: string;
 }) {
   const width = 480;
-  const height = 160;
-  const padX = 12;
-  const padTop = 12;
-  const padBottom = 28;
+  const height = 125;
+  const padX = 4;
+  const padTop = 6;
+  const padBottom = 6;
   const plotW = width - padX * 2;
   const plotH = height - padTop - padBottom;
-  const maxY = Math.max(100, target, ...points.map((p) => p.value));
+  const maxY = 100;
 
   function xAt(i: number) {
     if (points.length <= 1) return padX + plotW / 2;
@@ -24,7 +37,7 @@ export function AreaTrendChart({
   }
 
   function yAt(v: number) {
-    return padTop + plotH - (v / maxY) * plotH;
+    return padTop + plotH - (Math.min(maxY, Math.max(0, v)) / maxY) * plotH;
   }
 
   const line = points
@@ -39,69 +52,94 @@ export function AreaTrendChart({
   const targetY = yAt(target);
   const gradId = "overview-trend-fill";
 
+  const xLabelIndexes =
+    points.length <= 4
+      ? points.map((_, i) => i)
+      : [0, Math.floor((points.length - 1) / 3), Math.floor(((points.length - 1) * 2) / 3), points.length - 1];
+
   return (
-    <svg
-      viewBox={`0 0 ${width} ${height}`}
-      className={cn("h-40 w-full", className)}
-      data-slot="area-trend"
-      role="img"
-      aria-label="Delivery confidence trend"
-    >
-      <defs>
-        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#2F80ED" stopOpacity="0.28" />
-          <stop offset="100%" stopColor="#2F80ED" stopOpacity="0.02" />
-        </linearGradient>
-      </defs>
+    <div className={cn("relative h-[158px] pr-1 pl-[30px]", className)} data-slot="area-trend">
+      <div className="pointer-events-none absolute top-[3px] bottom-5 left-0 flex flex-col justify-between text-[10px] text-[#718096]">
+        {Y_LABELS.map((label) => (
+          <span key={label}>{label}</span>
+        ))}
+      </div>
 
-      <line
-        x1={padX}
-        y1={targetY}
-        x2={width - padX}
-        y2={targetY}
-        stroke="var(--text-faint)"
-        strokeWidth={1}
-        strokeDasharray="4 4"
-      />
-      <text
-        x={width - padX}
-        y={targetY - 4}
-        textAnchor="end"
-        className="fill-[var(--text-faint)]"
-        style={{ fontSize: 10 }}
-      >
-        Target {target}
-      </text>
+      {points.length === 0 ? (
+        <div className="flex h-[125px] items-center justify-center text-[12px] text-muted">
+          No trend data yet
+        </div>
+      ) : (
+        <>
+          <svg
+            viewBox={`0 0 ${width} ${height}`}
+            className="block h-[125px] w-full overflow-visible"
+            role="img"
+            aria-label="Delivery confidence trend"
+          >
+            <defs>
+              <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#cdeedc" stopOpacity="0.9" />
+                <stop offset="100%" stopColor="#cdeedc" stopOpacity="0" />
+              </linearGradient>
+            </defs>
 
-      {area ? <path d={area} fill={`url(#${gradId})`} /> : null}
-      {line ? (
-        <path d={line} fill="none" stroke="#2F80ED" strokeWidth={2} strokeLinejoin="round" />
-      ) : null}
+            {Y_LABELS.map((label) => {
+              const y = yAt(label);
+              return (
+                <line
+                  key={`g-${label}`}
+                  x1={padX}
+                  y1={y}
+                  x2={width - padX}
+                  y2={y}
+                  stroke="#e7ebef"
+                  strokeWidth={1}
+                />
+              );
+            })}
 
-      {points.map((p, i) => (
-        <circle
-          key={p.label}
-          cx={xAt(i)}
-          cy={yAt(p.value)}
-          r={3}
-          fill="#2F80ED"
-          stroke="#fff"
-          strokeWidth={1.5}
-        />
-      ))}
+            <line
+              x1={padX}
+              y1={targetY}
+              x2={width - padX}
+              y2={targetY}
+              stroke="#9aa6b5"
+              strokeWidth={1.2}
+              strokeDasharray="4 4"
+            />
 
-      {points.map((p, i) => (
-        <text
-          key={`lbl-${p.label}`}
-          x={xAt(i)}
-          y={height - 8}
-          textAnchor="middle"
-          className="fill-[var(--text-faint)]"
-          style={{ fontSize: 10 }}
-        >
-          {p.label}
-        </text>
-      ))}
-    </svg>
+            {area ? <path d={area} fill={`url(#${gradId})`} /> : null}
+            {line ? (
+              <path
+                d={line}
+                fill="none"
+                stroke="#5bb88a"
+                strokeWidth={2.2}
+                strokeLinejoin="round"
+              />
+            ) : null}
+
+            {points.map((p, i) => (
+              <circle
+                key={p.label}
+                cx={xAt(i)}
+                cy={yAt(p.value)}
+                r={4}
+                fill="#fff"
+                stroke={MARKER_STROKES[Math.min(i, MARKER_STROKES.length - 1)]}
+                strokeWidth={2}
+              />
+            ))}
+          </svg>
+
+          <div className="flex justify-between pt-0.5 text-[9px] text-[#718096]">
+            {xLabelIndexes.map((i) => (
+              <span key={points[i]!.label}>{points[i]!.label}</span>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
   );
 }

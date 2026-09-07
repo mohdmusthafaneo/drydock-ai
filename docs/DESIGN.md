@@ -3,52 +3,55 @@
 
 **Theme:** light
 
-Connexus Overview is a clean daylight productivity dashboard: white chrome on a soft grey canvas (`#F9F9F9`), Inter throughout, and a single orange accent (`#E8590C`) for active navigation, CTAs, and attention. Cards are 12px-radius white surfaces with hairline `#ECECEC` borders and a whisper of shadow. Colour is reserved for status (green / red / amber / blue) and data viz (gauge segments, heatmap blues, trend gradients). The result reads as a focused engineering instrument — calm, dense, and decision-oriented.
+Connexus Overview is a clean daylight productivity dashboard: white chrome on a soft canvas (`#FBFBFA`), **DM Sans** throughout at a **14px** body base, orange accent (`#F4773D`) for icons and attention, and a separate brown family (`#8A4224` / `#88472B`) for active nav and primary CTAs. Cards are 14px-radius white surfaces with `#E6E8EB` borders and a soft `0 2px 7px` shadow. Colour is reserved for status (coral / amber / green / blue / purple) and data viz (gauge segments, heatmap blues, trend greens). The result reads as a focused engineering instrument — calm, dense, and decision-oriented.
 
 ## Tokens — Colors
 
 | Name | Value | Token | Role |
 |------|-------|-------|------|
-| Ink | `#111827` | `--color-ink` / `--text-primary` | Headings, primary text, filled dark CTAs |
-| Body | `#374151` | `--text-secondary` | Body copy, metric labels |
-| Muted | `#6B7280` | `--text-muted` | Secondary labels, captions |
-| Faint | `#9CA3AF` | `--text-faint` | Placeholders, tick labels, inactive chrome |
-| Pure White | `#ffffff` | `--color-pure-white` | Sidebar, cards, inputs |
-| Canvas | `#F9F9F9` | `--bg-base` | Page background |
-| Border | `#ECECEC` | `--border` | Card borders, progress tracks |
-| Accent | `#E8590C` | `--accent` | Active tab underline, icons, primary orange CTA |
-| Accent hover | `#C2410C` | `--accent-hover` | Strong orange (Review now) |
-| Accent soft | `#FDEEE3` | `--accent-soft` | Caution pill, attention banner, active sidebar row |
-| Accent ring | `#FBD5BF` | `--accent-ring` | Soft orange borders |
-| Success | `#22A06B` | `--success` | Positive deltas, synced dot |
-| Success soft | `#DFF5E9` | `--success-soft` | Positive chip backgrounds |
-| Danger | `#EF6461` | `--error` | Negative deltas, risk |
-| Danger soft | `#FDE8E7` | `--error-soft` | Negative chip backgrounds |
-| Warning | `#F5B800` | `--warning` | Gauge marker, caution |
-| Warning soft | `#FFF6D6` | `--warning-soft` | Soft amber fills |
-| Info | `#2F80ED` | `--info` | Heatmap mid, links |
-| Info soft | `#E8F1FD` | `--info-soft` | Heatmap lightest step |
-| Gauge coral | `#F3A98C` | `--gauge-coral` | Gauge low band |
-| Gauge amber | `#FBD25A` | `--gauge-amber` | Gauge mid band |
-| Gauge mint | `#7FDCC0` | `--gauge-mint` | Gauge high band |
+| Ink | `#101828` | `--color-ink` / `--text-primary` | Headings, primary text |
+| Body | `#344054` | `--text-secondary` | Body copy, metric labels |
+| Muted | `#667085` | `--text-muted` | Secondary labels, captions |
+| Faint | `#8A94A6` | `--text-faint` | Placeholders, tick labels, inactive chrome |
+| Pure White | `#ffffff` | `--color-pure-white` | Cards, inputs |
+| Canvas | `#FBFBFA` | `--bg-base` | Page background |
+| Border | `#E6E8EB` | `--border` | Card borders |
+| Border soft | `#EDF0F2` | `--border-soft` | Row dividers, sidebar edge |
+| Accent | `#F4773D` | `--accent` | Icons, progress fills, attention |
+| Accent soft | `#FFF0E8` | `--accent-soft` | Soft orange fills |
+| Accent ring | `#FFE0D1` | `--accent-ring` | Soft orange borders |
+| Brown | `#8A4224` | `--brown` | Active nav text |
+| Brown soft | `#FFF1EA` | `--brown-soft` | Active nav / tab fill |
+| Brown underline | `#8B492A` | `--brown-underline` | Active top-tab underline |
+| Brown button | `#88472B` | `--brown-button` | Solid primary CTA |
+| Coral | `#EF7778` | `--coral` | Danger / blocked signals |
+| Amber | `#F3BD29` | `--amber` | Caution signals |
+| Green | `#35B982` | `--green` | Positive / AI risk fill |
+| Blue | `#4D91EE` | `--blue` | Info / burndown actual |
+| Purple | `#8874E8` | `--purple` | QA pillar |
+| Success | `#35B982` | `--success` | Positive deltas, synced dot |
+| Danger | `#EF7778` | `--error` | Negative deltas |
+| Warning | `#F3BD29` | `--warning` | Caution chips |
+| Info | `#4D91EE` | `--info` | Heatmap / links |
 
 ## Tokens — Typography
 
-### Inter — Body, UI, and display · `--font-inter`
+### DM Sans — Body, UI, and display · `--font-dm-sans`
 - **Weights:** 400, 500, 600, 700
-- **Sizes:** 12px captions, 13–14px UI, 15px sidebar brand, 26px page greeting
-- **Letter spacing:** −0.011em body; −0.02em display
-- **Role:** Single family for the product. `.font-display` is Inter 600 with tight tracking (no serif).
+- **Base:** 14px body (no tracking)
+- **Sizes:** 9–11px captions, 12–14px UI, 18px sidebar brand, 28px page greeting
+- **Role:** Single family for the product. `.font-display` is DM Sans 600 with tight tracking (no serif).
 
 ### Type Scale
 
 | Role | Size | Weight | Use |
 |------|------|--------|-----|
-| caption | 12px | 400–500 | Footnotes, heatmap labels |
-| ui | 13–14px | 400–500 | Nav, metric labels, buttons |
-| brand | 15px | 600 | Sidebar org name |
-| greeting | 26px | 600 | Overview page header |
-| metric | 28–36px | 600 | Pillar scores, gauge number |
+| caption | 9–11px | 400–500 | Chart ticks, footnotes |
+| ui | 12–14px | 400–500 | Nav, metric labels, buttons |
+| brand | 18px | 700 | Sidebar org name |
+| greeting | 28px | 700 | Overview page header (−0.75px tracking) |
+| metric | 16–24px | 600 | Signal values, pillar scores |
+| gauge | 45px | 600 | Confidence score |
 
 ## Tokens — Spacing & Shapes
 
@@ -58,44 +61,45 @@ Connexus Overview is a clean daylight productivity dashboard: white chrome on a 
 
 | Element | Value |
 |---------|-------|
-| cards | 12px |
-| tiles / buttons / chips | 8px |
+| cards | 14px (`--radius-card`) |
+| tiles / buttons / chips | 8–9px |
 | avatars / status dots | 9999px |
-| inputs | 8px |
+| inputs | 9–10px |
 
 ### Shadows
 
 | Name | Value |
 |------|-------|
-| subtle | `0 1px 2px rgba(16, 24, 40, 0.04)` |
+| card | `0 2px 7px rgba(16, 24, 40, 0.025)` |
 
 ### Layout
 
-- **Sidebar width:** ≈240px
-- **Top bar height:** 56px
-- **Card padding:** 16–20px
-- **Page max content:** fluid within main column
+- **Sidebar width:** 206px
+- **Top bar height:** 54px
+- **Card padding:** 15–22px
+- **Row gaps:** 12–13px
+- **Page content:** `min(1280px, 100% - 48px)`, padding `25px 0 28px`
 
 ## Components
 
 ### Sidebar
-White column, 1px right border. Orange ring org mark + org name. Search with ⌘K. `WORKSPACE` eyebrow + project rows (active = accent-soft bg + orange icon). Bottom: Data synced card, Integrations, Settings.
+206px column, soft white `rgba(255,255,255,.72)`, `--border-soft` right edge. Orange ring org mark + 18px/700 org name. Search with magnifier + ⌘K. `WORKSPACE` eyebrow + project rows (active = brown text on `#FFF1EA` + 3px orange left rail). Bottom: two-line Data synced card, Integrations, Settings.
 
 ### Top bar
-56px white bar. Section tabs with 2px orange underline on active. Right: date-range button + user avatar menu.
+54px translucent white bar. Section tabs with full-width 3px brown underline on active. Right: explicit date-range button + 38px avatar.
 
 ### Overview cards
-White, 12px radius, `#ECECEC` border, subtle shadow. Title row with optional ⓘ tip. Metric rows use icon tiles, progress bars on `#ECECEC` tracks.
+White, 14px radius, `#E6E8EB` border, soft shadow. Title row with optional ⓘ tip. Signal rows use a 4-column grid (icon | value+label | 8px bar | annotation).
 
 ### Gauge
-180° SVG arc: coral / amber / mint segments, yellow marker with white ring, centre score + band pill.
+180° SVG arc (implementation unchanged): coral / amber / mint segments, yellow marker with white ring, centre score + band pill.
 
 ### Attention banner
-Accent-soft background, dark-orange CTA.
+`#FFF0E8` background, brown solid CTA (`#88472B`).
 
 ### Leadership card
-People icon tile, count of pending decisions, outline link to Approvals.
+`#F2F7FF` tinted card, horizontal layout with outline details button.
 
 ## Visual reference
 
-Pixel target: [`docs/design/overview-mockup.jpg`](design/overview-mockup.jpg).
+Pixel target: designer static build (`~/Downloads/new-design`) and [`docs/design/overview-mockup.jpg`](design/overview-mockup.jpg).

@@ -1,8 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Share2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ChevronDown, Share2 } from "lucide-react";
 import type { OverviewDashboardModel } from "@/lib/overview/types";
 import { cn } from "@/lib/utils";
 
@@ -35,31 +34,40 @@ export function OverviewHeader({
   return (
     <div
       className={cn(
-        "flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between",
+        "mb-[6px] flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between",
         className,
       )}
       data-slot="overview-header"
     >
       <div className="min-w-0">
-        <h1 className="text-[26px] font-semibold tracking-[-0.02em] text-ink">
+        <h1 className="text-[28px] leading-[1.12] font-bold tracking-[-0.75px] text-ink">
           {greeting}, {model.greetingName}
         </h1>
-        <p className="mt-1 text-sm text-muted">
+        <p className="mt-[5px] text-[15px] text-muted">
           Here&apos;s how your engineering work is tracking.
         </p>
       </div>
-      <div className="flex shrink-0 flex-wrap items-center gap-2">
-        <div className="inline-flex items-center gap-2 rounded-lg border border-border bg-pure-white px-2.5 py-1.5 text-xs text-secondary">
-          <span className="font-medium text-ink">{model.sprint.name}</span>
-          <span className="text-faint">|</span>
-          <span>
+      <div className="flex shrink-0 flex-wrap items-center gap-2.5">
+        <button
+          type="button"
+          className="inline-flex h-[42px] min-w-[245px] items-center gap-[13px] rounded-[9px] border border-border bg-pure-white px-[13px] text-[12px] text-[#334155]"
+        >
+          <strong className="text-[13px] font-semibold text-[#4a2b1e]">
+            {model.sprint.name}
+          </strong>
+          <span className="border-l border-border pl-[13px] text-[#7b8798]">
             {model.sprint.startLabel} – {model.sprint.endLabel}
           </span>
-        </div>
-        <Button type="button" variant="outline" size="sm" onClick={share}>
-          <Share2 className="h-3.5 w-3.5" strokeWidth={1.5} />
+          <ChevronDown className="ml-auto h-[15px] w-[15px] text-muted" strokeWidth={1.7} />
+        </button>
+        <button
+          type="button"
+          onClick={share}
+          className="inline-flex h-[42px] items-center gap-2 rounded-[9px] border border-border bg-pure-white px-3.5 text-[14px] font-semibold text-[#182230] hover:bg-hover"
+        >
+          <Share2 className="h-[17px] w-[17px]" strokeWidth={1.7} />
           {copied ? "Copied" : "Share"}
-        </Button>
+        </button>
       </div>
     </div>
   );

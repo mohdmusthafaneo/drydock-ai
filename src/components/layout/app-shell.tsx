@@ -105,8 +105,10 @@ export function AppShell({
             chatMode
               ? "flex flex-col overflow-hidden px-0 pb-0 pt-0 lg:px-3 lg:pb-3 lg:pt-3"
               : hideMobileNav
-                ? "overflow-y-auto px-4 pb-8 pt-4 lg:px-8 lg:pb-8 lg:pt-5"
-                : "overflow-y-auto px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-4 lg:px-8 lg:pb-8 lg:pt-5",
+                ? "overflow-y-auto px-4 pb-8 pt-4 lg:px-6 lg:pb-7 lg:pt-[25px]"
+                : overviewMode
+                  ? "overflow-y-auto px-6 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-[25px] lg:px-6 lg:pb-7"
+                  : "overflow-y-auto px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-4 lg:px-8 lg:pb-8 lg:pt-5",
           )}
         >
           <div
@@ -114,7 +116,7 @@ export function AppShell({
               chatMode
                 ? "relative flex min-h-0 flex-1 flex-col"
                 : overviewMode
-                  ? "mx-auto w-full max-w-[1280px]"
+                  ? "mx-auto w-full max-w-[min(1280px,calc(100%-0px))]"
                   : "mx-auto w-full max-w-[1200px]",
             )}
           >

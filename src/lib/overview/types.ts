@@ -32,6 +32,8 @@ export type OverviewDashboardModel = {
     subtitle: string;
     href: string;
     tone: "danger" | "warning" | "info" | "success";
+    /** Designer glyph when present (e.g. ↗, ◷, </>, ♢). */
+    glyph?: string;
     needsAction?: boolean;
   }>;
   pillars: Array<{
@@ -42,6 +44,8 @@ export type OverviewDashboardModel = {
     footnote: string;
     progress: number;
     tone: string;
+    /** Designer glyph when present (e.g. ⚑, </>, ⚗, ♢). */
+    glyph?: string;
   }>;
   deliveryTrend: {
     points: { label: string; value: number }[];

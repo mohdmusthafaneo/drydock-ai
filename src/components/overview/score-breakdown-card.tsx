@@ -7,33 +7,35 @@ import { cn } from "@/lib/utils";
 
 function DeltaChip({ delta }: { delta: number | null }) {
   if (delta === null) {
-    return <span className="rounded-md bg-elevated px-1.5 py-0.5 text-[11px] text-muted">—</span>;
+    return (
+      <em className="ml-1.5 inline-block rounded-[5px] bg-elevated px-[5px] py-[3px] text-[10px] not-italic text-muted align-[3px]">
+        —
+      </em>
+    );
   }
   const up = delta > 0;
   const flat = delta === 0;
   return (
-    <span
+    <em
       className={cn(
-        "rounded-md px-1.5 py-0.5 text-[11px] font-medium",
+        "ml-1.5 inline-block rounded-[5px] px-[5px] py-[3px] text-[10px] not-italic align-[3px]",
         flat
           ? "bg-elevated text-muted"
           : up
-            ? "bg-success-soft text-success"
-            : "bg-error-soft text-error",
+            ? "bg-green-soft text-[#159766]"
+            : "bg-coral-soft text-[#f15f5f]",
       )}
     >
-      {up ? "↑" : flat ? "" : "↓"}
-      {up ? "+" : ""}
-      {delta}
-    </span>
+      {up ? "↑" : flat ? "" : "↓"} {Math.abs(delta)}%
+    </em>
   );
 }
 
-const PILLAR_BAR: Record<string, string> = {
-  delivery: "bg-accent",
-  code: "bg-info",
-  qa: "bg-warning",
-  compliance: "bg-success",
+const PILLAR_META: Record<string, { tone: string; glyph: string; suffix?: string }> = {
+  delivery: { tone: "bg-accent-soft text-accent", glyph: "⚑", suffix: "%" },
+  code: { tone: "bg-blue-soft text-[#2d76df]", glyph: "</>" },
+  qa: { tone: "bg-purple-soft text-purple", glyph: "⚗" },
+  compliance: { tone: "bg-green-soft text-[#299c6b]", glyph: "♢" },
 };
 
 export function ScoreBreakdownCard({
@@ -46,51 +48,68 @@ export function ScoreBreakdownCard({
   return (
     <Card
       className={cn(
-        "rounded-[12px] border-border shadow-[0_1px_2px_rgba(16,24,40,0.04)]",
+        "rounded-[var(--radius-card)] border-border shadow-[var(--shadow)]",
         className,
       )}
       data-slot="score-breakdown-card"
     >
-      <CardHeader className="flex-row items-start justify-between space-y-0 p-5 pb-2">
-        <div>
+      <CardHeader className="flex-row items-center justify-between space-y-0 px-[18px] pt-4 pb-0">
+        <div className="flex items-baseline gap-2.5">
           <div className="flex items-center gap-1.5">
-            <CardTitle className="text-[15px] font-semibold text-ink">Score breakdown</CardTitle>
+            <CardTitle className="text-[16px] font-semibold tracking-[-0.2px] text-ink">
+              Score breakdown
+            </CardTitle>
             <InfoTip
               definition="The four pillars of engineering productivity. Deltas are week-over-week when snapshots exist."
               evidenceSource="Delivery, code, QA, and compliance signals"
             />
           </div>
-          <p className="mt-0.5 text-xs text-muted">The 4 pillars of engineering productivity</p>
+          <p className="text-[11px] text-muted">The 4 pillars of engineering productivity</p>
         </div>
         <Link
           href="/delivery-analysis"
-          className="rounded-lg border border-border bg-pure-white px-3 py-1.5 text-xs font-medium text-secondary hover:bg-hover"
+          className="rounded-[9px] border border-border bg-pure-white px-[11px] py-[7px] text-[11px] font-medium text-secondary hover:bg-hover"
         >
           View details
         </Link>
       </CardHeader>
-      <CardContent className="p-5 pt-3">
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {pillars.map((pillar) => (
-            <div
-              key={pillar.id}
-              className="rounded-[10px] border border-border bg-pure-white p-3.5"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-medium text-secondary">{pillar.name}</p>
-                <DeltaChip delta={pillar.delta} />
+      <CardContent className="px-[18px] pt-3 pb-2.5">
+        <div className="grid gap-[11px] sm:grid-cols-2 xl:grid-cols-4">
+          {pillars.map((pillar) => {
+            const meta = PILLAR_META[pillar.id] ?? {
+              tone: "bg-accent-soft text-accent",
+              glyph: "•",
+            };
+            return (
+              <div
+                key={pillar.id}
+                className="relative min-h-[118px] rounded-[10px] border border-border-soft bg-pure-white px-3.5 py-[13px]"
+              >
+                <span
+                  className={cn(
+                    "flex h-[30px] w-[30px] items-center justify-center rounded-[9px] text-[15px] font-semibold",
+                    meta.tone,
+                  )}
+                >
+                  {pillar.glyph ?? meta.glyph}
+                </span>
+                <strong className="-mt-[26px] ml-[39px] block text-[14px] font-semibold text-ink">
+                  {pillar.name}
+                </strong>
+                <p className="mt-[13px] text-[24px] leading-none font-semibold tracking-[-0.7px] text-ink">
+                  {pillar.score}
+                  {meta.suffix ?? ""}
+                  <DeltaChip delta={pillar.delta} />
+                </p>
+                <Progress
+                  value={pillar.progress}
+                  className="mt-2 h-[7px]"
+                  indicatorClassName="bg-accent"
+                />
+                <small className="mt-[5px] block text-[11px] text-muted">{pillar.footnote}</small>
               </div>
-              <p className="mt-2 text-[28px] font-semibold leading-none tracking-tight text-ink">
-                {pillar.score}
-              </p>
-              <Progress
-                value={pillar.progress}
-                className="mt-3"
-                indicatorClassName={PILLAR_BAR[pillar.id] ?? "bg-info"}
-              />
-              <p className="mt-2 text-[11px] leading-snug text-muted">{pillar.footnote}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </CardContent>
     </Card>

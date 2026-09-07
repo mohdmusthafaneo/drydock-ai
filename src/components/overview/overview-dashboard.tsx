@@ -19,9 +19,9 @@ export function OverviewDashboard({
 }) {
   if (model.empty) {
     return (
-      <div className={cn("space-y-6", className)} data-slot="overview-dashboard">
+      <div className={cn("space-y-3", className)} data-slot="overview-dashboard">
         <OverviewHeader model={model} />
-        <div className="rounded-[12px] border border-border bg-pure-white px-6 py-12 text-center shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="rounded-[var(--radius-card)] border border-border bg-pure-white px-6 py-12 text-center shadow-[var(--shadow)]">
           <p className="text-sm font-medium text-ink">No overview data yet</p>
           <p className="mt-1 text-sm text-muted">
             Connect integrations and sync to populate delivery confidence.
@@ -32,33 +32,29 @@ export function OverviewDashboard({
   }
 
   return (
-    <div className={cn("space-y-5", className)} data-slot="overview-dashboard">
+    <div className={cn("space-y-3", className)} data-slot="overview-dashboard">
       <OverviewHeader model={model} />
 
-      {/* Row 1: Delivery confidence (2/3) + Key takeaways (1/3) */}
-      <div className="grid gap-5 lg:grid-cols-12">
-        <DeliveryConfidenceCard model={model} className="lg:col-span-8" />
-        <KeyTakeawaysCard takeaways={model.keyTakeaways} className="lg:col-span-4" />
+      {/* Row 1: Delivery confidence + Key takeaways — designer 2.15fr / 0.9fr */}
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,2.15fr)_minmax(330px,0.9fr)]">
+        <DeliveryConfidenceCard model={model} />
+        <KeyTakeawaysCard takeaways={model.keyTakeaways} />
       </div>
 
       {/* Row 2: Score breakdown — four pillars */}
       <ScoreBreakdownCard pillars={model.pillars} />
 
-      {/* Row 3: Trend + burndown + heatmap */}
-      <div className="grid gap-5 lg:grid-cols-12">
-        <DeliveryTrendCard trend={model.deliveryTrend} className="lg:col-span-4" />
-        <SprintBurndownCard burndown={model.burndown} className="lg:col-span-4" />
-        <ActivityHeatmapCard heatmap={model.heatmap} className="lg:col-span-4" />
+      {/* Row 3: Trend + burndown + heatmap — designer 1fr 1fr 1.05fr */}
+      <div className="grid gap-3 lg:grid-cols-[1fr_1fr_1.05fr]">
+        <DeliveryTrendCard trend={model.deliveryTrend} />
+        <SprintBurndownCard burndown={model.burndown} />
+        <ActivityHeatmapCard heatmap={model.heatmap} />
       </div>
 
-      {/* Row 4: Attention (2/3) + Leadership (1/3) */}
-      <div className="grid gap-5 lg:grid-cols-12">
-        {model.attention ? (
-          <AttentionBanner attention={model.attention} className="lg:col-span-8" />
-        ) : (
-          <div className="lg:col-span-8" />
-        )}
-        <LeadershipCard leadership={model.leadership} className="lg:col-span-4" />
+      {/* Row 4: Attention + Leadership — designer 1.9fr 1fr */}
+      <div className="grid gap-3 lg:grid-cols-[1.9fr_1fr]">
+        <AttentionBanner attention={model.attention} />
+        <LeadershipCard leadership={model.leadership} />
       </div>
     </div>
   );

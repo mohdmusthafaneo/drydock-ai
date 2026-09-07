@@ -1,25 +1,26 @@
 import Link from "next/link";
-import {
-  AlertTriangle,
-  Ban,
-  ChevronRight,
-  Lightbulb,
-  Scale,
-  Sparkles,
-  type LucideIcon,
-} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { OverviewDashboardModel } from "@/lib/overview/types";
 import { cn } from "@/lib/utils";
 
 const TONE_TILE: Record<
   OverviewDashboardModel["keyTakeaways"][number]["tone"],
-  { bg: string; icon: LucideIcon }
+  string
 > = {
-  danger: { bg: "bg-error-soft text-error", icon: Ban },
-  warning: { bg: "bg-accent-soft text-accent", icon: AlertTriangle },
-  info: { bg: "bg-info-soft text-info", icon: Scale },
-  success: { bg: "bg-success-soft text-success", icon: Sparkles },
+  danger: "bg-coral-soft text-[#ed6668]",
+  warning: "bg-amber-soft text-[#e5a818]",
+  info: "bg-green-soft text-[#249b6b]",
+  success: "bg-green-soft text-[#249b6b]",
+};
+
+const FALLBACK_GLYPH: Record<
+  OverviewDashboardModel["keyTakeaways"][number]["tone"],
+  string
+> = {
+  danger: "↗",
+  warning: "◷",
+  info: "</>",
+  success: "♢",
 };
 
 export function KeyTakeawaysCard({
@@ -32,43 +33,43 @@ export function KeyTakeawaysCard({
   return (
     <Card
       className={cn(
-        "rounded-[12px] border-border shadow-[0_1px_2px_rgba(16,24,40,0.04)]",
+        "rounded-[var(--radius-card)] border-border shadow-[var(--shadow)]",
         className,
       )}
       data-slot="key-takeaways-card"
     >
-      <CardHeader className="flex-row items-center gap-2 space-y-0 p-5 pb-2">
-        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-warning-soft text-warning">
-          <Lightbulb className="h-3.5 w-3.5" strokeWidth={1.75} />
-        </span>
-        <CardTitle className="text-[15px] font-semibold text-ink">Key takeaways</CardTitle>
+      <CardHeader className="flex-row items-center space-y-0 border-b border-border px-5 pt-5 pb-[11px]">
+        <CardTitle className="flex items-center text-[16px] font-semibold text-ink">
+          <span className="mr-2 text-[18px] text-[#e9a825]" aria-hidden>
+            ✦
+          </span>
+          Key takeaways
+        </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-0.5 p-5 pt-2">
+      <CardContent className="space-y-0 px-5 pt-0 pb-2.5">
         {takeaways.map((item) => {
-          const tile = TONE_TILE[item.tone];
-          const Icon = tile.icon;
+          const glyph = item.glyph ?? FALLBACK_GLYPH[item.tone] ?? "•";
           return (
             <Link
               key={item.id}
               href={item.href}
-              className="group flex items-start gap-3 rounded-lg px-1 py-2.5 hover:bg-hover"
+              className="group grid min-h-[59px] grid-cols-[34px_1fr_12px] items-center gap-2.5 border-b border-border-soft last:border-b-0"
             >
               <span
                 className={cn(
-                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
-                  tile.bg,
+                  "flex h-[31px] w-[31px] shrink-0 items-center justify-center rounded-[9px] text-[14px] font-semibold",
+                  TONE_TILE[item.tone],
                 )}
               >
-                <Icon className="h-4 w-4" strokeWidth={1.5} />
+                {glyph}
               </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-ink">{item.title}</p>
-                <p className="mt-0.5 text-xs leading-relaxed text-muted">{item.subtitle}</p>
+              <div className="min-w-0">
+                <p className="text-[13px] font-semibold text-ink">{item.title}</p>
+                <p className="mt-0.5 text-[11px] leading-snug text-muted">{item.subtitle}</p>
               </div>
-              <ChevronRight
-                className="mt-1 h-4 w-4 shrink-0 text-faint"
-                strokeWidth={1.5}
-              />
+              <span className="justify-self-end text-[19px] leading-none text-[#687589]">
+                ›
+              </span>
             </Link>
           );
         })}

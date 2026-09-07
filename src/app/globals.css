@@ -4,80 +4,99 @@
 
 /* Connexus Overview — daylight SaaS dashboard (docs/DESIGN.md) */
 :root {
-  --color-ink: #111827;
+  --color-ink: #101828;
   --color-pure-white: #ffffff;
-  --color-fog: #f9f9f9;
-  --color-ash: #374151;
-  --color-graphite: #6b7280;
-  --color-dove: #9ca3af;
-  --color-slate: #6b7280;
+  --color-fog: #fbfbfa;
+  --color-ash: #344054;
+  --color-graphite: #667085;
+  --color-dove: #8a94a6;
+  --color-slate: #667085;
   --color-obsidian: #000000;
-  --color-rust: #e8590c;
-  --color-apricot-wash: #fdeee3;
-  --color-sky-wash: #e8f1fd;
-  --color-chart-blue: #2f80ed;
+  --color-rust: #f4773d;
+  --color-apricot-wash: #fff0e8;
+  --color-sky-wash: #edf5ff;
+  --color-chart-blue: #4d91ee;
 
-  --bg-base: #f9f9f9;
-  --bg-sidebar: #ffffff;
+  --bg-base: #fbfbfa;
+  --bg-sidebar: rgba(255, 255, 255, 0.72);
   --bg-surface: #ffffff;
-  --bg-elevated: #f9f9f9;
-  --bg-hover: rgba(17, 24, 39, 0.04);
+  --bg-elevated: #f7f8f9;
+  --bg-hover: rgba(16, 24, 40, 0.04);
   --bg-input: #ffffff;
 
-  --border: #ececec;
-  --border-subtle: #ececec;
+  --border: #e6e8eb;
+  --border-subtle: #edf0f2;
+  --border-soft: #edf0f2;
 
-  --text-primary: #111827;
-  --text-secondary: #374151;
-  --text-muted: #6b7280;
-  --text-faint: #9ca3af;
+  --text-primary: #101828;
+  --text-secondary: #344054;
+  --text-muted: #667085;
+  --text-faint: #8a94a6;
 
-  --accent: #e8590c;
-  --accent-hover: #c2410c;
-  --accent-soft: #fdeee3;
-  --accent-ring: #fbd5bf;
+  --accent: #f4773d;
+  --accent-hover: #ef5d1c;
+  --accent-soft: #fff0e8;
+  --accent-ring: #ffe0d1;
   --accent-foreground: #ffffff;
 
-  --brand: #2f80ed;
-  --brand-hover: #1d5fd1;
-  --brand-muted: rgba(47, 128, 237, 0.12);
-  --brand-foreground: #111827;
+  --brown: #8a4224;
+  --brown-soft: #fff1ea;
+  --brown-underline: #8b492a;
+  --brown-button: #88472b;
+  --brown-text: #71391f;
 
-  --accent-enterprise: #2f80ed;
-  --accent-enterprise-muted: rgba(47, 128, 237, 0.12);
-  --accent-mvp: #e8590c;
-  --accent-mvp-muted: rgba(253, 238, 227, 0.9);
-  --accent-mvp-soft: #fdeee3;
+  --coral: #ef7778;
+  --coral-soft: #fff0ef;
+  --amber: #f3bd29;
+  --amber-soft: #fff8df;
+  --green: #35b982;
+  --green-soft: #eaf8f0;
+  --blue: #4d91ee;
+  --blue-soft: #edf5ff;
+  --purple: #8874e8;
+  --purple-soft: #f2efff;
 
-  --success: #22a06b;
-  --success-muted: rgba(34, 160, 107, 0.12);
-  --success-soft: #dff5e9;
-  --warning: #f5b800;
-  --warning-muted: rgba(245, 184, 0, 0.15);
-  --warning-soft: #fff6d6;
-  --error: #ef6461;
-  --error-muted: rgba(239, 100, 97, 0.12);
-  --error-soft: #fde8e7;
-  --info: #2f80ed;
-  --info-muted: rgba(47, 128, 237, 0.12);
-  --info-soft: #e8f1fd;
+  --brand: #4d91ee;
+  --brand-hover: #2d76df;
+  --brand-muted: rgba(77, 145, 238, 0.12);
+  --brand-foreground: #101828;
 
-  --gauge-coral: #f3a98c;
-  --gauge-amber: #fbd25a;
+  --accent-enterprise: #4d91ee;
+  --accent-enterprise-muted: rgba(77, 145, 238, 0.12);
+  --accent-mvp: #f4773d;
+  --accent-mvp-muted: rgba(255, 240, 232, 0.9);
+  --accent-mvp-soft: #fff0e8;
+
+  --success: #35b982;
+  --success-muted: rgba(53, 185, 130, 0.12);
+  --success-soft: #eaf8f0;
+  --warning: #f3bd29;
+  --warning-muted: rgba(243, 189, 41, 0.15);
+  --warning-soft: #fff8df;
+  --error: #ef7778;
+  --error-muted: rgba(239, 119, 120, 0.12);
+  --error-soft: #fff0ef;
+  --info: #4d91ee;
+  --info-muted: rgba(77, 145, 238, 0.12);
+  --info-soft: #edf5ff;
+
+  --gauge-coral: #ff9870;
+  --gauge-amber: #f7c535;
   --gauge-mint: #7fdcc0;
-  --gauge-marker: #f5b800;
+  --gauge-marker: #e7aa16;
 
-  --heatmap-1: #e8f1fd;
-  --heatmap-2: #a8c8f5;
-  --heatmap-3: #5b9aef;
-  --heatmap-4: #2f80ed;
-  --heatmap-5: #1d5fd1;
+  --heatmap-0: #eef4fb;
+  --heatmap-1: #d6e9fb;
+  --heatmap-2: #9ecaf3;
+  --heatmap-3: #4f9be7;
+  --heatmap-4: #4f9be7;
+  --heatmap-5: #4f9be7;
 
-  --metric-track: #ececec;
-  --ring: #e8590c;
-  --shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
-  --shadow-subtle: 0 1px 2px rgba(16, 24, 40, 0.04);
-  --radius-card: 12px;
+  --metric-track: #e9edf0;
+  --ring: #f4773d;
+  --shadow: 0 2px 7px rgba(16, 24, 40, 0.025);
+  --shadow-subtle: 0 2px 7px rgba(16, 24, 40, 0.025);
+  --radius-card: 14px;
 
   /* prompt-kit / shadcn semantic aliases */
   --background: var(--bg-base);
@@ -109,6 +128,7 @@
 
   --color-border: var(--border);
   --color-border-subtle: var(--border-subtle);
+  --color-border-soft: var(--border-soft);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -126,14 +146,31 @@
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
 
-  --color-ash: #374151;
-  --color-graphite: #6b7280;
+  --color-ash: #344054;
+  --color-graphite: #667085;
 
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
   --color-accent-soft: var(--accent-soft);
   --color-accent-ring: var(--accent-ring);
   --color-accent-foreground: var(--accent-foreground);
+
+  --color-brown: var(--brown);
+  --color-brown-soft: var(--brown-soft);
+  --color-brown-underline: var(--brown-underline);
+  --color-brown-button: var(--brown-button);
+  --color-brown-text: var(--brown-text);
+
+  --color-coral: var(--coral);
+  --color-coral-soft: var(--coral-soft);
+  --color-amber: var(--amber);
+  --color-amber-soft: var(--amber-soft);
+  --color-green: var(--green);
+  --color-green-soft: var(--green-soft);
+  --color-blue: var(--blue);
+  --color-blue-soft: var(--blue-soft);
+  --color-purple: var(--purple);
+  --color-purple-soft: var(--purple-soft);
 
   --color-brand: var(--brand);
   --color-brand-hover: var(--brand-hover);
@@ -164,6 +201,7 @@
   --color-gauge-mint: var(--gauge-mint);
   --color-gauge-marker: var(--gauge-marker);
 
+  --color-heatmap-0: var(--heatmap-0);
   --color-heatmap-1: var(--heatmap-1);
   --color-heatmap-2: var(--heatmap-2);
   --color-heatmap-3: var(--heatmap-3);
@@ -172,20 +210,20 @@
 
   --color-metric-track: var(--metric-track);
 
-  --color-ink: #111827;
+  --color-ink: #101828;
   --color-pure-white: #ffffff;
-  --color-fog: #f9f9f9;
-  --color-dove: #9ca3af;
-  --color-rust: #e8590c;
-  --color-apricot-wash: #fdeee3;
-  --color-sky-wash: #e8f1fd;
-  --color-chart-blue: #2f80ed;
+  --color-fog: #fbfbfa;
+  --color-dove: #8a94a6;
+  --color-rust: #f4773d;
+  --color-apricot-wash: #fff0e8;
+  --color-sky-wash: #edf5ff;
+  --color-chart-blue: #4d91ee;
 
-  --font-sans: var(--font-inter, ui-sans-serif, system-ui, sans-serif);
-  --font-display: var(--font-inter, ui-sans-serif, system-ui, sans-serif);
+  --font-sans: var(--font-dm-sans, ui-sans-serif, system-ui, sans-serif);
+  --font-display: var(--font-dm-sans, ui-sans-serif, system-ui, sans-serif);
   --font-mono: var(--font-mono), ui-monospace, monospace;
 
-  --radius-card: 12px;
+  --radius-card: 14px;
 
   @keyframes typing {
     0%,
@@ -299,11 +337,10 @@
 body {
   background: var(--bg-base);
   color: var(--text-primary);
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  font-family: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: 14px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  letter-spacing: -0.011em;
 }
 
 * {
@@ -345,7 +382,7 @@ body {
   z-index: 0;
   background: radial-gradient(
     ellipse 70% 60% at 50% 20%,
-    rgba(253, 238, 227, 0.55),
+    rgba(255, 240, 232, 0.55),
     transparent 65%
   );
 }

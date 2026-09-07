@@ -27,9 +27,9 @@ export async function PlatformShell({
   const headersList = await headers();
   const pathname = headersList.get("x-pathname") ?? "";
   const search = headersList.get("x-search") ?? headersList.get("x-url") ?? "";
+  // Dev defaults to designer dummy shell (Connexus workspaces); fixture=0 uses live data.
   const useFixtureProjects =
-    process.env.NODE_ENV !== "production" &&
-    (search.includes("fixture=1") || pathname.includes("fixture=1"));
+    process.env.NODE_ENV !== "production" && !search.includes("fixture=0");
 
   const ctx = await getOrganizationContext(session.organizationId);
   const homePath = resolveLandingPath({
