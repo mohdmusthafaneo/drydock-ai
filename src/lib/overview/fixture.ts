@@ -1,5 +1,24 @@
 import type { OverviewDashboardModel } from "@/lib/overview/types";
 
+/**
+ * Demo stage: Connexus Overview fixture is on by default in all environments
+ * (including production / Docker). Opt out with `?fixture=0` or
+ * `DRYDOCK_OVERVIEW_FIXTURE=0`.
+ */
+export function shouldUseOverviewFixture(
+  fixtureParam?: string | null,
+): boolean {
+  const flag = fixtureParam?.trim().toLowerCase();
+  if (flag === "0" || flag === "false" || flag === "off") return false;
+  if (flag === "1" || flag === "true" || flag === "on") return true;
+
+  const env = process.env.DRYDOCK_OVERVIEW_FIXTURE?.trim().toLowerCase();
+  if (env === "0" || env === "false" || env === "off") return false;
+  if (env === "1" || env === "true" || env === "on") return true;
+
+  return true;
+}
+
 /** Pixel-target fixture matching ~/Downloads/new-design (Connexus Overview). */
 export function getOverviewFixture(
   overrides?: Partial<Pick<OverviewDashboardModel, "greetingName" | "teamKey">>,

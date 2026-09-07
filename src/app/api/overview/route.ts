@@ -2,12 +2,13 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSession } from "@/lib/session";
 import { requirePermission } from "@/lib/rbac";
+import { shouldUseOverviewFixture } from "@/lib/overview/fixture";
 import { loadOverviewDashboard } from "@/lib/overview/load-overview";
 
 const querySchema = z.object({
   team: z.string().min(1).max(64).optional(),
   sprint: z.string().min(1).max(128).optional(),
-  fixture: z.enum(["1", "true"]).optional(),
+  fixture: z.enum(["0", "1", "true", "false"]).optional(),
 });
 
 export async function GET(request: Request) {
@@ -40,7 +41,7 @@ export async function GET(request: Request) {
       userName: session.name,
       teamKey: query.team ?? null,
       sprintId: query.sprint ?? null,
-      useFixture: Boolean(query.fixture),
+      useFixture: shouldUseOverviewFixture(query.fixture),
     });
 
     return NextResponse.json({ ok: true, data });

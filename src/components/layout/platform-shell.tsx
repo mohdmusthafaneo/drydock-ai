@@ -4,6 +4,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { resolveStoredJiraDelivery } from "@/lib/delivery-analysis/resolve";
 import { getIntegrationNavGates } from "@/lib/nav-availability";
+import { shouldUseOverviewFixture } from "@/lib/overview/fixture";
 import { getOrganizationContext } from "@/lib/org-data";
 import { isNavPathEnabled } from "@/lib/feature-flags";
 import { resolveLandingPath } from "@/lib/landing-path";
@@ -27,9 +28,11 @@ export async function PlatformShell({
   const headersList = await headers();
   const pathname = headersList.get("x-pathname") ?? "";
   const search = headersList.get("x-search") ?? headersList.get("x-url") ?? "";
-  // Dev defaults to designer dummy shell (Connexus workspaces); fixture=0 uses live data.
-  const useFixtureProjects =
-    process.env.NODE_ENV !== "production" && !search.includes("fixture=0");
+  const fixtureParam = new URLSearchParams(
+    search.startsWith("?") ? search.slice(1) : search,
+  ).get("fixture");
+  // Demo stage: Connexus shell fixture on by default; fixture=0 uses live data.
+  const useFixtureProjects = shouldUseOverviewFixture(fixtureParam);
 
   const ctx = await getOrganizationContext(session.organizationId);
   const homePath = resolveLandingPath({

@@ -14,9 +14,9 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
   ML_IMAGE_NAME: ${{ github.repository }}/ml-inference
-  COOLIFY_DEPLOY_WEB: http://15.207.73.151:8000/api/v1/deploy?uuid=flyriih22w86oqczf9vxkhxc&force=false
-  COOLIFY_DEPLOY_WORKER: http://15.207.73.151:8000/api/v1/deploy?uuid=z66wre1mtrprk7zrkavdu8lj&force=false
-  COOLIFY_DEPLOY_ML: http://15.207.73.151:8000/api/v1/deploy?uuid=ruvpq8tf8wiig39krcgvpk5f&force=false
+  COOLIFY_DEPLOY_WEB: http://15.207.73.151:8000/api/v1/deploy?uuid=flyriih22w86oqczf9vxkhxc&force=true
+  COOLIFY_DEPLOY_WORKER: http://15.207.73.151:8000/api/v1/deploy?uuid=z66wre1mtrprk7zrkavdu8lj&force=true
+  COOLIFY_DEPLOY_ML: http://15.207.73.151:8000/api/v1/deploy?uuid=ruvpq8tf8wiig39krcgvpk5f&force=true
 
 jobs:
   # ------------------------------------------------------------

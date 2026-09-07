@@ -364,7 +364,7 @@ export async function loadOverviewDashboard(input: {
   sprintId?: string | null;
   useFixture?: boolean;
 }): Promise<OverviewDashboardModel> {
-  if (input.useFixture && process.env.NODE_ENV !== "production") {
+  if (input.useFixture) {
     return getOverviewFixture({
       greetingName: input.userName.split(" ")[0] || input.userName,
       teamKey: input.teamKey ?? null,

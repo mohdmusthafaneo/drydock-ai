@@ -26,6 +26,11 @@ const envSchema = z.object({
   DRYDOCK_API_URL: z.string().url().optional(),
   /** Parked Grafana/Prometheus surface. Off by default. */
   DRYDOCK_OBSERVABILITY_ENABLED: optionalBoolean,
+  /**
+   * Overview Connexus demo fixture. Default on (demo stage).
+   * Set to "0" / "false" for live loaders. Query `?fixture=0` also opts out.
+   */
+  DRYDOCK_OVERVIEW_FIXTURE: z.string().optional(),
   /** Comma-separated worker queue roles: all | agents | refresh | enrich | ml | retention */
   WORKER_QUEUES: z.string().optional(),
   /** Base URL for the Python ML inference sidecar (Phase 4). */
