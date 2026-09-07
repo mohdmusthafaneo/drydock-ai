@@ -32,10 +32,10 @@ export function GovernanceLiveSignals({
   const fillPct = Math.max(8, Math.min(100, score));
 
   return (
-    <div className="overflow-hidden rounded-[24px] border border-border-subtle bg-pure-white shadow-[var(--shadow)]">
+    <div className="overflow-hidden rounded-[var(--radius-card)] border border-border bg-pure-white shadow-[var(--shadow)]">
       <BriefingHighlights highlights={highlights} bare />
       <div
-        className="flex items-center justify-between gap-4 border-t border-border-subtle bg-apricot-wash/40 px-5 py-3"
+        className="flex items-center justify-between gap-4 border-t border-border bg-accent-soft px-5 py-3"
         role="meter"
         aria-valuenow={score}
         aria-valuemin={0}

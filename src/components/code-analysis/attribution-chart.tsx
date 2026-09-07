@@ -32,7 +32,7 @@ export function AttributionChart({
         <CardDescription>Share of added lines by classification</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start">
+        <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
           <div className="relative shrink-0">
             <svg width="120" height="120" viewBox="0 0 100 100" className="-rotate-90">
               <circle

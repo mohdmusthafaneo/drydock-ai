@@ -234,7 +234,7 @@ export default async function IntegrationsPage({
   );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-[13px]">
       <PageHeader
         title="Connect"
         description="Connect the systems DryDock needs for today’s attention list."
@@ -276,7 +276,7 @@ export default async function IntegrationsPage({
         </Card>
       )}
 
-      <div id="integration-grid" className="space-y-8">
+      <div id="integration-grid" className="space-y-[13px]">
         <section className="space-y-4">
           <SectionHeading
             step={1}
@@ -353,7 +353,7 @@ export default async function IntegrationsPage({
           <CardDescription>Required for GitHub webhook URL</CardDescription>
         </CardHeader>
         <CardContent>
-          <code className="block break-all rounded-2xl bg-fog px-3 py-2 text-sm text-chart-blue">
+          <code className="block break-all rounded-[9px] bg-fog px-3 py-2 text-sm text-chart-blue">
             {session.organizationId}
           </code>
         </CardContent>

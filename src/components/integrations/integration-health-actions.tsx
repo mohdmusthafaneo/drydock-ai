@@ -28,7 +28,7 @@ export function SyncIntegrationsButton() {
 
   return (
     <div className="flex flex-col items-end gap-1">
-      <Button type="button" size="sm" variant="secondary" disabled={loading} onClick={sync}>
+      <Button type="button" size="sm" variant="brown" disabled={loading} onClick={sync}>
         <RefreshCw className={loading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
         Sync all
       </Button>

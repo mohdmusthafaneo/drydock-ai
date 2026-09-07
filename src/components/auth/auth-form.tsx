@@ -51,7 +51,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
     <div className="auth-canvas relative flex min-h-screen bg-base text-primary">
       <div className="relative z-10 hidden w-full flex-col justify-center px-12 lg:flex lg:max-w-md xl:max-w-lg xl:px-16">
         <AidosLogo size={48} className="mb-8" />
-        <h1 className="font-display text-[44px] leading-[1.1] tracking-[-0.66px] text-ink xl:text-[64px] xl:tracking-[-1.6px]">
+        <h1 className="text-[28px] font-bold leading-[1.12] tracking-[-0.75px] text-ink xl:text-[64px] xl:tracking-[-1.6px]">
           Which of your green checks
           <span className="block text-rust">actually mean something.</span>
         </h1>

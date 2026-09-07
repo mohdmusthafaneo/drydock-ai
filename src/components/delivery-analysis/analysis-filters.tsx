@@ -29,7 +29,7 @@ export function AnalysisFiltersBar({
   exportDisabled = false,
 }: Props) {
   return (
-    <div className="sticky top-0 z-10 -mx-1 rounded-xl border border-border bg-surface/95 p-3 backdrop-blur-sm">
+    <div className="sticky top-0 z-10 -mx-1 rounded-[var(--radius-card)] border border-border bg-pure-white/95 p-3 backdrop-blur-sm">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap items-center gap-2">
           <FilterSelect
@@ -81,7 +81,7 @@ export function AnalysisFiltersBar({
           </Button>
           <Button
             type="button"
-            variant="brand"
+            variant="brown"
             size="sm"
             disabled={syncing || !canSync}
             onClick={onSync}
@@ -114,7 +114,7 @@ function FilterSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-8 rounded-2xl border border-dove bg-pure-white px-2 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-rust/30"
+        className="h-8 rounded-[9px] border border-border bg-pure-white px-2 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-rust/30"
         aria-label={label}
       >
         {options.map((o) => (

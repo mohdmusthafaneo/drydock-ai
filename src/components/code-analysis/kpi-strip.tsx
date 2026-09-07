@@ -40,7 +40,7 @@ const KPI_ITEMS: {
 
 export function KpiStrip({ kpis }: { kpis: CodeAnalysisKpis }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       {KPI_ITEMS.map((item) => {
         const value = kpis[item.key];
         const delta = item.deltaKey ? kpis[item.deltaKey] : 0;

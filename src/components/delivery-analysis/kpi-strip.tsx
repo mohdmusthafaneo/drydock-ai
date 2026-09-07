@@ -95,7 +95,7 @@ export function KpiStrip({ kpis, projectCount }: { kpis: DeliveryAnalysisKpis; p
       : `Across ${projectCount} projects`;
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
       {KPI_ITEMS.map((item) => {
         const value = kpis[item.key];
         const delta = item.deltaKey ? kpis[item.deltaKey] : undefined;

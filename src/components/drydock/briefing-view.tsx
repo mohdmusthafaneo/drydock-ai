@@ -67,7 +67,7 @@ export function BriefingView({ briefing, dataSource = "mock" }: Props) {
           trustedCount={briefing.ledger.trustedCount}
           untrustedCount={briefing.ledger.untrustedCount}
         />
-        <div className="rounded-[24px] border border-dove/50 bg-pure-white px-6 py-10 text-center shadow-[var(--shadow)]">
+        <div className="rounded-[var(--radius-card)] border border-border bg-pure-white px-6 py-10 text-center shadow-[var(--shadow)]">
           <p className="font-display text-[26px] leading-tight tracking-[-0.23px] text-ink">
             Nothing needs you today.
           </p>
@@ -137,7 +137,7 @@ export function BriefingView({ briefing, dataSource = "mock" }: Props) {
           {briefing.demotedSummary} — open in one click. Nothing was hidden without a reason.
         </button>
         {demotedOpen ? (
-          <div className="border-t border-dove/40 px-4 py-3 text-[13px] leading-relaxed text-ash">
+          <div className="border-t border-border px-4 py-3 text-[13px] leading-relaxed text-ash">
             {dataSource === "mock" ? (
               <p>
                 Demo: items covered by earlier decisions appear here with the decision that

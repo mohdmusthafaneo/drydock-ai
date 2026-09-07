@@ -204,7 +204,7 @@ export function CodeAnalysisDashboard({
   const selectedRepo = filters.repos.length === 1 ? filters.repos[0] : null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-[13px]">
       <AnalysisFiltersBar
         filters={filters}
         repos={allRepos}
@@ -264,12 +264,12 @@ export function CodeAnalysisDashboard({
         />
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-3 lg:grid-cols-2">
         <AttributionChart attribution={snapshot.attribution} />
         <TrendChart trend={snapshot.trend} metric={trendMetric} onMetricChange={setTrendMetric} />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-3 lg:grid-cols-2">
         <RepoBreakdown
           items={snapshot.byRepo}
           onSelectRepo={handleRepoSelect}

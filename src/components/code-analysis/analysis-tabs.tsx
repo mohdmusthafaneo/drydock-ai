@@ -204,7 +204,7 @@ export function AnalysisTabs({
                       <td className="py-2.5">
                         <span
                           className={cn(
-                            "inline-flex rounded-full px-2 py-0.5 text-xs font-medium",
+                            "inline-flex rounded-[8px] px-2 py-0.5 text-xs font-medium",
                             attributionBadgeClass(pr.attribution),
                           )}
                         >
@@ -311,7 +311,7 @@ export function AnalysisTabs({
                       <td className="py-2.5">
                         <span
                           className={cn(
-                            "inline-flex rounded-full px-2 py-0.5 text-xs font-medium",
+                            "inline-flex rounded-[8px] px-2 py-0.5 text-xs font-medium",
                             attributionBadgeClass(c.attribution),
                           )}
                         >

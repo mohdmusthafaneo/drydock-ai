@@ -137,7 +137,7 @@ export function AwsIntegrationPanel({
           </p>
         )}
 
-        <Button type="button" size="sm" variant="brand" disabled={saving} onClick={save}>
+        <Button type="button" size="sm" variant="brown" disabled={saving} onClick={save}>
           {saving ? "Saving…" : "Save Cloud Hygiene role"}
         </Button>
       </div>

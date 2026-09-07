@@ -57,7 +57,7 @@ export default async function QAIntelligencePage({
   if (!jira) blindSpots.push("Jira not connected");
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-[13px]">
       <PageHeader
         title="QA intelligence"
         description="Board health from the QA agent — blocked work and open bugs that gate release confidence."
@@ -69,13 +69,13 @@ export default async function QAIntelligencePage({
       <DataTrustStrip lastSyncLabel={lastSyncLabel} blindSpots={blindSpots} />
 
       <AgentPageShell view={view} approvalLevelLabels={ctx.approvalLevelLabels}>
-        <div className="space-y-4 border-t border-border-subtle pt-8">
+        <div className="space-y-4 border-t border-border pt-8">
           <QaEvidenceSection run={qaRun} />
         </div>
       </AgentPageShell>
 
       {showReleaseCockpit ? (
-        <div className="border-t border-border-subtle pt-8">
+        <div className="border-t border-border pt-8">
           <QACockpit
             orgReadinessIndex={ctx.stats.releaseReadiness}
             releases={ctx.releases}

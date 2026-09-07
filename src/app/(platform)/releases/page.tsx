@@ -38,7 +38,7 @@ export default async function ReleasesPage() {
             <li key={release.id}>
               <Link
                 href="/certificate"
-                className="block rounded-[20px] border border-dove/50 bg-pure-white p-5 shadow-[var(--shadow)] hover:border-dove"
+                className="block rounded-[var(--radius-card)] border border-dove/50 bg-pure-white p-5 shadow-[var(--shadow)] hover:border-dove"
               >
                 <p className="text-[16px] font-medium text-ink">{release.name}</p>
                 <p className="mt-1 text-[14px] text-ash">

@@ -19,7 +19,7 @@ export default async function SettingsPage() {
   ]);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8">
+    <div className="mx-auto max-w-3xl space-y-[13px]">
       <PageHeader
         title="Settings"
         description="Your workspace settings, team members, and shortcuts."
@@ -79,7 +79,7 @@ export default async function SettingsPage() {
           {members.map((m) => (
             <div
               key={m.id}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-elevated px-4 py-2 text-sm"
+              className="flex flex-wrap items-center justify-between gap-2 rounded-[9px] border border-border bg-pure-white px-4 py-2 text-sm"
             >
               <span className="text-primary">
                 {m.name} · {m.email}

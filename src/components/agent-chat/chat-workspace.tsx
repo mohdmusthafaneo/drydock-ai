@@ -185,7 +185,7 @@ export function ChatWorkspace({ threadId }: ChatWorkspaceProps) {
   }, [isNew, detail.data?.thread.title]);
 
   return (
-    <div className="absolute inset-0 flex overflow-hidden rounded-none bg-fog pb-[calc(4.25rem+env(safe-area-inset-bottom,0px))] lg:rounded-[20px] lg:border lg:border-border-subtle lg:bg-pure-white lg:pb-0">
+    <div className="absolute inset-0 flex overflow-hidden rounded-none bg-base pb-[calc(4.25rem+env(safe-area-inset-bottom,0px))] lg:rounded-[var(--radius-card)] lg:border lg:border-border lg:bg-pure-white lg:pb-0">
       {/* Desktop history rail */}
       <aside className="hidden w-[260px] shrink-0 border-r border-border-subtle bg-fog/80 lg:flex lg:flex-col">
         <ConversationSidebar activeThreadId={threadId} />

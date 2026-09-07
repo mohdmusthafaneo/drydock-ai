@@ -60,7 +60,7 @@ export function EarlyWarningsCard({ predictions, lastEvaluatedAt }: Props) {
       </div>
 
       {top.length === 0 ? (
-        <div className="rounded-2xl border border-fog bg-white/70 px-6 py-8 text-[15px] text-ash">
+        <div className="rounded-[var(--radius-card)] border border-fog bg-white/70 px-6 py-8 text-[15px] text-ash">
           No open predictions right now. Leading indicators look stable.
         </div>
       ) : (
@@ -68,12 +68,12 @@ export function EarlyWarningsCard({ predictions, lastEvaluatedAt }: Props) {
           {top.map((prediction) => (
             <li
               key={prediction.id}
-              className="rounded-2xl border border-fog bg-white/80 px-5 py-4 shadow-sm"
+              className="rounded-[var(--radius-card)] border border-fog bg-white/80 px-5 py-4 shadow-sm"
             >
               <div className="flex flex-wrap items-center gap-2">
                 <span
                   className={cn(
-                    "rounded-full border px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wide",
+                    "rounded-[8px] border px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wide",
                     severityTone(prediction.severity),
                   )}
                 >

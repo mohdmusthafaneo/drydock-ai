@@ -344,7 +344,7 @@ export function GrafanaIntegrationPanel({
           </p>
         )}
 
-        <Button type="button" size="sm" variant="brand" disabled={connecting} onClick={connect}>
+        <Button type="button" size="sm" variant="brown" disabled={connecting} onClick={connect}>
           {connecting
             ? "Connecting…"
             : connected && !trulyConnected
@@ -564,7 +564,7 @@ export function GrafanaIntegrationPanel({
         <Button
           type="button"
           size="sm"
-          variant="brand"
+          variant="brown"
           disabled={syncing || !hasSelection}
           onClick={sync}
         >

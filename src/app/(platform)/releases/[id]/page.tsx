@@ -125,7 +125,7 @@ export default async function ReleaseDetailPage({
         </Link>
         <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="font-display text-[44px] leading-[1.1] tracking-[-0.66px] text-ink">
+            <h1 className="text-[28px] font-bold leading-[1.12] tracking-[-0.75px] text-ink">
               {release.name}
               {release.version ? ` (${release.version})` : ""}
             </h1>

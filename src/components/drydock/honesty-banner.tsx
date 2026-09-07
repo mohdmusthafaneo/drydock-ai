@@ -19,7 +19,7 @@ export function HonestyBanner({
   return (
     <div
       className={cn(
-        "rounded-[16px] border border-dove/50 bg-pure-white/70 px-4 py-3 text-[13px] leading-relaxed text-graphite",
+        "rounded-[16px] border border-border bg-pure-white/70 px-4 py-3 text-[13px] leading-relaxed text-graphite",
         className,
       )}
       role="status"

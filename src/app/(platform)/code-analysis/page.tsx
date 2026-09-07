@@ -81,7 +81,7 @@ export default async function CodeAnalysisPage({
       ];
 
   return (
-    <div className="w-full space-y-8 pb-24 lg:pb-8">
+    <div className="w-full space-y-[13px] pb-24 lg:pb-8">
       <PageHeader
         title="Code analysis"
         description="Measure how much of your merged code, commits, and pull requests are human-only, AI-assisted, or fully AI-generated — so leaders can govern AI-native delivery with evidence."

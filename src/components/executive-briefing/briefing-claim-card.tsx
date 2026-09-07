@@ -54,11 +54,11 @@ export function BriefingClaimCard({ claim }: Props) {
 
   return (
     <HoverLift className="h-full">
-      <article className="flex h-full flex-col rounded-[24px] border border-border-subtle bg-pure-white p-5 shadow-[var(--shadow)]">
+      <article className="flex h-full flex-col rounded-[var(--radius-card)] border border-border bg-pure-white p-5 shadow-[var(--shadow)]">
         <div className="flex items-start justify-between gap-3">
           <span
             className={cn(
-              "inline-flex shrink-0 items-center rounded-full border px-2.5 py-1 text-[11px] font-medium leading-none",
+              "inline-flex shrink-0 items-center rounded-[8px] border px-2.5 py-1 text-[11px] font-medium leading-none",
               styles.badge,
             )}
           >

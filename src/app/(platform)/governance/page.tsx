@@ -25,10 +25,10 @@ import { RevealSection } from "@/components/motion/reveal-section";
 import { cn } from "@/lib/utils";
 
 const VERDICT_BADGE = {
-  good: "border-dove/50 bg-fog text-ash",
-  attention: "border-apricot/40 bg-apricot-wash/60 text-rust",
-  risk: "border-rust/25 bg-rust/8 text-rust",
-  neutral: "border-dove/50 bg-fog text-graphite",
+  good: "border-border bg-success-soft text-success",
+  attention: "border-accent-ring bg-accent-soft text-brown",
+  risk: "border-[#ffe0d1] bg-[#fff0e8] text-coral",
+  neutral: "border-border bg-elevated text-muted",
 } as const;
 
 function formatMaturity(value: number): string {
@@ -65,12 +65,12 @@ export default async function GovernancePage() {
 
   if (!dna) {
     return (
-      <div className="space-y-8">
+      <div className="space-y-[13px]">
         <PageHeader
           title="Compliance"
           description="Policy posture and open findings for the release in front of you."
         />
-        <div className="rounded-[12px] border border-border bg-pure-white px-6 py-10 text-sm text-muted shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="rounded-[var(--radius-card)] border border-border bg-pure-white px-6 py-10 text-sm text-muted shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
           Delivery DNA is not configured yet. Compliance findings still appear below when available.
         </div>
         {canViewCompliance ? (
@@ -95,7 +95,7 @@ export default async function GovernancePage() {
   const autonomyStrip = buildAutonomyVerdictStrip(dna, ctx.approvalLevelLabels);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-[13px]">
       <PageHeader
         title="Compliance"
         description="Your Delivery DNA, approval posture, and live governance signals."
@@ -103,19 +103,19 @@ export default async function GovernancePage() {
         <div className="flex flex-wrap items-center gap-4">
           <Link
             href="/governance/policy"
-            className="text-[15px] font-medium text-ink hover:text-rust"
+            className="text-[13px] font-medium text-brown hover:underline"
           >
             Governance policy
           </Link>
           <Link
             href="/governance/workflow"
-            className="text-[15px] font-medium text-ink hover:text-rust"
+            className="text-[13px] font-medium text-brown hover:underline"
           >
             Workflow config
           </Link>
           <Link
             href="/governance/setup"
-            className="text-[15px] font-medium text-ink hover:text-rust"
+            className="text-[13px] font-medium text-brown hover:underline"
           >
             Re-run setup
           </Link>
@@ -124,7 +124,7 @@ export default async function GovernancePage() {
 
       <section
         id="dna"
-        className="scroll-mt-24 rounded-[24px] border border-border-subtle bg-pure-white px-6 py-8 shadow-[var(--shadow)]"
+        className="scroll-mt-24 rounded-[var(--radius-card)] border border-border bg-pure-white px-6 py-8 shadow-[var(--shadow)]"
       >
         <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-graphite">
           Delivery DNA
@@ -146,7 +146,7 @@ export default async function GovernancePage() {
         <div className="mt-5 flex flex-wrap items-center gap-2">
           <span
             className={cn(
-              "inline-flex items-center rounded-full border px-3 py-1.5 text-[12px] font-medium",
+              "inline-flex items-center rounded-[8px] border px-3 py-1.5 text-[12px] font-medium",
               VERDICT_BADGE[autonomyStrip.tone],
             )}
           >
@@ -173,7 +173,7 @@ export default async function GovernancePage() {
       )}
 
       <RevealSection className="grid gap-4 sm:grid-cols-2">
-        <div className="rounded-[24px] border border-border-subtle bg-pure-white p-5 shadow-[var(--shadow)]">
+        <div className="rounded-[var(--radius-card)] border border-border bg-pure-white p-5 shadow-[var(--shadow)]">
           <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-graphite">
             Policy profile
           </p>
@@ -206,7 +206,7 @@ export default async function GovernancePage() {
         </div>
 
         {profile && (
-          <div className="rounded-[24px] border border-border-subtle bg-pure-white p-5 shadow-[var(--shadow)]">
+          <div className="rounded-[var(--radius-card)] border border-border bg-pure-white p-5 shadow-[var(--shadow)]">
             <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-graphite">
               Discovery context
             </p>
@@ -251,7 +251,7 @@ export default async function GovernancePage() {
       </RevealSection>
 
       {dna.observabilityStrategy && (
-        <div className="rounded-[24px] border border-border-subtle bg-sky-wash/30 px-5 py-4">
+        <div className="rounded-[var(--radius-card)] border border-border bg-[#F2F7FF] px-5 py-4">
           <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-graphite">
             Observability strategy
           </p>
@@ -261,7 +261,7 @@ export default async function GovernancePage() {
 
       <GovernanceEscalationPanel escalation={escalation} />
 
-      <div className="rounded-[24px] border border-border-subtle bg-fog/40 px-5 py-4 text-sm text-ash">
+      <div className="rounded-[var(--radius-card)] border border-[#e2ebfa] bg-[#F2F7FF] px-5 py-4 text-sm text-ash">
         AI observes, correlates, and recommends. Humans approve and supervise deployment. All
         release decisions are audit-logged.
       </div>

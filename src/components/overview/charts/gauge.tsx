@@ -47,31 +47,27 @@ export function ConfidenceGauge({
   const marker = polar(markerAngle, r);
 
   const ticks = [0, 25, 50, 75, 100];
+  // White radial gaps between coral / amber / mint (matches overview mockup).
+  const segmentGap = 1;
+  const segments = [
+    { start: 180, end: 120 + segmentGap, stroke: "var(--gauge-coral)" },
+    { start: 120 - segmentGap, end: 60 + segmentGap, stroke: "var(--gauge-amber)" },
+    { start: 60 - segmentGap, end: 0, stroke: "var(--gauge-mint)" },
+  ] as const;
 
   return (
     <div className={cn("relative mx-auto w-full max-w-[240px]", className)} data-slot="gauge">
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full" aria-hidden>
-        <path
-          d={arcPath(180, 120)}
-          fill="none"
-          stroke="var(--gauge-coral)"
-          strokeWidth={stroke}
-          strokeLinecap="butt"
-        />
-        <path
-          d={arcPath(120, 60)}
-          fill="none"
-          stroke="var(--gauge-amber)"
-          strokeWidth={stroke}
-          strokeLinecap="butt"
-        />
-        <path
-          d={arcPath(60, 0)}
-          fill="none"
-          stroke="var(--gauge-mint)"
-          strokeWidth={stroke}
-          strokeLinecap="butt"
-        />
+        {segments.map((segment) => (
+          <path
+            key={segment.stroke}
+            d={arcPath(segment.start, segment.end)}
+            fill="none"
+            stroke={segment.stroke}
+            strokeWidth={stroke}
+            strokeLinecap="butt"
+          />
+        ))}
 
         {ticks.map((t) => {
           const a = 180 - (t / 100) * 180;

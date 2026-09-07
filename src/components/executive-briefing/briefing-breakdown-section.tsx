@@ -37,7 +37,7 @@ export function BriefingBreakdownSection({ briefing, id = "breakdown" }: Props) 
       <div className="space-y-4">
         <RevealItem transition={{ duration: 0.55 }}>
           <div>
-            <h2 className="font-display text-[44px] leading-[1.1] tracking-[-0.66px] text-ink">
+            <h2 className="text-[28px] font-bold leading-[1.12] tracking-[-0.75px] text-ink">
               What needs attention
             </h2>
             <p className="mt-3 max-w-xl text-[16px] leading-relaxed text-ash">

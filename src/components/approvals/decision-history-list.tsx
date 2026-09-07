@@ -73,7 +73,7 @@ export function DecisionHistoryList({ items }: { items: DecisionHistoryItem[] })
             return (
               <div
                 key={approval.id}
-                className="rounded-xl border border-border-subtle bg-elevated px-4 py-3 text-sm"
+                className="rounded-xl border border-border bg-elevated px-4 py-3 text-sm"
               >
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0 flex-1 space-y-1">

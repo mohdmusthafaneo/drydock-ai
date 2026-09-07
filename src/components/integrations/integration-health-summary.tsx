@@ -36,7 +36,7 @@ export function IntegrationHealthSummaryStrip({ summary }: Props) {
     : null;
 
   return (
-    <section className="rounded-[24px] border border-border-subtle bg-pure-white px-6 py-5 shadow-[var(--shadow)]">
+    <section className="rounded-[var(--radius-card)] border border-border-subtle bg-pure-white px-6 py-5 shadow-[var(--shadow)]">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <span

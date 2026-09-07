@@ -90,7 +90,7 @@ export function WorkflowConfigForm({
       </div>
 
       {error && <p className="text-sm text-error">{error}</p>}
-      <Button onClick={save} disabled={loading} variant="ink" size="lg">
+      <Button onClick={save} disabled={loading} variant="brown" size="lg">
         {loading ? "Saving…" : "Save workflow configuration"}
       </Button>
     </div>

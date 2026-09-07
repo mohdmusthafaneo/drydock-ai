@@ -96,7 +96,7 @@ function EvidenceList({
         rows.slice(0, 10).map((row) => (
           <div
             key={`${row.preset}-${row.issueKey}`}
-            className="rounded-lg border border-border-subtle bg-elevated/60 px-3 py-2 text-sm"
+            className="rounded-lg border border-border bg-elevated/60 px-3 py-2 text-sm"
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="font-medium text-primary">{row.issueKey}</span>

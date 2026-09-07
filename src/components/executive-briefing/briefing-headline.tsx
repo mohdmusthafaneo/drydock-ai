@@ -12,7 +12,7 @@ type Props = {
 };
 
 const headlineClass = cn(
-  "max-w-3xl font-display text-[28px] leading-[1.2] tracking-[-0.4px] text-ink sm:text-[36px] sm:tracking-[-0.54px] lg:text-[44px] lg:leading-[1.1] lg:tracking-[-0.66px]",
+  "max-w-3xl text-[18px] font-semibold leading-[1.35] tracking-[-0.2px] text-ink sm:text-[20px]",
 );
 
 function renderHeadlineSegments(segments: HeadlineSegment[]) {
@@ -22,7 +22,7 @@ function renderHeadlineSegments(segments: HeadlineSegment[]) {
 
     if (segment.kind === "emphasis") {
       return (
-        <span key={index} className="italic text-chart-blue">
+        <span key={index} className="italic text-brown">
           {prefix}
           {segment.text}
         </span>
@@ -48,7 +48,7 @@ function renderAnimatedHeadlineSegments(segments: HeadlineSegment[]) {
         key={index}
         variants={fadeUp}
         transition={{ duration: 0.5, ease: EDITORIAL_EASE }}
-        className={segment.kind === "emphasis" ? "italic text-chart-blue" : undefined}
+        className={segment.kind === "emphasis" ? "italic text-brown" : undefined}
       >
         {prefix}
         {segment.text}

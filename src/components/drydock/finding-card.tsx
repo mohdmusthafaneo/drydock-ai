@@ -33,7 +33,7 @@ export function FindingCard({ finding, persist = false, onRuled }: Props) {
 
   if (done) {
     return (
-      <article className="rounded-[24px] border border-dove/40 bg-fog/80 px-5 py-4 text-[14px] text-graphite">
+      <article className="rounded-[var(--radius-card)] border border-border bg-fog/80 px-5 py-4 text-[14px] text-graphite">
         Decision recorded. How widely it applies follows the reason you chose. Nothing was
         hidden without a reason — open Hidden by earlier decisions from Tests to review.
       </article>
@@ -41,7 +41,7 @@ export function FindingCard({ finding, persist = false, onRuled }: Props) {
   }
 
   return (
-    <article className="rounded-[24px] border border-dove/50 bg-pure-white p-5 shadow-[var(--shadow)] sm:p-6">
+    <article className="rounded-[var(--radius-card)] border border-border bg-pure-white p-5 shadow-[var(--shadow)] sm:p-6">
       <div className="flex flex-wrap items-center gap-2">
         <span
           className={cn(
@@ -110,14 +110,14 @@ export function FindingCard({ finding, persist = false, onRuled }: Props) {
       </div>
 
       {rulingOpen ? (
-        <div className="mt-4 space-y-3 rounded-[16px] border border-dove/50 bg-fog/70 p-4">
+        <div className="mt-4 space-y-3 rounded-[16px] border border-border bg-fog/70 p-4">
           <p className="text-[13px] text-ash">
             Your reason decides how widely this applies. Disagree on the record.
           </p>
           <ul className="space-y-2">
             {RULING_REASONS.map((reason) => (
               <li key={reason.code}>
-                <label className="flex cursor-pointer items-start gap-3 rounded-[12px] border border-transparent px-2 py-2 hover:border-dove/50 hover:bg-pure-white">
+                <label className="flex cursor-pointer items-start gap-3 rounded-[12px] border border-transparent px-2 py-2 hover:border-border hover:bg-pure-white">
                   <input
                     type="radio"
                     name={`ruling-${finding.id}`}
@@ -177,7 +177,7 @@ export function FindingCard({ finding, persist = false, onRuled }: Props) {
       ) : null}
 
       {open ? (
-        <div className="mt-4 space-y-3 border-t border-dove/40 pt-4 text-[13px] leading-relaxed text-ash">
+        <div className="mt-4 space-y-3 border-t border-border pt-4 text-[13px] leading-relaxed text-ash">
           <p>
             <span className="font-medium text-ink">Repository:</span>{" "}
             {finding.evidence.repository}
@@ -201,7 +201,7 @@ export function FindingCard({ finding, persist = false, onRuled }: Props) {
             {finding.tests.map((test) => (
               <li
                 key={test.id}
-                className="rounded-[12px] border border-dove/40 bg-fog/50 px-3 py-2"
+                className="rounded-[12px] border border-border bg-fog/50 px-3 py-2"
               >
                 <p className="font-medium text-ink">{test.name}</p>
                 <p className="text-graphite">

@@ -20,7 +20,7 @@ export default async function EscapesPage() {
       </div>
 
       {escapes.length === 0 ? (
-        <div className="rounded-[24px] border border-dove/50 bg-pure-white px-6 py-10 text-center shadow-[var(--shadow)]">
+        <div className="rounded-[var(--radius-card)] border border-dove/50 bg-pure-white px-6 py-10 text-center shadow-[var(--shadow)]">
           <p className="font-display text-[22px] text-ink">No production misses on the record.</p>
           <p className="mt-2 text-[14px] text-ash">
             When a production defect lands, replay it against the suite: was there a test, was it
@@ -32,7 +32,7 @@ export default async function EscapesPage() {
           {escapes.map((row) => (
             <li
               key={row.id}
-              className="rounded-[20px] border border-dove/50 bg-pure-white p-5 shadow-[var(--shadow)]"
+              className="rounded-[var(--radius-card)] border border-dove/50 bg-pure-white p-5 shadow-[var(--shadow)]"
             >
               <p className="text-[16px] font-medium text-ink">{row.title}</p>
               <p className="mt-1 text-[14px] text-ash">

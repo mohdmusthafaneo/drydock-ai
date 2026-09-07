@@ -20,7 +20,7 @@ export function ConnectHandoffBanner({
 
   return (
     <div
-      className="rounded-[20px] border border-chart-blue/30 bg-sky-wash px-5 py-4"
+      className="rounded-[var(--radius-card)] border border-chart-blue/30 bg-sky-wash px-5 py-4"
       role="status"
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -32,7 +32,7 @@ export function ConnectHandoffBanner({
               : "DryDock is reading your data (read-only). Open Today when you\u2019re ready; it improves as sync completes."}
           </p>
         </div>
-        <Button asChild variant="ink" size="lg" className="shrink-0">
+        <Button asChild variant="brown" size="lg" className="shrink-0">
           <Link href="/dashboard">Open Today</Link>
         </Button>
       </div>

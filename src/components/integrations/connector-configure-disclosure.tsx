@@ -43,7 +43,7 @@ export function ConnectorConfigureDisclosure({
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted">{summary}</p>
-      <Button type="button" size="sm" variant="brand" onClick={() => setOpen(true)}>
+      <Button type="button" size="sm" variant="brown" onClick={() => setOpen(true)}>
         {configureLabel}
         <ChevronDown className="ml-1 h-3.5 w-3.5" />
       </Button>

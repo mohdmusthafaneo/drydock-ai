@@ -344,7 +344,7 @@ body {
 }
 
 * {
-  border-color: var(--border-subtle);
+  border-color: var(--border);
 }
 
 ::selection {

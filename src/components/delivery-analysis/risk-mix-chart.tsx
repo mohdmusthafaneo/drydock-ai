@@ -76,7 +76,7 @@ export function RiskMixChart({
       <CardContent className={compact ? "pt-0" : undefined}>
         <div
           className={cn(
-            "flex flex-col items-center gap-6 sm:flex-row sm:items-start",
+            "flex flex-col items-center gap-3 sm:flex-row sm:items-start",
             compact && "gap-4",
           )}
         >

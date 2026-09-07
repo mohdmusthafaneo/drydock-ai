@@ -17,9 +17,9 @@ type Props = {
 
 const TONE_VALUE: Record<NonNullable<BriefingHighlight["tone"]>, string> = {
   neutral: "text-ink",
-  good: "text-ink",
-  attention: "text-rust",
-  risk: "text-rust",
+  good: "text-success",
+  attention: "text-brown",
+  risk: "text-coral",
 };
 
 function HighlightRow({
@@ -35,19 +35,19 @@ function HighlightRow({
 }) {
   const rowClass = cn(
     "flex items-center justify-between gap-4 px-5 py-3 transition-colors",
-    !bare && index === 0 && "rounded-t-[24px]",
-    !bare && index === total - 1 && "rounded-b-[24px]",
-    item.href && "hover:bg-fog/80",
+    !bare && index === 0 && "rounded-t-[var(--radius-card)]",
+    !bare && index === total - 1 && "rounded-b-[var(--radius-card)]",
+    item.href && "hover:bg-hover",
   );
 
   const content = (
     <MotionHoverRow className={rowClass}>
       <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-graphite">
+        <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted">
           {item.label}
         </p>
         {item.subtext && (
-          <p className="mt-1 line-clamp-2 break-words font-display text-[15px] leading-snug text-ash">
+          <p className="mt-1 line-clamp-2 break-words text-[13px] leading-snug text-secondary">
             {item.subtext}
           </p>
         )}
@@ -84,8 +84,8 @@ export function BriefingHighlights({ highlights, className, bare }: Props) {
 
   const panelClass = cn(
     bare
-      ? "divide-y divide-border-subtle"
-      : "divide-y divide-border-subtle rounded-[24px] border border-border-subtle bg-pure-white shadow-[var(--shadow)]",
+      ? "divide-y divide-border"
+      : "divide-y divide-border rounded-[var(--radius-card)] border border-border bg-pure-white shadow-[var(--shadow)]",
     className,
   );
 

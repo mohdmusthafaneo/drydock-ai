@@ -101,8 +101,8 @@ export function ComplianceFindingsPanel({
   }
 
   return (
-    <section className="overflow-hidden rounded-[24px] border border-border-subtle bg-pure-white shadow-[var(--shadow)]">
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border-subtle px-5 py-4">
+    <section className="overflow-hidden rounded-[var(--radius-card)] border border-border bg-pure-white shadow-[var(--shadow)]">
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border px-5 py-4">
         <div>
           <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-graphite">
             Compliance monitoring
@@ -121,7 +121,7 @@ export function ComplianceFindingsPanel({
               <select
                 value={projectKey}
                 onChange={(e) => setProjectKey(e.target.value)}
-                className="rounded-full border border-border-subtle bg-fog px-3 py-1.5 text-[12px] font-medium text-ink"
+                className="rounded-[8px] border border-border bg-fog px-3 py-1.5 text-[12px] font-medium text-ink"
               >
                 <option value="all">All projects</option>
                 {projectKeys.map((key) => (
@@ -133,16 +133,16 @@ export function ComplianceFindingsPanel({
             </label>
           )}
           {filteredCriticalOpen > 0 ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-rust/25 bg-rust/8 px-3 py-1.5 text-[12px] font-medium text-rust">
+            <span className="inline-flex items-center gap-1.5 rounded-[8px] border border-rust/25 bg-rust/8 px-3 py-1.5 text-[12px] font-medium text-rust">
               <AlertTriangle className="h-3.5 w-3.5" />
               {filteredCriticalOpen} critical
             </span>
           ) : hasOpen ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-apricot/40 bg-apricot-wash/60 px-3 py-1.5 text-[12px] font-medium text-rust">
+            <span className="inline-flex items-center gap-1.5 rounded-[8px] border border-apricot/40 bg-apricot-wash/60 px-3 py-1.5 text-[12px] font-medium text-rust">
               {filteredOpenCount} open
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-dove/50 bg-fog px-3 py-1.5 text-[12px] font-medium text-ash">
+            <span className="inline-flex items-center gap-1.5 rounded-[8px] border border-dove/50 bg-fog px-3 py-1.5 text-[12px] font-medium text-ash">
               <CheckCircle2 className="h-3.5 w-3.5" />
               Compliant
             </span>
@@ -157,13 +157,13 @@ export function ComplianceFindingsPanel({
       </div>
 
       {actionError && (
-        <p className="border-b border-border-subtle bg-rust/5 px-5 py-2 text-[13px] text-rust">
+        <p className="border-b border-border bg-rust/5 px-5 py-2 text-[13px] text-rust">
           {actionError}
         </p>
       )}
 
       {hasOpen ? (
-        <div className="divide-y divide-border-subtle">
+        <div className="divide-y divide-border">
           {groups.map((group) => (
             <div key={group.severity} className="px-5 py-4">
               <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-graphite">
@@ -174,7 +174,7 @@ export function ComplianceFindingsPanel({
                   <li
                     key={finding.id}
                     className={cn(
-                      "rounded-[16px] border px-4 py-3",
+                      "rounded-[var(--radius-card)] border px-4 py-3",
                       SEVERITY_STYLES[finding.severity],
                     )}
                   >
@@ -200,7 +200,7 @@ export function ComplianceFindingsPanel({
                               type="button"
                               disabled={pending}
                               onClick={() => void runAction(finding.id, "acknowledge")}
-                              className="rounded-full border border-border-subtle bg-pure-white px-2.5 py-1 text-[11px] font-medium text-ink hover:border-dove disabled:opacity-50"
+                              className="rounded-[8px] border border-border bg-pure-white px-2.5 py-1 text-[11px] font-medium text-ink hover:border-dove disabled:opacity-50"
                             >
                               Acknowledge
                             </button>
@@ -208,7 +208,7 @@ export function ComplianceFindingsPanel({
                               type="button"
                               disabled={pending}
                               onClick={() => void runAction(finding.id, "resolve")}
-                              className="rounded-full border border-border-subtle bg-pure-white px-2.5 py-1 text-[11px] font-medium text-ink hover:border-dove disabled:opacity-50"
+                              className="rounded-[8px] border border-border bg-pure-white px-2.5 py-1 text-[11px] font-medium text-ink hover:border-dove disabled:opacity-50"
                             >
                               Resolve
                             </button>
@@ -216,7 +216,7 @@ export function ComplianceFindingsPanel({
                               type="button"
                               disabled={pending}
                               onClick={() => void runAction(finding.id, "dismiss")}
-                              className="rounded-full border border-border-subtle bg-pure-white px-2.5 py-1 text-[11px] font-medium text-ash hover:border-dove disabled:opacity-50"
+                              className="rounded-[8px] border border-border bg-pure-white px-2.5 py-1 text-[11px] font-medium text-ash hover:border-dove disabled:opacity-50"
                             >
                               Dismiss
                             </button>

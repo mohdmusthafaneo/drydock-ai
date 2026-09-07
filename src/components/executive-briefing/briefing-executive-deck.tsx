@@ -26,10 +26,10 @@ type Props = {
 };
 
 const TONE_STYLES = {
-  good: "border-dove/50 bg-fog text-ash",
+  good: "border-border/50 bg-fog text-ash",
   attention: "border-apricot/40 bg-apricot-wash/60 text-rust",
   risk: "border-rust/25 bg-rust/8 text-rust",
-  neutral: "border-dove/50 bg-fog text-graphite",
+  neutral: "border-border/50 bg-fog text-graphite",
 } as const;
 
 const SCORE_BAR: Record<string, string> = {
@@ -57,7 +57,7 @@ export function BriefingExecutiveDeck({ briefing, deck, orgName, jiraConnection 
       <RevealSection className="space-y-12">
         <RevealItem transition={{ duration: 0.55 }}>
           <div>
-            <h2 className="font-display text-[44px] leading-[1.1] tracking-[-0.66px] text-ink">
+            <h2 className="text-[28px] font-bold leading-[1.12] tracking-[-0.75px] text-ink">
               Delivery confidence
             </h2>
             <p className="mt-3 max-w-2xl text-[16px] leading-relaxed text-ash">
@@ -84,7 +84,7 @@ export function BriefingExecutiveDeck({ briefing, deck, orgName, jiraConnection 
                 isScoredDimension(dim) ? (
                   <RevealItem key={dim.id}>
                     <HoverLift className="h-full">
-                      <article className="flex h-full flex-col rounded-[24px] border border-border-subtle bg-pure-white p-5 shadow-[var(--shadow)]">
+                      <article className="flex h-full flex-col rounded-[var(--radius-card)] border border-border bg-pure-white p-5 shadow-[var(--shadow)]">
                         <div className="flex items-start justify-between gap-3">
                           <h3 className="font-display text-[16px] leading-snug tracking-[-0.12px] text-ink">
                             {dim.label}
@@ -117,7 +117,7 @@ export function BriefingExecutiveDeck({ briefing, deck, orgName, jiraConnection 
                     <HoverLift className="h-full">
                       <Link
                         href={dim.href}
-                        className="group flex h-full flex-col rounded-[24px] border border-dashed border-dove bg-fog p-5 transition-colors hover:border-graphite/40 hover:bg-fog/80"
+                        className="group flex h-full flex-col rounded-[var(--radius-card)] border border-dashed border-border bg-fog p-5 transition-colors hover:border-graphite/40 hover:bg-fog/80"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <h3 className="font-display text-[16px] leading-snug tracking-[-0.12px] text-ink">
@@ -143,7 +143,7 @@ export function BriefingExecutiveDeck({ briefing, deck, orgName, jiraConnection 
             </div>
           ) : (
             <RevealItem>
-              <div className="flex items-center rounded-[24px] border border-dashed border-dove bg-fog px-6 py-8">
+              <div className="flex items-center rounded-[var(--radius-card)] border border-dashed border-border bg-fog px-6 py-8">
                 <p className="text-[14px] leading-relaxed text-graphite">
                   Connect Jira, GitHub, and observability to see how each dimension contributes to
                   your delivery confidence score.
@@ -175,7 +175,7 @@ export function BriefingExecutiveDeck({ briefing, deck, orgName, jiraConnection 
                     <Link
                       href={item.href}
                       className={cn(
-                        "group flex flex-col gap-2 rounded-[24px] border px-5 py-4 shadow-[var(--shadow)] transition-shadow sm:flex-row sm:items-center sm:justify-between",
+                        "group flex flex-col gap-2 rounded-[var(--radius-card)] border px-5 py-4 shadow-[var(--shadow)] transition-shadow sm:flex-row sm:items-center sm:justify-between",
                         item.urgency === "critical"
                           ? "border-rust/20 bg-apricot-wash"
                           : "border-border-subtle bg-pure-white",
@@ -202,7 +202,7 @@ export function BriefingExecutiveDeck({ briefing, deck, orgName, jiraConnection 
           </ul>
         ) : (
           <RevealItem>
-            <div className="flex items-start gap-3 rounded-[24px] border border-border-subtle bg-pure-white px-5 py-4 shadow-[var(--shadow)]">
+            <div className="flex items-start gap-3 rounded-[var(--radius-card)] border border-border bg-pure-white px-5 py-4 shadow-[var(--shadow)]">
               <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-chart-blue" strokeWidth={1.5} />
               <div>
                 <p className="font-display text-[17px] leading-snug text-ink">
@@ -230,7 +230,7 @@ export function BriefingExecutiveDeck({ briefing, deck, orgName, jiraConnection 
               </p>
             </div>
           </RevealItem>
-          <ul className="divide-y divide-border-subtle rounded-[24px] border border-border-subtle bg-pure-white shadow-[var(--shadow)]">
+          <ul className="divide-y divide-border rounded-[var(--radius-card)] border border-border bg-pure-white shadow-[var(--shadow)]">
             {deck.portfolio.map((release) => (
               <li key={release.id}>
                 <RevealItem>
@@ -246,7 +246,7 @@ export function BriefingExecutiveDeck({ briefing, deck, orgName, jiraConnection 
                     </div>
                     <span
                       className={cn(
-                        "inline-flex shrink-0 items-center rounded-full border px-2.5 py-1 text-[11px] font-medium leading-none",
+                        "inline-flex shrink-0 items-center rounded-[8px] border px-2.5 py-1 text-[11px] font-medium leading-none",
                         TONE_STYLES[release.tone],
                       )}
                     >
@@ -293,7 +293,7 @@ export function BriefingExecutiveDeck({ briefing, deck, orgName, jiraConnection 
               </p>
             </div>
           </RevealItem>
-          <ul className="space-y-2 rounded-[24px] border border-dashed border-dove bg-fog px-5 py-4">
+          <ul className="space-y-2 rounded-[var(--radius-card)] border border-dashed border-border bg-fog px-5 py-4">
             {deck.blindSpots.map((spot) => (
               <li key={spot}>
                 <RevealItem>
@@ -336,7 +336,7 @@ export function BriefingExecutiveDeck({ briefing, deck, orgName, jiraConnection 
                 <HoverLift className="h-full">
                   <Link
                     href={link.href}
-                    className="group block h-full rounded-[24px] border border-border-subtle bg-pure-white p-5 shadow-[var(--shadow)] transition-shadow hover:shadow-[0_0_0_1px_rgba(163,166,175,0.3),rgba(0,0,0,0.08)_0px_24px_30px_-8px]"
+                    className="group block h-full rounded-[var(--radius-card)] border border-border bg-pure-white p-5 shadow-[var(--shadow)] transition-shadow hover:shadow-[0_0_0_1px_rgba(163,166,175,0.3),rgba(0,0,0,0.08)_0px_24px_30px_-8px]"
                   >
                     <p className="text-[11px] font-medium uppercase tracking-[0.04em] text-graphite">
                       For your {link.audience.toLowerCase()}

@@ -569,7 +569,7 @@ export function GovernancePolicyForm({
 
       <div className="sticky bottom-0 -mx-4 border-t border-border-subtle bg-pure-white/95 px-4 py-4 backdrop-blur-sm lg:-mx-0 lg:rounded-[16px] lg:border lg:px-4">
         <div className="flex flex-wrap items-center justify-end gap-4">
-          <Button onClick={() => save()} disabled={loading} variant="ink" size="lg">
+          <Button onClick={() => save()} disabled={loading} variant="brown" size="lg">
             {loading ? "Saving…" : "Save governance policy"}
           </Button>
         </div>

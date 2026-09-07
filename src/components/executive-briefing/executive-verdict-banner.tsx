@@ -5,10 +5,10 @@ import type { BriefingClaimVerdict } from "@/lib/executive-briefing/types";
 import { RevealSection } from "@/components/motion/reveal-section";
 
 const VERDICT_BADGE: Record<BriefingClaimVerdict, string> = {
-  good: "border-dove/50 bg-fog text-ash",
-  attention: "border-apricot/40 bg-apricot-wash/60 text-rust",
-  risk: "border-rust/25 bg-rust/8 text-rust",
-  neutral: "border-dove/50 bg-fog text-graphite",
+  good: "border-border bg-success-soft text-success",
+  attention: "border-accent-ring bg-accent-soft text-brown",
+  risk: "border-[#ffe0d1] bg-[#fff0e8] text-coral",
+  neutral: "border-border bg-elevated text-muted",
 };
 
 type Props = {
@@ -29,22 +29,22 @@ export function ExecutiveVerdictBanner({
   return (
     <RevealSection
       className={cn(
-        "rounded-[24px] border border-border-subtle bg-pure-white px-6 py-6 shadow-[var(--shadow)]",
+        "rounded-[var(--radius-card)] border border-border bg-pure-white px-6 py-6 shadow-[var(--shadow)]",
         className,
       )}
     >
       <span
         className={cn(
-          "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium leading-none",
+          "inline-flex items-center rounded-[8px] border px-2.5 py-1 text-[11px] font-medium leading-none",
           VERDICT_BADGE[verdict],
         )}
       >
         {verdictLabel}
       </span>
-      <h2 className="mt-3 font-display text-[26px] leading-[1.18] tracking-[-0.23px] text-ink">
+      <h2 className="mt-3 text-[18px] font-semibold leading-[1.25] tracking-[-0.2px] text-ink">
         {headline}
       </h2>
-      <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-ash">{subcopy}</p>
+      <p className="mt-1.5 max-w-2xl text-[14px] leading-relaxed text-secondary">{subcopy}</p>
     </RevealSection>
   );
 }

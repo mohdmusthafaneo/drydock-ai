@@ -38,7 +38,7 @@ export function AnalysisFiltersBar({
   }
 
   return (
-    <div className="sticky top-0 z-10 -mx-1 rounded-xl border border-border bg-surface/95 p-3 backdrop-blur-sm">
+    <div className="sticky top-0 z-10 -mx-1 rounded-[var(--radius-card)] border border-border bg-pure-white/95 p-3 backdrop-blur-sm">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap items-center gap-2">
           <FilterSelect
@@ -89,7 +89,7 @@ export function AnalysisFiltersBar({
             <Download className="h-3.5 w-3.5" />
             Export
           </Button>
-          <Button type="button" variant="brand" size="sm" disabled={syncing} onClick={onSync}>
+          <Button type="button" variant="brown" size="sm" disabled={syncing} onClick={onSync}>
             <RefreshCw className={cn("h-3.5 w-3.5", syncing && "animate-spin")} />
             {syncing ? "Syncing…" : "Sync now"}
           </Button>
@@ -105,7 +105,7 @@ export function AnalysisFiltersBar({
               type="button"
               onClick={() => toggleRepo(repo)}
               className={cn(
-                "rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors",
+                "rounded-[8px] px-2 py-0.5 text-[10px] font-medium transition-colors",
                 active
                   ? "bg-sky-wash text-chart-blue"
                   : "bg-hover text-muted line-through",
@@ -138,7 +138,7 @@ function FilterSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-8 rounded-2xl border border-dove bg-pure-white px-2 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-rust/30"
+        className="h-8 rounded-[9px] border border-border bg-pure-white px-2 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-rust/30"
         aria-label={label}
       >
         {options.map((o) => (

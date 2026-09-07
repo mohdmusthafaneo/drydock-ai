@@ -51,7 +51,7 @@ export function GovernanceRunPanel({
             run.riskDrivers.map((d) => (
               <div
                 key={d.rank}
-                className="flex items-start justify-between gap-3 rounded-lg border border-border-subtle px-3 py-2 text-sm"
+                className="flex items-start justify-between gap-3 rounded-lg border border-border px-3 py-2 text-sm"
               >
                 <span className="text-secondary">
                   {humanizeSignalLabel(d.label ?? `Driver ${d.rank}`)}
@@ -76,7 +76,7 @@ export function GovernanceRunPanel({
           {run.worstFiles.map((f) => (
             <div
               key={f.filePath}
-              className="rounded-lg border border-border-subtle px-3 py-2 text-sm"
+              className="rounded-lg border border-border px-3 py-2 text-sm"
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="break-all text-xs text-primary">{f.filePath}</span>
@@ -103,7 +103,7 @@ export function GovernanceRunPanel({
           {run.deadCode.map((d) => (
             <div
               key={`${d.rank}-${d.filePath}`}
-              className="rounded-lg border border-border-subtle px-3 py-2 text-sm"
+              className="rounded-lg border border-border px-3 py-2 text-sm"
             >
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs text-primary">
@@ -136,7 +136,7 @@ export function CodeHealthHotspots({
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       {drivers.length > 0 ? (
-        <div className="rounded-[24px] border border-border-subtle bg-pure-white p-5 shadow-[var(--shadow)]">
+        <div className="rounded-[var(--radius-card)] border border-border bg-pure-white p-5 shadow-[var(--shadow)]">
           <p className="font-display text-[17px] text-ink">What is driving risk</p>
           <ul className="mt-3 space-y-2">
             {drivers.slice(0, 5).map((d, i) => (
@@ -148,7 +148,7 @@ export function CodeHealthHotspots({
         </div>
       ) : null}
       {hotspots.length > 0 ? (
-        <div className="rounded-[24px] border border-border-subtle bg-pure-white p-5 shadow-[var(--shadow)]">
+        <div className="rounded-[var(--radius-card)] border border-border bg-pure-white p-5 shadow-[var(--shadow)]">
           <p className="font-display text-[17px] text-ink">Top hotspots</p>
           <ul className="mt-3 space-y-3">
             {hotspots.map((f) => (

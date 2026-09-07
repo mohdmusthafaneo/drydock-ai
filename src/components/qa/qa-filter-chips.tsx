@@ -27,7 +27,7 @@ export function QaFilterChips({ defaultFilter = "all", bugCount, issueCount, onF
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <div className="flex items-center gap-1 rounded-full border border-border-subtle bg-fog/40 p-1">
+      <div className="flex items-center gap-1 rounded-full border border-border bg-fog/40 p-1">
         {(["all", "bugs", "issues"] as const).map((f) => (
           <button
             key={f}

@@ -18,7 +18,7 @@ export function ConnectJiraEmpty() {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col items-center gap-3 pb-8">
-        <Button asChild variant="brand">
+        <Button asChild variant="brown">
           <Link href="/integrations">
             <Plug className="h-4 w-4" />
             Go to integrations
@@ -47,7 +47,7 @@ export function SelectProjectsEmpty() {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col items-center gap-3 pb-8">
-        <Button asChild variant="brand">
+        <Button asChild variant="brown">
           <Link href="/integrations">
             <Plug className="h-4 w-4" />
             Select projects
@@ -77,7 +77,7 @@ export function SyncJiraEmpty({ projectKeys }: SyncJiraEmptyProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col items-center gap-3 pb-8">
-        <Button asChild variant="brand">
+        <Button asChild variant="brown">
           <Link href="/integrations">
             <Plug className="h-4 w-4" />
             Sync on integrations

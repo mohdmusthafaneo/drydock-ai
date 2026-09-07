@@ -75,7 +75,7 @@ export function CertificateView({
       )}
 
       {signed ? (
-        <div className="rounded-[24px] border border-dove/50 bg-pure-white p-6 shadow-[var(--shadow)]">
+        <div className="rounded-[var(--radius-card)] border border-border bg-pure-white p-6 shadow-[var(--shadow)]">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-graphite">
             Signed
           </p>
@@ -89,7 +89,7 @@ export function CertificateView({
           </p>
         </div>
       ) : view.release ? (
-        <div className="space-y-4 rounded-[24px] border border-dove/50 bg-pure-white p-6 shadow-[var(--shadow)]">
+        <div className="space-y-4 rounded-[var(--radius-card)] border border-border bg-pure-white p-6 shadow-[var(--shadow)]">
           <label className="block text-[13px] font-medium text-ink">
             Decision
             <select

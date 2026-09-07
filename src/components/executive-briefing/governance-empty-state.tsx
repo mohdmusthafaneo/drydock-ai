@@ -15,13 +15,13 @@ export function GovernanceEmptyState() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: EDITORIAL_EASE }}
     >
-      <h1 className="font-display text-[44px] leading-[1.1] tracking-[-0.66px] text-ink">
+      <h1 className="text-[28px] font-bold leading-[1.12] tracking-[-0.75px] text-ink">
         Governance cockpit
       </h1>
       <p className="text-[16px] leading-relaxed text-ash">
         Configure delivery governance and QA policies before running release intelligence.
       </p>
-      <Button asChild variant="ink" size="lg">
+      <Button asChild variant="brown" size="lg">
         <Link href="/discovery">Configure governance</Link>
       </Button>
     </motion.div>

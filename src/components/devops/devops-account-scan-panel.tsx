@@ -123,7 +123,7 @@ export function ClusteredFindingsList({
   return (
     <div
       className={cn(
-        "rounded-[24px] border border-border-subtle bg-pure-white p-5 shadow-[var(--shadow)]",
+        "rounded-[var(--radius-card)] border border-border-subtle bg-pure-white p-5 shadow-[var(--shadow)]",
         className,
       )}
     >

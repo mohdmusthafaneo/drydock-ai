@@ -68,7 +68,7 @@ export function HygieneGradeChip({ grade }: { grade: "good" | "fair" | "poor" })
   const labels = { good: "Hygiene good", fair: "Hygiene fair", poor: "Hygiene poor" };
   return (
     <span
-      className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${gradeClass(grade)}`}
+      className={`shrink-0 rounded-[8px] border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${gradeClass(grade)}`}
     >
       {labels[grade]}
     </span>

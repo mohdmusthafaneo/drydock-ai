@@ -96,10 +96,10 @@ export function LedgerView({ ledger, dataSource = "mock" }: Props) {
                   setSelected((prev) => (prev === item.reason ? null : item.reason))
                 }
                 className={cn(
-                  "flex w-full items-start gap-4 rounded-[20px] border px-4 py-4 text-left transition-colors sm:px-5",
+                  "flex w-full items-start gap-4 rounded-[var(--radius-card)] border px-4 py-4 text-left transition-colors sm:px-5",
                   active
                     ? "border-ink/20 bg-pure-white shadow-[var(--shadow)]"
-                    : "border-dove/50 bg-pure-white/80 hover:border-dove hover:bg-pure-white",
+                    : "border-border bg-pure-white/80 hover:border-dove hover:bg-pure-white",
                 )}
               >
                 <span className="min-w-[3.5rem] font-display text-[28px] leading-none tracking-[-0.4px] text-ink">
@@ -127,7 +127,7 @@ export function LedgerView({ ledger, dataSource = "mock" }: Props) {
       </ul>
 
       {bucket ? (
-        <section className="space-y-3 rounded-[24px] border border-dove/50 bg-pure-white p-5 shadow-[var(--shadow)] sm:p-6">
+        <section className="space-y-3 rounded-[var(--radius-card)] border border-border bg-pure-white p-5 shadow-[var(--shadow)] sm:p-6">
           <h2 className="font-display text-[22px] tracking-[-0.2px] text-ink">
             {bucket.label} — sample evidence
           </h2>
@@ -138,7 +138,7 @@ export function LedgerView({ ledger, dataSource = "mock" }: Props) {
             {bucket.tests.map((test) => (
               <li
                 key={test.id}
-                className="rounded-[16px] border border-dove/40 bg-fog/50 px-4 py-3"
+                className="rounded-[16px] border border-border bg-fog/50 px-4 py-3"
               >
                 <p className="text-[15px] font-medium text-ink">{test.name}</p>
                 <p className="mt-1 text-[13px] text-graphite">
@@ -158,7 +158,7 @@ export function LedgerView({ ledger, dataSource = "mock" }: Props) {
         </section>
       ) : null}
 
-      <div className="rounded-[16px] border border-dove/50 bg-fog/50">
+      <div className="rounded-[16px] border border-border bg-fog/50">
         <button
           type="button"
           onClick={() => void openSuppressed()}
@@ -170,7 +170,7 @@ export function LedgerView({ ledger, dataSource = "mock" }: Props) {
           </span>
         </button>
         {suppressedOpen ? (
-          <div className="border-t border-dove/40 px-4 py-3 text-[13px] leading-relaxed text-ash">
+          <div className="border-t border-border px-4 py-3 text-[13px] leading-relaxed text-ash">
             {dataSource === "mock" ? (
               <p>
                 Demo: when you hide an issue with a decision, it appears here with the reason

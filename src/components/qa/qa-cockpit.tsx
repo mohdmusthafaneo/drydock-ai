@@ -49,7 +49,7 @@ export function QACockpit({
   });
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-[13px]">
       <div>
         <h2 className="font-display text-[26px] leading-[1.18] tracking-[-0.23px] text-ink">
           Release confidence
@@ -194,7 +194,7 @@ export function QACockpit({
           <CardContent className="py-10 text-center text-muted">
             Run a release assessment to populate QA intelligence.
             <div className="mt-4">
-              <Button asChild variant="ink" size="lg">
+              <Button asChild variant="brown" size="lg">
                 <Link href="/releases">View releases</Link>
               </Button>
             </div>

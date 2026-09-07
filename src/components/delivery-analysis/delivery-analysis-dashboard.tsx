@@ -203,7 +203,7 @@ export function DeliveryAnalysisDashboard({
   }, [snapshot]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-[13px]">
       <AnalysisFiltersBar
         filters={filters}
         projectKeys={projectKeys}
@@ -281,13 +281,13 @@ export function DeliveryAnalysisDashboard({
 
           <KpiStrip kpis={snapshot.kpis} projectCount={snapshot.byProject.length} />
 
-          <div className="space-y-6">
-            <div className="grid gap-6 lg:grid-cols-2">
+          <div className="space-y-[13px]">
+            <div className="grid gap-3 lg:grid-cols-2">
               <RiskMixChart riskMix={snapshot.riskMix} />
               <TrendChart trend={snapshot.trend} hasHistory={snapshot.trend.length >= 2} />
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-2">
+            <div className="grid gap-3 lg:grid-cols-2">
               <ProjectBreakdown
                 items={snapshot.byProject}
                 onSelectProject={handleProjectSelect}

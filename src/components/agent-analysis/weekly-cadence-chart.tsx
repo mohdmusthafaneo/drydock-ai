@@ -28,7 +28,7 @@ export function WeeklyCadenceChart({
     return (
       <div
         className={cn(
-          "rounded-[24px] border border-dashed border-border-subtle bg-elevated/40 px-5 py-6 text-sm text-muted",
+          "rounded-[var(--radius-card)] border border-dashed border-border-subtle bg-elevated/40 px-5 py-6 text-sm text-muted",
           className,
         )}
       >
@@ -47,7 +47,7 @@ export function WeeklyCadenceChart({
   return (
     <div
       className={cn(
-        "rounded-[24px] border border-border-subtle bg-pure-white px-5 py-5 shadow-[var(--shadow)]",
+        "rounded-[var(--radius-card)] border border-border bg-pure-white px-5 py-5 shadow-[var(--shadow)]",
         className,
       )}
     >

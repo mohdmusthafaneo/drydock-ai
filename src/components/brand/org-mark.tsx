@@ -19,8 +19,8 @@ export function OrgMark({
       aria-hidden
       data-slot="org-mark"
     >
-      <circle cx="14" cy="14" r="12" stroke="#E8590C" strokeWidth="2.5" fill="none" />
-      <circle cx="14" cy="14" r="5.5" fill="#E8590C" />
+      <circle cx="14" cy="14" r="12" stroke="#F4773D" strokeWidth="2.5" fill="none" />
+      <circle cx="14" cy="14" r="5.5" fill="#F4773D" />
     </svg>
   );
 }

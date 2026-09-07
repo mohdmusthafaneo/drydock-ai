@@ -123,7 +123,7 @@ export function DiscoveryWizard({
     <div className={cn("space-y-6", !embedded && "mx-auto max-w-3xl")}>
       {!embedded && (
         <div>
-          <h1 className="font-display text-[44px] leading-[1.1] tracking-[-0.66px] text-ink">
+          <h1 className="text-[28px] font-bold leading-[1.12] tracking-[-0.75px] text-ink">
             Discovery & Delivery DNA
           </h1>
           <p className="mt-2 text-[16px] text-ash">
@@ -143,13 +143,13 @@ export function DiscoveryWizard({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="rounded-[24px] border border-border-subtle bg-apricot-wash/40 p-5">
+            <div className="rounded-[var(--radius-card)] border border-border-subtle bg-apricot-wash/40 p-5">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-graphite">
                     Governance score
                   </p>
-                  <p className="mt-1 font-display text-[44px] leading-none tracking-[-0.66px] text-ink">
+                  <p className="mt-1 text-[28px] font-bold leading-none tracking-[-0.75px] text-ink">
                     {previewDna.governanceScore}
                     <span className="text-[20px] text-graphite">/100</span>
                   </p>
@@ -287,13 +287,13 @@ export function DiscoveryWizard({
                     mode, and governance recommendations.
                   </p>
 
-                  <div className="rounded-[24px] border border-border-subtle bg-apricot-wash/40 p-5">
+                  <div className="rounded-[var(--radius-card)] border border-border-subtle bg-apricot-wash/40 p-5">
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div>
                         <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-graphite">
                           Governance score
                         </p>
-                        <p className="mt-1 font-display text-[44px] leading-none tracking-[-0.66px] text-ink">
+                        <p className="mt-1 text-[28px] font-bold leading-none tracking-[-0.75px] text-ink">
                           {previewDna.governanceScore}
                           <span className="text-[20px] text-graphite">/100</span>
                         </p>

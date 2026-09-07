@@ -65,7 +65,7 @@ export function AuditLogsPanel({ logs }: { logs: AuditLogItem[] }) {
   return (
     <div className="space-y-6">
       {lastDecision && (
-        <section className="rounded-[24px] border border-border-subtle bg-pure-white px-6 py-5 shadow-[var(--shadow)]">
+        <section className="rounded-[var(--radius-card)] border border-border-subtle bg-pure-white px-6 py-5 shadow-[var(--shadow)]">
           <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-graphite">
             Last governance decision
           </p>

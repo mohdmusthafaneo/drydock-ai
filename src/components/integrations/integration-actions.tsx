@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 
 export function GitHubOAuthConnect() {
   return (
-    <Button size="sm" asChild>
+    <Button size="sm" variant="brown" asChild>
       <Link href="/api/integrations/github/authorize">Connect with GitHub</Link>
     </Button>
   );
@@ -15,10 +15,10 @@ export function GitHubOAuthConnect() {
 
 export function JiraOAuthConnect({
   label = "Connect with Jira",
-  variant = "default",
+  variant = "brown",
 }: {
   label?: string;
-  variant?: "default" | "brand" | "secondary" | "ghost";
+  variant?: "default" | "brand" | "brown" | "secondary" | "ghost";
 }) {
   return (
     <Button size="sm" variant={variant} asChild>
@@ -29,10 +29,10 @@ export function JiraOAuthConnect({
 
 export function SlackOAuthConnect({
   label = "Add to Slack",
-  variant = "default",
+  variant = "brown",
 }: {
   label?: string;
-  variant?: "default" | "brand" | "secondary" | "ghost";
+  variant?: "default" | "brand" | "brown" | "secondary" | "ghost";
 }) {
   return (
     <Button size="sm" variant={variant} asChild>

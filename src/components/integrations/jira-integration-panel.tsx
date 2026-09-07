@@ -329,7 +329,7 @@ export function JiraIntegrationPanel({
         <div className="flex flex-wrap gap-2 pt-1">
           {showConnectionIssue && canManage ? (
             <>
-              <JiraOAuthConnect label="Reconnect" variant="brand" />
+              <JiraOAuthConnect label="Reconnect" variant="brown" />
               {siteUrl && (
                 <Button size="sm" variant="ghost" asChild>
                   <a href={siteUrl} target="_blank" rel="noopener noreferrer">
@@ -481,7 +481,7 @@ export function JiraIntegrationPanel({
         <Button
           type="button"
           size="sm"
-          variant="brand"
+          variant="brown"
           disabled={syncing || !hasSelection}
           onClick={sync}
         >

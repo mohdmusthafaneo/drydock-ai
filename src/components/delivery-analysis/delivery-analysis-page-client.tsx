@@ -24,7 +24,7 @@ export function DeliveryAnalysisPageClient({
   canSync,
 }: Props) {
   return (
-    <div className="w-full space-y-8 pb-24 lg:pb-8">
+    <div className="w-full space-y-[13px] pb-24 lg:pb-8">
       <PageHeader
         title="Delivery analysis"
         description="See blockers, overdue work, version targets, and sprint progress from Jira — so leaders can govern delivery with evidence, not dashboard hopping."

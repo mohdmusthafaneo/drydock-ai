@@ -20,17 +20,17 @@ import {
 import type { RecommendationQueue } from "@/generated/prisma/client";
 
 const TONE_STYLES = {
-  risk: "border-rust/25 bg-rust/8",
-  attention: "border-apricot/40 bg-apricot-wash/50",
-  neutral: "border-border-subtle bg-elevated",
-  good: "border-dove/50 bg-fog",
+  risk: "border-accent-ring bg-accent-soft",
+  attention: "border-amber/40 bg-[#fffaf0]",
+  neutral: "border-border bg-pure-white",
+  good: "border-border bg-fog",
 } as const;
 
 const VERDICT_BADGE = {
-  risk: "border-rust/25 bg-rust/8 text-rust",
-  attention: "border-apricot/40 bg-apricot-wash/60 text-rust",
-  neutral: "border-dove/50 bg-fog text-graphite",
-  good: "border-dove/50 bg-fog text-ash",
+  risk: "border-accent-ring bg-accent-soft text-brown",
+  attention: "border-amber/40 bg-[#fffaf0] text-amber",
+  neutral: "border-border bg-fog text-muted",
+  good: "border-border bg-fog text-ash",
 } as const;
 
 export type RecommendationApprovalData = {
@@ -115,11 +115,11 @@ export function RecommendationApprovalCard({
 
   if (demoDecided) {
     return (
-      <div className="rounded-[24px] border border-border-subtle bg-fog/40 px-5 py-4">
-        <p className="font-display text-[17px] text-ink">
+      <div className="rounded-[var(--radius-card)] border border-border bg-elevated/60 px-5 py-4">
+        <p className="text-[15px] font-semibold text-ink">
           Demo decision recorded: {demoDecided}
         </p>
-        <p className="mt-1 text-[14px] text-ash">
+        <p className="mt-1 text-[13px] text-muted">
           This was a fixture approval — nothing was written to the ledger.
         </p>
       </div>
@@ -129,7 +129,7 @@ export function RecommendationApprovalCard({
   return (
     <div
       className={cn(
-        "space-y-4 rounded-[24px] border p-5 shadow-[var(--shadow)]",
+        "space-y-4 rounded-[var(--radius-card)] border bg-pure-white p-5 shadow-[var(--shadow)]",
         TONE_STYLES[tone],
       )}
     >
@@ -137,7 +137,7 @@ export function RecommendationApprovalCard({
         <div className="flex flex-wrap items-center gap-2">
           <span
             className={cn(
-              "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium leading-none",
+              "inline-flex items-center rounded-[8px] border px-2.5 py-1 text-[11px] font-medium leading-none",
               VERDICT_BADGE[tone],
             )}
           >
@@ -148,15 +148,15 @@ export function RecommendationApprovalCard({
           )}
         </div>
         <div className="text-right">
-          <p className="font-display text-[28px] leading-none tracking-[-0.42px] tabular-nums text-ink">
+          <p className="text-[24px] font-semibold leading-none tracking-[-0.4px] tabular-nums text-ink">
             {(recommendation.confidence * 100).toFixed(0)}%
           </p>
-          <p className="mt-1 text-[11px] text-graphite">Confidence</p>
+          <p className="mt-1 text-[11px] text-muted">Confidence</p>
         </div>
       </div>
 
       <div>
-        <h3 className="font-display text-[18px] leading-snug tracking-[-0.14px] text-ink">
+        <h3 className="text-[16px] font-semibold leading-snug tracking-[-0.2px] text-ink">
           {recommendation.title}
         </h3>
       </div>
@@ -164,7 +164,7 @@ export function RecommendationApprovalCard({
       <dl className="grid gap-3 text-sm sm:grid-cols-2">
         {roleHint && (
           <div>
-            <dt className="text-[11px] font-medium uppercase tracking-[0.06em] text-graphite">
+            <dt className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted">
               Required role
             </dt>
             <dd className="mt-1 text-primary">{roleHint}</dd>
@@ -172,32 +172,32 @@ export function RecommendationApprovalCard({
         )}
         {riskScore != null && (
           <div>
-            <dt className="text-[11px] font-medium uppercase tracking-[0.06em] text-graphite">
+            <dt className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted">
               Risk score
             </dt>
-            <dd className="mt-1 font-display text-[20px] tabular-nums text-ink">
+            <dd className="mt-1 text-[20px] font-semibold tabular-nums text-ink">
               {riskScore.toFixed(0)}
             </dd>
           </div>
         )}
       </dl>
 
-      <p className="rounded-xl border border-border-subtle/80 bg-pure-white/60 px-4 py-3 text-[13px] leading-relaxed text-graphite">
+      <p className="rounded-[9px] border border-border bg-pure-white/80 px-4 py-3 text-[13px] leading-relaxed text-muted">
         {consequence}
       </p>
 
       {evidence.length > 0 && (
         <div>
-          <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-graphite">
+          <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted">
             Evidence
           </p>
           <ul className="mt-2 space-y-1.5">
             {evidence.map((bullet) => (
               <li
                 key={bullet}
-                className="flex items-start gap-2 text-[14px] leading-relaxed text-ash"
+                className="flex items-start gap-2 text-[14px] leading-relaxed text-secondary"
               >
-                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-graphite" />
+                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-faint" />
                 <span>{bullet}</span>
               </li>
             ))}
@@ -209,12 +209,12 @@ export function RecommendationApprovalCard({
         {recommendation.release && (
           <Link
             href={`/releases/${recommendation.release.id}`}
-            className="font-medium text-ink underline-offset-4 hover:text-rust hover:underline"
+            className="font-medium text-brown underline-offset-4 hover:underline"
           >
             View release analysis →
           </Link>
         )}
-        {freshness && <span className="text-graphite">{freshness}</span>}
+        {freshness && <span className="text-muted">{freshness}</span>}
       </div>
 
       <Textarea
@@ -227,7 +227,7 @@ export function RecommendationApprovalCard({
       {error && <p className="text-xs text-error">{error}</p>}
 
       <div className="flex flex-wrap items-center gap-4">
-        <Button size="sm" variant="ink" disabled={loading} onClick={() => decide("APPROVED")}>
+        <Button size="sm" variant="brown" disabled={loading} onClick={() => decide("APPROVED")}>
           Approve
         </Button>
         <Button

@@ -7,17 +7,17 @@ import { HoverLift } from "@/components/motion/hover-lift";
 import { cn } from "@/lib/utils";
 
 const TONE_BORDER: Record<BriefingClaimVerdict, string> = {
-  good: "border-border-subtle bg-pure-white",
-  attention: "border-apricot/30 bg-apricot-wash/30",
-  risk: "border-rust/20 bg-apricot-wash",
-  neutral: "border-border-subtle bg-pure-white",
+  good: "border-border bg-pure-white",
+  attention: "border-accent-ring bg-accent-soft",
+  risk: "border-coral/30 bg-coral-soft",
+  neutral: "border-border bg-pure-white",
 };
 
 function DecisionCard({ item }: { item: AgentDecision }) {
   const body = (
     <div
       className={cn(
-        "flex flex-col gap-2 rounded-[24px] border px-5 py-4 shadow-[var(--shadow)] sm:flex-row sm:items-center sm:justify-between",
+        "flex flex-col gap-2 rounded-[var(--radius-card)] border px-5 py-4 shadow-[var(--shadow)] sm:flex-row sm:items-center sm:justify-between",
         TONE_BORDER[item.tone],
         item.href && "transition-shadow group-hover:shadow-[0_0_0_1px_rgba(163,166,175,0.3),rgba(0,0,0,0.08)_0px_24px_30px_-8px]",
       )}

@@ -15,7 +15,7 @@ export function GovernanceEscalationPanel({
   if (entries.length === 0) return null;
 
   return (
-    <div className="rounded-[24px] border border-border-subtle bg-pure-white shadow-[var(--shadow)]">
+    <div className="rounded-[var(--radius-card)] border border-border bg-pure-white shadow-[var(--shadow)]">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -40,11 +40,11 @@ export function GovernanceEscalationPanel({
       </button>
 
       {open && (
-        <div className="space-y-2 border-t border-border-subtle px-5 py-4">
+        <div className="space-y-2 border-t border-border px-5 py-4">
           {entries.map(([level, action]) => (
             <div
               key={level}
-              className="flex justify-between rounded-[16px] bg-fog px-4 py-2 text-sm"
+              className="flex justify-between rounded-[9px] bg-fog px-4 py-2 text-sm"
             >
               <span className="capitalize text-muted">{level}</span>
               <span className="text-ink">{action}</span>

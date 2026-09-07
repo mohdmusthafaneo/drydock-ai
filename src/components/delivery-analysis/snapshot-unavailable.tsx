@@ -99,7 +99,7 @@ export function SnapshotUnavailable({
             </Button>
           )}
           {(variant === "missing" || variant === "error") && (
-            <Button asChild variant="brand" size="sm">
+            <Button asChild variant="brown" size="sm">
               <Link href="/integrations">Go to integrations</Link>
             </Button>
           )}

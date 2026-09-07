@@ -18,7 +18,7 @@ type Props = {
  */
 export function AgentPageShell({ view, children, afterHighlights, approvalLevelLabels }: Props) {
   return (
-    <div className="space-y-8">
+    <div className="space-y-[13px]">
       <div className="space-y-3">
         <ExecutiveVerdictBanner
           verdict={view.hero.verdict}
@@ -33,7 +33,7 @@ export function AgentPageShell({ view, children, afterHighlights, approvalLevelL
 
       {view.highlights.length > 0 ? (
         <RevealSection>
-          <div className="overflow-hidden rounded-[24px] border border-border-subtle bg-pure-white shadow-[var(--shadow)]">
+          <div className="overflow-hidden rounded-[var(--radius-card)] border border-border bg-pure-white shadow-[var(--shadow)]">
             <BriefingHighlights highlights={view.highlights} bare />
           </div>
         </RevealSection>

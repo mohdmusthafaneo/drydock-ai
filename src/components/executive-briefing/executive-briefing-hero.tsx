@@ -38,7 +38,7 @@ export function ExecutiveBriefingHero({
   return (
     <section
       className={cn(
-        "steep-hero-glow -mx-4 rounded-[24px] px-4 pt-4 pb-10 lg:-mx-6 lg:px-6 lg:pt-6 lg:pb-14",
+        "steep-hero-glow -mx-4 rounded-[var(--radius-card)] px-4 pt-4 pb-10 lg:-mx-6 lg:px-6 lg:pt-6 lg:pb-14",
       )}
     >
       <MountSequence>

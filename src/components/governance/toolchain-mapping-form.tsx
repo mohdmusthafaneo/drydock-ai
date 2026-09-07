@@ -95,7 +95,7 @@ function findingCardClass(severity: JiraHygieneFinding["severity"]): string {
       : severity === "warning"
         ? "border-l-rust"
         : "border-l-dove";
-  return cn("rounded-lg border border-border-subtle border-l-4 bg-pure-white", accent);
+  return cn("rounded-lg border border-border border-l-4 bg-pure-white", accent);
 }
 
 function findingValueClass(severity: JiraHygieneFinding["severity"]): string {
@@ -412,7 +412,7 @@ export function ToolchainMappingForm({
             {calibrationProfiles.map((profile) => (
               <div
                 key={profile.projectKey}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border-subtle bg-pure-white px-3 py-2 text-sm"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-pure-white px-3 py-2 text-sm"
               >
                 <span className="font-medium text-ink">{profile.projectKey}</span>
                 <div className="flex flex-wrap items-center gap-2">
@@ -441,7 +441,7 @@ export function ToolchainMappingForm({
             {calibrationSuggestions.map((suggestion) => (
               <div
                 key={`suggestion-${suggestion.projectKey}`}
-                className="rounded-lg border border-border-subtle bg-surface-muted px-3 py-3 text-sm"
+                className="rounded-lg border border-border bg-surface-muted px-3 py-3 text-sm"
               >
                 <p className="font-medium text-ink">
                   Suggested from 90-day history — {suggestion.projectKey}
@@ -791,7 +791,7 @@ export function ToolchainMappingForm({
                     </Field>
                   )}
                   {doneStatuses && doneStatuses.length > 0 && (
-                    <div className="rounded-[16px] border border-border-subtle bg-fog px-3 py-2 text-xs text-muted">
+                    <div className="rounded-[16px] border border-border bg-fog px-3 py-2 text-xs text-muted">
                       <span className="font-medium text-ink">Done statuses detected: </span>
                       {[...new Set(doneStatuses.map((s) => s.name))].join(", ")}
                     </div>
@@ -934,7 +934,7 @@ export function ToolchainMappingForm({
           >
             Save draft
           </button>
-          <Button onClick={() => save(true)} disabled={loading || confirmed} variant="ink" size="lg">
+          <Button onClick={() => save(true)} disabled={loading || confirmed} variant="brown" size="lg">
             {confirmed ? "Mapping confirmed" : loading ? "Confirming…" : "Confirm mapping"}
           </Button>
         </div>
@@ -998,7 +998,7 @@ function HygieneScorecard({
 
 function AgreedWorkflowSummary({ mapping }: { mapping: ToolchainMapping }) {
   return (
-    <div className="divide-y divide-border-subtle rounded-[16px] border border-border-subtle">
+    <div className="divide-y divide-border rounded-[16px] border border-border">
       {mapping.jira && (
         <div className="space-y-0 px-4 py-3">
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">Jira</p>

@@ -62,7 +62,7 @@ export function StandardView({ patterns }: { patterns: Pattern[] }) {
       {error && <p className="text-[14px] text-rust">{error}</p>}
 
       {open.length === 0 ? (
-        <div className="rounded-[24px] border border-dove/50 bg-pure-white px-6 py-10 text-center shadow-[var(--shadow)]">
+        <div className="rounded-[var(--radius-card)] border border-border bg-pure-white px-6 py-10 text-center shadow-[var(--shadow)]">
           <p className="font-display text-[22px] text-ink">No convention decisions needed this week.</p>
           <p className="mt-2 text-[14px] text-ash">
             New pattern differences will show up here as your tests change.
@@ -73,7 +73,7 @@ export function StandardView({ patterns }: { patterns: Pattern[] }) {
           {open.map((p) => (
             <article
               key={p.id}
-              className="rounded-[24px] border border-dove/50 bg-pure-white p-6 shadow-[var(--shadow)]"
+              className="rounded-[var(--radius-card)] border border-border bg-pure-white p-6 shadow-[var(--shadow)]"
             >
               <p className="text-[11px] font-semibold uppercase tracking-wider text-graphite">
                 Choose
@@ -114,7 +114,7 @@ export function StandardView({ patterns }: { patterns: Pattern[] }) {
             Record
           </p>
           {rest.map((p) => (
-            <div key={p.id} className="rounded-xl border border-dove/40 bg-pure-white px-4 py-3">
+            <div key={p.id} className="rounded-xl border border-border bg-pure-white px-4 py-3">
               <p className="text-[14px] text-ink">
                 {p.shapeLabel} · {statusLabel(p.status)} · {p.occurrenceCount} tests
               </p>

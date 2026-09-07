@@ -48,20 +48,20 @@ export default async function ApprovalsPage({
   if (useFixture) {
     const fixture = OVERVIEW_APPROVALS_FIXTURE;
     return (
-      <div className="space-y-8">
+      <div className="space-y-[13px]">
         <PageHeader
           title="Approval center"
           description="Leadership decisions for the active release — demo fixture aligned with Overview."
         />
 
-        <RevealSection className="rounded-[24px] border border-border-subtle bg-pure-white px-6 py-6 shadow-[var(--shadow)]">
-          <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-graphite">
+        <RevealSection className="rounded-[var(--radius-card)] border border-[#e2ebfa] bg-[#f2f7ff] px-[21px] py-[18px] shadow-[var(--shadow)]">
+          <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted">
             Waiting on leadership
           </p>
-          <h2 className="mt-2 font-display text-[26px] leading-[1.18] tracking-[-0.23px] text-ink">
+          <h2 className="mt-1.5 text-[18px] font-semibold leading-[1.25] tracking-[-0.2px] text-ink">
             {fixture.hero.headline}
           </h2>
-          <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-ash">
+          <p className="mt-1.5 max-w-2xl text-[14px] leading-relaxed text-secondary">
             {fixture.hero.subcopy}
           </p>
         </RevealSection>
@@ -74,7 +74,7 @@ export default async function ApprovalsPage({
               {fixture.pending.length === 1 ? "" : "s"} awaiting decision
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-[13px]">
             <div className="space-y-4">
               {fixture.pending.map((item) => (
                 <RecommendationApprovalCard
@@ -131,20 +131,20 @@ export default async function ApprovalsPage({
   const hero = buildApprovalsHeroSummary(ctx);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-[13px]">
       <PageHeader
         title="Approval center"
         description={approvalCenterDescription(ctx.stats)}
       />
 
-      <RevealSection className="rounded-[24px] border border-border-subtle bg-pure-white px-6 py-6 shadow-[var(--shadow)]">
-        <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-graphite">
+      <RevealSection className="rounded-[var(--radius-card)] border border-[#e2ebfa] bg-[#f2f7ff] px-[21px] py-[18px] shadow-[var(--shadow)]">
+        <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted">
           Waiting on leadership
         </p>
-        <h2 className="mt-2 font-display text-[26px] leading-[1.18] tracking-[-0.23px] text-ink">
+        <h2 className="mt-1.5 text-[18px] font-semibold leading-[1.25] tracking-[-0.2px] text-ink">
           {hero.headline}
         </h2>
-        <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-ash">{hero.subcopy}</p>
+        <p className="mt-1.5 max-w-2xl text-[14px] leading-relaxed text-secondary">{hero.subcopy}</p>
       </RevealSection>
 
       <Card>
@@ -154,15 +154,15 @@ export default async function ApprovalsPage({
             {pending.length} leadership item{pending.length === 1 ? "" : "s"} awaiting decision
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-[13px]">
           {pending.length === 0 ? (
-            <div className="flex items-start gap-3 rounded-[24px] border border-border-subtle bg-fog/40 px-5 py-4">
-              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-chart-blue" strokeWidth={1.5} />
+            <div className="flex items-start gap-3 rounded-[var(--radius-card)] border border-border bg-elevated/60 px-5 py-4">
+              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-info" strokeWidth={1.5} />
               <div>
-                <p className="font-display text-[17px] leading-snug text-ink">
+                <p className="text-[15px] font-semibold leading-snug text-ink">
                   No leadership actions right now
                 </p>
-                <p className="mt-1 text-[14px] leading-relaxed text-ash">
+                <p className="mt-1 text-[13px] leading-relaxed text-muted">
                   Releases can proceed without your sign-off.
                 </p>
               </div>

@@ -212,7 +212,7 @@ export function GrafanaMetricsConfigSection({
             <Button
               type="button"
               size="sm"
-              variant="brand"
+              variant="brown"
               disabled={saving || !selectedUid}
               onClick={saveConfig}
             >

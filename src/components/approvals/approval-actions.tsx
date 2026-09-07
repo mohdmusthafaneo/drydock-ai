@@ -40,7 +40,7 @@ export function ApprovalActions({
   }
 
   return (
-    <div className="space-y-3 rounded-xl border border-border-subtle bg-elevated p-4">
+    <div className="space-y-3 rounded-xl border border-border bg-elevated p-4">
       <p className="text-sm font-medium text-primary">{title}</p>
       <Textarea
         placeholder="Optional comment for audit log…"
@@ -51,7 +51,7 @@ export function ApprovalActions({
       {error && <p className="text-xs text-error">{error}</p>}
 
       <div className="flex flex-wrap items-center gap-4">
-        <Button size="sm" variant="ink" disabled={loading} onClick={() => decide("APPROVED")}>
+        <Button size="sm" variant="brown" disabled={loading} onClick={() => decide("APPROVED")}>
           Approve
         </Button>
         <Button

@@ -31,7 +31,7 @@ export function DeliveryHealthGauge({ score, band, bandLabel, visible, className
     return (
       <div
         className={cn(
-          "flex h-full min-h-[240px] flex-col items-center justify-center rounded-[24px] border border-dashed border-dove bg-pure-white px-6 py-8 text-center shadow-[var(--shadow)]",
+          "flex h-full min-h-[240px] flex-col items-center justify-center rounded-[var(--radius-card)] border border-dashed border-border bg-pure-white px-6 py-8 text-center shadow-[var(--shadow)]",
           className,
         )}
       >
@@ -48,7 +48,7 @@ export function DeliveryHealthGauge({ score, band, bandLabel, visible, className
   return (
     <div
       className={cn(
-        "flex flex-col items-center gap-5 rounded-[24px] bg-apricot-wash px-6 py-8",
+        "flex flex-col items-center gap-5 rounded-[var(--radius-card)] bg-accent-soft px-6 py-8",
         className,
       )}
       role="meter"

@@ -23,7 +23,7 @@ export function OnboardingBanner({
   const defaultTitle = "Next in setup";
 
   return (
-    <div className="mb-4 rounded-[24px] border border-dove/50 bg-apricot-wash/40 p-5">
+    <div className="mb-4 rounded-[var(--radius-card)] border border-dove/50 bg-apricot-wash/40 p-5">
       <div className="flex flex-wrap items-center gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-[13px] font-medium uppercase tracking-[0.04em] text-graphite">

@@ -235,7 +235,7 @@ export function PrometheusIntegrationPanel({
           </p>
         )}
 
-        <Button type="button" size="sm" variant="brand" disabled={connecting} onClick={connect}>
+        <Button type="button" size="sm" variant="brown" disabled={connecting} onClick={connect}>
           {connecting ? "Connecting…" : connected && !trulyConnected ? "Replace stub connection" : "Connect Prometheus"}
         </Button>
       </div>
@@ -332,7 +332,7 @@ export function PrometheusIntegrationPanel({
         <Button
           type="button"
           size="sm"
-          variant="brand"
+          variant="brown"
           disabled={syncing}
           onClick={sync}
         >

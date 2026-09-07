@@ -400,7 +400,7 @@ export function GitHubIntegrationPanel({
         <Button
           type="button"
           size="sm"
-          variant="brand"
+          variant="brown"
           disabled={syncing || !hasSelection}
           onClick={sync}
         >

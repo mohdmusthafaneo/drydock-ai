@@ -24,8 +24,20 @@ function isWizardPath(pathname: string): boolean {
   );
 }
 
-function isOverviewPath(pathname: string): boolean {
-  return pathname === "/dashboard" || pathname.startsWith("/dashboard/");
+/** Connexus content chrome: Overview density (1280px / pt-25 / px-6) for section destinations. */
+function usesConnexusChrome(pathname: string): boolean {
+  if (pathname === "/dashboard" || pathname.startsWith("/dashboard/")) return true;
+  if (pathname === "/delivery-analysis" || pathname.startsWith("/delivery-analysis/")) return true;
+  if (pathname === "/code-analysis" || pathname.startsWith("/code-analysis/")) return true;
+  if (pathname === "/qa" || pathname.startsWith("/qa/")) return true;
+  if (pathname === "/governance" || pathname.startsWith("/governance/")) return true;
+  if (pathname === "/approvals" || pathname.startsWith("/approvals/")) return true;
+  if (pathname === "/attention" || pathname.startsWith("/attention/")) return true;
+  if (pathname === "/risk" || pathname.startsWith("/risk/")) return true;
+  if (pathname === "/reports" || pathname.startsWith("/reports/")) return true;
+  if (pathname === "/integrations" || pathname.startsWith("/integrations/")) return true;
+  if (pathname === "/settings" || pathname.startsWith("/settings/")) return true;
+  return false;
 }
 
 export function AppShell({
@@ -61,7 +73,7 @@ export function AppShell({
 
   const chatMode = isChatPath(pathname);
   const hideMobileNav = isWizardPath(pathname);
-  const overviewMode = isOverviewPath(pathname);
+  const overviewMode = usesConnexusChrome(pathname);
 
   const destinations = useMemo(() => getSectionTabs(), []);
   const dateRangeLabel =
