@@ -37,6 +37,9 @@ export function withOverviewContext(
 /** Hash target for Overview gauge → Delivery “how score is derived” panel. */
 export const SCORE_DERIVATION_HASH = "score-derivation";
 
+/** Hash target for Overview sprint completion → Active sprints card. */
+export const ACTIVE_SPRINTS_HASH = "active-sprints";
+
 export const PILLAR_HREFS: Record<string, string> = {
   delivery: "/delivery-analysis",
   code: "/code-analysis",
@@ -45,7 +48,7 @@ export const PILLAR_HREFS: Record<string, string> = {
 };
 
 export const METRIC_HREFS: Record<string, string> = {
-  completion: "/delivery-analysis?riskFocus=sprint",
+  completion: `/delivery-analysis?riskFocus=sprint#${ACTIVE_SPRINTS_HASH}`,
   blocked: "/delivery-analysis?riskFocus=blockers",
   spillover: "/delivery-analysis?riskFocus=schedule",
   "at-risk": "/delivery-analysis?riskFocus=schedule",

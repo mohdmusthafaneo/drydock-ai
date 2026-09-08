@@ -19,6 +19,7 @@ import { summarizePortfolioHygiene } from "@/lib/jira-hygiene";
 import { parseJiraMeta } from "@/lib/jira-meta";
 import { getOrganizationContext } from "@/lib/org-data";
 import { computeActivityHeatmap } from "@/lib/overview/activity-heatmap";
+import { ACTIVE_SPRINTS_HASH } from "@/lib/overview/nav-context";
 import { buildLiveScoreDerivation } from "@/lib/overview/score-derivation";
 import type {
   ConfidenceBand,
@@ -774,7 +775,7 @@ export async function loadOverviewDashboard(input: {
             progress: completionPct ?? 0,
             annotation: committed > 0 ? `${done} / ${committed}` : undefined,
             icon: "completion",
-            href: "/delivery-analysis?riskFocus=sprint",
+            href: `/delivery-analysis?riskFocus=sprint#${ACTIVE_SPRINTS_HASH}`,
           },
           {
             id: "blocked",

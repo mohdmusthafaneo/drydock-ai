@@ -1,6 +1,10 @@
+"use client";
+
 import { JiraIssueLink } from "@/components/delivery-analysis/jira-issue-link";
+import { useDeepLinkHighlight } from "@/components/motion/use-deep-link-highlight";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ACTIVE_SPRINTS_HASH } from "@/lib/overview/nav-context";
 import { cn } from "@/lib/utils";
 import type { DeliveryAnalysisSprintRow } from "@/lib/delivery-analysis/types";
 
@@ -16,8 +20,18 @@ function severityVariant(severity?: DeliveryAnalysisSprintRow["severity"]) {
 }
 
 export function SprintCards({ sprints, siteUrl }: Props) {
+  const { ref, highlightClass } = useDeepLinkHighlight<HTMLDivElement>({
+    hash: ACTIVE_SPRINTS_HASH,
+    search: { key: "riskFocus", value: "sprint" },
+  });
+
   return (
-    <Card className="h-full">
+    <Card
+      ref={ref}
+      id={ACTIVE_SPRINTS_HASH}
+      tabIndex={-1}
+      className={cn("h-full scroll-mt-6 outline-none", highlightClass)}
+    >
       <CardHeader>
         <CardTitle className="text-base">Active sprints</CardTitle>
         <CardDescription>Scrum sprint progress at last sync</CardDescription>

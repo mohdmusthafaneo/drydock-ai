@@ -2,10 +2,12 @@ import { cn } from "@/lib/utils";
 
 export function Card({
   className,
+  ref,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+}: React.ComponentProps<"div">) {
   return (
     <div
+      ref={ref}
       className={cn(
         "rounded-[var(--radius-card)] border border-border bg-pure-white text-primary shadow-[var(--shadow)]",
         className,
@@ -18,7 +20,7 @@ export function Card({
 export function CardHeader({
   className,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+}: React.ComponentProps<"div">) {
   return (
     <div className={cn("flex flex-col gap-1.5 px-5 pt-5 pb-0", className)} {...props} />
   );
@@ -27,7 +29,7 @@ export function CardHeader({
 export function CardTitle({
   className,
   ...props
-}: React.HTMLAttributes<HTMLHeadingElement>) {
+}: React.ComponentProps<"h3">) {
   return (
     <h3
       className={cn(
@@ -42,13 +44,13 @@ export function CardTitle({
 export function CardDescription({
   className,
   ...props
-}: React.HTMLAttributes<HTMLParagraphElement>) {
+}: React.ComponentProps<"p">) {
   return <p className={cn("text-[13px] text-muted", className)} {...props} />;
 }
 
 export function CardContent({
   className,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+}: React.ComponentProps<"div">) {
   return <div className={cn("p-5 pt-4", className)} {...props} />;
 }

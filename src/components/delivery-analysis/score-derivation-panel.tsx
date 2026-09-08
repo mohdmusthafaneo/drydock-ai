@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import { RevealSection } from "@/components/motion/reveal-section";
+import { useDeepLinkHighlight } from "@/components/motion/use-deep-link-highlight";
 import { SCORE_DERIVATION_HASH } from "@/lib/overview/nav-context";
 import type {
   ScoreDerivation,
@@ -67,19 +67,9 @@ export function ScoreDerivationPanel({
   derivation: ScoreDerivation;
   className?: string;
 }) {
-  const ref = useRef<HTMLElement>(null);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (window.location.hash !== `#${SCORE_DERIVATION_HASH}`) return;
-    const el = ref.current;
-    if (!el) return;
-    const id = window.requestAnimationFrame(() => {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-      el.focus({ preventScroll: true });
-    });
-    return () => window.cancelAnimationFrame(id);
-  }, []);
+  const { ref, highlightClass } = useDeepLinkHighlight<HTMLElement>({
+    hash: SCORE_DERIVATION_HASH,
+  });
 
   if (derivation.paragraphs.length === 0) return null;
 
@@ -91,7 +81,8 @@ export function ScoreDerivationPanel({
       aria-label={derivation.plainText}
       data-slot="score-derivation-panel"
       className={cn(
-        "scroll-mt-6 rounded-[var(--radius-card)] border border-border bg-pure-white px-6 py-6 shadow-[var(--shadow)] outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2",
+        "scroll-mt-6 rounded-[var(--radius-card)] border border-border bg-pure-white px-6 py-6 shadow-[var(--shadow)] outline-none",
+        highlightClass,
         className,
       )}
     >
