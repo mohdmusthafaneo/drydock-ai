@@ -565,8 +565,22 @@ export async function loadOverviewDashboard(input: {
     );
     const deltaFor = (id: string, score: number): number | null => {
       const prior = priorById.get(id);
-      if (prior == null) return null;
-      return score - prior;
+      if (prior != null) return score - prior;
+
+      // Approximate WoW when OverviewSnapshot history is not yet captured.
+      if (id === "delivery" && deliverySnapshot?.kpis.healthScoreDelta != null) {
+        return Math.round(deliverySnapshot.kpis.healthScoreDelta);
+      }
+      if (id === "code" && deliverySnapshot?.kpis.blockedDelta != null) {
+        return -Math.round(deliverySnapshot.kpis.blockedDelta);
+      }
+      if (id === "qa" && deliverySnapshot?.kpis.overdueDelta != null) {
+        return -Math.round(deliverySnapshot.kpis.overdueDelta);
+      }
+      if (id === "compliance" && resolvedWeek > 0) {
+        return Math.min(12, resolvedWeek);
+      }
+      return null;
     };
 
     const blockedDelta =

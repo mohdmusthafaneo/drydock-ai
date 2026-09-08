@@ -21,21 +21,21 @@ function sprintChipLabel(sprint: OverviewSprintOption): string {
  */
 export function selectOverviewModel(state: AppStoreState): OverviewDashboardModel {
   const { data, filters } = state;
+  const sprintId = filters.sprint ?? "37";
   const leaf = resolve(data.overview, {
     team: filters.team,
-    sprint: filters.sprint,
+    sprint: sprintId,
   });
 
-  const sprintId = filters.sprint ?? "37";
   const sprint =
     data.dimensions.sprints.find((s) => s.id === sprintId) ??
     data.dimensions.sprints.find((s) => s.id === "37") ??
     data.dimensions.sprints[0]!;
 
-  const caption =
-    sprint.id === "37"
-      ? leaf.deliveryConfidence.caption
-      : leaf.deliveryConfidence.caption.replace(/Sprint 37/g, sprint.name);
+  const caption = leaf.deliveryConfidence.caption.replace(
+    /Sprint \d+/g,
+    sprint.name,
+  );
 
   return {
     greetingName: data.user.greetingName,

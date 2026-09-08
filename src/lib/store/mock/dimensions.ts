@@ -14,6 +14,15 @@ const SPRINTS: OverviewSprintOption[] = [
     end: "2026-08-24",
   },
   {
+    id: "38",
+    name: "Sprint 38",
+    startLabel: "Aug 25",
+    endLabel: "Sep 7",
+    rangeLabel: "Aug 25 – Sep 7, 2026",
+    start: "2026-08-25",
+    end: "2026-09-07",
+  },
+  {
     id: "36",
     name: "Sprint 36",
     startLabel: "Jul 27",
@@ -23,13 +32,13 @@ const SPRINTS: OverviewSprintOption[] = [
     end: "2026-08-09",
   },
   {
-    id: "38",
-    name: "Sprint 38",
-    startLabel: "Aug 25",
-    endLabel: "Sep 7",
-    rangeLabel: "Aug 25 – Sep 7, 2026",
-    start: "2026-08-25",
-    end: "2026-09-07",
+    id: "35",
+    name: "Sprint 35",
+    startLabel: "Jul 13",
+    endLabel: "Jul 26",
+    rangeLabel: "Jul 13 – Jul 26, 2026",
+    start: "2026-07-13",
+    end: "2026-07-26",
   },
 ];
 

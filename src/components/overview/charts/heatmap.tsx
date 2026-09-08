@@ -13,10 +13,11 @@ const HEAT_COLORS = [
   "var(--heatmap-1)",
   "var(--heatmap-2)",
   "var(--heatmap-3)",
+  "var(--heatmap-4)",
 ] as const;
 
 function heatColor(value: number): string {
-  const step = Math.max(0, Math.min(3, Math.round(value)));
+  const step = Math.max(0, Math.min(4, Math.round(value)));
   return HEAT_COLORS[step]!;
 }
 

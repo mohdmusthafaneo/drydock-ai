@@ -76,9 +76,9 @@ function leafFromVariant(variant: TeamVariant): OverviewLeaf {
     },
     keyTakeaways: variant.takeaways,
     pillars: variant.pillars,
-    deliveryTrend: SHARED_TREND,
-    burndown: SHARED_BURNDOWN,
-    heatmap: SHARED_HEATMAP,
+    deliveryTrend: SPRINT_37_TREND,
+    burndown: SPRINT_37_BURNDOWN,
+    heatmap: SPRINT_37_HEATMAP,
     attention: {
       count: 2,
       message: variant.attentionMessage,
@@ -89,52 +89,274 @@ function leafFromVariant(variant: TeamVariant): OverviewLeaf {
   };
 }
 
-const SHARED_TREND: OverviewLeaf["deliveryTrend"] = {
+/** Sprint 37 charts — matches Overview mockup (declining confidence, behind plan). */
+const SPRINT_37_TREND: OverviewLeaf["deliveryTrend"] = {
   rangeLabel: "Last 6 weeks",
-  target: 80,
+  target: 75,
   points: [
     { label: "Jul 13", value: 94 },
-    { label: "Jul 16", value: 76 },
-    { label: "Jul 20", value: 68 },
-    { label: "Jul 23", value: 59 },
-    { label: "Jul 27", value: 45 },
-    { label: "Jul 30", value: 37 },
-    { label: "Aug 3", value: 17 },
-    { label: "Aug 10", value: 18 },
-    { label: "Aug 17", value: 8 },
+    { label: "Jul 16", value: 82 },
+    { label: "Jul 20", value: 76 },
+    { label: "Jul 23", value: 68 },
+    { label: "Jul 27", value: 59 },
+    { label: "Jul 30", value: 48 },
+    { label: "Aug 3", value: 41 },
+    { label: "Aug 10", value: 34 },
+    { label: "Aug 17", value: 28 },
     { label: "Aug 24", value: 22 },
   ],
 };
 
-const SHARED_BURNDOWN: OverviewLeaf["burndown"] = {
+const SPRINT_37_BURNDOWN: OverviewLeaf["burndown"] = {
   completed: 69,
   total: 117,
   ideal: [
-    { label: "Aug 10", value: 120 },
-    { label: "Aug 13", value: 96 },
-    { label: "Aug 16", value: 72 },
-    { label: "Aug 19", value: 48 },
-    { label: "Aug 22", value: 24 },
+    { label: "Aug 10", value: 117 },
+    { label: "Aug 12", value: 98 },
+    { label: "Aug 14", value: 78 },
+    { label: "Aug 16", value: 59 },
+    { label: "Aug 18", value: 39 },
+    { label: "Aug 20", value: 20 },
+    { label: "Aug 22", value: 10 },
     { label: "Aug 24", value: 0 },
   ],
   actual: [
-    { label: "Aug 10", value: 120 },
-    { label: "Aug 13", value: 105 },
-    { label: "Aug 16", value: 92 },
-    { label: "Aug 19", value: 70 },
-    { label: "Aug 22", value: 47 },
-    { label: "Aug 24", value: 28 },
+    { label: "Aug 10", value: 117 },
+    { label: "Aug 12", value: 112 },
+    { label: "Aug 14", value: 98 },
+    { label: "Aug 16", value: 91 },
+    { label: "Aug 18", value: 74 },
+    { label: "Aug 20", value: 62 },
+    { label: "Aug 22", value: 55 },
+    { label: "Aug 24", value: 48 },
   ],
 };
 
-const SHARED_HEATMAP: OverviewLeaf["heatmap"] = {
+const SPRINT_37_HEATMAP: OverviewLeaf["heatmap"] = {
   rangeLabel: "Last 2 weeks",
-  dayLabels: ["Aug 10", "Aug 13", "Aug 16", "Aug 19", "Aug 22", "Aug 24"],
+  dayLabels: [
+    "Aug 10",
+    "Aug 11",
+    "Aug 12",
+    "Aug 13",
+    "Aug 14",
+    "Aug 15",
+    "Aug 16",
+    "Aug 17",
+    "Aug 18",
+    "Aug 19",
+    "Aug 20",
+    "Aug 21",
+    "Aug 22",
+    "Aug 23",
+    "Aug 24",
+  ],
   rows: [
-    { label: "Commits", cells: [0, 0, 0, 2, 0, 3, 0, 2, 0, 1, 2, 0, 3, 0, 1, 0] },
-    { label: "PRs", cells: [1, 2, 3, 2, 0, 1, 3, 0, 2, 1, 0, 3, 2, 0, 1, 2] },
-    { label: "Jira updates", cells: [2, 1, 0, 3, 2, 1, 0, 2, 3, 0, 1, 0, 2, 3, 0, 2] },
-    { label: "Deployments", cells: [0, 1, 2, 0, 3, 2, 0, 1, 2, 0, 3, 1, 0, 2, 0, 3] },
+    { label: "Commits", cells: [1, 0, 2, 3, 1, 0, 4, 2, 0, 1, 2, 3, 1, 0, 2] },
+    { label: "PRs", cells: [0, 1, 2, 1, 3, 0, 2, 4, 1, 0, 2, 1, 3, 2, 1] },
+    { label: "Jira updates", cells: [2, 3, 1, 2, 0, 1, 3, 2, 4, 1, 0, 2, 3, 1, 2] },
+    { label: "Deployments", cells: [0, 0, 1, 0, 2, 0, 0, 1, 0, 3, 0, 1, 0, 2, 0] },
+  ],
+};
+
+/** Sprint 36 — closed strong; confidence recovering into the period. */
+const SPRINT_36_TREND: OverviewLeaf["deliveryTrend"] = {
+  rangeLabel: "Last 6 weeks",
+  target: 75,
+  points: [
+    { label: "Jun 29", value: 58 },
+    { label: "Jul 2", value: 61 },
+    { label: "Jul 6", value: 64 },
+    { label: "Jul 9", value: 70 },
+    { label: "Jul 13", value: 74 },
+    { label: "Jul 16", value: 78 },
+    { label: "Jul 20", value: 81 },
+    { label: "Jul 23", value: 84 },
+    { label: "Jul 27", value: 86 },
+    { label: "Aug 9", value: 88 },
+  ],
+};
+
+const SPRINT_36_BURNDOWN: OverviewLeaf["burndown"] = {
+  completed: 94,
+  total: 102,
+  ideal: [
+    { label: "Jul 27", value: 102 },
+    { label: "Jul 29", value: 85 },
+    { label: "Jul 31", value: 68 },
+    { label: "Aug 2", value: 51 },
+    { label: "Aug 4", value: 34 },
+    { label: "Aug 6", value: 17 },
+    { label: "Aug 9", value: 0 },
+  ],
+  actual: [
+    { label: "Jul 27", value: 102 },
+    { label: "Jul 29", value: 88 },
+    { label: "Jul 31", value: 71 },
+    { label: "Aug 2", value: 42 },
+    { label: "Aug 4", value: 28 },
+    { label: "Aug 6", value: 14 },
+    { label: "Aug 9", value: 8 },
+  ],
+};
+
+const SPRINT_36_HEATMAP: OverviewLeaf["heatmap"] = {
+  rangeLabel: "Last 2 weeks",
+  dayLabels: [
+    "Jul 27",
+    "Jul 28",
+    "Jul 29",
+    "Jul 30",
+    "Jul 31",
+    "Aug 1",
+    "Aug 2",
+    "Aug 3",
+    "Aug 4",
+    "Aug 5",
+    "Aug 6",
+    "Aug 7",
+    "Aug 8",
+    "Aug 9",
+  ],
+  rows: [
+    { label: "Commits", cells: [3, 2, 3, 1, 0, 2, 3, 3, 2, 0, 1, 2, 3, 2] },
+    { label: "PRs", cells: [2, 1, 3, 2, 0, 1, 2, 3, 1, 0, 2, 1, 2, 3] },
+    { label: "Jira updates", cells: [3, 3, 2, 1, 0, 2, 3, 2, 3, 1, 2, 0, 1, 2] },
+    { label: "Deployments", cells: [1, 0, 0, 2, 0, 0, 1, 0, 3, 0, 0, 1, 0, 2] },
+  ],
+};
+
+/** Sprint 38 — early sprint, climbing confidence, ahead of ideal so far. */
+const SPRINT_38_TREND: OverviewLeaf["deliveryTrend"] = {
+  rangeLabel: "Last 6 weeks",
+  target: 75,
+  points: [
+    { label: "Jul 27", value: 42 },
+    { label: "Jul 30", value: 38 },
+    { label: "Aug 3", value: 45 },
+    { label: "Aug 6", value: 52 },
+    { label: "Aug 10", value: 48 },
+    { label: "Aug 13", value: 55 },
+    { label: "Aug 17", value: 61 },
+    { label: "Aug 20", value: 58 },
+    { label: "Aug 24", value: 64 },
+    { label: "Sep 7", value: 67 },
+  ],
+};
+
+const SPRINT_38_BURNDOWN: OverviewLeaf["burndown"] = {
+  completed: 38,
+  total: 96,
+  ideal: [
+    { label: "Aug 25", value: 96 },
+    { label: "Aug 27", value: 80 },
+    { label: "Aug 29", value: 64 },
+    { label: "Aug 31", value: 48 },
+    { label: "Sep 2", value: 32 },
+    { label: "Sep 4", value: 16 },
+    { label: "Sep 7", value: 0 },
+  ],
+  actual: [
+    { label: "Aug 25", value: 96 },
+    { label: "Aug 27", value: 78 },
+    { label: "Aug 29", value: 70 },
+    { label: "Aug 31", value: 58 },
+    { label: "Sep 2", value: 52 },
+    { label: "Sep 4", value: 48 },
+    { label: "Sep 7", value: 58 },
+  ],
+};
+
+const SPRINT_38_HEATMAP: OverviewLeaf["heatmap"] = {
+  rangeLabel: "Last 2 weeks",
+  dayLabels: [
+    "Aug 25",
+    "Aug 26",
+    "Aug 27",
+    "Aug 28",
+    "Aug 29",
+    "Aug 30",
+    "Aug 31",
+    "Sep 1",
+    "Sep 2",
+    "Sep 3",
+    "Sep 4",
+    "Sep 5",
+    "Sep 6",
+    "Sep 7",
+  ],
+  rows: [
+    { label: "Commits", cells: [2, 3, 1, 0, 3, 2, 1, 0, 2, 3, 1, 0, 2, 3] },
+    { label: "PRs", cells: [1, 2, 0, 1, 2, 3, 0, 1, 3, 2, 0, 1, 2, 1] },
+    { label: "Jira updates", cells: [3, 1, 2, 0, 2, 1, 3, 0, 1, 2, 3, 0, 2, 1] },
+    { label: "Deployments", cells: [0, 1, 0, 0, 2, 0, 1, 0, 0, 3, 0, 0, 1, 0] },
+  ],
+};
+
+/** Sprint 35 — closed cleanly; flat-high confidence, burndown to zero. */
+const SPRINT_35_TREND: OverviewLeaf["deliveryTrend"] = {
+  rangeLabel: "Last 6 weeks",
+  target: 75,
+  points: [
+    { label: "Jun 15", value: 71 },
+    { label: "Jun 18", value: 74 },
+    { label: "Jun 22", value: 77 },
+    { label: "Jun 25", value: 79 },
+    { label: "Jun 29", value: 82 },
+    { label: "Jul 2", value: 84 },
+    { label: "Jul 6", value: 86 },
+    { label: "Jul 9", value: 85 },
+    { label: "Jul 13", value: 88 },
+    { label: "Jul 26", value: 91 },
+  ],
+};
+
+const SPRINT_35_BURNDOWN: OverviewLeaf["burndown"] = {
+  completed: 71,
+  total: 74,
+  ideal: [
+    { label: "Jul 13", value: 74 },
+    { label: "Jul 15", value: 62 },
+    { label: "Jul 17", value: 49 },
+    { label: "Jul 19", value: 37 },
+    { label: "Jul 21", value: 25 },
+    { label: "Jul 23", value: 12 },
+    { label: "Jul 26", value: 0 },
+  ],
+  actual: [
+    { label: "Jul 13", value: 74 },
+    { label: "Jul 15", value: 60 },
+    { label: "Jul 17", value: 44 },
+    { label: "Jul 19", value: 31 },
+    { label: "Jul 21", value: 18 },
+    { label: "Jul 23", value: 9 },
+    { label: "Jul 26", value: 3 },
+  ],
+};
+
+const SPRINT_35_HEATMAP: OverviewLeaf["heatmap"] = {
+  rangeLabel: "Last 2 weeks",
+  dayLabels: [
+    "Jul 13",
+    "Jul 14",
+    "Jul 15",
+    "Jul 16",
+    "Jul 17",
+    "Jul 18",
+    "Jul 19",
+    "Jul 20",
+    "Jul 21",
+    "Jul 22",
+    "Jul 23",
+    "Jul 24",
+    "Jul 25",
+    "Jul 26",
+  ],
+  rows: [
+    { label: "Commits", cells: [2, 1, 3, 2, 0, 1, 3, 2, 1, 0, 2, 1, 0, 1] },
+    { label: "PRs", cells: [1, 2, 1, 3, 0, 2, 1, 2, 3, 0, 1, 2, 0, 1] },
+    { label: "Jira updates", cells: [3, 2, 1, 2, 0, 3, 2, 1, 2, 0, 1, 3, 1, 0] },
+    { label: "Deployments", cells: [0, 0, 2, 0, 1, 0, 0, 3, 0, 0, 1, 0, 2, 0] },
   ],
 };
 
@@ -620,6 +842,309 @@ function teamPatch(variant: TeamVariant): DeepPartial<OverviewLeaf> {
   };
 }
 
+/** Org-level KPI story for a prior/next sprint (charts supplied separately). */
+function sprintOrgPatch(
+  variant: TeamVariant,
+  charts: {
+    deliveryTrend: OverviewLeaf["deliveryTrend"];
+    burndown: OverviewLeaf["burndown"];
+    heatmap: OverviewLeaf["heatmap"];
+  },
+): DeepPartial<OverviewLeaf> {
+  const leaf = leafFromVariant(variant);
+  return {
+    deliveryConfidence: leaf.deliveryConfidence,
+    keyTakeaways: leaf.keyTakeaways,
+    pillars: leaf.pillars,
+    attention: leaf.attention,
+    leadership: leaf.leadership,
+    deliveryTrend: charts.deliveryTrend,
+    burndown: charts.burndown,
+    heatmap: charts.heatmap,
+  };
+}
+
+const SPRINT_36_VARIANT: TeamVariant = {
+  score: 78,
+  band: "Steady",
+  caption: "Sprint 36 closed near plan",
+  completion: { value: "92%", progress: 92, annotation: "94 / 102" },
+  blocked: 5,
+  spillover: 2,
+  aiRisk: "4%",
+  aiRiskProgress: 4,
+  takeaways: [
+    {
+      id: "blocked",
+      title: "5 items blocked",
+      subtitle: "Down from prior sprint",
+      href: "/delivery-analysis?riskFocus=blockers",
+      tone: "warning",
+      glyph: "↗",
+    },
+    {
+      id: "at-risk",
+      title: "2 items at risk",
+      subtitle: "Carried into Sprint 37",
+      href: "/delivery-analysis?riskFocus=schedule",
+      tone: "info",
+      glyph: "◷",
+    },
+    {
+      id: "ai",
+      title: "AI code risk at 4%",
+      subtitle: "No high-risk areas",
+      href: "/code-analysis",
+      tone: "success",
+      glyph: "</>",
+    },
+    {
+      id: "compliance",
+      title: "1 compliance finding",
+      subtitle: "Resolved before close",
+      href: "/governance",
+      tone: "success",
+      glyph: "♢",
+    },
+  ],
+  pillars: [
+    {
+      id: "delivery",
+      name: "Delivery",
+      score: 88,
+      delta: 6,
+      footnote: "94 / 102 completed",
+      progress: 88,
+      tone: "steady",
+      glyph: "⚑",
+      href: PILLAR_HREFS.delivery,
+    },
+    {
+      id: "code",
+      name: "Code",
+      score: 74,
+      delta: 4,
+      footnote: "5 blocked issues",
+      progress: 74,
+      tone: "steady",
+      glyph: "</>",
+      href: PILLAR_HREFS.code,
+    },
+    {
+      id: "qa",
+      name: "QA",
+      score: 71,
+      delta: 8,
+      footnote: "48 open bugs",
+      progress: 71,
+      tone: "steady",
+      glyph: "⚗",
+      href: PILLAR_HREFS.qa,
+    },
+    {
+      id: "compliance",
+      name: "Compliance",
+      score: 82,
+      delta: 3,
+      footnote: "0 open findings",
+      progress: 82,
+      tone: "steady",
+      glyph: "♢",
+      href: PILLAR_HREFS.compliance,
+    },
+  ],
+  attentionMessage:
+    "Sprint 36 closed with 2 carry-over items — confirm they landed in Sprint 37.",
+};
+
+const SPRINT_38_VARIANT: TeamVariant = {
+  score: 64,
+  band: "Steady",
+  caption: "Sprint 38 is tracking early scope",
+  completion: { value: "40%", progress: 40, annotation: "38 / 96" },
+  blocked: 8,
+  spillover: 4,
+  aiRisk: "5%",
+  aiRiskProgress: 5,
+  takeaways: [
+    {
+      id: "blocked",
+      title: "8 items blocked",
+      subtitle: "Early-sprint dependency wait",
+      href: "/delivery-analysis?riskFocus=blockers",
+      tone: "warning",
+      glyph: "↗",
+      needsAction: true,
+    },
+    {
+      id: "at-risk",
+      title: "4 items at risk",
+      subtitle: "Watch mid-sprint scope",
+      href: "/delivery-analysis?riskFocus=schedule",
+      tone: "warning",
+      glyph: "◷",
+    },
+    {
+      id: "ai",
+      title: "AI code risk at 5%",
+      subtitle: "No high-risk areas",
+      href: "/code-analysis",
+      tone: "success",
+      glyph: "</>",
+    },
+    {
+      id: "compliance",
+      title: "2 compliance findings",
+      subtitle: "Opened this sprint",
+      href: "/governance",
+      tone: "warning",
+      glyph: "♢",
+      needsAction: true,
+    },
+  ],
+  pillars: [
+    {
+      id: "delivery",
+      name: "Delivery",
+      score: 62,
+      delta: 4,
+      footnote: "38 / 96 completed",
+      progress: 62,
+      tone: "steady",
+      glyph: "⚑",
+      href: PILLAR_HREFS.delivery,
+    },
+    {
+      id: "code",
+      name: "Code",
+      score: 70,
+      delta: 2,
+      footnote: "8 blocked issues",
+      progress: 70,
+      tone: "steady",
+      glyph: "</>",
+      href: PILLAR_HREFS.code,
+    },
+    {
+      id: "qa",
+      name: "QA",
+      score: 58,
+      delta: 6,
+      footnote: "96 open bugs",
+      progress: 58,
+      tone: "warning",
+      glyph: "⚗",
+      href: PILLAR_HREFS.qa,
+    },
+    {
+      id: "compliance",
+      name: "Compliance",
+      score: 68,
+      delta: -2,
+      footnote: "2 open findings",
+      progress: 68,
+      tone: "warning",
+      glyph: "♢",
+      href: PILLAR_HREFS.compliance,
+    },
+  ],
+  attentionMessage:
+    "8 early-sprint blockers need owners before mid-sprint check-in.",
+};
+
+const SPRINT_35_VARIANT: TeamVariant = {
+  score: 84,
+  band: "Steady",
+  caption: "Sprint 35 closed cleanly",
+  completion: { value: "96%", progress: 96, annotation: "71 / 74" },
+  blocked: 1,
+  spillover: 0,
+  aiRisk: "3%",
+  aiRiskProgress: 3,
+  takeaways: [
+    {
+      id: "blocked",
+      title: "1 item blocked",
+      subtitle: "Resolved at close",
+      href: "/delivery-analysis?riskFocus=blockers",
+      tone: "success",
+      glyph: "↗",
+    },
+    {
+      id: "at-risk",
+      title: "0 items at risk",
+      subtitle: "No spillover",
+      href: "/delivery-analysis?riskFocus=schedule",
+      tone: "success",
+      glyph: "◷",
+    },
+    {
+      id: "ai",
+      title: "AI code risk at 3%",
+      subtitle: "No high-risk areas",
+      href: "/code-analysis",
+      tone: "success",
+      glyph: "</>",
+    },
+    {
+      id: "compliance",
+      title: "0 compliance findings",
+      subtitle: "Clear at close",
+      href: "/governance",
+      tone: "success",
+      glyph: "♢",
+    },
+  ],
+  pillars: [
+    {
+      id: "delivery",
+      name: "Delivery",
+      score: 94,
+      delta: 10,
+      footnote: "71 / 74 completed",
+      progress: 94,
+      tone: "steady",
+      glyph: "⚑",
+      href: PILLAR_HREFS.delivery,
+    },
+    {
+      id: "code",
+      name: "Code",
+      score: 81,
+      delta: 5,
+      footnote: "1 blocked issue",
+      progress: 81,
+      tone: "steady",
+      glyph: "</>",
+      href: PILLAR_HREFS.code,
+    },
+    {
+      id: "qa",
+      name: "QA",
+      score: 76,
+      delta: 9,
+      footnote: "22 open bugs",
+      progress: 76,
+      tone: "steady",
+      glyph: "⚗",
+      href: PILLAR_HREFS.qa,
+    },
+    {
+      id: "compliance",
+      name: "Compliance",
+      score: 90,
+      delta: 4,
+      footnote: "0 open findings",
+      progress: 90,
+      tone: "steady",
+      glyph: "♢",
+      href: PILLAR_HREFS.compliance,
+    },
+  ],
+  attentionMessage:
+    "Sprint 35 closed with no spillover — keep the same ownership pattern.",
+};
+
 export function buildMockOverview(): Dimensioned<OverviewLeaf> {
   const byTeam: Dimensioned<OverviewLeaf>["byTeam"] = {};
   for (const [key, variant] of Object.entries(TEAM_VARIANTS)) {
@@ -628,6 +1153,23 @@ export function buildMockOverview(): Dimensioned<OverviewLeaf> {
   return {
     base: leafFromVariant(ORG_VARIANT),
     byTeam,
+    bySprint: {
+      "35": sprintOrgPatch(SPRINT_35_VARIANT, {
+        deliveryTrend: SPRINT_35_TREND,
+        burndown: SPRINT_35_BURNDOWN,
+        heatmap: SPRINT_35_HEATMAP,
+      }),
+      "36": sprintOrgPatch(SPRINT_36_VARIANT, {
+        deliveryTrend: SPRINT_36_TREND,
+        burndown: SPRINT_36_BURNDOWN,
+        heatmap: SPRINT_36_HEATMAP,
+      }),
+      "38": sprintOrgPatch(SPRINT_38_VARIANT, {
+        deliveryTrend: SPRINT_38_TREND,
+        burndown: SPRINT_38_BURNDOWN,
+        heatmap: SPRINT_38_HEATMAP,
+      }),
+    },
   };
 }
 

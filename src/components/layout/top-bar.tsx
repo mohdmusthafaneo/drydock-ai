@@ -117,7 +117,10 @@ function DateRangeButton({
   const searchParams = useSearchParams();
   const selectedId = searchParams.get("sprint");
   const selected =
-    sprints.find((s) => s.id === selectedId) ?? sprints[0] ?? null;
+    sprints.find((s) => s.id === selectedId) ??
+    sprints.find((s) => s.id === "37") ??
+    sprints[0] ??
+    null;
   const orderedSprints = [...sprints].sort((a, b) => {
     const byStart = b.start.localeCompare(a.start);
     return byStart !== 0 ? byStart : b.end.localeCompare(a.end);
