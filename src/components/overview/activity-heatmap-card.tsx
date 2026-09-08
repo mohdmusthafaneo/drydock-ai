@@ -1,9 +1,26 @@
-import { ChevronDown } from "lucide-react";
+"use client";
+
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { InfoTip } from "@/components/ui/info-tip";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ActivityHeatmap } from "@/components/overview/charts/heatmap";
 import type { OverviewDashboardModel } from "@/lib/overview/types";
+import {
+  ACTIVITY_HEATMAP_RANGES,
+  chartRangeFromLabel,
+  chartRangeOption,
+  takeLastPoints,
+} from "@/lib/overview/chart-ranges";
 import { cn } from "@/lib/utils";
+
+const DEFAULT_HEATMAP_RANGE = ACTIVITY_HEATMAP_RANGES[1]!;
 
 export function ActivityHeatmapCard({
   heatmap,
@@ -12,6 +29,21 @@ export function ActivityHeatmapCard({
   heatmap: OverviewDashboardModel["heatmap"];
   className?: string;
 }) {
+  const [range, setRange] = useState(() =>
+    chartRangeFromLabel(
+      heatmap.rangeLabel,
+      ACTIVITY_HEATMAP_RANGES,
+      DEFAULT_HEATMAP_RANGE.value,
+    ),
+  );
+
+  const option = chartRangeOption(range, ACTIVITY_HEATMAP_RANGES, DEFAULT_HEATMAP_RANGE);
+  const dayLabels = takeLastPoints(heatmap.dayLabels, option.takeLast);
+  const rows = heatmap.rows.map((row) => ({
+    ...row,
+    cells: takeLastPoints(row.cells, option.takeLast),
+  }));
+
   return (
     <Card
       className={cn(
@@ -30,16 +62,21 @@ export function ActivityHeatmapCard({
             evidenceSource="GitHub + CI + incidents"
           />
         </div>
-        <button
-          type="button"
-          className="inline-flex h-[33px] min-w-[128px] items-center justify-between gap-2 rounded-[9px] border border-border bg-pure-white px-3 text-[12px] text-[#334155]"
-        >
-          {heatmap.rangeLabel || "Last 2 weeks"}
-          <ChevronDown className="h-3.5 w-3.5 text-muted" strokeWidth={1.7} />
-        </button>
+        <Select value={range} onValueChange={setRange}>
+          <SelectTrigger className="h-[33px] w-auto min-w-[128px] gap-1 border-border text-[12px] text-[#334155]">
+            <SelectValue placeholder={DEFAULT_HEATMAP_RANGE.label} />
+          </SelectTrigger>
+          <SelectContent>
+            {ACTIVITY_HEATMAP_RANGES.map((r) => (
+              <SelectItem key={r.value} value={r.value}>
+                {r.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </CardHeader>
       <CardContent className="px-[18px] pt-0 pb-3">
-        <ActivityHeatmap rows={heatmap.rows} dayLabels={heatmap.dayLabels} />
+        <ActivityHeatmap rows={rows} dayLabels={dayLabels} />
       </CardContent>
     </Card>
   );
