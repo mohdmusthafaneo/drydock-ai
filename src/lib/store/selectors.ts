@@ -1,9 +1,18 @@
 import { resolve } from "@/lib/store/dimensions";
+import { MOCK_DEFAULT_SPRINT_ID } from "@/lib/store/mock/dimensions";
 import type {
   AppStoreState,
   OverviewDashboardModel,
   OverviewSprintOption,
 } from "@/lib/store/types";
+
+function defaultSprintId(state: AppStoreState): string {
+  return (
+    state.data.dimensions.sprints.find((s) => s.id === MOCK_DEFAULT_SPRINT_ID)?.id ??
+    state.data.dimensions.sprints[0]?.id ??
+    MOCK_DEFAULT_SPRINT_ID
+  );
+}
 
 export function greetingForHour(hour: number): string {
   if (hour < 12) return "Good morning";
@@ -21,7 +30,7 @@ function sprintChipLabel(sprint: OverviewSprintOption): string {
  */
 export function selectOverviewModel(state: AppStoreState): OverviewDashboardModel {
   const { data, filters } = state;
-  const sprintId = filters.sprint ?? "37";
+  const sprintId = filters.sprint ?? defaultSprintId(state);
   const leaf = resolve(data.overview, {
     team: filters.team,
     sprint: sprintId,
@@ -29,7 +38,7 @@ export function selectOverviewModel(state: AppStoreState): OverviewDashboardMode
 
   const sprint =
     data.dimensions.sprints.find((s) => s.id === sprintId) ??
-    data.dimensions.sprints.find((s) => s.id === "37") ??
+    data.dimensions.sprints.find((s) => s.id === MOCK_DEFAULT_SPRINT_ID) ??
     data.dimensions.sprints[0]!;
 
   const caption = leaf.deliveryConfidence.caption.replace(
@@ -77,10 +86,10 @@ export type ShellChrome = {
 /** TopBar / Sidebar chrome derived from AppData + filters. */
 export function selectShellChrome(state: AppStoreState): ShellChrome {
   const { data, filters } = state;
-  const sprintId = filters.sprint ?? "37";
+  const sprintId = filters.sprint ?? defaultSprintId(state);
   const active =
     data.dimensions.sprints.find((s) => s.id === sprintId) ??
-    data.dimensions.sprints.find((s) => s.id === "37");
+    data.dimensions.sprints.find((s) => s.id === MOCK_DEFAULT_SPRINT_ID);
 
   return {
     organizationName: data.org.name,

@@ -118,7 +118,6 @@ function DateRangeButton({
   const selectedId = searchParams.get("sprint");
   const selected =
     sprints.find((s) => s.id === selectedId) ??
-    sprints.find((s) => s.id === "37") ??
     sprints[0] ??
     null;
   const orderedSprints = [...sprints].sort((a, b) => {

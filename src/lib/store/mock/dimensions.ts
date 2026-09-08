@@ -1,67 +1,37 @@
 import type { AppDimensions } from "@/lib/store/types";
 import type { OverviewSprintOption } from "@/lib/overview/types";
+import { TPT_OVERVIEW_DERIVED } from "@/lib/store/mock/tpt-overview-derived";
 
 export { OVERVIEW_LAST_SYNC_AT } from "@/lib/store/mock/overview";
 
-const SPRINTS: OverviewSprintOption[] = [
-  {
-    id: "37",
-    name: "Sprint 37",
-    startLabel: "Aug 10",
-    endLabel: "Aug 24",
-    rangeLabel: "Aug 10 – Aug 24, 2026",
-    start: "2026-08-10",
-    end: "2026-08-24",
-  },
-  {
-    id: "38",
-    name: "Sprint 38",
-    startLabel: "Aug 25",
-    endLabel: "Sep 7",
-    rangeLabel: "Aug 25 – Sep 7, 2026",
-    start: "2026-08-25",
-    end: "2026-09-07",
-  },
-  {
-    id: "36",
-    name: "Sprint 36",
-    startLabel: "Jul 27",
-    endLabel: "Aug 9",
-    rangeLabel: "Jul 27 – Aug 9, 2026",
-    start: "2026-07-27",
-    end: "2026-08-09",
-  },
-  {
-    id: "35",
-    name: "Sprint 35",
-    startLabel: "Jul 13",
-    endLabel: "Jul 26",
-    rangeLabel: "Jul 13 – Jul 26, 2026",
-    start: "2026-07-13",
-    end: "2026-07-26",
-  },
-];
+const SPRINTS: OverviewSprintOption[] = TPT_OVERVIEW_DERIVED.sprints.map((s) => ({
+  id: s.id,
+  name: s.name,
+  startLabel: s.startLabel,
+  endLabel: s.endLabel,
+  rangeLabel: s.rangeLabel,
+  start: s.start,
+  end: s.end,
+}));
+
+const TEAMS = TPT_OVERVIEW_DERIVED.teams.map((t) => ({
+  key: t.key,
+  name: t.name,
+}));
 
 export const MOCK_DIMENSIONS: AppDimensions = {
-  teams: [
-    { key: "WEB", name: "Connexus Web" },
-    { key: "MOB", name: "Mobile App" },
-    { key: "DATA", name: "Data Platform" },
-    { key: "INFRA", name: "Infrastructure" },
-  ],
-  projects: [
-    { key: "WEB", name: "Connexus Web" },
-    { key: "MOB", name: "Mobile App" },
-    { key: "DATA", name: "Data Platform" },
-    { key: "INFRA", name: "Infrastructure" },
-  ],
+  teams: TEAMS,
+  projects: TEAMS.map((t) => ({ key: t.key, name: t.name })),
   sprints: SPRINTS,
   repos: [
-    { id: "connexus-web", name: "connexus-web", fullName: "connexus/connexus-web" },
-    { id: "connexus-mobile", name: "connexus-mobile", fullName: "connexus/connexus-mobile" },
+    { id: "tpt-platform", name: "tpt-platform", fullName: "tpt/tpt-platform" },
+    { id: "tpt-mobile", name: "tpt-mobile", fullName: "tpt/tpt-mobile" },
   ],
   services: [
     { id: "api-gateway", name: "api-gateway" },
     { id: "web-client", name: "web-client" },
   ],
 };
+
+/** Default sprint when filters.sprint is unset (current TPT sprint). */
+export const MOCK_DEFAULT_SPRINT_ID = TPT_OVERVIEW_DERIVED.defaultSprintId;

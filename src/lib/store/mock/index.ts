@@ -27,7 +27,7 @@ export function getMockAppData(): AppData {
       mode: "mock",
       provenance: {},
     },
-    org: { id: "org-connexus", name: "Connexus" },
+    org: { id: "org-tpt", name: "TPT Platform" },
     user: { name: "Krishna Nair", greetingName: "Krishna", role: "ORG_ADMIN" },
     dimensions: MOCK_DIMENSIONS,
     overview: buildMockOverview(),
