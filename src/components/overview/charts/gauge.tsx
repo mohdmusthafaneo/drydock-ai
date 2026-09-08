@@ -45,6 +45,13 @@ export function ConfidenceGauge({
   // Marker angle: 180 at 0, 0 at 100
   const markerAngle = 180 - (clamped / 100) * 180;
   const marker = polar(markerAngle, r);
+  // Darker shade of the segment the marker sits on (coral / amber / mint thirds).
+  const markerFill =
+    clamped < 100 / 3
+      ? "var(--gauge-marker-coral)"
+      : clamped < (100 * 2) / 3
+        ? "var(--gauge-marker-amber)"
+        : "var(--gauge-marker-mint)";
 
   const ticks = [0, 25, 50, 75, 100];
   // White radial gaps between coral / amber / mint (matches overview mockup).
@@ -101,7 +108,7 @@ export function ConfidenceGauge({
           cx={marker.x}
           cy={marker.y}
           r={7}
-          fill="var(--gauge-marker)"
+          fill={markerFill}
           stroke="#ffffff"
           strokeWidth={2.5}
         />

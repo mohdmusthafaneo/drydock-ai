@@ -83,7 +83,11 @@
   --gauge-coral: #ff9870;
   --gauge-amber: #f7c535;
   --gauge-mint: #7fdcc0;
-  --gauge-marker: #e7aa16;
+  /* Marker = darker shade of the arc segment underneath */
+  --gauge-marker-coral: #e85d2e;
+  --gauge-marker-amber: #d49a0f;
+  --gauge-marker-mint: #2f9f7a;
+  --gauge-marker: var(--gauge-marker-amber);
 
   --heatmap-0: #eef4fb;
   --heatmap-1: #d6e9fb;
@@ -200,6 +204,9 @@
   --color-gauge-amber: var(--gauge-amber);
   --color-gauge-mint: var(--gauge-mint);
   --color-gauge-marker: var(--gauge-marker);
+  --color-gauge-marker-coral: var(--gauge-marker-coral);
+  --color-gauge-marker-amber: var(--gauge-marker-amber);
+  --color-gauge-marker-mint: var(--gauge-marker-mint);
 
   --color-heatmap-0: var(--heatmap-0);
   --color-heatmap-1: var(--heatmap-1);
