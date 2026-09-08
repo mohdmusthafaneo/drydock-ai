@@ -1,4 +1,4 @@
-import { OverviewDashboard } from "@/components/overview/overview-dashboard";
+import { OverviewDashboardClient } from "@/components/overview/overview-dashboard-client";
 import {
   getOverviewFixture,
   shouldUseOverviewFixture,
@@ -40,5 +40,5 @@ export default async function OverviewDashboardPage({
         useFixture: false,
       });
 
-  return <OverviewDashboard model={model} />;
+  return <OverviewDashboardClient model={model} />;
 }
