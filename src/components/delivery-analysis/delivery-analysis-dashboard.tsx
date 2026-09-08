@@ -372,6 +372,9 @@ export function DeliveryAnalysisDashboard({
               verdictLabel={deliveryVerdict.verdictLabel}
               headline={deliveryVerdict.headline}
               subcopy={deliveryVerdict.subcopy}
+              deepLink={{
+                search: { key: "riskFocus", value: "blockers" },
+              }}
             />
           )}
 

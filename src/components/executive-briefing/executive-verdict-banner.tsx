@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import type { BriefingClaimVerdict } from "@/lib/executive-briefing/types";
 import { RevealSection } from "@/components/motion/reveal-section";
+import { useDeepLinkHighlight } from "@/components/motion/use-deep-link-highlight";
 
 const VERDICT_BADGE: Record<BriefingClaimVerdict, string> = {
   good: "border-border bg-success-soft text-success",
@@ -17,6 +18,11 @@ type Props = {
   headline: string;
   subcopy: string;
   className?: string;
+  /** Overview → evidence deep-link highlight (hash and/or query). */
+  deepLink?: {
+    hash?: string;
+    search?: { key: string; value: string };
+  };
 };
 
 export function ExecutiveVerdictBanner({
@@ -25,11 +31,21 @@ export function ExecutiveVerdictBanner({
   headline,
   subcopy,
   className,
+  deepLink,
 }: Props) {
+  const { ref, highlightClass } = useDeepLinkHighlight<HTMLElement>({
+    hash: deepLink?.hash,
+    search: deepLink?.search,
+  });
+
   return (
     <RevealSection
+      ref={ref}
+      tabIndex={deepLink ? -1 : undefined}
       className={cn(
         "rounded-[var(--radius-card)] border border-border bg-pure-white px-6 py-6 shadow-[var(--shadow)]",
+        deepLink && "scroll-mt-6 outline-none",
+        highlightClass,
         className,
       )}
     >
