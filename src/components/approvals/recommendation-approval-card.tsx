@@ -55,7 +55,7 @@ export function RecommendationApprovalCard({
   approvalId: string;
   recommendation: RecommendationApprovalData;
   riskScore: number | null;
-  /** When true, decisions stay local (Overview demo fixture). */
+  /** When true, decisions stay local (store mock / hybrid mode). */
   demoMode?: boolean;
 }) {
   const router = useRouter();

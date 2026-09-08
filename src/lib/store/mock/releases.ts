@@ -1,7 +1,9 @@
 import type { ReleaseDetailPayload, ReleasesData } from "@/lib/store/types";
 
+const SPRINT_37_ID = "rel-cnx-2026-s37";
+
 const sprint37Detail: ReleaseDetailPayload = {
-  id: "fixture-release-37",
+  id: SPRINT_37_ID,
   name: "Sprint 37 release",
   version: "37.0.0",
   status: "PENDING_APPROVAL",
@@ -27,14 +29,14 @@ const sprint37Detail: ReleaseDetailPayload = {
   detailNotes: [
     "30 blocked issues lack owner and ETA (aligned with Overview attention).",
     "16 spillover candidates remain in the Sprint 37 evidence set.",
-    "CI green on release/37; observability pairing healthy in demo mode.",
+    "CI is green on release/37; Prometheus and Grafana pairing look healthy.",
   ],
 };
 
 export const mockReleases: ReleasesData = {
   items: [
     {
-      id: "fixture-release-37",
+      id: SPRINT_37_ID,
       name: "Sprint 37 release",
       version: "37.0.0",
       status: "PENDING_APPROVAL",
@@ -43,7 +45,7 @@ export const mockReleases: ReleasesData = {
       incidentCount: 0,
     },
     {
-      id: "fixture-release-37-hotfix",
+      id: "rel-cnx-2026-s37-hotfix",
       name: "Sprint 37 hotfix candidate",
       version: "37.0.1-rc.1",
       status: "DETECTED",
@@ -53,6 +55,6 @@ export const mockReleases: ReleasesData = {
     },
   ],
   byId: {
-    "fixture-release-37": sprint37Detail,
+    [SPRINT_37_ID]: sprint37Detail,
   },
 };

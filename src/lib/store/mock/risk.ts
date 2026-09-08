@@ -4,7 +4,7 @@ export const mockRisk: RiskData = {
   available: true,
   title: "Release risk",
   description:
-    "Demo risk signals aligned with Overview attention for Sprint 37 — blocked backlog and spillover.",
+    "Risk signals aligned with Overview attention for Sprint 37 — blocked backlog and spillover.",
   items: [
     {
       id: "risk-blocked",

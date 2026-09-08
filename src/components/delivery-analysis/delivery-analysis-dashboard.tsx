@@ -168,7 +168,7 @@ export function DeliveryAnalysisDashboard({
       ? `last synced ${formatRelative(syncedAt)}`
       : lastSyncedAt
         ? `last synced ${formatRelative(lastSyncedAt)}`
-        : "demo evidence";
+        : "evidence set";
 
   return (
     <div className="space-y-[13px]">

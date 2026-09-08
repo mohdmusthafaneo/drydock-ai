@@ -6,20 +6,20 @@ const pendingRecommendation = {
   description:
     "31 blocked issues remain in the Sprint 37 evidence set. Leadership must decide whether to hold the release or accept spillover with an explicit owner and ETA.",
   rationale:
-    "Delivery confidence is Caution (48). Overview surfaces 1 decision needed so Approvals is not empty while the demo fixture is on.",
+    "Delivery confidence is Caution (48). One leadership decision is open on the Sprint 37 release gate.",
   impact: "HIGH",
   confidence: 0.78,
   requiredRole: "DELIVERY_MANAGER",
   queue: "RELEASE_GATE" as const,
   affectedSystems: ["Connexus Web", "Mobile App"],
   createdAt: "2026-08-20T14:00:00.000Z",
-  release: { id: "fixture-release-37", name: "Sprint 37 release" },
+  release: { id: "rel-cnx-2026-s37", name: "Sprint 37 release" },
 } satisfies RecommendationApprovalData;
 
 export const mockApprovals: ApprovalsData = {
   pending: [
     {
-      approvalId: "fixture-approval-sprint-gate",
+      approvalId: "apr-cnx-s37-release-gate",
       riskScore: 0.62,
       recommendation: pendingRecommendation,
     },
@@ -27,7 +27,7 @@ export const mockApprovals: ApprovalsData = {
   hero: {
     headline: "1 decision is waiting on leadership",
     subcopy:
-      "Demo fixture: sign off on the Sprint 37 release gate, or reject it with a recorded reason. This mirrors the Overview “1 decision needed” claim.",
+      "Sign off on the Sprint 37 release gate, or reject it with a recorded reason. This matches the Overview “1 decision needed” claim.",
   },
   decisionHistory: [],
 };

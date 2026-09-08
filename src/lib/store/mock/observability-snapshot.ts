@@ -14,7 +14,7 @@ const MOCK_SCOPES: PrometheusServiceScope[] = [
 const BASE_SNAPSHOT: ObservabilityAnalysisSnapshot = {
   generatedAt: new Date().toISOString(),
   serviceScopes: MOCK_SCOPES,
-  prometheusUrl: "https://prometheus.internal.example",
+  prometheusUrl: "https://prometheus.connexus.com",
   kpis: {
     healthScore: 84,
     healthScoreDelta: 3,

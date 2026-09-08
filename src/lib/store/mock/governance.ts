@@ -69,5 +69,5 @@ export const mockGovernance: GovernanceData = {
   summary: mockSummary,
   hasDna: true,
   dnaSummary:
-    "Connexus Delivery DNA (demo): staged autonomy with human approval on release gates. Risk threshold 40%. Workflow mode: gated.",
+    "Connexus Delivery DNA: staged autonomy with human approval on release gates. Risk threshold 40%. Workflow mode: gated.",
 };

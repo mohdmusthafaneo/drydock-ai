@@ -4,7 +4,7 @@ export const mockReports: ReportsData = {
   available: true,
   title: "Connexus reports",
   description:
-    "Demo exportable sections for Sprint 37 delivery confidence and attention evidence.",
+    "Exportable sections for Sprint 37 delivery confidence and attention evidence.",
   sections: [
     {
       id: "delivery-confidence",

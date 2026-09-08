@@ -53,9 +53,7 @@ export async function PlatformShell({
       role: session.role,
     },
   };
-  const overlay = liveOverlay
-    ? deepMerge(userOverlay, liveOverlay)
-    : userOverlay;
+  const overlay = deepMerge(userOverlay, liveOverlay);
 
   return (
     <AppDataProvider initialStatus="loading" overlay={overlay}>

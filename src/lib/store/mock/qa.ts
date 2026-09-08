@@ -51,7 +51,7 @@ const MOCK_QA_VIEW: AgentPageView = {
       tone: "attention",
     },
   ],
-  scope: "WEB, MOB, DATA, INFRA · Sprint 37 · demo evidence set",
+  scope: "WEB, MOB, DATA, INFRA · Sprint 37",
 };
 
 export const mockQa: QaData = {

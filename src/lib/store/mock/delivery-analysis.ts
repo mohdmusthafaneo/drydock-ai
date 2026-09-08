@@ -2,7 +2,7 @@ import type { DeliveryAnalysisSnapshot } from "@/lib/delivery-analysis/types";
 import type { DeliveryAnalysisData } from "@/lib/store/types";
 import { OVERVIEW_LAST_SYNC_AT } from "@/lib/store/mock/dimensions";
 
-/** Minimal demo snapshot aligned with Overview org leaf (31 blocked, 59% completion). */
+/** Snapshot aligned with Overview org leaf (31 blocked, 59% completion). */
 const MOCK_DELIVERY_SNAPSHOT: DeliveryAnalysisSnapshot = {
   generatedAt: OVERVIEW_LAST_SYNC_AT,
   projectKeys: ["WEB", "MOB", "DATA", "INFRA"],

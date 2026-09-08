@@ -9,6 +9,10 @@ function categoryForEntity(entityType: string): string {
   return "GOVERNANCE";
 }
 
+/**
+ * Overlay org-scoped rows when present. Does not replace the mock org display
+ * name — demos keep Connexus branding until you author a client-specific mock.
+ */
 export const orgOverlay: LiveAdapter = async (organizationId) => {
   const [org, members, releases, ctx] = await Promise.all([
     prisma.organization.findUnique({
@@ -36,25 +40,33 @@ export const orgOverlay: LiveAdapter = async (organizationId) => {
   if (!org) return {};
 
   const overlay: LiveOverlay = {
-    org: { id: org.id, name: org.name },
-    settings: {
-      organizationName: org.name,
+    org: { id: org.id },
+  };
+
+  if (members.length > 0) {
+    overlay.settings = {
       members: members.map((m) => ({
         id: m.id,
         name: m.name,
         email: m.email,
         role: m.role,
       })),
-    },
-    integrations: {
+    };
+  }
+
+  if (ctx.integrations.length > 0) {
+    overlay.integrations = {
       items: ctx.integrations.map((i) => ({
         id: i.id,
         provider: i.provider,
         status: i.status,
         lastSyncAt: i.lastSyncAt?.toISOString() ?? null,
       })),
-    },
-    audit: {
+    };
+  }
+
+  if (ctx.auditLogs.length > 0) {
+    overlay.audit = {
       logs: ctx.auditLogs.map((log) => ({
         id: log.id,
         action: log.action,
@@ -63,8 +75,11 @@ export const orgOverlay: LiveAdapter = async (organizationId) => {
         createdAt: log.createdAt.toISOString(),
         actorName: log.user?.name ?? log.actorType ?? null,
       })),
-    },
-    releases: {
+    };
+  }
+
+  if (releases.length > 0) {
+    overlay.releases = {
       items: releases.map((r) => ({
         id: r.id,
         name: r.name,
@@ -75,12 +90,15 @@ export const orgOverlay: LiveAdapter = async (organizationId) => {
         incidentCount: r._count.incidents,
       })),
       byId: {},
-    },
-    governance: {
-      hasDna: Boolean(ctx.dna),
-      dnaSummary: ctx.dna ? "Delivery DNA on file" : null,
-    },
-  };
+    };
+  }
+
+  if (ctx.dna) {
+    overlay.governance = {
+      hasDna: true,
+      dnaSummary: "Delivery DNA on file",
+    };
+  }
 
   const syncTimes = ctx.integrations
     .map((i) => i.lastSyncAt?.getTime() ?? 0)

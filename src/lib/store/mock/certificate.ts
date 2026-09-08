@@ -1,11 +1,11 @@
 import type { CertificateData } from "@/lib/store/types";
 
-/** Connexus Sprint 37 release certificate — unsigned demo. */
+/** Connexus Sprint 37 release certificate — unsigned. */
 export const mockCertificate: CertificateData = {
   release: {
-    id: "fixture-release-37",
+    id: "rel-cnx-2026-s37",
     name: "Connexus Sprint 37",
-    version: "2026.09.08",
+    version: "37.0.0",
     status: "PENDING_APPROVAL",
   },
   verifiedCount: 891,

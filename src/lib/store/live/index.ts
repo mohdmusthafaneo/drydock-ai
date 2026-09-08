@@ -13,11 +13,7 @@ import {
   standardOverlay,
 } from "@/lib/store/live/trust";
 import { orgOverlay } from "@/lib/store/live/org";
-import {
-  shouldApplyLiveOverlay,
-  type LiveAdapter,
-  type LiveOverlay,
-} from "@/lib/store/live/types";
+import type { LiveAdapter, LiveOverlay } from "@/lib/store/live/types";
 
 const ADAPTERS: LiveAdapter[] = [
   orgOverlay,
@@ -33,15 +29,12 @@ const ADAPTERS: LiveAdapter[] = [
 
 /**
  * Run all live adapters and deep-merge their overlays.
- * Returns null when live overlay is disabled (demo stays pure mock).
- * Individual adapters return {} when the org has no meaningful live data,
- * so mock fields remain until you opt a domain in.
+ * Adapters return `{}` when the org has no meaningful live data, so mock
+ * fields remain until real rows exist — no env flip required.
  */
 export async function buildLiveOverlay(
   organizationId: string,
-): Promise<LiveOverlay | null> {
-  if (!shouldApplyLiveOverlay()) return null;
-
+): Promise<LiveOverlay> {
   const parts = await Promise.all(
     ADAPTERS.map(async (adapter) => {
       try {
@@ -60,5 +53,4 @@ export async function buildLiveOverlay(
   return merged;
 }
 
-export { shouldApplyLiveOverlay } from "@/lib/store/live/types";
 export type { LiveOverlay, LiveAdapter } from "@/lib/store/live/types";
