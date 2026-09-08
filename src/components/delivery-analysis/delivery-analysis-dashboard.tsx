@@ -98,8 +98,8 @@ export function DeliveryAnalysisDashboard({
   initialProjectKey = null,
 }: Props) {
   const storeSnapshot = useAppData((s) => s.data.deliveryAnalysis.snapshot);
-  const scoreDerivation = useAppData(
-    (s) => selectOverviewModel(s).deliveryConfidence.derivation,
+  const deliveryConfidence = useAppData(
+    (s) => selectOverviewModel(s).deliveryConfidence,
   );
   const storeFilters = useFilters();
   const setFilter = useSetFilter();
@@ -129,8 +129,29 @@ export function DeliveryAnalysisDashboard({
 
   const snapshot = useMemo(() => {
     if (!storeSnapshot) return null;
-    return filterSnapshot(storeSnapshot, filters);
-  }, [storeSnapshot, filters]);
+    const filtered = filterSnapshot(storeSnapshot, filters);
+    // Project drill-down keeps local KPIs; otherwise overlay sprint/team-aware Overview counts.
+    if (filters.projectKey) return filtered;
+
+    const blocked = metricValue(deliveryConfidence.metrics, "blocked");
+    const spillover = metricValue(deliveryConfidence.metrics, "spillover");
+    const completion = metricValue(deliveryConfidence.metrics, "completion");
+
+    return {
+      ...filtered,
+      kpis: {
+        ...filtered.kpis,
+        healthScore: deliveryConfidence.score,
+        ...(blocked != null ? { blocked } : {}),
+        ...(spillover != null ? { spillover } : {}),
+        ...(completion != null ? { sprintCompletionPct: completion } : {}),
+      },
+      riskMix: {
+        ...filtered.riskMix,
+        ...(blocked != null ? { blocked } : {}),
+      },
+    };
+  }, [storeSnapshot, filters, deliveryConfidence]);
 
   const loadState = !storeSnapshot
     ? "missing"
@@ -163,14 +184,20 @@ export function DeliveryAnalysisDashboard({
 
   const deliveryVerdict = useMemo(() => {
     if (!snapshot) return null;
-    const activeSprint = snapshot.sprints.find((s) => s.state === "active");
+    // Prefer Overview leaf (sprint/team-aware) so the banner tracks the top-bar sprint.
+    const blocked =
+      metricValue(deliveryConfidence.metrics, "blocked") ?? snapshot.kpis.blocked;
+    const completion =
+      metricValue(deliveryConfidence.metrics, "completion") ??
+      snapshot.sprints.find((s) => s.state === "active")?.pct ??
+      snapshot.kpis.sprintCompletionPct;
     return buildDeliveryConfidenceOneLiner({
-      healthScore: snapshot.kpis.healthScore,
-      blocked: snapshot.kpis.blocked,
+      healthScore: deliveryConfidence.score,
+      blocked,
       overdue: snapshot.kpis.overdue,
-      sprintCompletionPct: activeSprint?.pct ?? snapshot.kpis.sprintCompletionPct,
+      sprintCompletionPct: completion,
     });
-  }, [snapshot]);
+  }, [snapshot, deliveryConfidence]);
 
   const syncMeta =
     loadState === "ready" && syncedAt
@@ -221,7 +248,7 @@ export function DeliveryAnalysisDashboard({
             />
           )}
 
-          <ScoreDerivationPanel derivation={scoreDerivation} />
+          <ScoreDerivationPanel derivation={deliveryConfidence.derivation} />
 
           {snapshot.jiraHygiene && <JiraHygieneBanner hygiene={snapshot.jiraHygiene} />}
 
@@ -267,6 +294,19 @@ export function DeliveryAnalysisDashboard({
       )}
     </div>
   );
+}
+
+function metricValue(
+  metrics: Array<{ id: string; value: number | string }>,
+  id: string,
+): number | null {
+  const raw = metrics.find((m) => m.id === id)?.value;
+  if (typeof raw === "number" && Number.isFinite(raw)) return raw;
+  if (typeof raw === "string") {
+    const parsed = Number.parseFloat(raw.replace(/%/g, ""));
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
 }
 
 function formatRelative(iso: string): string {

@@ -95,20 +95,18 @@ export function ScoreDerivationPanel({
         className,
       )}
     >
-      <div className="grid gap-4 lg:grid-cols-[minmax(11rem,13rem)_minmax(0,1fr)] lg:items-start lg:gap-10">
-        <span className="inline-flex w-fit items-center rounded-[8px] border border-border bg-elevated px-2.5 py-1 text-[11px] font-medium leading-none text-muted">
-          How this score is built
-        </span>
-        <div className="space-y-3">
-          {derivation.paragraphs.map((paragraph, i) => (
-            <p
-              key={i}
-              className="text-[16px] font-normal leading-[1.55] tracking-[-0.15px] text-secondary sm:text-[17px]"
-            >
-              {renderSegments(paragraph, `p${i}`)}
-            </p>
-          ))}
-        </div>
+      <span className="inline-flex w-fit items-center rounded-[8px] border border-border bg-elevated px-2.5 py-1 text-[11px] font-medium leading-none text-muted">
+        How this score is built
+      </span>
+      <div className="mt-3 space-y-3">
+        {derivation.paragraphs.map((paragraph, i) => (
+          <p
+            key={i}
+            className="text-[16px] font-normal leading-[1.55] tracking-[-0.15px] text-secondary sm:text-[17px]"
+          >
+            {renderSegments(paragraph, `p${i}`)}
+          </p>
+        ))}
       </div>
     </RevealSection>
   );
