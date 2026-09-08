@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { ObservabilityAnalysisFilters } from "@/lib/observability-analysis/types";
-import { getMockObservabilityAnalysisSnapshot } from "@/lib/observability-analysis/mock-data";
+import { getMockObservabilityAnalysisSnapshot } from "@/lib/store/mock/observability";
 import { AnalysisFiltersBar } from "@/components/observability/analysis-filters";
 import { KpiStrip } from "@/components/observability/kpi-strip";
 import { HealthMixChart } from "@/components/observability/health-mix-chart";
@@ -12,54 +12,73 @@ import { ResourcePressureCards } from "@/components/observability/resource-press
 import { OperationalSignalsCard } from "@/components/observability/operational-signals";
 import { AnalysisTabs } from "@/components/observability/analysis-tabs";
 import { CollectTelemetryButton } from "@/components/observability/collect-telemetry-button";
+import { useAppData, useFilters, useSetFilter } from "@/lib/store";
 
 type Props = {
-  serviceIds: string[];
-  lastSyncedAt: string | null;
-  canSync: boolean;
-  isMockData?: boolean;
+  canSync?: boolean;
 };
 
-export function ObservabilityDashboard({
-  serviceIds,
-  lastSyncedAt,
-  canSync,
-  isMockData = true,
-}: Props) {
-  const [filters, setFilters] = useState<ObservabilityAnalysisFilters>({
-    serviceId: null,
-    environment: "all",
-    range: "30d",
-    compare: "previous_sync",
-    riskFocus: "all",
-  });
+export function ObservabilityDashboard({ canSync = false }: Props) {
+  const storeSnapshot = useAppData((s) => s.data.observability.snapshot);
+  const availableScopes = useAppData((s) => s.data.observability.availableServiceScopes);
+  const lastSyncAt = useAppData((s) => s.data.meta.lastSyncAt);
+  const mode = useAppData((s) => s.data.meta.mode);
+  const storeFilters = useFilters();
+  const setFilter = useSetFilter();
+
+  const serviceIds = availableScopes.map((s) => s.id);
+
+  const filters: ObservabilityAnalysisFilters = useMemo(
+    () => ({
+      serviceId: storeFilters.serviceId,
+      environment:
+        (storeFilters.environment as ObservabilityAnalysisFilters["environment"] | null) ??
+        "all",
+      range: (storeFilters.range as ObservabilityAnalysisFilters["range"] | null) ?? "30d",
+      compare: "previous_sync",
+      riskFocus:
+        (storeFilters.riskFocus as ObservabilityAnalysisFilters["riskFocus"] | null) ?? "all",
+    }),
+    [
+      storeFilters.serviceId,
+      storeFilters.environment,
+      storeFilters.range,
+      storeFilters.riskFocus,
+    ],
+  );
+
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
 
-  const snapshot = useMemo(
-    () => getMockObservabilityAnalysisSnapshot(filters),
-    [filters],
-  );
+  const snapshot = useMemo(() => {
+    if (mode !== "live") {
+      return getMockObservabilityAnalysisSnapshot(filters);
+    }
+    return storeSnapshot;
+  }, [filters, mode, storeSnapshot]);
 
+  const demoMode = mode !== "live";
   const environmentLabel =
     filters.environment === "all" ? "all environments" : filters.environment;
 
-  const lastSyncedLabel = isMockData
-    ? "Mock data · sync Prometheus for live metrics"
-    : lastSyncedAt
-      ? `Live data · last synced ${formatRelative(lastSyncedAt)}`
+  const lastSyncedLabel = demoMode
+    ? "Demo evidence · sync Prometheus for live metrics"
+    : lastSyncAt
+      ? `Live data · last synced ${formatRelative(lastSyncAt)}`
       : "Not synced yet";
 
   function updateFilters(next: Partial<ObservabilityAnalysisFilters>) {
-    setFilters((prev) => ({ ...prev, ...next }));
+    setFilter({
+      ...(next.serviceId !== undefined ? { serviceId: next.serviceId } : {}),
+      ...(next.environment !== undefined ? { environment: next.environment } : {}),
+      ...(next.range !== undefined ? { range: next.range } : {}),
+      ...(next.riskFocus !== undefined ? { riskFocus: next.riskFocus } : {}),
+    });
   }
 
   function handleServiceSelect(id: string) {
-    setFilters((prev) => ({
-      ...prev,
-      serviceId: prev.serviceId === id ? null : id,
-    }));
+    setFilter({ serviceId: filters.serviceId === id ? null : id });
   }
 
   async function handleSync() {
@@ -93,23 +112,31 @@ export function ObservabilityDashboard({
     setSyncError("Export ships in P2 — snapshot API not yet available.");
   }
 
+  if (!snapshot) {
+    return (
+      <p className="rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm text-secondary">
+        No observability snapshot in the evidence set yet.
+      </p>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-secondary">
           Prometheus operational intelligence · {serviceIds.length} service
           {serviceIds.length === 1 ? "" : "s"}
-          {lastSyncedAt && !isMockData
-            ? ` · last synced ${formatRelative(lastSyncedAt)}`
+          {lastSyncAt && !demoMode
+            ? ` · last synced ${formatRelative(lastSyncAt)}`
             : ""}
         </p>
         <CollectTelemetryButton />
       </div>
 
-      {isMockData && (
+      {demoMode && (
         <p className="rounded-lg border border-brand/30 bg-brand-muted px-3 py-2 text-sm text-brand">
-          UI preview with mock data — connect and sync Prometheus on Integrations for live
-          operational metrics (P2).
+          UI preview with demo data aligned with Overview — connect and sync Prometheus on
+          Integrations for live operational metrics.
         </p>
       )}
 
@@ -122,7 +149,7 @@ export function ObservabilityDashboard({
         syncing={syncing}
         canSync={canSync}
         lastSyncedLabel={lastSyncedLabel}
-        exportDisabled={isMockData}
+        exportDisabled={demoMode}
       />
 
       {syncMessage && (

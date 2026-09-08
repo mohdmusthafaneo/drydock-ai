@@ -2,14 +2,18 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { QueryProvider } from "@/components/providers/query-provider";
-import { resolveStoredJiraDelivery } from "@/lib/delivery-analysis/resolve";
+import { ProvenanceBadge } from "@/components/store/provenance-badge";
+import { ShowcaseStatusBoot } from "@/components/store/showcase-status-boot";
 import { getIntegrationNavGates } from "@/lib/nav-availability";
-import { shouldUseOverviewFixture } from "@/lib/overview/fixture";
 import { getOrganizationContext } from "@/lib/org-data";
 import { isNavPathEnabled } from "@/lib/feature-flags";
 import { resolveLandingPath } from "@/lib/landing-path";
 import { prisma } from "@/lib/prisma";
 import type { SessionPayload } from "@/lib/session";
+import { AppDataProvider, FilterUrlSync } from "@/lib/store";
+import { buildLiveOverlay } from "@/lib/store/live";
+import { deepMerge, type DeepPartial } from "@/lib/store/deep";
+import type { AppData } from "@/lib/store/types";
 
 export async function PlatformShell({
   session,
@@ -27,12 +31,6 @@ export async function PlatformShell({
 
   const headersList = await headers();
   const pathname = headersList.get("x-pathname") ?? "";
-  const search = headersList.get("x-search") ?? headersList.get("x-url") ?? "";
-  const fixtureParam = new URLSearchParams(
-    search.startsWith("?") ? search.slice(1) : search,
-  ).get("fixture");
-  // Demo stage: Connexus shell fixture on by default; fixture=0 uses live data.
-  const useFixtureProjects = shouldUseOverviewFixture(fixtureParam);
 
   const ctx = await getOrganizationContext(session.organizationId);
   const homePath = resolveLandingPath({
@@ -45,76 +43,34 @@ export async function PlatformShell({
   }
 
   const integrationGates = getIntegrationNavGates(ctx.integrations);
+  const greetingName = session.name.split(/\s+/)[0] || session.name;
 
-  let projects: { key: string; name: string }[] = [];
-  if (useFixtureProjects) {
-    projects = [
-      { key: "WEB", name: "Connexus Web" },
-      { key: "MOB", name: "Mobile App" },
-      { key: "DATA", name: "Data Platform" },
-      { key: "INFRA", name: "Infrastructure" },
-    ];
-  } else {
-    try {
-      const stored = await resolveStoredJiraDelivery(session.organizationId);
-      if (stored?.snapshot.projects?.length) {
-        projects = stored.snapshot.projects.map((p) => ({
-          key: p.key,
-          name: p.name,
-        }));
-      }
-    } catch {
-      projects = [];
-    }
-  }
-
-  const syncAgg = await prisma.integration.aggregate({
-    where: { organizationId: session.organizationId },
-    _max: { lastSyncAt: true },
-  });
-  const lastSyncAt = useFixtureProjects
-    ? "2026-08-24T10:49:00.000Z"
-    : (syncAgg._max.lastSyncAt?.toISOString() ?? null);
-
-  const fixtureSprints = useFixtureProjects
-    ? [
-        {
-          id: "37",
-          label: "Sprint 37 | Aug 10 – Aug 24",
-          start: "2026-08-10",
-          end: "2026-08-24",
-        },
-        {
-          id: "36",
-          label: "Sprint 36 | Jul 27 – Aug 9",
-          start: "2026-07-27",
-          end: "2026-08-09",
-        },
-        {
-          id: "38",
-          label: "Sprint 38 | Aug 25 – Sep 7",
-          start: "2026-08-25",
-          end: "2026-09-07",
-        },
-      ]
-    : [];
+  const liveOverlay = await buildLiveOverlay(session.organizationId);
+  const userOverlay: DeepPartial<AppData> = {
+    user: {
+      name: session.name,
+      greetingName,
+      role: session.role,
+    },
+  };
+  const overlay = liveOverlay
+    ? deepMerge(userOverlay, liveOverlay)
+    : userOverlay;
 
   return (
-    <AppShell
-      session={session}
-      integrationGates={integrationGates}
-      homePath={homePath}
-      organizationName={useFixtureProjects ? "Connexus" : org.name}
-      projects={projects}
-      lastSyncAt={lastSyncAt}
-      activeSprintLabel={
-        useFixtureProjects ? "Sprint 37 | Aug 10 – Aug 24" : undefined
-      }
-      sprints={fixtureSprints}
-      activationMode={false}
-      hasDna={Boolean(ctx.dna)}
-    >
-      <QueryProvider>{children}</QueryProvider>
-    </AppShell>
+    <AppDataProvider initialStatus="loading" overlay={overlay}>
+      <FilterUrlSync />
+      <ShowcaseStatusBoot />
+      <ProvenanceBadge />
+      <AppShell
+        session={session}
+        integrationGates={integrationGates}
+        homePath={homePath}
+        activationMode={false}
+        hasDna={Boolean(ctx.dna)}
+      >
+        <QueryProvider>{children}</QueryProvider>
+      </AppShell>
+    </AppDataProvider>
   );
 }

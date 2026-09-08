@@ -354,7 +354,7 @@ function computeMockSnapshot(
     trend: TREND_BY_RANGE[range],
     files: [
       {
-        path: "src/lib/code-analysis/mock-data.ts",
+        path: "src/lib/store/mock/code-analysis-snapshot.ts",
         repo: "aidos-neo/platform",
         changeCount: 12,
         aiLinesPct: 88,

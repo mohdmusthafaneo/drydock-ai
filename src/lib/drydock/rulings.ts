@@ -3,7 +3,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
-import { RULING_REASONS } from "@/lib/drydock/mock-data";
+import { RULING_REASONS } from "@/lib/drydock/types";
 import type { RulingReasonCode } from "@/generated/prisma/client";
 
 const CODE_MAP: Record<string, RulingReasonCode> = {

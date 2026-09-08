@@ -44,7 +44,7 @@ import { ensureAwsIntegrationRow } from "@/lib/ensure-aws-integration";
 import { ensureSlackIntegrationRow } from "@/lib/ensure-slack-integration";
 import { decryptToken } from "@/lib/token-crypto";
 import { ConnectorConfigureDisclosure } from "@/components/integrations/connector-configure-disclosure";
-import { MoreConnectorsSection } from "@/components/integrations/more-connectors-section";
+import { IntegrationsStatusFromStore } from "@/components/integrations/integrations-status-from-store";
 
 const PROVIDER_LABELS: Record<string, string> = {
   GITHUB: "GitHub",
@@ -243,6 +243,8 @@ export default async function IntegrationsPage({
       </PageHeader>
 
       {handoff === "1" && <ConnectHandoffBanner connected={connectedParam} />}
+
+      <IntegrationsStatusFromStore />
 
       {integrations.length > 0 && (
         <RevealSection>

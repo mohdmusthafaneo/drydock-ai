@@ -115,16 +115,7 @@ export function ObservabilityPageClient({
       return <SyncPrometheusEmpty serviceScopes={serviceScopes} />;
     }
     return (
-      <ObservabilityDashboard
-        serviceIds={
-          serviceScopes.length > 0
-            ? serviceScopes.map((s) => s.id)
-            : ["api-gateway", "web-client"]
-        }
-        lastSyncedAt={prometheusLastSyncedAt}
-        canSync={canSync}
-        isMockData={showP1MockPreview || !prometheusHasSnapshot}
-      />
+      <ObservabilityDashboard canSync={canSync} />
     );
   }
 

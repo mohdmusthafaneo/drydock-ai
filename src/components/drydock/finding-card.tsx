@@ -7,7 +7,7 @@ import {
   RULING_REASONS,
   verbLabel,
   type MockFinding,
-} from "@/lib/drydock/mock-data";
+} from "@/lib/drydock/types";
 import { Button } from "@/components/ui/button";
 
 const VERB_STYLES: Record<MockFinding["verb"], string> = {

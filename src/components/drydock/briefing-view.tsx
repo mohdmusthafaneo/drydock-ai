@@ -8,7 +8,7 @@ import { FindingCard } from "@/components/drydock/finding-card";
 import {
   formatAsOf,
   type MockBriefing,
-} from "@/lib/drydock/mock-data";
+} from "@/lib/drydock/types";
 
 type Props = {
   briefing: MockBriefing;

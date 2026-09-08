@@ -4,7 +4,7 @@ import { getSession } from "@/lib/session";
 import { requirePermission } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
 import { resolveStoredCodeAnalysis, snapshotForFilters } from "@/lib/code-analysis/sync";
-import { getMockCodeAnalysisSnapshot } from "@/lib/code-analysis/mock-data";
+import { getMockCodeAnalysisSnapshot } from "@/lib/store/mock/code-analysis";
 import type { CodeAnalysisFilters } from "@/lib/code-analysis/types";
 
 const querySchema = z.object({

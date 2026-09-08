@@ -1,14 +1,15 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { CommandPalette } from "@/components/ui/command-palette";
 import { MobileNav } from "@/components/layout/mobile-nav";
-import { Sidebar, type SidebarProject } from "@/components/layout/sidebar";
-import { TopBar, type TopBarSprint } from "@/components/layout/top-bar";
+import { Sidebar } from "@/components/layout/sidebar";
+import { TopBar } from "@/components/layout/top-bar";
 import type { SessionPayload } from "@/lib/session";
 import type { IntegrationNavGates } from "@/lib/nav-availability";
 import { getSectionTabs } from "@/lib/workspace-mode";
+import { useAppData, useFilters, useSetFilter, selectShellChrome } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 function isChatPath(pathname: string): boolean {
@@ -44,11 +45,6 @@ export function AppShell({
   session,
   integrationGates,
   homePath,
-  organizationName,
-  projects = [],
-  lastSyncAt = null,
-  activeSprintLabel,
-  sprints = [],
   activationMode = false,
   hasDna = false,
   children,
@@ -56,19 +52,15 @@ export function AppShell({
   session: SessionPayload;
   integrationGates?: IntegrationNavGates;
   homePath: string;
-  organizationName: string;
-  projects?: SidebarProject[];
-  lastSyncAt?: string | null;
-  activeSprintLabel?: string;
-  sprints?: TopBarSprint[];
   activationMode?: boolean;
   hasDna?: boolean;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const activeTeam = searchParams.get("team");
+  const chrome = useAppData(selectShellChrome);
+  const filters = useFilters();
+  const setFilter = useSetFilter();
   const [paletteOpen, setPaletteOpen] = useState(false);
 
   const chatMode = isChatPath(pathname);
@@ -77,29 +69,26 @@ export function AppShell({
 
   const destinations = useMemo(() => getSectionTabs(), []);
   const dateRangeLabel =
-    activeSprintLabel ??
-    sprints[0]?.label ??
+    chrome.activeSprintLabel ??
+    chrome.sprints[0]?.label ??
     "Current sprint";
 
   const onSelectWorkspace = useCallback(
     (key: string) => {
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("team", key);
-      const qs = params.toString();
-      const base = pathname.startsWith("/dashboard") ? "/dashboard" : "/dashboard";
-      router.push(qs ? `${base}?${qs}` : base);
+      setFilter({ team: key });
+      router.push("/dashboard");
     },
-    [pathname, router, searchParams],
+    [router, setFilter],
   );
 
   return (
     <div className="app-canvas flex h-dvh overflow-hidden bg-base text-primary">
       <Sidebar
-        organizationName={organizationName}
+        organizationName={chrome.organizationName}
         homePath={homePath}
-        projects={projects}
-        lastSyncAt={lastSyncAt}
-        activeTeam={activeTeam}
+        projects={chrome.projects}
+        lastSyncAt={chrome.lastSyncAt}
+        activeTeam={filters.team}
         onOpenCommandPalette={() => setPaletteOpen(true)}
       />
 
@@ -108,7 +97,7 @@ export function AppShell({
           <TopBar
             session={session}
             dateRangeLabel={dateRangeLabel}
-            sprints={sprints}
+            sprints={chrome.sprints}
           />
         ) : null}
         <main
@@ -149,7 +138,7 @@ export function AppShell({
         open={paletteOpen}
         onOpenChange={setPaletteOpen}
         destinations={destinations}
-        workspaces={projects}
+        workspaces={chrome.projects}
         onSelectWorkspace={onSelectWorkspace}
       />
     </div>

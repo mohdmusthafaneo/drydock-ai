@@ -1,21 +1,19 @@
 /**
- * Load Briefing / Ledger view models from DryDock tables.
- * Falls back to mock when the org has no trust states yet.
+ * Load Briefing / Ledger view models from DryDock tables (live adapters).
+ * Empty orgs return zeroed structures with source "db" — UI demo data comes from AppData store.
  */
 
 import { prisma } from "@/lib/prisma";
-import {
-  MOCK_BRIEFING,
-  MOCK_LEDGER,
-  type AttentionVerb,
-  type FindingSeverity,
-  type MockBriefing,
-  type MockFinding,
-  type MockLedger,
-  type MockTestCase,
-  type MockTrustBucket,
-  type TrustDeficitReason,
-} from "@/lib/drydock/mock-data";
+import type {
+  AttentionVerb,
+  FindingSeverity,
+  MockBriefing,
+  MockFinding,
+  MockLedger,
+  MockTestCase,
+  MockTrustBucket,
+  TrustDeficitReason,
+} from "@/lib/drydock/types";
 import type {
   AttentionVerb as DbVerb,
   FindingSeverity as DbSeverity,
@@ -150,15 +148,29 @@ async function sampleTestsForReason(
   }));
 }
 
+function emptyLedger(asOf = new Date().toISOString()): MockLedger {
+  return {
+    asOf,
+    repositoriesAnalyzed: 0,
+    runsAnalyzed: 0,
+    totalTests: 0,
+    trustedCount: 0,
+    untrustedCount: 0,
+    sinceLastReleaseLabel: "since last release",
+    blindSpots: ["Connect GitHub and sync to ingest JUnit artifacts, or seed the pilot"],
+    buckets: [],
+  };
+}
+
 export async function loadLedger(organizationId: string): Promise<{
   ledger: MockLedger;
-  source: "db" | "mock";
+  source: "db";
 }> {
   const trustCount = await prisma.testTrustState.count({
     where: { organizationId },
   });
   if (trustCount === 0) {
-    return { ledger: MOCK_LEDGER, source: "mock" };
+    return { ledger: emptyLedger(), source: "db" };
   }
 
   const [totalTests, trustedCount, runsAnalyzed, repos, blind] = await Promise.all([
@@ -231,11 +243,23 @@ export async function loadLedger(organizationId: string): Promise<{
 
 export async function loadBriefing(organizationId: string): Promise<{
   briefing: MockBriefing;
-  source: "db" | "mock";
+  source: "db";
 }> {
-  const { ledger, source } = await loadLedger(organizationId);
-  if (source === "mock") {
-    return { briefing: MOCK_BRIEFING, source: "mock" };
+  const { ledger } = await loadLedger(organizationId);
+  if (ledger.totalTests === 0 && ledger.buckets.length === 0) {
+    return {
+      source: "db",
+      briefing: {
+        asOf: ledger.asOf,
+        queueMinutes: 0,
+        silence: true,
+        nextReleaseLabel: "",
+        demotedCount: 0,
+        demotedSummary: "0 items look covered by earlier decisions",
+        findings: [],
+        ledger,
+      },
+    };
   }
 
   const [openFindings, demotedCount, ruled] = await Promise.all([

@@ -1,57 +1,21 @@
-import type { OverviewDashboardModel, OverviewSprintOption } from "@/lib/overview/types";
+import type { OverviewDashboardModel } from "@/lib/overview/types";
 import { METRIC_HREFS, PILLAR_HREFS } from "@/lib/overview/nav-context";
+import { type Dimensioned } from "@/lib/store/dimensions";
+import type { DeepPartial } from "@/lib/store/deep";
 
-/**
- * Demo stage: Connexus Overview fixture is on by default in all environments
- * (including production / Docker). Opt out with `?fixture=0` or
- * `DRYDOCK_OVERVIEW_FIXTURE=0`.
- */
-export function shouldUseOverviewFixture(
-  fixtureParam?: string | null,
-): boolean {
-  const flag = fixtureParam?.trim().toLowerCase();
-  if (flag === "0" || flag === "false" || flag === "off") return false;
-  if (flag === "1" || flag === "true" || flag === "on") return true;
+export const OVERVIEW_LAST_SYNC_AT = "2026-08-24T10:49:00.000Z";
 
-  const env = process.env.DRYDOCK_OVERVIEW_FIXTURE?.trim().toLowerCase();
-  if (env === "0" || env === "false" || env === "off") return false;
-  if (env === "1" || env === "true" || env === "on") return true;
-
-  return true;
-}
-
-/** Fixed ISO so SSR and client agree (avoids relative-time hydration churn). */
-export const OVERVIEW_FIXTURE_LAST_SYNC_AT = "2026-08-24T10:49:00.000Z";
-
-const SPRINTS: OverviewSprintOption[] = [
-  {
-    id: "37",
-    name: "Sprint 37",
-    startLabel: "Aug 10",
-    endLabel: "Aug 24",
-    rangeLabel: "Aug 10 – Aug 24, 2026",
-    start: "2026-08-10",
-    end: "2026-08-24",
-  },
-  {
-    id: "36",
-    name: "Sprint 36",
-    startLabel: "Jul 27",
-    endLabel: "Aug 9",
-    rangeLabel: "Jul 27 – Aug 9, 2026",
-    start: "2026-07-27",
-    end: "2026-08-09",
-  },
-  {
-    id: "38",
-    name: "Sprint 38",
-    startLabel: "Aug 25",
-    endLabel: "Sep 7",
-    rangeLabel: "Aug 25 – Sep 7, 2026",
-    start: "2026-08-25",
-    end: "2026-09-07",
-  },
-];
+type OverviewLeaf = {
+  deliveryConfidence: OverviewDashboardModel["deliveryConfidence"];
+  keyTakeaways: OverviewDashboardModel["keyTakeaways"];
+  pillars: OverviewDashboardModel["pillars"];
+  deliveryTrend: OverviewDashboardModel["deliveryTrend"];
+  burndown: OverviewDashboardModel["burndown"];
+  heatmap: OverviewDashboardModel["heatmap"];
+  attention: OverviewDashboardModel["attention"];
+  leadership: OverviewDashboardModel["leadership"];
+  empty: boolean;
+};
 
 type TeamVariant = {
   score: number;
@@ -65,6 +29,113 @@ type TeamVariant = {
   takeaways: OverviewDashboardModel["keyTakeaways"];
   pillars: OverviewDashboardModel["pillars"];
   attentionMessage: string;
+};
+
+function leafFromVariant(variant: TeamVariant): OverviewLeaf {
+  return {
+    deliveryConfidence: {
+      score: variant.score,
+      band: variant.band,
+      caption: variant.caption,
+      href: "/delivery-analysis",
+      metrics: [
+        {
+          id: "completion",
+          label: "Sprint completion",
+          value: variant.completion.value,
+          progress: variant.completion.progress,
+          annotation: variant.completion.annotation,
+          icon: "flag",
+          href: METRIC_HREFS.completion,
+        },
+        {
+          id: "blocked",
+          label: "Items blocked",
+          value: variant.blocked,
+          progress: Math.min(100, variant.blocked),
+          icon: "circle-x",
+          href: METRIC_HREFS.blocked,
+        },
+        {
+          id: "spillover",
+          label: "Items spilling over",
+          value: variant.spillover,
+          progress: Math.min(100, variant.spillover),
+          icon: "trend-up",
+          href: METRIC_HREFS.spillover,
+        },
+        {
+          id: "ai-risk",
+          label: "AI code risk",
+          value: variant.aiRisk,
+          progress: variant.aiRiskProgress,
+          icon: "x",
+          href: METRIC_HREFS["ai-risk"],
+        },
+      ],
+    },
+    keyTakeaways: variant.takeaways,
+    pillars: variant.pillars,
+    deliveryTrend: SHARED_TREND,
+    burndown: SHARED_BURNDOWN,
+    heatmap: SHARED_HEATMAP,
+    attention: {
+      count: 2,
+      message: variant.attentionMessage,
+      href: "/attention",
+    },
+    leadership: { count: 1, href: "/approvals" },
+    empty: false,
+  };
+}
+
+const SHARED_TREND: OverviewLeaf["deliveryTrend"] = {
+  rangeLabel: "Last 6 weeks",
+  target: 80,
+  points: [
+    { label: "Jul 13", value: 94 },
+    { label: "Jul 16", value: 76 },
+    { label: "Jul 20", value: 68 },
+    { label: "Jul 23", value: 59 },
+    { label: "Jul 27", value: 45 },
+    { label: "Jul 30", value: 37 },
+    { label: "Aug 3", value: 17 },
+    { label: "Aug 10", value: 18 },
+    { label: "Aug 17", value: 8 },
+    { label: "Aug 24", value: 22 },
+  ],
+};
+
+const SHARED_BURNDOWN: OverviewLeaf["burndown"] = {
+  completed: 69,
+  total: 117,
+  ideal: [
+    { label: "Aug 10", value: 120 },
+    { label: "Aug 13", value: 96 },
+    { label: "Aug 16", value: 72 },
+    { label: "Aug 19", value: 48 },
+    { label: "Aug 22", value: 24 },
+    { label: "Aug 24", value: 0 },
+  ],
+  actual: [
+    { label: "Aug 10", value: 120 },
+    { label: "Aug 13", value: 105 },
+    { label: "Aug 16", value: 92 },
+    { label: "Aug 19", value: 70 },
+    { label: "Aug 22", value: 47 },
+    { label: "Aug 24", value: 28 },
+  ],
+};
+
+const SHARED_HEATMAP: OverviewLeaf["heatmap"] = {
+  rangeLabel: "Last 2 weeks",
+  dayLabels: ["Aug 10", "Aug 13", "Aug 16", "Aug 19", "Aug 22", "Aug 24"],
+  rows: [
+    { label: "Commits", cells: [0, 0, 0, 2, 0, 3, 0, 2, 0, 1, 2, 0, 3, 0, 1, 0] },
+    { label: "PRs", cells: [1, 2, 3, 2, 0, 1, 3, 0, 2, 1, 0, 3, 2, 0, 1, 2] },
+    { label: "Jira updates", cells: [2, 1, 0, 3, 2, 1, 0, 2, 3, 0, 1, 0, 2, 3, 0, 2] },
+    { label: "Deployments", cells: [0, 1, 2, 0, 3, 2, 0, 1, 2, 0, 3, 1, 0, 2, 0, 3] },
+  ],
 };
 
 const ORG_VARIANT: TeamVariant = {
@@ -539,160 +610,26 @@ const TEAM_VARIANTS: Record<string, TeamVariant> = {
   },
 };
 
-function greetingForHour(hour: number): string {
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
-}
-
-/** Pixel-target fixture matching Connexus Overview (+ team/sprint variance). */
-export function getOverviewFixture(
-  overrides?: Partial<
-    Pick<OverviewDashboardModel, "greetingName" | "teamKey">
-  > & { sprintId?: string | null; greetingHour?: number },
-): OverviewDashboardModel {
-  const teamKey = overrides?.teamKey ?? null;
-  const variant =
-    (teamKey && TEAM_VARIANTS[teamKey]) || ORG_VARIANT;
-
-  const sprintId = overrides?.sprintId ?? "37";
-  const sprint =
-    SPRINTS.find((s) => s.id === sprintId) ?? SPRINTS.find((s) => s.id === "37")!;
-
-  const hour = overrides?.greetingHour ?? new Date().getHours();
-
+function teamPatch(variant: TeamVariant): DeepPartial<OverviewLeaf> {
+  const leaf = leafFromVariant(variant);
   return {
-    greetingName: overrides?.greetingName ?? "Krishna",
-    greeting: greetingForHour(hour),
-    sprint: {
-      id: sprint.id,
-      name: sprint.name,
-      startLabel: sprint.startLabel,
-      endLabel: sprint.endLabel,
-      rangeLabel: sprint.rangeLabel,
-    },
-    sprints: SPRINTS,
-    teamKey,
-    teams: [
-      { key: "WEB", name: "Connexus Web" },
-      { key: "MOB", name: "Mobile App" },
-      { key: "DATA", name: "Data Platform" },
-      { key: "INFRA", name: "Infrastructure" },
-    ],
-    deliveryConfidence: {
-      score: variant.score,
-      band: variant.band,
-      caption:
-        sprint.id === "37"
-          ? variant.caption
-          : variant.caption.replace(/Sprint 37/g, sprint.name),
-      href: "/delivery-analysis",
-      metrics: [
-        {
-          id: "completion",
-          label: "Sprint completion",
-          value: variant.completion.value,
-          progress: variant.completion.progress,
-          annotation: variant.completion.annotation,
-          icon: "flag",
-          href: METRIC_HREFS.completion,
-        },
-        {
-          id: "blocked",
-          label: "Items blocked",
-          value: variant.blocked,
-          progress: Math.min(100, variant.blocked),
-          icon: "circle-x",
-          href: METRIC_HREFS.blocked,
-        },
-        {
-          id: "spillover",
-          label: "Items spilling over",
-          value: variant.spillover,
-          progress: Math.min(100, variant.spillover),
-          icon: "trend-up",
-          href: METRIC_HREFS.spillover,
-        },
-        {
-          id: "ai-risk",
-          label: "AI code risk",
-          value: variant.aiRisk,
-          progress: variant.aiRiskProgress,
-          icon: "x",
-          href: METRIC_HREFS["ai-risk"],
-        },
-      ],
-    },
-    keyTakeaways: variant.takeaways,
-    pillars: variant.pillars,
-    deliveryTrend: {
-      rangeLabel: "Last 6 weeks",
-      target: 80,
-      points: [
-        { label: "Jul 13", value: 94 },
-        { label: "Jul 16", value: 76 },
-        { label: "Jul 20", value: 68 },
-        { label: "Jul 23", value: 59 },
-        { label: "Jul 27", value: 45 },
-        { label: "Jul 30", value: 37 },
-        { label: "Aug 3", value: 17 },
-        { label: "Aug 10", value: 18 },
-        { label: "Aug 17", value: 8 },
-        { label: "Aug 24", value: 22 },
-      ],
-    },
-    burndown: {
-      completed: 69,
-      total: 117,
-      ideal: [
-        { label: "Aug 10", value: 120 },
-        { label: "Aug 13", value: 96 },
-        { label: "Aug 16", value: 72 },
-        { label: "Aug 19", value: 48 },
-        { label: "Aug 22", value: 24 },
-        { label: "Aug 24", value: 0 },
-      ],
-      actual: [
-        { label: "Aug 10", value: 120 },
-        { label: "Aug 13", value: 105 },
-        { label: "Aug 16", value: 92 },
-        { label: "Aug 19", value: 70 },
-        { label: "Aug 22", value: 47 },
-        { label: "Aug 24", value: 28 },
-      ],
-    },
-    heatmap: {
-      rangeLabel: "Last 2 weeks",
-      dayLabels: ["Aug 10", "Aug 13", "Aug 16", "Aug 19", "Aug 22", "Aug 24"],
-      rows: [
-        {
-          label: "Commits",
-          cells: [0, 0, 0, 2, 0, 3, 0, 2, 0, 1, 2, 0, 3, 0, 1, 0],
-        },
-        {
-          label: "PRs",
-          cells: [1, 2, 3, 2, 0, 1, 3, 0, 2, 1, 0, 3, 2, 0, 1, 2],
-        },
-        {
-          label: "Jira updates",
-          cells: [2, 1, 0, 3, 2, 1, 0, 2, 3, 0, 1, 0, 2, 3, 0, 2],
-        },
-        {
-          label: "Deployments",
-          cells: [0, 1, 2, 0, 3, 2, 0, 1, 2, 0, 3, 1, 0, 2, 0, 3],
-        },
-      ],
-    },
-    attention: {
-      count: 2,
-      message: variant.attentionMessage,
-      href: "/attention",
-    },
-    leadership: {
-      count: 1,
-      href: "/approvals",
-    },
-    lastSyncAt: OVERVIEW_FIXTURE_LAST_SYNC_AT,
-    empty: false,
+    deliveryConfidence: leaf.deliveryConfidence,
+    keyTakeaways: leaf.keyTakeaways,
+    pillars: leaf.pillars,
+    attention: leaf.attention,
   };
 }
+
+export function buildMockOverview(): Dimensioned<OverviewLeaf> {
+  const byTeam: Dimensioned<OverviewLeaf>["byTeam"] = {};
+  for (const [key, variant] of Object.entries(TEAM_VARIANTS)) {
+    byTeam[key] = teamPatch(variant);
+  }
+  return {
+    base: leafFromVariant(ORG_VARIANT),
+    byTeam,
+  };
+}
+
+/** @deprecated Prefer buildMockOverview; kept for gradual migration. */
+export const mockOverviewDimensioned = buildMockOverview();

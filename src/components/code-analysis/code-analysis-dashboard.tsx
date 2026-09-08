@@ -1,16 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import Link from "next/link";
 import { DEFAULT_CODE_ANALYSIS_RANGE } from "@/lib/code-analysis/default-filters";
 import type {
   CodeAnalysisFilters,
-  CodeAnalysisSnapshot,
+  TimeRange,
   TrendMetric,
 } from "@/lib/code-analysis/types";
-import {
-  getAvailableMockRepos,
-  getMockCodeAnalysisSnapshot,
-} from "@/lib/code-analysis/mock-data";
+import { getMockCodeAnalysisSnapshot } from "@/lib/store/mock/code-analysis";
 import { buildCodeAnalysisGovernanceHighlights } from "@/lib/governance/presentation";
 import { BriefingHighlights } from "@/components/executive-briefing/briefing-highlights";
 import { AiRiskCard } from "@/components/code-analysis/ai-risk-card";
@@ -23,137 +21,97 @@ import { AnalysisTabs } from "@/components/code-analysis/analysis-tabs";
 import { GovernanceSignalsCard } from "@/components/code-analysis/governance-signals";
 import { ComplianceFindingsPanel } from "@/components/governance/compliance-findings-panel";
 import type { ComplianceFindingView } from "@/lib/compliance/types";
-import Link from "next/link";
+import {
+  selectAiRiskPct,
+  useAppData,
+  useFilters,
+  useSetFilter,
+} from "@/lib/store";
 
 type Props = {
-  lastSyncedAt: string | null;
-  connectedRepos?: string[];
   complianceFindings?: ComplianceFindingView[];
   complianceOpenCount?: number;
   complianceCriticalOpen?: number;
   showCompliancePanel?: boolean;
   canManageCompliance?: boolean;
-  /** When set, force AI risk KPI to match Overview fixture claim. */
-  alignOverviewAiRiskPct?: number | null;
-  /** Prefer mock snapshot (Overview fixture / no GitHub). */
-  preferMock?: boolean;
 };
 
-type SnapshotSource = "mock" | "github" | "loading";
-
 export function CodeAnalysisDashboard({
-  lastSyncedAt,
-  connectedRepos,
   complianceFindings = [],
   complianceOpenCount = 0,
   complianceCriticalOpen = 0,
   showCompliancePanel = false,
   canManageCompliance = false,
-  alignOverviewAiRiskPct = null,
-  preferMock = false,
 }: Props) {
-  const allRepos = connectedRepos?.length ? connectedRepos : getAvailableMockRepos();
+  const availableRepos = useAppData((s) => s.data.codeAnalysis.availableRepos);
+  const lastSyncAt = useAppData((s) => s.data.meta.lastSyncAt);
+  const mode = useAppData((s) => s.data.meta.mode);
+  const aiRiskPct = useAppData(selectAiRiskPct);
+  const storeFilters = useFilters();
+  const setFilter = useSetFilter();
 
-  const [filters, setFilters] = useState<CodeAnalysisFilters>({
-    repos: allRepos,
-    branch: "default",
-    range: DEFAULT_CODE_ANALYSIS_RANGE,
-    author: null,
-  });
+  const allRepos = availableRepos.length
+    ? availableRepos
+    : ["aidos-neo/platform", "aidos-neo/web-client", "aidos-neo/api-gateway"];
+
+  const filters: CodeAnalysisFilters = useMemo(
+    () => ({
+      repos: storeFilters.repos.length > 0 ? storeFilters.repos : allRepos,
+      branch:
+        storeFilters.branch === "all" || storeFilters.branch === "default"
+          ? storeFilters.branch
+          : "default",
+      range: (storeFilters.range as TimeRange | null) ?? DEFAULT_CODE_ANALYSIS_RANGE,
+      author: storeFilters.author,
+    }),
+    [storeFilters.repos, storeFilters.branch, storeFilters.range, storeFilters.author, allRepos],
+  );
+
   const [trendMetric, setTrendMetric] = useState<TrendMetric>("lines");
-  const [source, setSource] = useState<SnapshotSource>(preferMock ? "mock" : "loading");
-  const [syncedAt, setSyncedAt] = useState<string | null>(lastSyncedAt);
-  const [liveSnapshot, setLiveSnapshot] = useState<CodeAnalysisSnapshot | null>(null);
-  const [jiraSiteUrl, setJiraSiteUrl] = useState<string | null>(null);
 
-  const mockSnapshot = useMemo(
+  const baseSnapshot = useMemo(
     () => getMockCodeAnalysisSnapshot(filters),
     [filters],
   );
 
-  const baseSnapshot = source === "github" && liveSnapshot ? liveSnapshot : mockSnapshot;
-
-  const snapshot = useMemo(() => {
-    if (alignOverviewAiRiskPct == null) return baseSnapshot;
-    return {
+  const snapshot = useMemo(
+    () => ({
       ...baseSnapshot,
       kpis: {
         ...baseSnapshot.kpis,
-        aiLinesPct: alignOverviewAiRiskPct,
+        aiLinesPct: aiRiskPct,
       },
       aiRisk: {
         ...baseSnapshot.aiRisk,
-        aiLinesPct: alignOverviewAiRiskPct,
+        aiLinesPct: aiRiskPct,
         highRiskCount: 0,
       },
-    };
-  }, [alignOverviewAiRiskPct, baseSnapshot]);
+    }),
+    [aiRiskPct, baseSnapshot],
+  );
 
   const governanceHighlights = useMemo(
     () => buildCodeAnalysisGovernanceHighlights(snapshot.governanceSignals),
     [snapshot.governanceSignals],
   );
 
-  const fetchSnapshot = useCallback(async () => {
-    const params = new URLSearchParams({
-      range: filters.range,
-      repos: filters.repos.join(","),
-    });
-
-    const res = await fetch(`/api/code-analysis/snapshot?${params}`, {
-      credentials: "same-origin",
-    });
-    if (!res.ok) return;
-    const data = (await res.json()) as {
-      source: SnapshotSource;
-      syncedAt: string | null;
-      snapshot: CodeAnalysisSnapshot;
-      jiraSiteUrl?: string | null;
-    };
-    setSource(data.source === "github" ? "github" : "mock");
-    setSyncedAt(data.syncedAt);
-    setJiraSiteUrl(data.jiraSiteUrl ?? null);
-    if (data.source === "github") {
-      setLiveSnapshot(data.snapshot);
-    } else {
-      setLiveSnapshot(null);
-    }
-  }, [filters.range, filters.repos]);
-
-  useEffect(() => {
-    if (preferMock) {
-      setSource("mock");
-      return;
-    }
-    void fetchSnapshot();
-  }, [fetchSnapshot, preferMock]);
-
   function handleRepoSelect(repo: string) {
-    setFilters((prev) => {
-      const isOnly = prev.repos.length === 1 && prev.repos[0] === repo;
-      return {
-        ...prev,
-        repos: isOnly ? allRepos : [repo],
-      };
-    });
+    const isOnly = filters.repos.length === 1 && filters.repos[0] === repo;
+    setFilter({ repos: isOnly ? allRepos : [repo] });
   }
 
   const selectedRepo = filters.repos.length === 1 ? filters.repos[0] : null;
+  const demoMode = mode !== "live";
 
-  const syncMeta =
-    source === "github" && syncedAt
-      ? `Live data · last analyzed ${formatRelative(syncedAt)}`
-      : source === "loading"
-        ? "Loading…"
-        : lastSyncedAt
-          ? `Last synced ${formatRelative(lastSyncedAt)}`
-          : "Mock data";
+  const syncMeta = lastSyncAt
+    ? `Demo evidence · last synced ${formatRelative(lastSyncAt)}`
+    : "Demo evidence";
 
   return (
     <div className="space-y-[13px]">
-      {source === "mock" && (
+      {demoMode && (
         <p className="rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm text-secondary">
-          Showing demo data. Run analysis from{" "}
+          Showing demo data aligned with Overview. Run analysis from{" "}
           <Link href="/integrations" className="font-medium text-primary underline-offset-2 hover:underline">
             Integrations
           </Link>{" "}
@@ -211,7 +169,7 @@ export function CodeAnalysisDashboard({
 
       <AnalysisTabs
         snapshot={snapshot}
-        jiraSiteUrl={jiraSiteUrl}
+        jiraSiteUrl="https://aidos.atlassian.net"
         needsReviewerBackfill={snapshot.pullRequests.some(
           (pr) => pr.reviewCount > 0 && (pr.reviewers?.length ?? 0) === 0,
         )}

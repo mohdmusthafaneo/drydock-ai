@@ -2,14 +2,20 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSession } from "@/lib/session";
 import { requirePermission } from "@/lib/rbac";
-import { shouldUseOverviewFixture } from "@/lib/overview/fixture";
 import { loadOverviewDashboard } from "@/lib/overview/load-overview";
 
 const querySchema = z.object({
   team: z.string().min(1).max(64).optional(),
   sprint: z.string().min(1).max(128).optional(),
-  fixture: z.enum(["0", "1", "true", "false"]).optional(),
+  /** Prefer live org loaders when set. Demo default is AppData mock. */
+  live: z.enum(["0", "1", "true", "false"]).optional(),
 });
+
+function preferLive(value: string | undefined): boolean {
+  if (value == null) return false;
+  const v = value.trim().toLowerCase();
+  return v === "1" || v === "true";
+}
 
 export async function GET(request: Request) {
   const session = await getSession();
@@ -29,7 +35,7 @@ export async function GET(request: Request) {
     query = querySchema.parse({
       team: url.searchParams.get("team") ?? undefined,
       sprint: url.searchParams.get("sprint") ?? undefined,
-      fixture: url.searchParams.get("fixture") ?? undefined,
+      live: url.searchParams.get("live") ?? undefined,
     });
   } catch {
     return NextResponse.json({ error: "Invalid query parameters" }, { status: 400 });
@@ -41,7 +47,8 @@ export async function GET(request: Request) {
       userName: session.name,
       teamKey: query.team ?? null,
       sprintId: query.sprint ?? null,
-      useFixture: shouldUseOverviewFixture(query.fixture),
+      // Demo stage: AppData mock via selectOverviewModel; ?live=1 for live loaders.
+      useFixture: !preferLive(query.live),
     });
 
     return NextResponse.json({ ok: true, data });

@@ -19,7 +19,6 @@ import { summarizePortfolioHygiene } from "@/lib/jira-hygiene";
 import { parseJiraMeta } from "@/lib/jira-meta";
 import { getOrganizationContext } from "@/lib/org-data";
 import { computeActivityHeatmap } from "@/lib/overview/activity-heatmap";
-import { getOverviewFixture } from "@/lib/overview/fixture";
 import type {
   ConfidenceBand,
   OverviewDashboardModel,
@@ -30,6 +29,9 @@ import type {
 import { prisma } from "@/lib/prisma";
 import { filterPortfolioReleases } from "@/lib/release-source";
 import { readJsonField } from "@/lib/json-field";
+import { DEFAULT_FILTERS } from "@/lib/store/dimensions";
+import { getMockAppData } from "@/lib/store/mock";
+import { selectOverviewModel } from "@/lib/store/selectors";
 
 const DEFAULT_DELIVERY_FILTERS = {
   projectKey: null as string | null,
@@ -371,10 +373,24 @@ export async function loadOverviewDashboard(input: {
   useFixture?: boolean;
 }): Promise<OverviewDashboardModel> {
   if (input.useFixture) {
-    return getOverviewFixture({
-      greetingName: input.userName.split(" ")[0] || input.userName,
-      teamKey: input.teamKey ?? null,
-      sprintId: input.sprintId ?? null,
+    const mock = getMockAppData();
+    const greetingName = input.userName.split(" ")[0] || input.userName;
+    return selectOverviewModel({
+      data: {
+        ...mock,
+        user: {
+          ...mock.user,
+          name: input.userName,
+          greetingName,
+        },
+      },
+      filters: {
+        ...DEFAULT_FILTERS,
+        team: input.teamKey ?? null,
+        sprint: input.sprintId ?? null,
+      },
+      status: "ready",
+      error: null,
     });
   }
 

@@ -1,11 +1,9 @@
-import { redirect } from "next/navigation";
+import { CertificateFromStore } from "@/components/drydock/certificate-from-store";
 import { getSession } from "@/lib/session";
-import { loadCertificate } from "@/lib/drydock/certificate";
-import { CertificateView } from "@/components/drydock/certificate-view";
+import { redirect } from "next/navigation";
 
 export default async function CertificatePage() {
   const session = await getSession();
   if (!session) redirect("/login");
-  const view = await loadCertificate(session.organizationId);
-  return <CertificateView view={view} />;
+  return <CertificateFromStore />;
 }

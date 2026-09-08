@@ -10,7 +10,7 @@ import {
   type MockLedger,
   type MockTrustBucket,
   type TrustDeficitReason,
-} from "@/lib/drydock/mock-data";
+} from "@/lib/drydock/types";
 import { cn } from "@/lib/utils";
 
 type Props = {

@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
 import type {
   DeliveryAnalysisFilters,
   DeliveryAnalysisSnapshot,
   RiskFocus,
+  TimeRange,
+  CompareMode,
 } from "@/lib/delivery-analysis/types";
 import { buildDeliveryConfidenceOneLiner } from "@/lib/governance/presentation";
 import { ExecutiveVerdictBanner } from "@/components/executive-briefing/executive-verdict-banner";
@@ -21,13 +22,14 @@ import {
 } from "@/components/delivery-analysis/jira-hygiene-banner";
 import { AnalysisTabs } from "@/components/delivery-analysis/analysis-tabs";
 import { SnapshotUnavailable } from "@/components/delivery-analysis/snapshot-unavailable";
+import { useAppData, useFilters, useSetFilter } from "@/lib/store";
 
 type Props = {
   projectKeys: string[];
   lastSyncedAt: string | null;
+  /** Prefer URL/team filter when provided. */
+  initialProjectKey?: string | null;
 };
-
-type LoadState = "loading" | "ready" | "missing" | "error" | "empty_filter";
 
 const RISK_FOCUS_VALUES: RiskFocus[] = [
   "all",
@@ -44,75 +46,94 @@ function parseRiskFocus(value: string | null): RiskFocus {
   return "all";
 }
 
+function filterSnapshot(
+  snapshot: DeliveryAnalysisSnapshot,
+  filters: DeliveryAnalysisFilters,
+): DeliveryAnalysisSnapshot {
+  if (!filters.projectKey) return snapshot;
+
+  const byProject = snapshot.byProject.filter((p) => p.key === filters.projectKey);
+  if (byProject.length === 0) {
+    return { ...snapshot, byProject: [], projectKeys: [] };
+  }
+
+  const project = byProject[0]!;
+  return {
+    ...snapshot,
+    projectKeys: [project.key],
+    byProject,
+    sprints: snapshot.sprints.filter((s) => s.projectKey === project.key),
+    versions: snapshot.versions.filter((v) => v.projectKey === project.key),
+    kpis: {
+      ...snapshot.kpis,
+      openWork: project.openIssues,
+      blocked: project.blockedCount,
+      overdue: project.overdueCount,
+      spillover: project.spilloverCount,
+      bugsOpen: project.bugsOpen,
+      sprintCompletionPct: project.activeSprint?.pct ?? snapshot.kpis.sprintCompletionPct,
+      healthScore: project.healthScore,
+    },
+    riskMix: {
+      blocked: project.blockedCount,
+      overdue: project.overdueCount,
+      bugs: project.bugsOpen,
+      otherOpen: Math.max(
+        0,
+        project.openIssues - project.blockedCount - project.overdueCount - project.bugsOpen,
+      ),
+    },
+  };
+}
+
 export function DeliveryAnalysisDashboard({
   projectKeys,
   lastSyncedAt,
+  initialProjectKey = null,
 }: Props) {
-  const searchParams = useSearchParams();
+  const storeSnapshot = useAppData((s) => s.data.deliveryAnalysis.snapshot);
+  const storeFilters = useFilters();
+  const setFilter = useSetFilter();
 
-  const [filters, setFilters] = useState<DeliveryAnalysisFilters>(() => ({
-    projectKey:
-      searchParams.get("projectKey") ?? searchParams.get("team") ?? null,
-    riskFocus: parseRiskFocus(searchParams.get("riskFocus")),
-    range: "30d",
-    compare: "previous_sync",
-  }));
-  const [loadState, setLoadState] = useState<LoadState>("loading");
-  const [syncedAt, setSyncedAt] = useState<string | null>(lastSyncedAt);
-  const [snapshot, setSnapshot] = useState<DeliveryAnalysisSnapshot | null>(null);
+  const filters: DeliveryAnalysisFilters = useMemo(
+    () => ({
+      projectKey:
+        storeFilters.projectKey ??
+        storeFilters.team ??
+        initialProjectKey ??
+        null,
+      riskFocus: parseRiskFocus(storeFilters.riskFocus),
+      range: (storeFilters.range as TimeRange | null) ?? "30d",
+      compare: (storeFilters.compare as CompareMode | null) ?? "previous_sync",
+    }),
+    [
+      storeFilters.projectKey,
+      storeFilters.team,
+      storeFilters.riskFocus,
+      storeFilters.range,
+      storeFilters.compare,
+      initialProjectKey,
+    ],
+  );
 
-  const fetchSnapshot = useCallback(async () => {
-    setLoadState("loading");
+  const [localError] = useState(false);
 
-    const params = new URLSearchParams({
-      range: filters.range,
-      riskFocus: filters.riskFocus,
-      compare: filters.compare,
-    });
-    if (filters.projectKey) {
-      params.set("projectKey", filters.projectKey);
-    }
+  const snapshot = useMemo(() => {
+    if (!storeSnapshot) return null;
+    return filterSnapshot(storeSnapshot, filters);
+  }, [storeSnapshot, filters]);
 
-    try {
-      const res = await fetch(`/api/delivery-analysis/snapshot?${params}`, {
-        credentials: "same-origin",
-      });
+  const loadState = !storeSnapshot
+    ? "missing"
+    : localError
+      ? "error"
+      : snapshot && snapshot.byProject.length === 0
+        ? "empty_filter"
+        : snapshot
+          ? "ready"
+          : "missing";
 
-      if (res.status === 404) {
-        setSnapshot(null);
-        setLoadState("missing");
-        return;
-      }
-
-      if (!res.ok) {
-        setSnapshot(null);
-        setLoadState("error");
-        return;
-      }
-
-      const data = (await res.json()) as {
-        source: string;
-        syncedAt: string | null;
-        snapshot: DeliveryAnalysisSnapshot;
-      };
-
-      setSyncedAt(data.syncedAt);
-      setSnapshot(data.snapshot);
-
-      if (data.snapshot.byProject.length === 0) {
-        setLoadState("empty_filter");
-      } else {
-        setLoadState("ready");
-      }
-    } catch {
-      setSnapshot(null);
-      setLoadState("error");
-    }
-  }, [filters.range, filters.riskFocus, filters.compare, filters.projectKey]);
-
-  useEffect(() => {
-    void fetchSnapshot();
-  }, [fetchSnapshot]);
+  const syncedAt = lastSyncedAt;
 
   const staleBanner = useMemo(() => {
     const at = loadState === "ready" ? syncedAt : lastSyncedAt;
@@ -125,10 +146,7 @@ export function DeliveryAnalysisDashboard({
   }, [loadState, syncedAt, lastSyncedAt]);
 
   function handleProjectSelect(key: string) {
-    setFilters((prev) => ({
-      ...prev,
-      projectKey: prev.projectKey === key ? null : key,
-    }));
+    setFilter({ projectKey: filters.projectKey === key ? null : key });
   }
 
   const selectedProject = filters.projectKey;
@@ -148,11 +166,9 @@ export function DeliveryAnalysisDashboard({
   const syncMeta =
     loadState === "ready" && syncedAt
       ? `last synced ${formatRelative(syncedAt)}`
-      : loadState === "loading"
-        ? "Loading…"
-        : lastSyncedAt
-          ? `last synced ${formatRelative(lastSyncedAt)}`
-          : "not synced yet";
+      : lastSyncedAt
+        ? `last synced ${formatRelative(lastSyncedAt)}`
+        : "demo evidence";
 
   return (
     <div className="space-y-[13px]">
@@ -162,14 +178,12 @@ export function DeliveryAnalysisDashboard({
         </p>
       )}
 
-      {loadState === "loading" && <SnapshotUnavailable variant="loading" />}
-
       {loadState === "missing" && (
-        <SnapshotUnavailable variant="missing" projectKeys={projectKeys} onRetry={fetchSnapshot} />
+        <SnapshotUnavailable variant="missing" projectKeys={projectKeys} />
       )}
 
       {loadState === "error" && (
-        <SnapshotUnavailable variant="error" projectKeys={projectKeys} onRetry={fetchSnapshot} />
+        <SnapshotUnavailable variant="error" projectKeys={projectKeys} />
       )}
 
       {loadState === "empty_filter" && (
@@ -177,7 +191,6 @@ export function DeliveryAnalysisDashboard({
           variant="empty_filter"
           projectKeys={projectKeys}
           filterProjectKey={filters.projectKey}
-          onRetry={fetchSnapshot}
         />
       )}
 

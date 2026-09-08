@@ -1,13 +1,9 @@
-import { redirect } from "next/navigation";
+import { LedgerFromStore } from "@/components/drydock/ledger-from-store";
 import { getSession } from "@/lib/session";
-import { loadLedger } from "@/lib/drydock/loaders";
-import { LedgerView } from "@/components/drydock/ledger-view";
+import { redirect } from "next/navigation";
 
 export default async function LedgerPage() {
   const session = await getSession();
   if (!session) redirect("/login");
-
-  const { ledger, source } = await loadLedger(session.organizationId);
-
-  return <LedgerView ledger={ledger} dataSource={source} />;
+  return <LedgerFromStore />;
 }
