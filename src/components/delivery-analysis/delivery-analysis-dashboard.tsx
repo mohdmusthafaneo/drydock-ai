@@ -1,14 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import type {
   DeliveryAnalysisFilters,
   DeliveryAnalysisSnapshot,
   RiskFocus,
 } from "@/lib/delivery-analysis/types";
 import { buildDeliveryConfidenceOneLiner } from "@/lib/governance/presentation";
-import { AnalysisFiltersBar } from "@/components/delivery-analysis/analysis-filters";
 import { ExecutiveVerdictBanner } from "@/components/executive-briefing/executive-verdict-banner";
 import { KpiStrip } from "@/components/delivery-analysis/kpi-strip";
 import { RiskMixChart } from "@/components/delivery-analysis/risk-mix-chart";
@@ -26,7 +25,6 @@ import { SnapshotUnavailable } from "@/components/delivery-analysis/snapshot-una
 type Props = {
   projectKeys: string[];
   lastSyncedAt: string | null;
-  canSync: boolean;
 };
 
 type LoadState = "loading" | "ready" | "missing" | "error" | "empty_filter";
@@ -49,9 +47,7 @@ function parseRiskFocus(value: string | null): RiskFocus {
 export function DeliveryAnalysisDashboard({
   projectKeys,
   lastSyncedAt,
-  canSync,
 }: Props) {
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   const [filters, setFilters] = useState<DeliveryAnalysisFilters>(() => ({
@@ -61,9 +57,6 @@ export function DeliveryAnalysisDashboard({
     range: "30d",
     compare: "previous_sync",
   }));
-  const [syncing, setSyncing] = useState(false);
-  const [syncMessage, setSyncMessage] = useState<string | null>(null);
-  const [syncError, setSyncError] = useState<string | null>(null);
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [syncedAt, setSyncedAt] = useState<string | null>(lastSyncedAt);
   const [snapshot, setSnapshot] = useState<DeliveryAnalysisSnapshot | null>(null);
@@ -126,66 +119,16 @@ export function DeliveryAnalysisDashboard({
     if (!at) return null;
     const hours = (Date.now() - new Date(at).getTime()) / 3600000;
     if (hours > 24) {
-      return `Last synced ${formatRelative(at)} — data may be stale. Sync for fresh counts.`;
+      return `Last synced ${formatRelative(at)} — data may be stale. Sync on Integrations for fresh counts.`;
     }
     return null;
   }, [loadState, syncedAt, lastSyncedAt]);
-
-  const lastSyncedLabel =
-    loadState === "ready" && syncedAt
-      ? `Live data · last synced ${formatRelative(syncedAt)}`
-      : loadState === "loading"
-        ? "Loading…"
-        : lastSyncedAt
-          ? `Last synced ${formatRelative(lastSyncedAt)}`
-          : "Not synced yet";
-
-  function updateFilters(next: Partial<DeliveryAnalysisFilters>) {
-    setFilters((prev) => ({ ...prev, ...next }));
-  }
 
   function handleProjectSelect(key: string) {
     setFilters((prev) => ({
       ...prev,
       projectKey: prev.projectKey === key ? null : key,
     }));
-  }
-
-  async function handleSync() {
-    if (!canSync) return;
-    setSyncing(true);
-    setSyncMessage(null);
-    setSyncError(null);
-    try {
-      const res = await fetch("/api/integrations/jira/sync", {
-        method: "POST",
-        credentials: "same-origin",
-      });
-      const data = (await res.json()) as { ok?: boolean; error?: string; summary?: string };
-      if (!res.ok) {
-        setSyncError(data.error ?? "Sync failed");
-        return;
-      }
-      setSyncMessage(data.summary ?? "Jira sync complete");
-      await fetchSnapshot();
-      router.refresh();
-    } catch {
-      setSyncError("Sync request failed");
-    } finally {
-      setSyncing(false);
-    }
-  }
-
-  function handleExport() {
-    if (loadState !== "ready" || !snapshot) return;
-    const params = new URLSearchParams({
-      range: filters.range,
-      riskFocus: filters.riskFocus,
-    });
-    if (filters.projectKey) {
-      params.set("projectKey", filters.projectKey);
-    }
-    window.location.href = `/api/delivery-analysis/export?${params}`;
   }
 
   const selectedProject = filters.projectKey;
@@ -202,35 +145,20 @@ export function DeliveryAnalysisDashboard({
     });
   }, [snapshot]);
 
+  const syncMeta =
+    loadState === "ready" && syncedAt
+      ? `last synced ${formatRelative(syncedAt)}`
+      : loadState === "loading"
+        ? "Loading…"
+        : lastSyncedAt
+          ? `last synced ${formatRelative(lastSyncedAt)}`
+          : "not synced yet";
+
   return (
     <div className="space-y-[13px]">
-      <AnalysisFiltersBar
-        filters={filters}
-        projectKeys={projectKeys}
-        onChange={updateFilters}
-        onSync={handleSync}
-        onExport={handleExport}
-        syncing={syncing}
-        canSync={canSync}
-        lastSyncedLabel={lastSyncedLabel}
-        exportDisabled={!showMetrics}
-      />
-
       {staleBanner && showMetrics && (
         <p className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning">
           {staleBanner}
-        </p>
-      )}
-
-      {syncMessage && (
-        <p className="rounded-lg border border-chart-blue/30 bg-sky-wash px-3 py-2 text-sm text-chart-blue">
-          {syncMessage}
-        </p>
-      )}
-
-      {syncError && (
-        <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {syncError}
         </p>
       )}
 
@@ -276,6 +204,8 @@ export function DeliveryAnalysisDashboard({
           <p className="text-xs text-muted">
             {snapshot.rangeLabel}
             {selectedProject ? ` · ${selectedProject}` : ` · ${snapshot.projectKeys.length} projects`}
+            {" · "}
+            {syncMeta}
             · Counts from JQL at last sync — not live Jira.
           </p>
 

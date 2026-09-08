@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { CalendarRange, ChevronDown, LogOut, Settings } from "lucide-react";
+import { ChevronDown, LogOut, Settings } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -31,13 +31,18 @@ function initials(name: string): string {
   return `${parts[0]![0] ?? ""}${parts[1]![0] ?? ""}`.toUpperCase();
 }
 
-function formatExplicitRange(sprint: TopBarSprint): string {
+function sprintName(sprint: TopBarSprint): string {
+  const pipe = sprint.label.indexOf("|");
+  if (pipe >= 0) return sprint.label.slice(0, pipe).trim();
+  return sprint.label;
+}
+
+function formatShortRange(sprint: TopBarSprint): string {
   const start = new Date(`${sprint.start}T12:00:00`);
   const end = new Date(`${sprint.end}T12:00:00`);
   const opts: Intl.DateTimeFormatOptions = {
     month: "short",
     day: "numeric",
-    year: "numeric",
   };
   return `${start.toLocaleDateString("en-US", opts)} – ${end.toLocaleDateString("en-US", opts)}`;
 }
@@ -75,6 +80,31 @@ function SectionTabs() {
   );
 }
 
+function SprintChip({
+  name,
+  range,
+  showChevron,
+}: {
+  name: string;
+  range: string;
+  showChevron?: boolean;
+}) {
+  return (
+    <>
+      <strong className="text-[13px] font-semibold text-[#4a2b1e]">{name}</strong>
+      <span className="border-l border-border pl-[13px] text-[#7b8798]">
+        {range}
+      </span>
+      {showChevron ? (
+        <ChevronDown
+          className="ml-auto h-[15px] w-[15px] shrink-0 text-muted"
+          strokeWidth={1.7}
+        />
+      ) : null}
+    </>
+  );
+}
+
 function DateRangeButton({
   dateRangeLabel,
   sprints = [],
@@ -88,7 +118,13 @@ function DateRangeButton({
   const selectedId = searchParams.get("sprint");
   const selected =
     sprints.find((s) => s.id === selectedId) ?? sprints[0] ?? null;
-  const displayLabel = selected ? formatExplicitRange(selected) : dateRangeLabel;
+  const orderedSprints = [...sprints].sort((a, b) => {
+    const byStart = b.start.localeCompare(a.start);
+    return byStart !== 0 ? byStart : b.end.localeCompare(a.end);
+  });
+
+  const chipName = selected ? sprintName(selected) : dateRangeLabel;
+  const chipRange = selected ? formatShortRange(selected) : null;
 
   function selectSprint(id: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -102,25 +138,36 @@ function DateRangeButton({
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="inline-flex h-9 max-w-[280px] items-center gap-2 rounded-[9px] border border-border bg-pure-white px-[11px] text-[12px] text-[#64748b] hover:bg-hover"
+          className="inline-flex h-[42px] min-w-[245px] items-center gap-[13px] rounded-[9px] border border-border bg-pure-white px-[13px] text-[12px] text-[#334155] hover:bg-hover"
+          aria-label="Select sprint"
         >
-          <CalendarRange className="h-4 w-4 shrink-0" strokeWidth={1.7} />
-          <span className="truncate">{displayLabel}</span>
-          <ChevronDown className="ml-[5px] h-3.5 w-3.5 shrink-0" />
+          {chipRange ? (
+            <SprintChip name={chipName} range={chipRange} showChevron />
+          ) : (
+            <>
+              <span className="truncate text-[13px] font-semibold text-[#4a2b1e]">
+                {chipName}
+              </span>
+              <ChevronDown
+                className="ml-auto h-[15px] w-[15px] shrink-0 text-muted"
+                strokeWidth={1.7}
+              />
+            </>
+          )}
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-64">
+      <DropdownMenuContent align="end" className="w-72">
         <DropdownMenuLabel>Sprint window</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {sprints.length === 0 ? (
+        {orderedSprints.length === 0 ? (
           <DropdownMenuItem disabled>{dateRangeLabel}</DropdownMenuItem>
         ) : (
-          sprints.map((sprint) => (
+          orderedSprints.map((sprint) => (
             <DropdownMenuItem key={sprint.id} onSelect={() => selectSprint(sprint.id)}>
               <div className="min-w-0">
-                <p className="truncate text-sm text-primary">{sprint.label}</p>
+                <p className="truncate text-sm text-primary">{sprintName(sprint)}</p>
                 <p className="truncate text-xs text-muted">
-                  {formatExplicitRange(sprint)}
+                  {formatShortRange(sprint)}
                 </p>
               </div>
             </DropdownMenuItem>

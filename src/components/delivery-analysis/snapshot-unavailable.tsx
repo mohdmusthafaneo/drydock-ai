@@ -48,7 +48,7 @@ export function SnapshotUnavailable({
   const reasons =
     variant === "missing"
       ? [
-          "Jira has not been synced since projects were selected — run Sync on Integrations or use Sync now above.",
+          "Jira has not been synced since projects were selected — run Sync on Integrations.",
           "The last sync failed or returned no projects (check Integrations for errors).",
           "Selected projects were removed or are inaccessible with the current Jira token.",
         ]

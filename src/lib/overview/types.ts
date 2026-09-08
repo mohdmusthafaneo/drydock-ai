@@ -8,7 +8,7 @@ export type OverviewSprintOption = {
   startLabel: string;
   endLabel: string;
   rangeLabel: string;
-  /** ISO date for top-bar DateRangeButton (`YYYY-MM-DD`). */
+  /** ISO date for top-bar sprint chip (`YYYY-MM-DD`). */
   start: string;
   end: string;
 };
@@ -24,7 +24,7 @@ export type OverviewDashboardModel = {
     endLabel: string;
     rangeLabel: string;
   };
-  /** Sprint picker options for the header chip. */
+  /** Sprint options (top-bar picker + dashboard model). */
   sprints: OverviewSprintOption[];
   teamKey: string | null;
   teams: { key: string; name: string }[];

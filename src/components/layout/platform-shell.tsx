@@ -108,7 +108,7 @@ export async function PlatformShell({
       projects={projects}
       lastSyncAt={lastSyncAt}
       activeSprintLabel={
-        useFixtureProjects ? "Aug 10, 2026 – Aug 24, 2026" : undefined
+        useFixtureProjects ? "Sprint 37 | Aug 10 – Aug 24" : undefined
       }
       sprints={fixtureSprints}
       activationMode={false}

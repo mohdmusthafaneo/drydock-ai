@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { getOrganizationContext } from "@/lib/org-data";
 import { isJiraOAuthConnected, parseJiraMeta } from "@/lib/jira-meta";
-import { hasPermission } from "@/lib/rbac";
 import { formatDistanceToNow } from "@/lib/format-date";
 import { DeliveryAnalysisPageClient } from "@/components/delivery-analysis/delivery-analysis-page-client";
 import { BriefingContextChip } from "@/components/briefing/briefing-context-chip";
@@ -31,7 +30,6 @@ export default async function DeliveryAnalysisPage({
   const projectKeys = jiraMeta?.projectKeys ?? [];
   const deliverySnapshot = jiraMeta?.deliverySnapshot ?? null;
   const lastSyncedAt = deliverySnapshot?.syncedAt ?? jira?.lastSyncAt?.toISOString() ?? null;
-  const canSync = hasPermission(session, "integrations", "manage_integrations");
 
   const lastSyncLabel = lastSyncedAt
     ? formatDistanceToNow(new Date(lastSyncedAt))
@@ -50,7 +48,6 @@ export default async function DeliveryAnalysisPage({
         projectKeys={projectKeys}
         hasSnapshot={Boolean(deliverySnapshot)}
         lastSyncedAt={lastSyncedAt}
-        canSync={canSync}
       />
     </div>
   );

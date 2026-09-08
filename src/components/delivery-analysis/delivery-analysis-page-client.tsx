@@ -13,7 +13,6 @@ type Props = {
   projectKeys: string[];
   hasSnapshot: boolean;
   lastSyncedAt: string | null;
-  canSync: boolean;
 };
 
 export function DeliveryAnalysisPageClient({
@@ -21,7 +20,6 @@ export function DeliveryAnalysisPageClient({
   projectKeys,
   hasSnapshot,
   lastSyncedAt,
-  canSync,
 }: Props) {
   return (
     <div className="w-full space-y-[13px] pb-24 lg:pb-8">
@@ -40,7 +38,6 @@ export function DeliveryAnalysisPageClient({
         <DeliveryAnalysisDashboard
           projectKeys={projectKeys}
           lastSyncedAt={lastSyncedAt}
-          canSync={canSync}
         />
       )}
     </div>

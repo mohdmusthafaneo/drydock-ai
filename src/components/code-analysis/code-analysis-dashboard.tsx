@@ -8,11 +8,9 @@ import type {
   TrendMetric,
 } from "@/lib/code-analysis/types";
 import {
-  getAvailableMockAuthors,
   getAvailableMockRepos,
   getMockCodeAnalysisSnapshot,
 } from "@/lib/code-analysis/mock-data";
-import { AnalysisFiltersBar } from "@/components/code-analysis/analysis-filters";
 import { buildCodeAnalysisGovernanceHighlights } from "@/lib/governance/presentation";
 import { BriefingHighlights } from "@/components/executive-briefing/briefing-highlights";
 import { AiRiskCard } from "@/components/code-analysis/ai-risk-card";
@@ -25,6 +23,7 @@ import { AnalysisTabs } from "@/components/code-analysis/analysis-tabs";
 import { GovernanceSignalsCard } from "@/components/code-analysis/governance-signals";
 import { ComplianceFindingsPanel } from "@/components/governance/compliance-findings-panel";
 import type { ComplianceFindingView } from "@/lib/compliance/types";
+import Link from "next/link";
 
 type Props = {
   lastSyncedAt: string | null;
@@ -62,9 +61,6 @@ export function CodeAnalysisDashboard({
     author: null,
   });
   const [trendMetric, setTrendMetric] = useState<TrendMetric>("lines");
-  const [syncing, setSyncing] = useState(false);
-  const [syncMessage, setSyncMessage] = useState<string | null>(null);
-  const [syncError, setSyncError] = useState<string | null>(null);
   const [source, setSource] = useState<SnapshotSource>(preferMock ? "mock" : "loading");
   const [syncedAt, setSyncedAt] = useState<string | null>(lastSyncedAt);
   const [liveSnapshot, setLiveSnapshot] = useState<CodeAnalysisSnapshot | null>(null);
@@ -74,13 +70,6 @@ export function CodeAnalysisDashboard({
     () => getMockCodeAnalysisSnapshot(filters),
     [filters],
   );
-
-  const authors = useMemo(() => {
-    if (source === "github" && liveSnapshot) {
-      return [...new Set(liveSnapshot.commits.map((c) => c.author))].sort();
-    }
-    return getAvailableMockAuthors();
-  }, [source, liveSnapshot]);
 
   const baseSnapshot = source === "github" && liveSnapshot ? liveSnapshot : mockSnapshot;
 
@@ -110,7 +99,6 @@ export function CodeAnalysisDashboard({
       range: filters.range,
       repos: filters.repos.join(","),
     });
-    if (filters.author) params.set("author", filters.author);
 
     const res = await fetch(`/api/code-analysis/snapshot?${params}`, {
       credentials: "same-origin",
@@ -130,7 +118,7 @@ export function CodeAnalysisDashboard({
     } else {
       setLiveSnapshot(null);
     }
-  }, [filters.range, filters.repos, filters.author]);
+  }, [filters.range, filters.repos]);
 
   useEffect(() => {
     if (preferMock) {
@@ -139,19 +127,6 @@ export function CodeAnalysisDashboard({
     }
     void fetchSnapshot();
   }, [fetchSnapshot, preferMock]);
-
-  const lastSyncedLabel =
-    source === "github" && syncedAt
-      ? `Live data · last analyzed ${formatRelative(syncedAt)}`
-      : source === "loading"
-        ? "Loading…"
-        : lastSyncedAt
-          ? `Last synced ${formatRelative(lastSyncedAt)} · run analysis for live data`
-          : "Mock data · run analysis for live GitHub data";
-
-  function updateFilters(next: Partial<CodeAnalysisFilters>) {
-    setFilters((prev) => ({ ...prev, ...next }));
-  }
 
   function handleRepoSelect(repo: string) {
     setFilters((prev) => {
@@ -163,82 +138,34 @@ export function CodeAnalysisDashboard({
     });
   }
 
-  function handleAuthorSelect(login: string) {
-    setFilters((prev) => ({
-      ...prev,
-      author: prev.author === login ? null : login,
-    }));
-  }
-
-  async function handleSync() {
-    setSyncing(true);
-    setSyncMessage(null);
-    setSyncError(null);
-    try {
-      const res = await fetch("/api/code-analysis/analyze", {
-        method: "POST",
-        credentials: "same-origin",
-      });
-      const data = (await res.json()) as { ok?: boolean; error?: string; summary?: string };
-      if (!res.ok) {
-        setSyncError(data.error ?? "Analysis failed");
-        return;
-      }
-      setSyncMessage(data.summary ?? "Analysis complete");
-      await fetchSnapshot();
-    } catch {
-      setSyncError("Analysis request failed");
-    } finally {
-      setSyncing(false);
-    }
-  }
-
-  async function handleExport() {
-    const params = new URLSearchParams({
-      range: filters.range,
-      repos: filters.repos.join(","),
-    });
-    window.location.href = `/api/code-analysis/export?${params}`;
-  }
-
   const selectedRepo = filters.repos.length === 1 ? filters.repos[0] : null;
+
+  const syncMeta =
+    source === "github" && syncedAt
+      ? `Live data · last analyzed ${formatRelative(syncedAt)}`
+      : source === "loading"
+        ? "Loading…"
+        : lastSyncedAt
+          ? `Last synced ${formatRelative(lastSyncedAt)}`
+          : "Mock data";
 
   return (
     <div className="space-y-[13px]">
-      <AnalysisFiltersBar
-        filters={filters}
-        repos={allRepos}
-        authors={authors}
-        onChange={updateFilters}
-        onSync={handleSync}
-        onExport={handleExport}
-        syncing={syncing}
-        lastSyncedLabel={lastSyncedLabel}
-      />
-
       {source === "mock" && (
         <p className="rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm text-secondary">
-          Showing demo data. Click <strong className="text-primary">Sync now</strong> to analyze
-          your selected GitHub repositories.
-        </p>
-      )}
-
-      {syncMessage && (
-        <p className="rounded-lg border border-brand/30 bg-brand-muted px-3 py-2 text-sm text-brand">
-          {syncMessage}
-        </p>
-      )}
-
-      {syncError && (
-        <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {syncError}
+          Showing demo data. Run analysis from{" "}
+          <Link href="/integrations" className="font-medium text-primary underline-offset-2 hover:underline">
+            Integrations
+          </Link>{" "}
+          for live GitHub metrics.
         </p>
       )}
 
       <p className="text-xs text-muted">
         {snapshot.rangeLabel}
-        {filters.author ? ` · ${filters.author}` : ""}
         {selectedRepo ? ` · ${selectedRepo}` : ` · ${filters.repos.length} repos`}
+        {" · "}
+        {syncMeta}
         · Estimates from commit/PR markers — not all AI tools leave traces.
       </p>
 
@@ -275,11 +202,7 @@ export function CodeAnalysisDashboard({
           onSelectRepo={handleRepoSelect}
           selectedRepo={selectedRepo}
         />
-        <AuthorBreakdown
-          items={snapshot.byAuthor}
-          onSelectAuthor={handleAuthorSelect}
-          selectedAuthor={filters.author}
-        />
+        <AuthorBreakdown items={snapshot.byAuthor} />
       </div>
 
       {snapshot.governanceSignals.length > 0 && (
