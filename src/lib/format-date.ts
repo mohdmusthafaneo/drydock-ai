@@ -27,3 +27,17 @@ export function formatFixedLocaleDateTime(iso: string | Date): string {
     return typeof iso === "string" ? iso : "";
   }
 }
+
+/** Sprint window day label (UTC calendar date) — shared with Overview day chips. */
+export function formatSprintDay(iso?: string): string {
+  if (!iso) return "?";
+  const day = iso.slice(0, 10);
+  const date = new Date(`${day}T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}

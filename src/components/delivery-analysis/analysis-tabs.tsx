@@ -4,6 +4,7 @@ import { Fragment, useState } from "react";
 import Link from "next/link";
 import { ChevronDown, ExternalLink } from "lucide-react";
 import type { DeliveryAnalysisSnapshot } from "@/lib/delivery-analysis/types";
+import { formatSprintDay } from "@/lib/format-date";
 import { DeliverySignalsPanel } from "@/components/delivery-analysis/delivery-signals";
 import { JiraIssueLink } from "@/components/delivery-analysis/jira-issue-link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -258,7 +259,7 @@ function SprintsTab({ snapshot }: { snapshot: DeliveryAnalysisSnapshot }) {
               <td className="py-2 font-medium text-primary">{s.name}</td>
               <td className="py-2 capitalize text-secondary">{s.state}</td>
               <td className="py-2 text-xs text-muted">
-                {s.startDate ?? "?"} → {s.endDate ?? "?"}
+                {formatSprintDay(s.startDate)} → {formatSprintDay(s.endDate)}
               </td>
               <td className="py-2">
                 <div className="flex items-center gap-2">

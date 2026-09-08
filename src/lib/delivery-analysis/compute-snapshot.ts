@@ -8,6 +8,7 @@ import type {
 } from "@/lib/delivery-analysis/types";
 import type { JiraDeliverySnapshot } from "@/lib/jira-meta";
 import { sprintDaysOverdue } from "@/lib/jira-sprint-metrics";
+import { computeSprintCardSeverity } from "@/lib/delivery-analysis/sprint-display";
 import {
   analyzePortfolioDeliveryHealth,
   type JiraDeliveryGap,
@@ -48,10 +49,13 @@ export function filterSnapshotProjects(
   return projects;
 }
 
-function sprintSeverity(pct: number): DeliveryAnalysisSprintRow["severity"] {
-  if (pct < 40) return "critical";
-  if (pct < 60) return "warning";
-  return "info";
+function sprintSeverity(
+  pct: number,
+  endDate?: string,
+  state = "active",
+  daysOverdue = 0,
+): DeliveryAnalysisSprintRow["severity"] {
+  return computeSprintCardSeverity({ pct, endDate, state, daysOverdue });
 }
 
 function jiraProjectsToSnapshotRows(
@@ -108,7 +112,7 @@ function jiraProjectsToSnapshotRows(
         done,
         committed: sprint.committed,
         pct,
-        severity: sprintSeverity(pct),
+        severity: sprintSeverity(pct, sprint.endDate, sprint.state, daysOverdue),
         sprintId: sprint.id,
         storyPoints: sprint.storyPoints,
         daysOverdue: daysOverdue > 0 ? daysOverdue : undefined,

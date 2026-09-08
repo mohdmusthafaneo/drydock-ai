@@ -8,6 +8,10 @@ import type {
   TimeRange,
   CompareMode,
 } from "@/lib/delivery-analysis/types";
+import {
+  resolveActiveSprintCards,
+  type OverviewSprintCompletion,
+} from "@/lib/delivery-analysis/sprint-display";
 import { buildDeliveryConfidenceOneLiner } from "@/lib/governance/presentation";
 import { ExecutiveVerdictBanner } from "@/components/executive-briefing/executive-verdict-banner";
 import { KpiStrip } from "@/components/delivery-analysis/kpi-strip";
@@ -23,6 +27,7 @@ import {
 import { AnalysisTabs } from "@/components/delivery-analysis/analysis-tabs";
 import { ScoreDerivationPanel } from "@/components/delivery-analysis/score-derivation-panel";
 import { SnapshotUnavailable } from "@/components/delivery-analysis/snapshot-unavailable";
+import { MOCK_DEFAULT_SPRINT_ID } from "@/lib/store/mock/dimensions";
 import {
   selectOverviewModel,
   useAppData,
@@ -98,30 +103,92 @@ export function DeliveryAnalysisDashboard({
   initialProjectKey = null,
 }: Props) {
   const storeSnapshot = useAppData((s) => s.data.deliveryAnalysis.snapshot);
-  const deliveryConfidence = useAppData(
-    (s) => selectOverviewModel(s).deliveryConfidence,
-  );
+  const overviewModel = useAppData((s) => selectOverviewModel(s));
+  const deliveryConfidence = overviewModel.deliveryConfidence;
+  const dimensions = useAppData((s) => s.data.dimensions);
   const storeFilters = useFilters();
   const setFilter = useSetFilter();
 
+  const effectiveSprintId =
+    storeFilters.sprint ??
+    dimensions.sprints.find((s) => s.id === MOCK_DEFAULT_SPRINT_ID)?.id ??
+    dimensions.sprints[0]?.id ??
+    null;
+
+  const selectedSprintMeta = useMemo(() => {
+    if (!effectiveSprintId) return null;
+    const sprint =
+      dimensions.sprints.find((s) => s.id === effectiveSprintId) ?? null;
+    if (!sprint) return null;
+    return {
+      id: sprint.id,
+      name: sprint.name,
+      start: sprint.start,
+      end: sprint.end,
+    };
+  }, [dimensions.sprints, effectiveSprintId]);
+
+  const overviewCompletion = useMemo((): OverviewSprintCompletion | null => {
+    const pct = metricValue(deliveryConfidence.metrics, "completion");
+    const annotation = deliveryConfidence.metrics.find(
+      (m) => m.id === "completion",
+    )?.annotation;
+    if (pct == null) return null;
+    const match = annotation?.match(/(\d+)\s*\/\s*(\d+)/);
+    if (!match) {
+      const fromBurndown = overviewModel.burndown;
+      if (fromBurndown.total > 0) {
+        return {
+          done: fromBurndown.completed,
+          total: fromBurndown.total,
+          pct,
+        };
+      }
+      return null;
+    }
+    return {
+      done: Number(match[1]),
+      total: Number(match[2]),
+      pct,
+    };
+  }, [deliveryConfidence.metrics, overviewModel.burndown]);
+
+  const teamName = useMemo(() => {
+    const key = storeFilters.team;
+    if (!key) return null;
+    return dimensions.teams.find((t) => t.key === key)?.name ?? key;
+  }, [dimensions.teams, storeFilters.team]);
+
+  /** Prefer explicit projectKey; only use team as project when it exists in Delivery projects. */
+  const deliveryProjectKey = useMemo(() => {
+    const explicit = storeFilters.projectKey ?? initialProjectKey ?? null;
+    if (explicit) return explicit;
+    const team = storeFilters.team;
+    if (!team || !storeSnapshot) return null;
+    const known = new Set([
+      ...storeSnapshot.projectKeys,
+      ...storeSnapshot.byProject.map((p) => p.key),
+    ]);
+    return known.has(team) ? team : null;
+  }, [
+    storeFilters.projectKey,
+    storeFilters.team,
+    initialProjectKey,
+    storeSnapshot,
+  ]);
+
   const filters: DeliveryAnalysisFilters = useMemo(
     () => ({
-      projectKey:
-        storeFilters.projectKey ??
-        storeFilters.team ??
-        initialProjectKey ??
-        null,
+      projectKey: deliveryProjectKey,
       riskFocus: parseRiskFocus(storeFilters.riskFocus),
       range: (storeFilters.range as TimeRange | null) ?? "30d",
       compare: (storeFilters.compare as CompareMode | null) ?? "previous_sync",
     }),
     [
-      storeFilters.projectKey,
-      storeFilters.team,
+      deliveryProjectKey,
       storeFilters.riskFocus,
       storeFilters.range,
       storeFilters.compare,
-      initialProjectKey,
     ],
   );
 
@@ -145,13 +212,16 @@ export function DeliveryAnalysisDashboard({
         ...(blocked != null ? { blocked } : {}),
         ...(spillover != null ? { spillover } : {}),
         ...(completion != null ? { sprintCompletionPct: completion } : {}),
+        ...(overviewCompletion && overviewCompletion.total > 0
+          ? { openWork: overviewCompletion.total }
+          : {}),
       },
       riskMix: {
         ...filtered.riskMix,
         ...(blocked != null ? { blocked } : {}),
       },
     };
-  }, [storeSnapshot, filters, deliveryConfidence]);
+  }, [storeSnapshot, filters, deliveryConfidence, overviewCompletion]);
 
   const loadState = !storeSnapshot
     ? "missing"
@@ -182,6 +252,28 @@ export function DeliveryAnalysisDashboard({
   const selectedProject = filters.projectKey;
   const showMetrics = loadState === "ready" && snapshot;
 
+  const activeSprintCards = useMemo(() => {
+    if (!snapshot) return [];
+    const orgKey = snapshot.projectKeys[0] ?? "ORG";
+    const orgName =
+      snapshot.byProject.find((p) => p.key === orgKey)?.name ?? orgKey;
+    return resolveActiveSprintCards({
+      sprints: snapshot.sprints,
+      selectedSprint: selectedSprintMeta,
+      overviewCompletion,
+      teamKey: storeFilters.team,
+      teamName,
+      fallbackProjectKey: orgKey,
+      fallbackProjectName: orgName,
+    });
+  }, [
+    snapshot,
+    selectedSprintMeta,
+    overviewCompletion,
+    storeFilters.team,
+    teamName,
+  ]);
+
   const deliveryVerdict = useMemo(() => {
     if (!snapshot) return null;
     // Prefer Overview leaf (sprint/team-aware) so the banner tracks the top-bar sprint.
@@ -189,7 +281,7 @@ export function DeliveryAnalysisDashboard({
       metricValue(deliveryConfidence.metrics, "blocked") ?? snapshot.kpis.blocked;
     const completion =
       metricValue(deliveryConfidence.metrics, "completion") ??
-      snapshot.sprints.find((s) => s.state === "active")?.pct ??
+      activeSprintCards[0]?.pct ??
       snapshot.kpis.sprintCompletionPct;
     return buildDeliveryConfidenceOneLiner({
       healthScore: deliveryConfidence.score,
@@ -197,7 +289,7 @@ export function DeliveryAnalysisDashboard({
       overdue: snapshot.kpis.overdue,
       sprintCompletionPct: completion,
     });
-  }, [snapshot, deliveryConfidence]);
+  }, [snapshot, deliveryConfidence, activeSprintCards]);
 
   const syncMeta =
     loadState === "ready" && syncedAt
@@ -274,7 +366,7 @@ export function DeliveryAnalysisDashboard({
                 onSelectProject={handleProjectSelect}
                 selectedProject={selectedProject}
               />
-              <SprintCards sprints={snapshot.sprints} siteUrl={snapshot.siteUrl} />
+              <SprintCards sprints={activeSprintCards} siteUrl={snapshot.siteUrl} />
             </div>
 
             <DeliverySignalsCard

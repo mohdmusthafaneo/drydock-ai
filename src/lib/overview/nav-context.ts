@@ -1,6 +1,6 @@
 /**
  * Preserve Overview team/sprint context on outbound links.
- * Maps `team` → `projectKey` for delivery-analysis deep-links.
+ * Delivery maps `team` → project filter only when the team key exists in Delivery projects.
  */
 
 export type OverviewNavContext = {
@@ -20,9 +20,6 @@ export function withOverviewContext(
 
   if (context.team) {
     params.set("team", context.team);
-    if (pathPart === "/delivery-analysis" || pathPart?.startsWith("/delivery-analysis")) {
-      if (!params.has("projectKey")) params.set("projectKey", context.team);
-    }
   }
 
   if (context.sprint) {
