@@ -15,7 +15,7 @@ import {
 import { ConfidenceGauge } from "@/components/overview/charts/gauge";
 import { OverviewLink } from "@/components/overview/overview-link";
 import type { OverviewDashboardModel } from "@/lib/overview/types";
-import { METRIC_HREFS } from "@/lib/overview/nav-context";
+import { METRIC_HREFS, SCORE_DERIVATION_HASH } from "@/lib/overview/nav-context";
 import { cn } from "@/lib/utils";
 
 const ICONS: Record<string, LucideIcon> = {
@@ -69,7 +69,7 @@ export function DeliveryConfidenceCard({
     router.push(qs ? `/dashboard?${qs}` : "/dashboard");
   }
 
-  const gaugeHref = dc.href || "/delivery-analysis";
+  const gaugeHref = `${dc.href || "/delivery-analysis"}#${SCORE_DERIVATION_HASH}`;
 
   return (
     <Card
@@ -86,7 +86,7 @@ export function DeliveryConfidenceCard({
               Delivery confidence
             </CardTitle>
             <InfoTip
-              definition="Composite of delivery, code, QA, and governance signals for the active sprint."
+              definition="Weighted composite of delivery, code, QA, and governance signals for the active sprint. Open Delivery for a plain-English breakdown of how the score is derived."
               evidenceSource="Jira sprint + code analysis + compliance"
             />
           </div>

@@ -12,7 +12,10 @@ export function withOverviewContext(
   href: string,
   context: OverviewNavContext,
 ): string {
-  const [pathPart, existingQuery = ""] = href.split("?");
+  const hashIndex = href.indexOf("#");
+  const hash = hashIndex >= 0 ? href.slice(hashIndex) : "";
+  const withoutHash = hashIndex >= 0 ? href.slice(0, hashIndex) : href;
+  const [pathPart, existingQuery = ""] = withoutHash.split("?");
   const params = new URLSearchParams(existingQuery);
 
   if (context.team) {
@@ -27,8 +30,12 @@ export function withOverviewContext(
   }
 
   const qs = params.toString();
-  return qs ? `${pathPart}?${qs}` : (pathPart ?? href);
+  const base = qs ? `${pathPart}?${qs}` : (pathPart ?? withoutHash);
+  return `${base}${hash}`;
 }
+
+/** Hash target for Overview gauge → Delivery “how score is derived” panel. */
+export const SCORE_DERIVATION_HASH = "score-derivation";
 
 export const PILLAR_HREFS: Record<string, string> = {
   delivery: "/delivery-analysis",

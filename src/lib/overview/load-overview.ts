@@ -19,6 +19,7 @@ import { summarizePortfolioHygiene } from "@/lib/jira-hygiene";
 import { parseJiraMeta } from "@/lib/jira-meta";
 import { getOrganizationContext } from "@/lib/org-data";
 import { computeActivityHeatmap } from "@/lib/overview/activity-heatmap";
+import { buildLiveScoreDerivation } from "@/lib/overview/score-derivation";
 import type {
   ConfidenceBand,
   OverviewDashboardModel,
@@ -93,6 +94,10 @@ function emptyModel(input: {
       caption: "Connect Jira and sync to see delivery confidence.",
       href: "/delivery-analysis",
       metrics: [],
+      derivation: {
+        paragraphs: [],
+        plainText: "",
+      },
     },
     keyTakeaways: [],
     pillars: [],
@@ -647,6 +652,14 @@ export async function loadOverviewDashboard(input: {
           ? `${sprintName} is on track`
           : `${sprintName} is holding steady`;
 
+    const derivation = buildLiveScoreDerivation({
+      score: overall,
+      band,
+      dimensions: health.dimensions,
+      pillars,
+      dataGaps: health.dataGaps,
+    });
+
     const startDate = sprint?.startDate ? new Date(sprint.startDate) : null;
     const endDate = sprint?.endDate ? new Date(sprint.endDate) : null;
     const startLabel = startDate && !Number.isNaN(startDate.getTime())
@@ -788,6 +801,7 @@ export async function loadOverviewDashboard(input: {
             href: "/code-analysis",
           },
         ],
+        derivation,
       },
       keyTakeaways: takeaways,
       pillars,

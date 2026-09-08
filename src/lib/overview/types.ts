@@ -2,6 +2,22 @@ export type EvidenceMeta = { source: string; asOf: string };
 
 export type ConfidenceBand = "Strong" | "Steady" | "Caution" | "At risk";
 
+/** Visual tone for a highlighted score-derivation segment. */
+export type ScoreDerivationTone = "score" | "steady" | "down" | "up";
+
+/** Inline segment for a conversational score-derivation line. */
+export type ScoreDerivationSegment =
+  | { kind: "text"; text: string }
+  | { kind: "emphasis"; text: string; tone?: ScoreDerivationTone };
+
+/** Plain-English explanation of how the delivery-confidence gauge score is derived. */
+export type ScoreDerivation = {
+  /** Conversational paragraphs; each is an inline segment list. */
+  paragraphs: ScoreDerivationSegment[][];
+  /** Flat string for aria / screen readers. */
+  plainText: string;
+};
+
 export type OverviewSprintOption = {
   id: string;
   name: string;
@@ -42,6 +58,7 @@ export type OverviewDashboardModel = {
       icon: string;
       href?: string;
     }>;
+    derivation: ScoreDerivation;
   };
   keyTakeaways: Array<{
     id: string;

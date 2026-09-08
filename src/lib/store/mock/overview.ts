@@ -1,4 +1,5 @@
 import type { OverviewDashboardModel } from "@/lib/overview/types";
+import { buildMockScoreDerivation } from "@/lib/overview/score-derivation";
 import { METRIC_HREFS, PILLAR_HREFS } from "@/lib/overview/nav-context";
 import { type Dimensioned } from "@/lib/store/dimensions";
 import type { DeepPartial } from "@/lib/store/deep";
@@ -56,6 +57,11 @@ function asCharts(raw: unknown): DerivedCharts {
 }
 
 function leafFromDerived(kpis: DerivedKpis, charts: DerivedCharts): OverviewLeaf {
+  const pillars = kpis.pillars.map((p) => ({
+    ...p,
+    href: p.href ?? PILLAR_HREFS[p.id],
+  }));
+
   return {
     deliveryConfidence: {
       score: kpis.score,
@@ -97,12 +103,19 @@ function leafFromDerived(kpis: DerivedKpis, charts: DerivedCharts): OverviewLeaf
           href: METRIC_HREFS["ai-risk"],
         },
       ],
+      derivation: buildMockScoreDerivation({
+        score: kpis.score,
+        band: kpis.band,
+        completion: kpis.completion,
+        done: kpis.done,
+        total: kpis.total,
+        blocked: kpis.blocked,
+        spillover: kpis.spillover,
+        pillars,
+      }),
     },
     keyTakeaways: kpis.takeaways,
-    pillars: kpis.pillars.map((p) => ({
-      ...p,
-      href: p.href ?? PILLAR_HREFS[p.id],
-    })),
+    pillars,
     deliveryTrend: charts.deliveryTrend,
     burndown: charts.burndown,
     heatmap: charts.heatmap,

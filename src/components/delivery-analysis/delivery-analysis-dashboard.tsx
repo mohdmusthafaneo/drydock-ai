@@ -21,8 +21,14 @@ import {
   JiraHygieneFindingsCard,
 } from "@/components/delivery-analysis/jira-hygiene-banner";
 import { AnalysisTabs } from "@/components/delivery-analysis/analysis-tabs";
+import { ScoreDerivationPanel } from "@/components/delivery-analysis/score-derivation-panel";
 import { SnapshotUnavailable } from "@/components/delivery-analysis/snapshot-unavailable";
-import { useAppData, useFilters, useSetFilter } from "@/lib/store";
+import {
+  selectOverviewModel,
+  useAppData,
+  useFilters,
+  useSetFilter,
+} from "@/lib/store";
 
 type Props = {
   projectKeys: string[];
@@ -92,6 +98,9 @@ export function DeliveryAnalysisDashboard({
   initialProjectKey = null,
 }: Props) {
   const storeSnapshot = useAppData((s) => s.data.deliveryAnalysis.snapshot);
+  const scoreDerivation = useAppData(
+    (s) => selectOverviewModel(s).deliveryConfidence.derivation,
+  );
   const storeFilters = useFilters();
   const setFilter = useSetFilter();
 
@@ -211,6 +220,8 @@ export function DeliveryAnalysisDashboard({
               subcopy={deliveryVerdict.subcopy}
             />
           )}
+
+          <ScoreDerivationPanel derivation={scoreDerivation} />
 
           {snapshot.jiraHygiene && <JiraHygieneBanner hygiene={snapshot.jiraHygiene} />}
 
