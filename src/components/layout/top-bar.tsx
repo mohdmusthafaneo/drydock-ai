@@ -1,5 +1,7 @@
 "use client";
 
+import { formatSprintShortRange } from "@/lib/format-date";
+import { MOCK_DEFAULT_SPRINT_ID } from "@/lib/store/mock/dimensions";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown, LogOut, Settings } from "lucide-react";
@@ -35,16 +37,6 @@ function sprintName(sprint: TopBarSprint): string {
   const pipe = sprint.label.indexOf("|");
   if (pipe >= 0) return sprint.label.slice(0, pipe).trim();
   return sprint.label;
-}
-
-function formatShortRange(sprint: TopBarSprint): string {
-  const start = new Date(`${sprint.start}T12:00:00`);
-  const end = new Date(`${sprint.end}T12:00:00`);
-  const opts: Intl.DateTimeFormatOptions = {
-    month: "short",
-    day: "numeric",
-  };
-  return `${start.toLocaleDateString("en-US", opts)} – ${end.toLocaleDateString("en-US", opts)}`;
 }
 
 function SectionTabs() {
@@ -118,6 +110,7 @@ function DateRangeButton({
   const selectedId = searchParams.get("sprint");
   const selected =
     sprints.find((s) => s.id === selectedId) ??
+    sprints.find((s) => s.id === MOCK_DEFAULT_SPRINT_ID) ??
     sprints[0] ??
     null;
   const orderedSprints = [...sprints].sort((a, b) => {
@@ -126,7 +119,9 @@ function DateRangeButton({
   });
 
   const chipName = selected ? sprintName(selected) : dateRangeLabel;
-  const chipRange = selected ? formatShortRange(selected) : null;
+  const chipRange = selected
+    ? formatSprintShortRange(selected.start, selected.end)
+    : null;
 
   function selectSprint(id: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -169,7 +164,7 @@ function DateRangeButton({
               <div className="min-w-0">
                 <p className="truncate text-sm text-primary">{sprintName(sprint)}</p>
                 <p className="truncate text-xs text-muted">
-                  {formatShortRange(sprint)}
+                  {formatSprintShortRange(sprint.start, sprint.end)}
                 </p>
               </div>
             </DropdownMenuItem>

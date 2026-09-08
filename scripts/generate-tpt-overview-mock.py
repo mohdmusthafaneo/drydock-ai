@@ -40,10 +40,11 @@ TEAM_SPRINT_HINT = {
 }
 SCOPE_TYPES = {"Story", "Bug", "Feature", "Epic"}
 SPRINTS = [
-    {"id": "27", "name": "Sprint 27", "start": date(2026, 8, 26), "end": date(2026, 9, 8), "active": True},
-    {"id": "26", "name": "Sprint 26", "start": date(2026, 8, 12), "end": date(2026, 8, 25), "active": False},
-    {"id": "25", "name": "Sprint 25", "start": date(2026, 7, 29), "end": date(2026, 8, 11), "active": False},
-    {"id": "24", "name": "Sprint 24", "start": date(2026, 7, 15), "end": date(2026, 7, 28), "active": False},
+    # Calendar windows match TPT Jira sprint dates (times applied in derived labels).
+    {"id": "27", "name": "Sprint 27", "start": date(2026, 8, 31), "end": date(2026, 9, 10), "active": True},
+    {"id": "26", "name": "Sprint 26", "start": date(2026, 8, 17), "end": date(2026, 8, 28), "active": False},
+    {"id": "25", "name": "Sprint 25", "start": date(2026, 8, 3), "end": date(2026, 8, 15), "active": False},
+    {"id": "24", "name": "Sprint 24", "start": date(2026, 7, 20), "end": date(2026, 8, 1), "active": False},
 ]
 SPRINT_BY_ID = {s["id"]: s for s in SPRINTS}
 AS_OF = datetime(2026, 9, 8, 10, 49, 0)

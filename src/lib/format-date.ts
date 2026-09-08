@@ -41,3 +41,23 @@ export function formatSprintDay(iso?: string): string {
     timeZone: "UTC",
   });
 }
+
+/** Calendar date key `YYYY-MM-DD` from an ISO date or datetime. */
+export function toDateKey(iso: string): string {
+  return iso.slice(0, 10);
+}
+
+/** Short month+day range for top-bar chips (UTC). */
+export function formatSprintShortRange(startIso: string, endIso: string): string {
+  const opts: Intl.DateTimeFormatOptions = {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  };
+  const start = new Date(`${toDateKey(startIso)}T12:00:00.000Z`);
+  const end = new Date(`${toDateKey(endIso)}T12:00:00.000Z`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return `${startIso} – ${endIso}`;
+  }
+  return `${start.toLocaleDateString("en-US", opts)} – ${end.toLocaleDateString("en-US", opts)}`;
+}

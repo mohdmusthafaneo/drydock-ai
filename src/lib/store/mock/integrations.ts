@@ -1,4 +1,5 @@
 import { OVERVIEW_LAST_SYNC_AT } from "@/lib/store/mock/dimensions";
+import { TPT_OVERVIEW_DERIVED } from "@/lib/store/mock/tpt-overview-derived";
 import type { IntegrationsData } from "@/lib/store/types";
 
 export const mockIntegrations: IntegrationsData = {
@@ -8,6 +9,9 @@ export const mockIntegrations: IntegrationsData = {
       provider: "jira",
       status: "CONNECTED",
       lastSyncAt: OVERVIEW_LAST_SYNC_AT,
+      projectKeys: [TPT_OVERVIEW_DERIVED.projectKey],
+      siteName: TPT_OVERVIEW_DERIVED.orgName,
+      mockSession: true,
     },
     {
       id: "mock-github",

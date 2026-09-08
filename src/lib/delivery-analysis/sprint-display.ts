@@ -1,4 +1,4 @@
-import { formatSprintDay } from "@/lib/format-date";
+import { formatSprintDay, toDateKey } from "@/lib/format-date";
 import { sprintDaysOverdue } from "@/lib/jira-sprint-metrics";
 import type { DeliveryAnalysisSprintRow } from "@/lib/delivery-analysis/types";
 
@@ -7,6 +7,7 @@ export type SelectedSprintMeta = {
   name: string;
   start: string;
   end: string;
+  rangeLabel?: string;
 };
 
 export type OverviewSprintCompletion = {
@@ -32,7 +33,7 @@ export function sprintMatchesSelection(
 
 function daysUntilEnd(endDate: string | undefined): number | null {
   if (!endDate) return null;
-  const end = new Date(`${endDate.slice(0, 10)}T00:00:00.000Z`);
+  const end = new Date(`${toDateKey(endDate)}T00:00:00.000Z`);
   if (Number.isNaN(end.getTime())) return null;
   const today = new Date();
   const todayUtc = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
@@ -104,11 +105,10 @@ function synthesizeFromOverview(
 ): DeliveryAnalysisSprintRow {
   const end = selected.end;
   const start = selected.start;
-  const today = new Date();
-  const todayKey = today.toISOString().slice(0, 10);
+  const todayKey = new Date().toISOString().slice(0, 10);
   let state = "active";
-  if (end < todayKey) state = "closed";
-  else if (start > todayKey) state = "future";
+  if (toDateKey(end) < todayKey) state = "closed";
+  else if (toDateKey(start) > todayKey) state = "future";
 
   return enrichSprintRow({
     projectKey: scope.projectKey,

@@ -3,10 +3,12 @@ import type { DeliveryAnalysisData } from "@/lib/store/types";
 import { OVERVIEW_LAST_SYNC_AT } from "@/lib/store/mock/dimensions";
 import { TPT_OVERVIEW_DERIVED } from "@/lib/store/mock/tpt-overview-derived";
 import { computeSprintCardSeverity } from "@/lib/delivery-analysis/sprint-display";
+import { toDateKey } from "@/lib/format-date";
 
 const base = TPT_OVERVIEW_DERIVED.base;
 const sprint27 = TPT_OVERVIEW_DERIVED.sprints.find((s) => s.id === "27")!;
 const teams = TPT_OVERVIEW_DERIVED.teams;
+const projectKey = TPT_OVERVIEW_DERIVED.projectKey;
 
 function teamKpis(key: string) {
   return TPT_OVERVIEW_DERIVED.byTeam[key as keyof typeof TPT_OVERVIEW_DERIVED.byTeam]!;
@@ -72,12 +74,12 @@ const MOCK_DELIVERY_SNAPSHOT: DeliveryAnalysisSnapshot = {
     const state =
       s.id === TPT_OVERVIEW_DERIVED.defaultSprintId
         ? "active"
-        : s.end < sprint27.start
+        : toDateKey(s.end) < toDateKey(sprint27.start)
           ? "closed"
           : "future";
     const pct = kpis.completion;
     return {
-      projectKey: TPT_OVERVIEW_DERIVED.projectKey,
+      projectKey,
       projectName: TPT_OVERVIEW_DERIVED.orgName,
       name: s.name,
       state,
@@ -100,7 +102,7 @@ const MOCK_DELIVERY_SNAPSHOT: DeliveryAnalysisSnapshot = {
       id: "sig-blocked",
       category: "blockers",
       label: "Blocked work elevated",
-      value: `${base.blocked} items blocked across ${teams.map((t) => t.key).join(", ")}`,
+      value: `${base.blocked} items blocked across teams in ${projectKey}`,
       severity: "critical",
     },
     {

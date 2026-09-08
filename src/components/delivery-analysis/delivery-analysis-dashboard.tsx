@@ -125,6 +125,7 @@ export function DeliveryAnalysisDashboard({
       name: sprint.name,
       start: sprint.start,
       end: sprint.end,
+      rangeLabel: sprint.rangeLabel,
     };
   }, [dimensions.sprints, effectiveSprintId]);
 
@@ -197,8 +198,29 @@ export function DeliveryAnalysisDashboard({
   const snapshot = useMemo(() => {
     if (!storeSnapshot) return null;
     const filtered = filterSnapshot(storeSnapshot, filters);
+    const sprintOverlay = selectedSprintMeta
+      ? {
+          rangeLabel: selectedSprintMeta.rangeLabel ?? filtered.rangeLabel,
+          scopeLabel: selectedSprintMeta.name,
+          scopeMode: "sprint" as const,
+          byProject: filtered.byProject.map((p) =>
+            p.activeSprint
+              ? {
+                  ...p,
+                  activeSprint: {
+                    ...p.activeSprint,
+                    name: selectedSprintMeta.name,
+                  },
+                }
+              : p,
+          ),
+        }
+      : {};
+
     // Project drill-down keeps local KPIs; otherwise overlay sprint/team-aware Overview counts.
-    if (filters.projectKey) return filtered;
+    if (filters.projectKey) {
+      return { ...filtered, ...sprintOverlay };
+    }
 
     const blocked = metricValue(deliveryConfidence.metrics, "blocked");
     const spillover = metricValue(deliveryConfidence.metrics, "spillover");
@@ -206,6 +228,7 @@ export function DeliveryAnalysisDashboard({
 
     return {
       ...filtered,
+      ...sprintOverlay,
       kpis: {
         ...filtered.kpis,
         healthScore: deliveryConfidence.score,
@@ -221,7 +244,13 @@ export function DeliveryAnalysisDashboard({
         ...(blocked != null ? { blocked } : {}),
       },
     };
-  }, [storeSnapshot, filters, deliveryConfidence, overviewCompletion]);
+  }, [
+    storeSnapshot,
+    filters,
+    deliveryConfidence,
+    overviewCompletion,
+    selectedSprintMeta,
+  ]);
 
   const loadState = !storeSnapshot
     ? "missing"
@@ -254,9 +283,14 @@ export function DeliveryAnalysisDashboard({
 
   const activeSprintCards = useMemo(() => {
     if (!snapshot) return [];
-    const orgKey = snapshot.projectKeys[0] ?? "ORG";
+    const orgKey =
+      snapshot.sprints[0]?.projectKey ??
+      dimensions.projects[0]?.key ??
+      "TP";
     const orgName =
-      snapshot.byProject.find((p) => p.key === orgKey)?.name ?? orgKey;
+      snapshot.sprints[0]?.projectName ??
+      dimensions.projects[0]?.name ??
+      "TPT Platform";
     return resolveActiveSprintCards({
       sprints: snapshot.sprints,
       selectedSprint: selectedSprintMeta,
@@ -272,6 +306,7 @@ export function DeliveryAnalysisDashboard({
     overviewCompletion,
     storeFilters.team,
     teamName,
+    dimensions.projects,
   ]);
 
   const deliveryVerdict = useMemo(() => {

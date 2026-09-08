@@ -45,6 +45,7 @@ import { ensureSlackIntegrationRow } from "@/lib/ensure-slack-integration";
 import { decryptToken } from "@/lib/token-crypto";
 import { ConnectorConfigureDisclosure } from "@/components/integrations/connector-configure-disclosure";
 import { IntegrationsStatusFromStore } from "@/components/integrations/integrations-status-from-store";
+import { JiraConnectSection } from "@/components/integrations/jira-connect-section";
 
 const PROVIDER_LABELS: Record<string, string> = {
   GITHUB: "GitHub",
@@ -299,7 +300,9 @@ export default async function IntegrationsPage({
             description="Connect Jira for work items, cycle time, and release context."
           />
           <div className="grid gap-4 md:grid-cols-2">
-            {primary.filter((i) => i.provider === "JIRA").map((i) => renderCard(i))}
+            <JiraConnectSection
+              live={primary.filter((i) => i.provider === "JIRA").map((i) => renderCard(i))}
+            />
           </div>
         </section>
 

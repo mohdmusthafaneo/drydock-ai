@@ -163,6 +163,12 @@ export type IntegrationsData = {
     provider: string;
     status: string;
     lastSyncAt: string | null;
+    /** Jira (and similar) sync targets — e.g. `["TP"]` for mock connect session. */
+    projectKeys?: string[];
+    /** Human-readable site / org label for the mock connect session. */
+    siteName?: string;
+    /** When true, Connect page treats this as the mock session (no live OAuth). */
+    mockSession?: boolean;
   }>;
 };
 

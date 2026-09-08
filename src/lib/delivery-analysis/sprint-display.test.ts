@@ -80,8 +80,8 @@ describe("sprint-display", () => {
       selectedSprint: {
         id: "27",
         name: "Sprint 27",
-        start: "2026-08-26",
-        end: "2026-09-08",
+        start: "2026-08-31T10:27:00.000Z",
+        end: "2026-09-10T23:00:00.000Z",
       },
       overviewCompletion: { done: 74, total: 244, pct: 30 },
       teamKey: null,
@@ -95,7 +95,8 @@ describe("sprint-display", () => {
     assert.equal(rows[0]!.done, 74);
     assert.equal(rows[0]!.committed, 244);
     assert.equal(rows[0]!.pct, 30);
-    assert.equal(rows[0]!.startDate, "2026-08-26");
-    assert.equal(rows[0]!.endDate, "2026-09-08");
+    assert.equal(rows[0]!.startDate, "2026-08-31T10:27:00.000Z");
+    assert.equal(rows[0]!.endDate, "2026-09-10T23:00:00.000Z");
+    assert.equal(rows[0]!.projectKey, "TP");
   });
 });

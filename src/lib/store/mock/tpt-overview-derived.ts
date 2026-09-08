@@ -34,38 +34,38 @@ export const TPT_OVERVIEW_DERIVED = {
     {
       "id": "27",
       "name": "Sprint 27",
-      "startLabel": "Aug 26",
-      "endLabel": "Sep 8",
-      "rangeLabel": "Aug 26 \u2013 Sep 8, 2026",
-      "start": "2026-08-26",
-      "end": "2026-09-08"
+      "startLabel": "Aug 31",
+      "endLabel": "Sep 10",
+      "rangeLabel": "31 Aug 10:27 AM \u2013 10 Sep 11:00 PM, 2026",
+      "start": "2026-08-31T10:27:00.000Z",
+      "end": "2026-09-10T23:00:00.000Z"
     },
     {
       "id": "26",
       "name": "Sprint 26",
-      "startLabel": "Aug 12",
-      "endLabel": "Aug 25",
-      "rangeLabel": "Aug 12 \u2013 Aug 25, 2026",
-      "start": "2026-08-12",
-      "end": "2026-08-25"
+      "startLabel": "Aug 17",
+      "endLabel": "Aug 28",
+      "rangeLabel": "17 Aug 10:24 AM \u2013 28 Aug 6:39 PM, 2026",
+      "start": "2026-08-17T10:24:00.000Z",
+      "end": "2026-08-28T18:39:00.000Z"
     },
     {
       "id": "25",
       "name": "Sprint 25",
-      "startLabel": "Jul 29",
-      "endLabel": "Aug 11",
-      "rangeLabel": "Jul 29 \u2013 Aug 11, 2026",
-      "start": "2026-07-29",
-      "end": "2026-08-11"
+      "startLabel": "Aug 3",
+      "endLabel": "Aug 15",
+      "rangeLabel": "3 Aug 8:07 AM \u2013 15 Aug 8:47 AM, 2026",
+      "start": "2026-08-03T08:07:00.000Z",
+      "end": "2026-08-15T08:47:00.000Z"
     },
     {
       "id": "24",
       "name": "Sprint 24",
-      "startLabel": "Jul 15",
-      "endLabel": "Jul 28",
-      "rangeLabel": "Jul 15 \u2013 Jul 28, 2026",
-      "start": "2026-07-15",
-      "end": "2026-07-28"
+      "startLabel": "Jul 20",
+      "endLabel": "Aug 1",
+      "rangeLabel": "20 Jul 9:17 AM \u2013 1 Aug 10:30 AM, 2026",
+      "start": "2026-07-20T09:17:00.000Z",
+      "end": "2026-08-01T10:30:00.000Z"
     }
   ],
   "base": {

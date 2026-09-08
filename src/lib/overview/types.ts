@@ -24,7 +24,7 @@ export type OverviewSprintOption = {
   startLabel: string;
   endLabel: string;
   rangeLabel: string;
-  /** ISO date for top-bar sprint chip (`YYYY-MM-DD`). */
+  /** ISO start/end (`YYYY-MM-DD` or full datetime) for top-bar sprint chip. */
   start: string;
   end: string;
 };
