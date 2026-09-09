@@ -1,7 +1,6 @@
 "use client";
 
 import { formatSprintShortRange } from "@/lib/format-date";
-import { MOCK_DEFAULT_SPRINT_ID } from "@/lib/store/mock/dimensions";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown, LogOut, Settings } from "lucide-react";
@@ -100,9 +99,11 @@ function SprintChip({
 function DateRangeButton({
   dateRangeLabel,
   sprints = [],
+  defaultSprintId,
 }: {
   dateRangeLabel: string;
   sprints?: TopBarSprint[];
+  defaultSprintId?: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -110,7 +111,9 @@ function DateRangeButton({
   const selectedId = searchParams.get("sprint");
   const selected =
     sprints.find((s) => s.id === selectedId) ??
-    sprints.find((s) => s.id === MOCK_DEFAULT_SPRINT_ID) ??
+    (defaultSprintId
+      ? sprints.find((s) => s.id === defaultSprintId)
+      : undefined) ??
     sprints[0] ??
     null;
   const orderedSprints = [...sprints].sort((a, b) => {
@@ -229,10 +232,12 @@ export function TopBar({
   session,
   dateRangeLabel,
   sprints,
+  defaultSprintId,
 }: {
   session: SessionPayload;
   dateRangeLabel: string;
   sprints?: TopBarSprint[];
+  defaultSprintId?: string;
 }) {
   return (
     <header
@@ -241,7 +246,11 @@ export function TopBar({
     >
       <SectionTabs />
       <div className="flex shrink-0 items-center gap-[11px]">
-        <DateRangeButton dateRangeLabel={dateRangeLabel} sprints={sprints} />
+        <DateRangeButton
+          dateRangeLabel={dateRangeLabel}
+          sprints={sprints}
+          defaultSprintId={defaultSprintId}
+        />
         <UserMenu session={session} />
       </div>
     </header>

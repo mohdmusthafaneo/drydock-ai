@@ -97,6 +97,7 @@ export function AppShell({
             session={session}
             dateRangeLabel={dateRangeLabel}
             sprints={chrome.sprints}
+            defaultSprintId={chrome.defaultSprintId}
           />
         ) : null}
         <main

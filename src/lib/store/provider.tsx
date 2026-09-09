@@ -12,7 +12,7 @@ import {
 import { createStore, type Store } from "@/lib/store/create-store";
 import { DEFAULT_FILTERS, type AppFilters } from "@/lib/store/dimensions";
 import type { AppData, AppStoreState, StoreStatus } from "@/lib/store/types";
-import { getMockAppData } from "@/lib/store/mock";
+import { seedAppData } from "@/lib/store/mock";
 import { mergeAppData } from "@/lib/store/merge";
 import type { DeepPartial } from "@/lib/store/deep";
 
@@ -25,8 +25,7 @@ function buildInitialState(
   initialFilters: Partial<AppFilters> | undefined,
   initialStatus: StoreStatus,
 ): AppStoreState {
-  const mock = getMockAppData();
-  const data = mergeAppData(mock, overlay ?? undefined);
+  const data = mergeAppData(seedAppData(), overlay ?? undefined);
   return {
     data,
     filters: { ...DEFAULT_FILTERS, ...initialFilters },
@@ -42,7 +41,7 @@ export function AppDataProvider({
   initialStatus = "ready",
 }: {
   children: ReactNode;
-  /** Server-computed DeepPartial overlay from live loaders. */
+  /** Optional session/user fields merged onto the store seed. */
   overlay?: DeepPartial<AppData> | null;
   initialFilters?: Partial<AppFilters>;
   initialStatus?: StoreStatus;

@@ -11,6 +11,7 @@ export const mockIntegrations: IntegrationsData = {
       lastSyncAt: OVERVIEW_LAST_SYNC_AT,
       projectKeys: [TPT_OVERVIEW_DERIVED.projectKey],
       siteName: TPT_OVERVIEW_DERIVED.orgName,
+      siteUrl: TPT_OVERVIEW_DERIVED.jiraSiteUrl,
       mockSession: true,
     },
     {

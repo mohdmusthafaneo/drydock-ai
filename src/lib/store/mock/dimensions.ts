@@ -23,6 +23,7 @@ export const MOCK_DIMENSIONS: AppDimensions = {
   teams: TEAMS,
   projects: TEAMS.map((t) => ({ key: t.key, name: t.name })),
   sprints: SPRINTS,
+  defaultSprintId: TPT_OVERVIEW_DERIVED.defaultSprintId,
   repos: [
     { id: "tpt-platform", name: "tpt-platform", fullName: "tpt/tpt-platform" },
     { id: "tpt-mobile", name: "tpt-mobile", fullName: "tpt/tpt-mobile" },
@@ -32,6 +33,3 @@ export const MOCK_DIMENSIONS: AppDimensions = {
     { id: "web-client", name: "web-client" },
   ],
 };
-
-/** Default sprint when filters.sprint is unset (current TPT sprint). */
-export const MOCK_DEFAULT_SPRINT_ID = TPT_OVERVIEW_DERIVED.defaultSprintId;

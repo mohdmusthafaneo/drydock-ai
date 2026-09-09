@@ -6,7 +6,11 @@ import { BriefingContextChip } from "@/components/briefing/briefing-context-chip
 import { DataTrustStrip } from "@/components/trust/data-trust-strip";
 import { DeliveryAnalysisDashboard } from "@/components/delivery-analysis/delivery-analysis-dashboard";
 import { ConnectJiraEmpty } from "@/components/delivery-analysis/connect-jira-empty";
-import { useAppData, useFilters } from "@/lib/store";
+import {
+  selectDeliveryAnalysisSnapshot,
+  useAppData,
+  useFilters,
+} from "@/lib/store";
 import { formatDistanceToNow } from "@/lib/format-date";
 
 type Props = {
@@ -14,7 +18,7 @@ type Props = {
 };
 
 export function DeliveryAnalysisFromStore({ from }: Props) {
-  const snapshot = useAppData((s) => s.data.deliveryAnalysis.snapshot);
+  const snapshot = useAppData((s) => selectDeliveryAnalysisSnapshot(s));
   const lastSyncAt = useAppData((s) => s.data.meta.lastSyncAt);
   const { team } = useFilters();
 

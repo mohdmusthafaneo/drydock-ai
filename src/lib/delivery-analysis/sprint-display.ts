@@ -127,7 +127,7 @@ function synthesizeFromOverview(
 /**
  * Active-sprints card rows for the Overview-selected sprint/team context.
  * Prefers matching Delivery rows; otherwise synthesizes from Overview completion
- * so the card never silently shows an unrelated Connexus/active sprint.
+ * so the card never silently shows an unrelated active sprint.
  */
 export function resolveActiveSprintCards(input: {
   sprints: DeliveryAnalysisSprintRow[];

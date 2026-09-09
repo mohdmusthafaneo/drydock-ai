@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import type { ObservabilityAnalysisFilters } from "@/lib/observability-analysis/types";
-import { getMockObservabilityAnalysisSnapshot } from "@/lib/store/mock/observability";
 import { AnalysisFiltersBar } from "@/components/observability/analysis-filters";
 import { KpiStrip } from "@/components/observability/kpi-strip";
 import { HealthMixChart } from "@/components/observability/health-mix-chart";
@@ -22,7 +21,6 @@ export function ObservabilityDashboard({ canSync = false }: Props) {
   const storeSnapshot = useAppData((s) => s.data.observability.snapshot);
   const availableScopes = useAppData((s) => s.data.observability.availableServiceScopes);
   const lastSyncAt = useAppData((s) => s.data.meta.lastSyncAt);
-  const mode = useAppData((s) => s.data.meta.mode);
   const storeFilters = useFilters();
   const setFilter = useSetFilter();
 
@@ -52,21 +50,19 @@ export function ObservabilityDashboard({ canSync = false }: Props) {
   const [syncError, setSyncError] = useState<string | null>(null);
 
   const snapshot = useMemo(() => {
-    if (mode !== "live") {
-      return getMockObservabilityAnalysisSnapshot(filters);
-    }
-    return storeSnapshot;
-  }, [filters, mode, storeSnapshot]);
+    if (!storeSnapshot) return null;
+    if (!filters.serviceId) return storeSnapshot;
+    const byService = storeSnapshot.byService.filter((s) => s.id === filters.serviceId);
+    if (byService.length === 0) return storeSnapshot;
+    return { ...storeSnapshot, byService };
+  }, [filters.serviceId, storeSnapshot]);
 
-  const demoMode = mode !== "live";
   const environmentLabel =
     filters.environment === "all" ? "all environments" : filters.environment;
 
-  const lastSyncedLabel = demoMode
-    ? "Demo evidence · sync Prometheus for live metrics"
-    : lastSyncAt
-      ? `Live data · last synced ${formatRelative(lastSyncAt)}`
-      : "Not synced yet";
+  const lastSyncedLabel = lastSyncAt
+    ? `Last synced ${formatRelative(lastSyncAt)}`
+    : "From store";
 
   function updateFilters(next: Partial<ObservabilityAnalysisFilters>) {
     setFilter({
@@ -115,7 +111,7 @@ export function ObservabilityDashboard({ canSync = false }: Props) {
   if (!snapshot) {
     return (
       <p className="rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm text-secondary">
-        No observability snapshot in the evidence set yet.
+        No observability snapshot in the store yet.
       </p>
     );
   }
@@ -126,19 +122,10 @@ export function ObservabilityDashboard({ canSync = false }: Props) {
         <p className="text-sm text-secondary">
           Prometheus operational intelligence · {serviceIds.length} service
           {serviceIds.length === 1 ? "" : "s"}
-          {lastSyncAt && !demoMode
-            ? ` · last synced ${formatRelative(lastSyncAt)}`
-            : ""}
+          {lastSyncAt ? ` · last synced ${formatRelative(lastSyncAt)}` : ""}
         </p>
         <CollectTelemetryButton />
       </div>
-
-      {demoMode && (
-        <p className="rounded-lg border border-brand/30 bg-brand-muted px-3 py-2 text-sm text-brand">
-          UI preview with demo data aligned with Overview — connect and sync Prometheus on
-          Integrations for live operational metrics.
-        </p>
-      )}
 
       <AnalysisFiltersBar
         filters={filters}
@@ -149,7 +136,7 @@ export function ObservabilityDashboard({ canSync = false }: Props) {
         syncing={syncing}
         canSync={canSync}
         lastSyncedLabel={lastSyncedLabel}
-        exportDisabled={demoMode}
+        exportDisabled
       />
 
       {syncMessage && (

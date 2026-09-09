@@ -20,12 +20,11 @@ import { mockSettings } from "@/lib/store/mock/settings";
 import { mockReports } from "@/lib/store/mock/reports";
 import { mockRisk } from "@/lib/store/mock/risk";
 
-export function getMockAppData(): AppData {
+/** Initial AppData for the store. Demo seed only — replace when the backend lands. */
+export function seedAppData(): AppData {
   return {
     meta: {
       lastSyncAt: OVERVIEW_LAST_SYNC_AT,
-      mode: "mock",
-      provenance: {},
     },
     org: { id: "org-tpt", name: "TPT Platform" },
     user: { name: "Krishna Nair", greetingName: "Krishna", role: "ORG_ADMIN" },

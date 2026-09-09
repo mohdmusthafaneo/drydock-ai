@@ -2,7 +2,6 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { QueryProvider } from "@/components/providers/query-provider";
-import { ProvenanceBadge } from "@/components/store/provenance-badge";
 import { ShowcaseStatusBoot } from "@/components/store/showcase-status-boot";
 import { getIntegrationNavGates } from "@/lib/nav-availability";
 import { getOrganizationContext } from "@/lib/org-data";
@@ -11,8 +10,7 @@ import { resolveLandingPath } from "@/lib/landing-path";
 import { prisma } from "@/lib/prisma";
 import type { SessionPayload } from "@/lib/session";
 import { AppDataProvider, FilterUrlSync } from "@/lib/store";
-import { buildLiveOverlay } from "@/lib/store/live";
-import { deepMerge, type DeepPartial } from "@/lib/store/deep";
+import type { DeepPartial } from "@/lib/store/deep";
 import type { AppData } from "@/lib/store/types";
 
 export async function PlatformShell({
@@ -45,21 +43,18 @@ export async function PlatformShell({
   const integrationGates = getIntegrationNavGates(ctx.integrations);
   const greetingName = session.name.split(/\s+/)[0] || session.name;
 
-  const liveOverlay = await buildLiveOverlay(session.organizationId);
-  const userOverlay: DeepPartial<AppData> = {
+  const overlay: DeepPartial<AppData> = {
     user: {
       name: session.name,
       greetingName,
       role: session.role,
     },
   };
-  const overlay = deepMerge(userOverlay, liveOverlay);
 
   return (
     <AppDataProvider initialStatus="loading" overlay={overlay}>
       <FilterUrlSync />
       <ShowcaseStatusBoot />
-      <ProvenanceBadge />
       <AppShell
         session={session}
         integrationGates={integrationGates}

@@ -1,17 +1,17 @@
-import { resolve } from "@/lib/store/dimensions";
-import { MOCK_DEFAULT_SPRINT_ID } from "@/lib/store/mock/dimensions";
-import { resolveMockScheduleRisk } from "@/lib/store/mock/schedule-risk";
+import { resolve, pick } from "@/lib/store/dimensions";
 import type {
   AppStoreState,
   OverviewDashboardModel,
   OverviewSprintOption,
 } from "@/lib/store/types";
+import type { DeliveryAnalysisSnapshot } from "@/lib/delivery-analysis/types";
 
 function defaultSprintId(state: AppStoreState): string {
+  const { dimensions } = state.data;
   return (
-    state.data.dimensions.sprints.find((s) => s.id === MOCK_DEFAULT_SPRINT_ID)?.id ??
-    state.data.dimensions.sprints[0]?.id ??
-    MOCK_DEFAULT_SPRINT_ID
+    dimensions.sprints.find((s) => s.id === dimensions.defaultSprintId)?.id ??
+    dimensions.sprints[0]?.id ??
+    dimensions.defaultSprintId
   );
 }
 
@@ -39,34 +39,13 @@ export function selectOverviewModel(state: AppStoreState): OverviewDashboardMode
 
   const sprint =
     data.dimensions.sprints.find((s) => s.id === sprintId) ??
-    data.dimensions.sprints.find((s) => s.id === MOCK_DEFAULT_SPRINT_ID) ??
+    data.dimensions.sprints.find((s) => s.id === data.dimensions.defaultSprintId) ??
     data.dimensions.sprints[0]!;
 
   const caption = leaf.deliveryConfidence.caption.replace(
     /Sprint \d+/g,
     sprint.name,
   );
-
-  // Keep Overview “items at risk” aligned with the Delivery schedule-risk panel.
-  // Live Connexus overlays can otherwise show a different spillover total than the
-  // TPT mock evidence set for the selected sprint/team.
-  const mockScheduleRisk =
-    data.meta.mode === "live"
-      ? undefined
-      : resolveMockScheduleRisk(sprintId, filters.team);
-  const metrics = leaf.deliveryConfidence.metrics.map((metric) => {
-    if (
-      mockScheduleRisk &&
-      (metric.id === "spillover" || metric.id === "at-risk")
-    ) {
-      return {
-        ...metric,
-        value: mockScheduleRisk.total,
-        progress: Math.min(100, mockScheduleRisk.total),
-      };
-    }
-    return metric;
-  });
 
   return {
     greetingName: data.user.greetingName,
@@ -84,7 +63,6 @@ export function selectOverviewModel(state: AppStoreState): OverviewDashboardMode
     deliveryConfidence: {
       ...leaf.deliveryConfidence,
       caption,
-      metrics,
     },
     keyTakeaways: leaf.keyTakeaways,
     pillars: leaf.pillars,
@@ -104,6 +82,7 @@ export type ShellChrome = {
   lastSyncAt: string | null;
   sprints: Array<{ id: string; label: string; start: string; end: string }>;
   activeSprintLabel: string | undefined;
+  defaultSprintId: string;
 };
 
 /** TopBar / Sidebar chrome derived from AppData + filters. */
@@ -112,7 +91,7 @@ export function selectShellChrome(state: AppStoreState): ShellChrome {
   const sprintId = filters.sprint ?? defaultSprintId(state);
   const active =
     data.dimensions.sprints.find((s) => s.id === sprintId) ??
-    data.dimensions.sprints.find((s) => s.id === MOCK_DEFAULT_SPRINT_ID);
+    data.dimensions.sprints.find((s) => s.id === data.dimensions.defaultSprintId);
 
   return {
     organizationName: data.org.name,
@@ -125,6 +104,7 @@ export function selectShellChrome(state: AppStoreState): ShellChrome {
       end: s.end,
     })),
     activeSprintLabel: active ? sprintChipLabel(active) : undefined,
+    defaultSprintId: data.dimensions.defaultSprintId,
   };
 }
 
@@ -136,4 +116,18 @@ export function selectAiRiskPct(state: AppStoreState): number {
     return aiRiskPctByTeam[filters.team]!;
   }
   return defaultAiRiskPct;
+}
+
+/**
+ * Delivery page snapshot for the selected sprint/team from the store.
+ */
+export function selectDeliveryAnalysisSnapshot(
+  state: AppStoreState,
+): DeliveryAnalysisSnapshot {
+  const { data, filters } = state;
+  const sprintId = filters.sprint ?? defaultSprintId(state);
+  return pick(data.deliveryAnalysis, {
+    team: filters.team,
+    sprint: sprintId,
+  });
 }

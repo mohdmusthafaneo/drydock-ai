@@ -10,8 +10,7 @@ function categoryForEntity(entityType: string): string {
 }
 
 /**
- * Overlay org-scoped rows when present. Does not replace the mock org display
- * name — demos keep Connexus branding until you author a client-specific mock.
+ * Overlay org-scoped rows when present. Does not replace the mock org display name.
  */
 export const orgOverlay: LiveAdapter = async (organizationId) => {
   const [org, members, releases, ctx] = await Promise.all([

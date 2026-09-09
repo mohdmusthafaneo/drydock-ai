@@ -1,10 +1,6 @@
 import { deepMerge, type DeepPartial } from "@/lib/store/deep";
 import type { AppData } from "@/lib/store/types";
-import { overviewOverlay } from "@/lib/store/live/overview";
-import {
-  codeAnalysisOverlay,
-  deliveryAnalysisOverlay,
-} from "@/lib/store/live/analysis";
+import { codeAnalysisOverlay } from "@/lib/store/live/analysis";
 import {
   briefingOverlay,
   certificateOverlay,
@@ -17,14 +13,12 @@ import type { LiveAdapter, LiveOverlay } from "@/lib/store/live/types";
 
 const ADAPTERS: LiveAdapter[] = [
   orgOverlay,
-  overviewOverlay,
   ledgerOverlay,
   briefingOverlay,
   certificateOverlay,
   standardOverlay,
   escapesOverlay,
   codeAnalysisOverlay,
-  deliveryAnalysisOverlay,
 ];
 
 /**
