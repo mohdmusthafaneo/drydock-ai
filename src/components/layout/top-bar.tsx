@@ -215,13 +215,18 @@ function UserMenu({ session }: { session: SessionPayload }) {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <form action="/api/auth/logout" method="POST" className="w-full">
-            <button type="submit" className="flex w-full items-center gap-2">
-              <LogOut className="h-4 w-4" strokeWidth={1.5} />
-              Sign out
-            </button>
-          </form>
+        {/* Radix MenuItem preventDefault on pointerdown blocks nested form submits */}
+        <DropdownMenuItem
+          onSelect={() => {
+            const form = document.createElement("form");
+            form.method = "POST";
+            form.action = "/api/auth/logout";
+            document.body.appendChild(form);
+            form.submit();
+          }}
+        >
+          <LogOut className="h-4 w-4" strokeWidth={1.5} />
+          Sign out
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
