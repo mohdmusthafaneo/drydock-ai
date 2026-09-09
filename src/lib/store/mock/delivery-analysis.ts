@@ -9,6 +9,7 @@ const base = TPT_OVERVIEW_DERIVED.base;
 const sprint27 = TPT_OVERVIEW_DERIVED.sprints.find((s) => s.id === "27")!;
 const teams = TPT_OVERVIEW_DERIVED.teams;
 const projectKey = TPT_OVERVIEW_DERIVED.projectKey;
+const scheduleRisk27 = TPT_OVERVIEW_DERIVED.scheduleRiskBySprint["27"];
 
 function teamKpis(key: string) {
   return TPT_OVERVIEW_DERIVED.byTeam[key as keyof typeof TPT_OVERVIEW_DERIVED.byTeam]!;
@@ -18,7 +19,7 @@ function teamKpis(key: string) {
 const MOCK_DELIVERY_SNAPSHOT: DeliveryAnalysisSnapshot = {
   generatedAt: OVERVIEW_LAST_SYNC_AT,
   projectKeys: teams.map((t) => t.key),
-  siteUrl: undefined,
+  siteUrl: "https://aidos.atlassian.net",
   rangeLabel: sprint27.rangeLabel,
   kpis: {
     healthScore: base.score,
@@ -119,7 +120,17 @@ const MOCK_DELIVERY_SNAPSHOT: DeliveryAnalysisSnapshot = {
       gap: `${base.blocked} blocked issues lack an ETA in the evidence set`,
       priority: "high",
     },
+    {
+      area: "Schedule",
+      gap: `${base.spillover} open items are Highest/High priority or still To Do — review scope before sprint close`,
+      priority: "high",
+    },
   ],
+  scheduleRisk: {
+    definition: scheduleRisk27.definition,
+    total: scheduleRisk27.total,
+    byTeam: scheduleRisk27.byTeam.map((t) => ({ ...t })),
+  },
   scopeLabel: sprint27.name,
   scopeMode: "sprint",
 };

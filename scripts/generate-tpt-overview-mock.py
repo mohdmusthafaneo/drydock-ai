@@ -148,6 +148,8 @@ def main():
         labs = {l.lower() for l in get_all(headers, r, "Labels")}
         parsed.append(
             {
+                "key": get(headers, r, "Issue key"),
+                "summary": get(headers, r, "Summary"),
                 "type": get(headers, r, "Issue Type"),
                 "status": get(headers, r, "Status"),
                 "priority": get(headers, r, "Priority"),
@@ -199,6 +201,87 @@ def main():
             for p in open_issues
             if p["priority"] in ("Highest", "High") or p["status"] == "To Do"
         )
+
+    def spillover_reason(p, sprint):
+        if not sprint["active"]:
+            return "carryover"
+        high = p["priority"] in ("Highest", "High")
+        todo = p["status"] == "To Do"
+        if high and todo:
+            return "high_priority_not_started"
+        if high:
+            return "high_priority"
+        return "not_started"
+
+    def is_spillover_candidate(p, sprint):
+        if p["done"]:
+            return False
+        if not sprint["active"]:
+            return True
+        return p["priority"] in ("Highest", "High") or p["status"] == "To Do"
+
+    PRIORITY_RANK = {
+        "Highest": 0,
+        "High": 1,
+        "Medium": 2,
+        "Low": 3,
+        "Lowest": 4,
+    }
+
+    def build_schedule_risk(sprint_id, team_key=None):
+        """Issue-level evidence behind Overview “items at risk” / spillover count."""
+        sprint = SPRINT_BY_ID[sprint_id]
+        open_issues = [p for p in filter_committed(sprint_id, team_key) if not p["done"]]
+        candidates = [p for p in open_issues if is_spillover_candidate(p, sprint)]
+        candidates.sort(
+            key=lambda p: (
+                PRIORITY_RANK.get(p["priority"], 9),
+                0 if p["status"] == "To Do" else 1,
+                p["key"] or "",
+            )
+        )
+        definition = (
+            "Open sprint work that is Highest/High priority or still To Do — likely to miss the sprint end."
+            if sprint["active"]
+            else f"Open work that remained unfinished when {sprint['name']} closed."
+        )
+        items = []
+        for p in candidates:
+            team_key_resolved = p["team"]
+            if not team_key_resolved:
+                for tk, hints in TEAM_SPRINT_HINT.items():
+                    if p["last_name"] and any(h in p["last_name"].lower() for h in hints):
+                        team_key_resolved = tk
+                        break
+            items.append(
+                {
+                    "key": p["key"],
+                    "summary": p["summary"][:120],
+                    "teamKey": team_key_resolved or "UNASSIGNED",
+                    "teamName": TEAM_KEY_TO_NAME.get(
+                        team_key_resolved or "", team_key_resolved or "Unassigned team"
+                    ),
+                    "priority": p["priority"] or "—",
+                    "status": p["status"] or "—",
+                    "reason": spillover_reason(p, sprint),
+                }
+            )
+        by_team: dict[str, int] = {}
+        for item in items:
+            by_team[item["teamKey"]] = by_team.get(item["teamKey"], 0) + 1
+        return {
+            "definition": definition,
+            "total": len(items),
+            "byTeam": [
+                {
+                    "key": k,
+                    "name": TEAM_KEY_TO_NAME.get(k, k),
+                    "count": c,
+                }
+                for k, c in sorted(by_team.items(), key=lambda kv: (-kv[1], kv[0]))
+            ],
+            "items": items,
+        }
 
     kpi_cache = {}
 
@@ -287,7 +370,7 @@ def main():
                 "id": "at-risk",
                 "title": f"{spillover} item{'s' if spillover != 1 else ''} at risk",
                 "subtitle": "Likely to spill over" if sprint["active"] else f"Carried past {name}",
-                "href": "/delivery-analysis?riskFocus=schedule",
+                "href": "/delivery-analysis?riskFocus=schedule#schedule-risk",
                 "tone": "warning" if spillover >= 5 else ("info" if spillover >= 1 else "success"),
                 "glyph": "◷",
                 **({"needsAction": True} if spillover >= 5 else {}),
@@ -547,6 +630,14 @@ def main():
             for sid in ["24", "25", "26"]
             for tk in TEAM_KEY_TO_NAME
         },
+        "scheduleRiskBySprint": {
+            sid: build_schedule_risk(sid) for sid in [s["id"] for s in SPRINTS]
+        },
+        "scheduleRiskByTeamSprint": {
+            f"{tk}:{sid}": build_schedule_risk(sid, tk)
+            for sid in [s["id"] for s in SPRINTS]
+            for tk in TEAM_KEY_TO_NAME
+        },
         "notes": {
             "jiraSource": str(csv_path),
             "scope": "Latest sprint; Story/Bug/Feature/Epic only (Sub-tasks excluded)",
@@ -562,6 +653,7 @@ def main():
                 "completion",
                 "blocked",
                 "spillover",
+                "scheduleRiskEvidence",
                 "burndown",
                 "jiraHeatmap",
                 "trend",

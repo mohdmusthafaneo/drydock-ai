@@ -88,7 +88,7 @@ function leafFromDerived(kpis: DerivedKpis, charts: DerivedCharts): OverviewLeaf
         },
         {
           id: "spillover",
-          label: "Items spilling over",
+          label: "Items at risk",
           value: kpis.spillover,
           progress: Math.min(100, kpis.spillover),
           icon: "trend-up",

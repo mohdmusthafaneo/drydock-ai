@@ -108,6 +108,40 @@ export type DeliveryAnalysisTrendPoint = {
   overdue?: number;
 };
 
+/** Issue-level evidence for Overview “items at risk” / spillover. */
+export type ScheduleRiskReason =
+  | "high_priority"
+  | "not_started"
+  | "high_priority_not_started"
+  | "carryover";
+
+export type ScheduleRiskItem = {
+  key: string;
+  summary: string;
+  teamKey: string;
+  teamName: string;
+  priority: string;
+  status: string;
+  reason: ScheduleRiskReason;
+};
+
+export type ScheduleRiskTeamBucket = {
+  key: string;
+  name: string;
+  count: number;
+  /** Jira issue search with this team/scope filter applied. */
+  jiraUrl?: string;
+};
+
+export type ScheduleRiskEvidence = {
+  definition: string;
+  total: number;
+  byTeam: ScheduleRiskTeamBucket[];
+  /** Optional issue samples — UI prefers by-team Jira links over an in-app table. */
+  items?: ScheduleRiskItem[];
+  jiraUrl?: string;
+};
+
 export type DeliveryAnalysisSnapshot = {
   generatedAt: string;
   projectKeys: string[];
@@ -126,6 +160,8 @@ export type DeliveryAnalysisSnapshot = {
   sprints: DeliveryAnalysisSprintRow[];
   signals: JiraDeliverySignal[];
   gaps: JiraDeliveryGap[];
+  /** Spillover / schedule-risk issue evidence when available (mock or future sync). */
+  scheduleRisk?: ScheduleRiskEvidence;
   jiraHygiene?: {
     score: number;
     degradesTrust: boolean;

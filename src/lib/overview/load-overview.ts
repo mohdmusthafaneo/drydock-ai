@@ -314,7 +314,7 @@ function buildTakeaways(input: {
       id: "at-risk",
       title: `${input.atRisk} item${input.atRisk === 1 ? "" : "s"} at risk of spillover`,
       subtitle: "Open sprint work with little time left before end date.",
-      href: "/delivery-analysis?riskFocus=schedule",
+      href: "/delivery-analysis?riskFocus=schedule#schedule-risk",
       tone: "warning",
       needsAction: true,
     });
@@ -791,7 +791,7 @@ export async function loadOverviewDashboard(input: {
             value: atRisk,
             progress: Math.min(100, atRisk),
             icon: "risk",
-            href: "/delivery-analysis?riskFocus=schedule",
+            href: "/delivery-analysis?riskFocus=schedule#schedule-risk",
           },
           {
             id: "ai-risk",

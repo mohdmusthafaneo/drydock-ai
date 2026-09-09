@@ -393,6 +393,23 @@ export function computeDeliveryAnalysisSnapshot(input: {
     sprints: sprintRows,
     signals: filteredSignals,
     gaps,
+    scheduleRisk:
+      spillover > 0
+        ? {
+            definition:
+              "Open issues in the active sprint that were also in a closed sprint (carry-over), counted at last sync.",
+            total: spillover,
+            byTeam: projects
+              .filter((p) => (p.spilloverCount ?? 0) > 0)
+              .map((p) => ({
+                key: p.key,
+                name: p.name,
+                count: p.spilloverCount ?? 0,
+              }))
+              .sort((a, b) => b.count - a.count || a.key.localeCompare(b.key)),
+            items: [],
+          }
+        : undefined,
     jiraHygiene,
     scopeLabel: scopedMetrics?.scopeLabel,
     scopeMode: scopedMetrics?.mode,
@@ -527,6 +544,18 @@ function attachJiraLinksToSnapshot(
       signalLinkExtras(signal, input.projects, input.jiraSnapshot),
     ),
   }));
+
+  if (snapshot.scheduleRisk) {
+    const spilloverSignal = snapshot.signals.find(
+      (s) => s.id === "spillover" || s.id === "jira-spillover",
+    );
+    if (spilloverSignal?.jiraUrl) {
+      snapshot.scheduleRisk = {
+        ...snapshot.scheduleRisk,
+        jiraUrl: spilloverSignal.jiraUrl,
+      };
+    }
+  }
 
   snapshot.sprints = snapshot.sprints.map((sprint) => {
     if (sprint.sprintId != null) {

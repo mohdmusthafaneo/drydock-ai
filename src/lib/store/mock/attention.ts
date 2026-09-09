@@ -19,7 +19,7 @@ export const mockAttention: AttentionData = {
         "Schedule risk on the active sprint. Review the spillover list and decide what stays in scope.",
       originatingDecision:
         "Surfaced from Overview key takeaway “16 items at risk” / attention count.",
-      href: "/delivery-analysis?riskFocus=schedule",
+      href: "/delivery-analysis?riskFocus=schedule#schedule-risk",
       tone: "warning",
     },
   ],

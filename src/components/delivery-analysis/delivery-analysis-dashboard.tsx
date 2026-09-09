@@ -5,6 +5,7 @@ import type {
   DeliveryAnalysisFilters,
   DeliveryAnalysisSnapshot,
   RiskFocus,
+  ScheduleRiskEvidence,
   TimeRange,
   CompareMode,
 } from "@/lib/delivery-analysis/types";
@@ -20,6 +21,7 @@ import { TrendChart } from "@/components/delivery-analysis/trend-chart";
 import { ProjectBreakdown } from "@/components/delivery-analysis/project-breakdown";
 import { SprintCards } from "@/components/delivery-analysis/sprint-cards";
 import { DeliverySignalsCard } from "@/components/delivery-analysis/delivery-signals";
+import { ScheduleRiskPanel } from "@/components/delivery-analysis/schedule-risk-panel";
 import {
   JiraHygieneBanner,
   JiraHygieneFindingsCard,
@@ -28,6 +30,8 @@ import { AnalysisTabs } from "@/components/delivery-analysis/analysis-tabs";
 import { ScoreDerivationPanel } from "@/components/delivery-analysis/score-derivation-panel";
 import { SnapshotUnavailable } from "@/components/delivery-analysis/snapshot-unavailable";
 import { MOCK_DEFAULT_SPRINT_ID } from "@/lib/store/mock/dimensions";
+import { resolveMockScheduleRisk } from "@/lib/store/mock/schedule-risk";
+import type { DataMode } from "@/lib/store/types";
 import {
   selectOverviewModel,
   useAppData,
@@ -61,40 +65,73 @@ function filterSnapshot(
   snapshot: DeliveryAnalysisSnapshot,
   filters: DeliveryAnalysisFilters,
 ): DeliveryAnalysisSnapshot {
-  if (!filters.projectKey) return snapshot;
+  let next = snapshot;
 
-  const byProject = snapshot.byProject.filter((p) => p.key === filters.projectKey);
-  if (byProject.length === 0) {
-    return { ...snapshot, byProject: [], projectKeys: [] };
+  if (filters.projectKey) {
+    const byProject = snapshot.byProject.filter((p) => p.key === filters.projectKey);
+    if (byProject.length === 0) {
+      return { ...snapshot, byProject: [], projectKeys: [] };
+    }
+
+    const project = byProject[0]!;
+    const scheduleItems = snapshot.scheduleRisk?.items?.filter(
+      (item) => item.teamKey === filters.projectKey,
+    );
+    next = {
+      ...snapshot,
+      projectKeys: [project.key],
+      byProject,
+      sprints: snapshot.sprints.filter((s) => s.projectKey === project.key),
+      versions: snapshot.versions.filter((v) => v.projectKey === project.key),
+      kpis: {
+        ...snapshot.kpis,
+        openWork: project.openIssues,
+        blocked: project.blockedCount,
+        overdue: project.overdueCount,
+        spillover: project.spilloverCount,
+        bugsOpen: project.bugsOpen,
+        sprintCompletionPct: project.activeSprint?.pct ?? snapshot.kpis.sprintCompletionPct,
+        healthScore: project.healthScore,
+      },
+      riskMix: {
+        blocked: project.blockedCount,
+        overdue: project.overdueCount,
+        bugs: project.bugsOpen,
+        otherOpen: Math.max(
+          0,
+          project.openIssues - project.blockedCount - project.overdueCount - project.bugsOpen,
+        ),
+      },
+      scheduleRisk: snapshot.scheduleRisk
+        ? {
+            ...snapshot.scheduleRisk,
+            total:
+              scheduleItems && scheduleItems.length > 0
+                ? scheduleItems.length
+                : snapshot.scheduleRisk.byTeam.find((t) => t.key === filters.projectKey)
+                    ?.count ?? snapshot.scheduleRisk.total,
+            byTeam: snapshot.scheduleRisk.byTeam.filter(
+              (t) => t.key === filters.projectKey,
+            ),
+          }
+        : undefined,
+    };
   }
 
-  const project = byProject[0]!;
-  return {
-    ...snapshot,
-    projectKeys: [project.key],
-    byProject,
-    sprints: snapshot.sprints.filter((s) => s.projectKey === project.key),
-    versions: snapshot.versions.filter((v) => v.projectKey === project.key),
-    kpis: {
-      ...snapshot.kpis,
-      openWork: project.openIssues,
-      blocked: project.blockedCount,
-      overdue: project.overdueCount,
-      spillover: project.spilloverCount,
-      bugsOpen: project.bugsOpen,
-      sprintCompletionPct: project.activeSprint?.pct ?? snapshot.kpis.sprintCompletionPct,
-      healthScore: project.healthScore,
-    },
-    riskMix: {
-      blocked: project.blockedCount,
-      overdue: project.overdueCount,
-      bugs: project.bugsOpen,
-      otherOpen: Math.max(
-        0,
-        project.openIssues - project.blockedCount - project.overdueCount - project.bugsOpen,
-      ),
-    },
-  };
+  if (filters.riskFocus !== "all") {
+    next = {
+      ...next,
+      signals: next.signals.filter((s) => s.category === filters.riskFocus),
+      gaps:
+        filters.riskFocus === "schedule"
+          ? next.gaps.filter((g) => /schedule|spill|overdue|version/i.test(`${g.area} ${g.gap}`))
+          : filters.riskFocus === "blockers"
+            ? next.gaps.filter((g) => /block/i.test(`${g.area} ${g.gap}`))
+            : next.gaps,
+    };
+  }
+
+  return next;
 }
 
 export function DeliveryAnalysisDashboard({
@@ -103,6 +140,8 @@ export function DeliveryAnalysisDashboard({
   initialProjectKey = null,
 }: Props) {
   const storeSnapshot = useAppData((s) => s.data.deliveryAnalysis.snapshot);
+  const dataMode = useAppData((s) => s.data.meta.mode);
+  const organizationName = useAppData((s) => s.data.org.name);
   const overviewModel = useAppData((s) => selectOverviewModel(s));
   const deliveryConfidence = overviewModel.deliveryConfidence;
   const dimensions = useAppData((s) => s.data.dimensions);
@@ -198,6 +237,26 @@ export function DeliveryAnalysisDashboard({
   const snapshot = useMemo(() => {
     if (!storeSnapshot) return null;
     const filtered = filterSnapshot(storeSnapshot, filters);
+    const spilloverFromOverview =
+      metricValue(deliveryConfidence.metrics, "spillover") ??
+      metricValue(deliveryConfidence.metrics, "at-risk");
+    const mockRisk = resolveMockScheduleRisk(
+      effectiveSprintId,
+      storeFilters.team,
+      { siteUrl: storeSnapshot.siteUrl },
+    );
+
+    // Keep the same count the Overview metric showed — never drift to a
+    // different fixture total after navigation.
+    const scheduleRisk = alignScheduleRiskToOverview({
+      overviewTotal: spilloverFromOverview,
+      mockRisk,
+      liveRisk: filtered.scheduleRisk,
+      organizationName,
+      siteUrl: storeSnapshot.siteUrl,
+      dataMode,
+    });
+
     const sprintOverlay = selectedSprintMeta
       ? {
           rangeLabel: selectedSprintMeta.rangeLabel ?? filtered.rangeLabel,
@@ -219,16 +278,21 @@ export function DeliveryAnalysisDashboard({
 
     // Project drill-down keeps local KPIs; otherwise overlay sprint/team-aware Overview counts.
     if (filters.projectKey) {
-      return { ...filtered, ...sprintOverlay };
+      return {
+        ...filtered,
+        ...sprintOverlay,
+        ...(scheduleRisk ? { scheduleRisk } : {}),
+      };
     }
 
     const blocked = metricValue(deliveryConfidence.metrics, "blocked");
-    const spillover = metricValue(deliveryConfidence.metrics, "spillover");
+    const spillover = spilloverFromOverview;
     const completion = metricValue(deliveryConfidence.metrics, "completion");
 
     return {
       ...filtered,
       ...sprintOverlay,
+      ...(scheduleRisk ? { scheduleRisk } : {}),
       kpis: {
         ...filtered.kpis,
         healthScore: deliveryConfidence.score,
@@ -250,6 +314,10 @@ export function DeliveryAnalysisDashboard({
     deliveryConfidence,
     overviewCompletion,
     selectedSprintMeta,
+    effectiveSprintId,
+    storeFilters.team,
+    dataMode,
+    organizationName,
   ]);
 
   const loadState = !storeSnapshot
@@ -378,6 +446,16 @@ export function DeliveryAnalysisDashboard({
             />
           )}
 
+          {snapshot.scheduleRisk &&
+            snapshot.scheduleRisk.total > 0 &&
+            filters.riskFocus === "schedule" && (
+              <ScheduleRiskPanel
+                risk={snapshot.scheduleRisk}
+                organizationName={organizationName}
+                deepLink
+              />
+            )}
+
           <ScoreDerivationPanel derivation={deliveryConfidence.derivation} />
 
           {snapshot.jiraHygiene && <JiraHygieneBanner hygiene={snapshot.jiraHygiene} />}
@@ -437,6 +515,88 @@ function metricValue(
     return Number.isFinite(parsed) ? parsed : null;
   }
   return null;
+}
+
+function teamSum(risk: ScheduleRiskEvidence | undefined): number {
+  return risk?.byTeam.reduce((n, t) => n + t.count, 0) ?? 0;
+}
+
+/**
+ * Schedule-risk panel must show the same total as the Overview metric the user
+ * clicked. Prefer mock team breakdown only when its counts match that total.
+ */
+function alignScheduleRiskToOverview(input: {
+  overviewTotal: number | null;
+  mockRisk?: ScheduleRiskEvidence;
+  liveRisk?: ScheduleRiskEvidence;
+  organizationName: string;
+  siteUrl?: string;
+  dataMode: DataMode;
+}): ScheduleRiskEvidence | undefined {
+  const { overviewTotal, mockRisk, liveRisk, organizationName, dataMode } = input;
+  const preferred =
+    dataMode === "live" ? liveRisk : mockRisk ?? liveRisk;
+  const total = overviewTotal ?? preferred?.total ?? liveRisk?.total ?? 0;
+  if (total <= 0) return undefined;
+
+  if (mockRisk && teamSum(mockRisk) === total) {
+    return { ...mockRisk, total };
+  }
+
+  if (liveRisk && teamSum(liveRisk) === total) {
+    const byTeam = liveRisk.byTeam.map((t) => ({
+      ...t,
+      name:
+        t.name.toLowerCase() === "connexus" ? organizationName : t.name,
+    }));
+    return {
+      ...liveRisk,
+      total,
+      byTeam,
+    };
+  }
+
+  if (preferred) {
+    return {
+      definition: preferred.definition,
+      total,
+      byTeam:
+        preferred.byTeam.length === 1
+          ? [
+              {
+                ...preferred.byTeam[0]!,
+                name:
+                  preferred.byTeam[0]!.name.toLowerCase() === "connexus"
+                    ? organizationName
+                    : preferred.byTeam[0]!.name,
+                count: total,
+                jiraUrl: preferred.byTeam[0]!.jiraUrl ?? preferred.jiraUrl,
+              },
+            ]
+          : [
+              {
+                key: "all",
+                name: organizationName,
+                count: total,
+                jiraUrl: preferred.jiraUrl,
+              },
+            ],
+      jiraUrl: preferred.jiraUrl,
+    };
+  }
+
+  return {
+    definition:
+      "Open sprint work that is Highest/High priority or still To Do — likely to miss the sprint end.",
+    total,
+    byTeam: [
+      {
+        key: "all",
+        name: organizationName,
+        count: total,
+      },
+    ],
+  };
 }
 
 function formatRelative(iso: string): string {

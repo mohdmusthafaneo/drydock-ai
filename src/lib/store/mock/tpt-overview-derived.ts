@@ -36,36 +36,36 @@ export const TPT_OVERVIEW_DERIVED = {
       "name": "Sprint 27",
       "startLabel": "Aug 31",
       "endLabel": "Sep 10",
-      "rangeLabel": "31 Aug 10:27 AM \u2013 10 Sep 11:00 PM, 2026",
-      "start": "2026-08-31T10:27:00.000Z",
-      "end": "2026-09-10T23:00:00.000Z"
+      "rangeLabel": "Aug 31 \u2013 Sep 10, 2026",
+      "start": "2026-08-31",
+      "end": "2026-09-10"
     },
     {
       "id": "26",
       "name": "Sprint 26",
       "startLabel": "Aug 17",
       "endLabel": "Aug 28",
-      "rangeLabel": "17 Aug 10:24 AM \u2013 28 Aug 6:39 PM, 2026",
-      "start": "2026-08-17T10:24:00.000Z",
-      "end": "2026-08-28T18:39:00.000Z"
+      "rangeLabel": "Aug 17 \u2013 Aug 28, 2026",
+      "start": "2026-08-17",
+      "end": "2026-08-28"
     },
     {
       "id": "25",
       "name": "Sprint 25",
       "startLabel": "Aug 3",
       "endLabel": "Aug 15",
-      "rangeLabel": "3 Aug 8:07 AM \u2013 15 Aug 8:47 AM, 2026",
-      "start": "2026-08-03T08:07:00.000Z",
-      "end": "2026-08-15T08:47:00.000Z"
+      "rangeLabel": "Aug 3 \u2013 Aug 15, 2026",
+      "start": "2026-08-03",
+      "end": "2026-08-15"
     },
     {
       "id": "24",
       "name": "Sprint 24",
       "startLabel": "Jul 20",
       "endLabel": "Aug 1",
-      "rangeLabel": "20 Jul 9:17 AM \u2013 1 Aug 10:30 AM, 2026",
-      "start": "2026-07-20T09:17:00.000Z",
-      "end": "2026-08-01T10:30:00.000Z"
+      "rangeLabel": "Jul 20 \u2013 Aug 1, 2026",
+      "start": "2026-07-20",
+      "end": "2026-08-01"
     }
   ],
   "base": {
@@ -94,7 +94,7 @@ export const TPT_OVERVIEW_DERIVED = {
         "id": "at-risk",
         "title": "52 items at risk",
         "subtitle": "Likely to spill over",
-        "href": "/delivery-analysis?riskFocus=schedule",
+        "href": "/delivery-analysis?riskFocus=schedule#schedule-risk",
         "tone": "warning",
         "glyph": "\u25f7",
         "needsAction": true
@@ -171,44 +171,44 @@ export const TPT_OVERVIEW_DERIVED = {
         "target": 75,
         "points": [
           {
-            "label": "Jul 28",
-            "value": 73
+            "label": "Jul 30",
+            "value": 61
           },
           {
-            "label": "Aug 2",
-            "value": 57
+            "label": "Aug 4",
+            "value": 55
           },
           {
-            "label": "Aug 6",
+            "label": "Aug 8",
             "value": 58
           },
           {
-            "label": "Aug 11",
+            "label": "Aug 13",
+            "value": 46
+          },
+          {
+            "label": "Aug 18",
+            "value": 52
+          },
+          {
+            "label": "Aug 22",
+            "value": 60
+          },
+          {
+            "label": "Aug 27",
             "value": 51
           },
           {
-            "label": "Aug 16",
-            "value": 47
-          },
-          {
-            "label": "Aug 20",
+            "label": "Sep 1",
             "value": 62
           },
           {
-            "label": "Aug 25",
-            "value": 56
+            "label": "Sep 5",
+            "value": 60
           },
           {
-            "label": "Aug 30",
-            "value": 56
-          },
-          {
-            "label": "Sep 3",
-            "value": 63
-          },
-          {
-            "label": "Sep 8",
-            "value": 40
+            "label": "Sep 10",
+            "value": 37
           }
         ]
       },
@@ -217,58 +217,50 @@ export const TPT_OVERVIEW_DERIVED = {
         "total": 244,
         "ideal": [
           {
-            "label": "Aug 26",
+            "label": "Aug 31",
             "value": 244
           },
           {
-            "label": "Aug 28",
+            "label": "Sep 1",
             "value": 209
           },
           {
-            "label": "Aug 30",
+            "label": "Sep 3",
             "value": 174
           },
           {
-            "label": "Sep 1",
+            "label": "Sep 4",
             "value": 139
           },
           {
-            "label": "Sep 2",
+            "label": "Sep 6",
             "value": 105
           },
           {
-            "label": "Sep 4",
+            "label": "Sep 7",
             "value": 70
           },
           {
-            "label": "Sep 6",
+            "label": "Sep 9",
             "value": 35
           },
           {
-            "label": "Sep 8",
+            "label": "Sep 10",
             "value": 0
           }
         ],
         "actual": [
           {
-            "label": "Aug 26",
-            "value": 243
-          },
-          {
-            "label": "Aug 28",
-            "value": 242
-          },
-          {
-            "label": "Aug 30",
-            "value": 242
+            "label": "Aug 31",
+            "value": 220
           },
           {
             "label": "Sep 1",
             "value": 205
           },
           {
-            "label": "Sep 2",
-            "value": 196
+            "label": "Sep 3",
+            "value": 188
           },
           {
             "label": "Sep 4",
@@ -279,7 +271,15 @@ export const TPT_OVERVIEW_DERIVED = {
             "value": 177
           },
           {
-            "label": "Sep 8",
+            "label": "Sep 7",
+            "value": 170
+          },
+          {
+            "label": "Sep 9",
+            "value": 170
+          },
+          {
+            "label": "Sep 10",
             "value": 170
           }
         ]
@@ -287,11 +287,6 @@ export const TPT_OVERVIEW_DERIVED = {
       "heatmap": {
         "rangeLabel": "Last 2 weeks",
         "dayLabels": [
-          "Aug 26",
-          "Aug 27",
-          "Aug 28",
-          "Aug 29",
-          "Aug 30",
           "Aug 31",
           "Sep 1",
           "Sep 2",
@@ -300,7 +295,9 @@ export const TPT_OVERVIEW_DERIVED = {
           "Sep 5",
           "Sep 6",
           "Sep 7",
-          "Sep 8"
+          "Sep 8",
+          "Sep 9",
+          "Sep 10"
         ],
         "rows": [
           {
@@ -309,17 +306,14 @@ export const TPT_OVERVIEW_DERIVED = {
               4,
               4,
               4,
+              4,
+              4,
+              4,
+              4,
+              4,
+              4,
               0,
-              1,
-              4,
-              4,
-              4,
-              4,
-              4,
-              4,
-              4,
-              4,
-              4
+              0
             ]
           },
           {
@@ -328,27 +322,19 @@ export const TPT_OVERVIEW_DERIVED = {
               4,
               4,
               4,
+              4,
+              4,
+              3,
+              4,
+              4,
+              3,
               0,
-              2,
-              4,
-              4,
-              4,
-              4,
-              4,
-              4,
-              4,
-              4,
-              4
+              1
             ]
           },
           {
             "label": "Jira updates",
             "cells": [
-              1,
-              2,
-              2,
-              0,
-              1,
               2,
               3,
               1,
@@ -357,7 +343,9 @@ export const TPT_OVERVIEW_DERIVED = {
               1,
               1,
               4,
-              1
+              1,
+              0,
+              0
             ]
           },
           {
@@ -366,16 +354,13 @@ export const TPT_OVERVIEW_DERIVED = {
               3,
               0,
               0,
+              3,
+              0,
+              0,
+              3,
+              0,
+              0,
               1,
-              0,
-              0,
-              3,
-              0,
-              0,
-              3,
-              0,
-              0,
-              3,
               0
             ]
           }
@@ -410,7 +395,7 @@ export const TPT_OVERVIEW_DERIVED = {
           "id": "at-risk",
           "title": "28 items at risk",
           "subtitle": "Likely to spill over",
-          "href": "/delivery-analysis?riskFocus=schedule",
+          "href": "/delivery-analysis?riskFocus=schedule#schedule-risk",
           "tone": "warning",
           "glyph": "\u25f7",
           "needsAction": true
@@ -506,7 +491,7 @@ export const TPT_OVERVIEW_DERIVED = {
           "id": "at-risk",
           "title": "10 items at risk",
           "subtitle": "Likely to spill over",
-          "href": "/delivery-analysis?riskFocus=schedule",
+          "href": "/delivery-analysis?riskFocus=schedule#schedule-risk",
           "tone": "warning",
           "glyph": "\u25f7",
           "needsAction": true
@@ -602,7 +587,7 @@ export const TPT_OVERVIEW_DERIVED = {
           "id": "at-risk",
           "title": "10 items at risk",
           "subtitle": "Likely to spill over",
-          "href": "/delivery-analysis?riskFocus=schedule",
+          "href": "/delivery-analysis?riskFocus=schedule#schedule-risk",
           "tone": "warning",
           "glyph": "\u25f7",
           "needsAction": true
@@ -698,7 +683,7 @@ export const TPT_OVERVIEW_DERIVED = {
           "id": "at-risk",
           "title": "3 items at risk",
           "subtitle": "Likely to spill over",
-          "href": "/delivery-analysis?riskFocus=schedule",
+          "href": "/delivery-analysis?riskFocus=schedule#schedule-risk",
           "tone": "info",
           "glyph": "\u25f7"
         },
@@ -796,7 +781,7 @@ export const TPT_OVERVIEW_DERIVED = {
             "id": "at-risk",
             "title": "6 items at risk",
             "subtitle": "Carried past Sprint 24",
-            "href": "/delivery-analysis?riskFocus=schedule",
+            "href": "/delivery-analysis?riskFocus=schedule#schedule-risk",
             "tone": "warning",
             "glyph": "\u25f7",
             "needsAction": true
@@ -874,11 +859,7 @@ export const TPT_OVERVIEW_DERIVED = {
           "target": 75,
           "points": [
             {
-              "label": "Jun 16",
-              "value": 50
-            },
-            {
-              "label": "Jun 21",
+              "label": "Jun 20",
               "value": 60
             },
             {
@@ -886,23 +867,23 @@ export const TPT_OVERVIEW_DERIVED = {
               "value": 65
             },
             {
-              "label": "Jun 30",
-              "value": 46
+              "label": "Jun 29",
+              "value": 44
             },
             {
-              "label": "Jul 5",
-              "value": 65
+              "label": "Jul 4",
+              "value": 64
             },
             {
               "label": "Jul 9",
               "value": 60
             },
             {
-              "label": "Jul 14",
-              "value": 51
+              "label": "Jul 13",
+              "value": 54
             },
             {
-              "label": "Jul 19",
+              "label": "Jul 18",
               "value": 63
             },
             {
@@ -910,8 +891,12 @@ export const TPT_OVERVIEW_DERIVED = {
               "value": 58
             },
             {
-              "label": "Jul 28",
-              "value": 83
+              "label": "Jul 27",
+              "value": 66
+            },
+            {
+              "label": "Aug 1",
+              "value": 76
             }
           ]
         },
@@ -920,81 +905,76 @@ export const TPT_OVERVIEW_DERIVED = {
           "total": 145,
           "ideal": [
             {
-              "label": "Jul 15",
+              "label": "Jul 20",
               "value": 145
             },
             {
-              "label": "Jul 17",
+              "label": "Jul 22",
               "value": 124
             },
             {
-              "label": "Jul 19",
+              "label": "Jul 23",
               "value": 104
             },
             {
-              "label": "Jul 21",
+              "label": "Jul 25",
               "value": 83
             },
             {
-              "label": "Jul 22",
+              "label": "Jul 27",
               "value": 62
             },
             {
-              "label": "Jul 24",
+              "label": "Jul 29",
               "value": 41
             },
             {
-              "label": "Jul 26",
+              "label": "Jul 30",
               "value": 21
             },
             {
-              "label": "Jul 28",
+              "label": "Aug 1",
               "value": 0
             }
           ],
           "actual": [
             {
-              "label": "Jul 15",
-              "value": 145
-            },
-            {
-              "label": "Jul 17",
-              "value": 145
-            },
-            {
-              "label": "Jul 19",
-              "value": 145
-            },
-            {
-              "label": "Jul 21",
-              "value": 128
+              "label": "Jul 20",
+              "value": 139
             },
             {
               "label": "Jul 22",
               "value": 117
             },
             {
-              "label": "Jul 24",
+              "label": "Jul 23",
+              "value": 101
+            },
+            {
+              "label": "Jul 25",
               "value": 87
             },
             {
-              "label": "Jul 26",
+              "label": "Jul 27",
               "value": 87
             },
             {
-              "label": "Jul 28",
-              "value": 75
+              "label": "Jul 29",
+              "value": 63
+            },
+            {
+              "label": "Jul 30",
+              "value": 40
+            },
+            {
+              "label": "Aug 1",
+              "value": 10
             }
           ]
         },
         "heatmap": {
           "rangeLabel": "Last 2 weeks",
           "dayLabels": [
-            "Jul 15",
-            "Jul 16",
-            "Jul 17",
-            "Jul 18",
-            "Jul 19",
             "Jul 20",
             "Jul 21",
             "Jul 22",
@@ -1003,7 +983,11 @@ export const TPT_OVERVIEW_DERIVED = {
             "Jul 25",
             "Jul 26",
             "Jul 27",
-            "Jul 28"
+            "Jul 28",
+            "Jul 29",
+            "Jul 30",
+            "Jul 31",
+            "Aug 1"
           ],
           "rows": [
             {
@@ -1013,14 +997,13 @@ export const TPT_OVERVIEW_DERIVED = {
                 4,
                 4,
                 4,
-                1,
-                4,
-                4,
-                4,
-                4,
                 4,
                 0,
                 0,
+                4,
+                4,
+                4,
+                4,
                 4,
                 4
               ]
@@ -1032,14 +1015,13 @@ export const TPT_OVERVIEW_DERIVED = {
                 4,
                 4,
                 4,
-                2,
-                4,
-                4,
-                4,
-                4,
                 4,
                 1,
                 0,
+                4,
+                4,
+                4,
+                4,
                 4,
                 4
               ]
@@ -1049,18 +1031,17 @@ export const TPT_OVERVIEW_DERIVED = {
               "cells": [
                 2,
                 1,
+                1,
+                2,
+                1,
+                0,
+                0,
+                1,
+                2,
                 4,
-                1,
-                1,
+                4,
                 2,
-                2,
-                2,
-                3,
-                2,
-                0,
-                0,
-                1,
-                2
+                1
               ]
             },
             {
@@ -1072,14 +1053,13 @@ export const TPT_OVERVIEW_DERIVED = {
                 3,
                 0,
                 0,
-                3,
+                1,
                 0,
                 0,
                 3,
                 0,
                 0,
-                2,
-                0
+                3
               ]
             }
           ]
@@ -1113,7 +1093,7 @@ export const TPT_OVERVIEW_DERIVED = {
             "id": "at-risk",
             "title": "26 items at risk",
             "subtitle": "Carried past Sprint 25",
-            "href": "/delivery-analysis?riskFocus=schedule",
+            "href": "/delivery-analysis?riskFocus=schedule#schedule-risk",
             "tone": "warning",
             "glyph": "\u25f7",
             "needsAction": true
@@ -1191,23 +1171,19 @@ export const TPT_OVERVIEW_DERIVED = {
           "target": 75,
           "points": [
             {
-              "label": "Jun 30",
-              "value": 46
-            },
-            {
-              "label": "Jul 5",
-              "value": 65
+              "label": "Jul 4",
+              "value": 64
             },
             {
               "label": "Jul 9",
               "value": 60
             },
             {
-              "label": "Jul 14",
-              "value": 51
+              "label": "Jul 13",
+              "value": 54
             },
             {
-              "label": "Jul 19",
+              "label": "Jul 18",
               "value": 63
             },
             {
@@ -1215,20 +1191,24 @@ export const TPT_OVERVIEW_DERIVED = {
               "value": 58
             },
             {
-              "label": "Jul 28",
-              "value": 73
+              "label": "Jul 27",
+              "value": 66
             },
             {
-              "label": "Aug 2",
-              "value": 57
+              "label": "Aug 1",
+              "value": 60
             },
             {
               "label": "Aug 6",
               "value": 58
             },
             {
-              "label": "Aug 11",
-              "value": 64
+              "label": "Aug 10",
+              "value": 55
+            },
+            {
+              "label": "Aug 15",
+              "value": 61
             }
           ]
         },
@@ -1237,81 +1217,76 @@ export const TPT_OVERVIEW_DERIVED = {
           "total": 122,
           "ideal": [
             {
-              "label": "Jul 29",
+              "label": "Aug 3",
               "value": 122
             },
             {
-              "label": "Jul 31",
+              "label": "Aug 5",
               "value": 105
             },
             {
-              "label": "Aug 2",
+              "label": "Aug 6",
               "value": 87
             },
             {
-              "label": "Aug 4",
+              "label": "Aug 8",
               "value": 70
             },
             {
-              "label": "Aug 5",
+              "label": "Aug 10",
               "value": 52
             },
             {
-              "label": "Aug 7",
+              "label": "Aug 12",
               "value": 35
             },
             {
-              "label": "Aug 9",
+              "label": "Aug 13",
               "value": 17
             },
             {
-              "label": "Aug 11",
+              "label": "Aug 15",
               "value": 0
             }
           ],
           "actual": [
             {
-              "label": "Jul 29",
-              "value": 122
-            },
-            {
-              "label": "Jul 31",
-              "value": 122
-            },
-            {
-              "label": "Aug 2",
-              "value": 122
-            },
-            {
-              "label": "Aug 4",
-              "value": 109
+              "label": "Aug 3",
+              "value": 117
             },
             {
               "label": "Aug 5",
               "value": 103
             },
             {
-              "label": "Aug 7",
-              "value": 82
+              "label": "Aug 6",
+              "value": 90
             },
             {
-              "label": "Aug 9",
+              "label": "Aug 8",
               "value": 81
             },
             {
-              "label": "Aug 11",
-              "value": 67
+              "label": "Aug 10",
+              "value": 76
+            },
+            {
+              "label": "Aug 12",
+              "value": 64
+            },
+            {
+              "label": "Aug 13",
+              "value": 54
+            },
+            {
+              "label": "Aug 15",
+              "value": 38
             }
           ]
         },
         "heatmap": {
           "rangeLabel": "Last 2 weeks",
           "dayLabels": [
-            "Jul 29",
-            "Jul 30",
-            "Jul 31",
-            "Aug 1",
-            "Aug 2",
             "Aug 3",
             "Aug 4",
             "Aug 5",
@@ -1320,7 +1295,11 @@ export const TPT_OVERVIEW_DERIVED = {
             "Aug 8",
             "Aug 9",
             "Aug 10",
-            "Aug 11"
+            "Aug 11",
+            "Aug 12",
+            "Aug 13",
+            "Aug 14",
+            "Aug 15"
           ],
           "rows": [
             {
@@ -1332,14 +1311,13 @@ export const TPT_OVERVIEW_DERIVED = {
                 4,
                 4,
                 4,
+                1,
                 4,
                 4,
                 4,
                 4,
-                3,
-                3,
                 4,
-                4
+                3
               ]
             },
             {
@@ -1350,28 +1328,26 @@ export const TPT_OVERVIEW_DERIVED = {
                 4,
                 4,
                 4,
+                1,
+                1,
                 4,
                 4,
                 4,
                 4,
                 4,
-                3,
-                0,
-                4,
-                4
+                3
               ]
             },
             {
               "label": "Jira updates",
               "cells": [
-                2,
-                2,
-                1,
-                1,
-                1,
                 1,
                 2,
                 4,
+                1,
+                1,
+                1,
+                1,
                 1,
                 1,
                 1,
@@ -1389,14 +1365,13 @@ export const TPT_OVERVIEW_DERIVED = {
                 3,
                 0,
                 0,
-                3,
+                1,
                 0,
                 0,
                 3,
                 0,
                 0,
-                3,
-                0
+                2
               ]
             }
           ]
@@ -1429,7 +1404,7 @@ export const TPT_OVERVIEW_DERIVED = {
             "id": "at-risk",
             "title": "15 items at risk",
             "subtitle": "Carried past Sprint 26",
-            "href": "/delivery-analysis?riskFocus=schedule",
+            "href": "/delivery-analysis?riskFocus=schedule#schedule-risk",
             "tone": "warning",
             "glyph": "\u25f7",
             "needsAction": true
@@ -1507,44 +1482,44 @@ export const TPT_OVERVIEW_DERIVED = {
           "target": 75,
           "points": [
             {
-              "label": "Jul 14",
-              "value": 51
+              "label": "Jul 17",
+              "value": 64
             },
             {
-              "label": "Jul 19",
-              "value": 63
+              "label": "Jul 22",
+              "value": 64
             },
             {
-              "label": "Jul 23",
-              "value": 58
-            },
-            {
-              "label": "Jul 28",
-              "value": 73
-            },
-            {
-              "label": "Aug 2",
-              "value": 57
-            },
-            {
-              "label": "Aug 6",
-              "value": 58
-            },
-            {
-              "label": "Aug 11",
-              "value": 51
-            },
-            {
-              "label": "Aug 16",
-              "value": 47
-            },
-            {
-              "label": "Aug 20",
+              "label": "Jul 26",
               "value": 62
             },
             {
-              "label": "Aug 25",
-              "value": 71
+              "label": "Jul 31",
+              "value": 67
+            },
+            {
+              "label": "Aug 5",
+              "value": 58
+            },
+            {
+              "label": "Aug 9",
+              "value": 62
+            },
+            {
+              "label": "Aug 14",
+              "value": 47
+            },
+            {
+              "label": "Aug 19",
+              "value": 60
+            },
+            {
+              "label": "Aug 23",
+              "value": 56
+            },
+            {
+              "label": "Aug 28",
+              "value": 68
             }
           ]
         },
@@ -1553,62 +1528,54 @@ export const TPT_OVERVIEW_DERIVED = {
           "total": 138,
           "ideal": [
             {
-              "label": "Aug 12",
+              "label": "Aug 17",
               "value": 138
             },
             {
-              "label": "Aug 14",
+              "label": "Aug 19",
               "value": 118
             },
             {
-              "label": "Aug 16",
+              "label": "Aug 20",
               "value": 99
             },
             {
-              "label": "Aug 18",
+              "label": "Aug 22",
               "value": 79
             },
             {
-              "label": "Aug 19",
+              "label": "Aug 23",
               "value": 59
             },
             {
-              "label": "Aug 21",
+              "label": "Aug 25",
               "value": 39
             },
             {
-              "label": "Aug 23",
+              "label": "Aug 26",
               "value": 20
             },
             {
-              "label": "Aug 25",
+              "label": "Aug 28",
               "value": 0
             }
           ],
           "actual": [
             {
-              "label": "Aug 12",
-              "value": 138
-            },
-            {
-              "label": "Aug 14",
-              "value": 137
-            },
-            {
-              "label": "Aug 16",
-              "value": 136
-            },
-            {
-              "label": "Aug 18",
-              "value": 114
+              "label": "Aug 17",
+              "value": 123
             },
             {
               "label": "Aug 19",
               "value": 93
             },
             {
-              "label": "Aug 21",
-              "value": 63
+              "label": "Aug 20",
+              "value": 77
+            },
+            {
+              "label": "Aug 22",
+              "value": 62
             },
             {
               "label": "Aug 23",
@@ -1617,17 +1584,20 @@ export const TPT_OVERVIEW_DERIVED = {
             {
               "label": "Aug 25",
               "value": 55
+            },
+            {
+              "label": "Aug 26",
+              "value": 52
+            },
+            {
+              "label": "Aug 28",
+              "value": 18
             }
           ]
         },
         "heatmap": {
           "rangeLabel": "Last 2 weeks",
           "dayLabels": [
-            "Aug 12",
-            "Aug 13",
-            "Aug 14",
-            "Aug 15",
-            "Aug 16",
             "Aug 17",
             "Aug 18",
             "Aug 19",
@@ -1636,7 +1606,10 @@ export const TPT_OVERVIEW_DERIVED = {
             "Aug 22",
             "Aug 23",
             "Aug 24",
-            "Aug 25"
+            "Aug 25",
+            "Aug 26",
+            "Aug 27",
+            "Aug 28"
           ],
           "rows": [
             {
@@ -1645,14 +1618,12 @@ export const TPT_OVERVIEW_DERIVED = {
                 4,
                 4,
                 4,
-                3,
-                1,
+                4,
+                4,
+                2,
                 4,
                 4,
                 4,
-                4,
-                4,
-                1,
                 4,
                 4,
                 4
@@ -1664,14 +1635,12 @@ export const TPT_OVERVIEW_DERIVED = {
                 4,
                 4,
                 4,
-                3,
-                2,
+                4,
+                4,
+                0,
                 4,
                 4,
                 4,
-                4,
-                4,
-                2,
                 4,
                 4,
                 4
@@ -1680,20 +1649,18 @@ export const TPT_OVERVIEW_DERIVED = {
             {
               "label": "Jira updates",
               "cells": [
-                3,
+                2,
                 2,
                 3,
-                1,
-                1,
-                3,
                 2,
-                3,
-                3,
                 4,
                 1,
                 1,
                 1,
-                2
+                2,
+                3,
+                4,
+                4
               ]
             },
             {
@@ -1702,9 +1669,6 @@ export const TPT_OVERVIEW_DERIVED = {
                 3,
                 0,
                 0,
-                2,
-                0,
-                0,
                 3,
                 0,
                 0,
@@ -1712,6 +1676,7 @@ export const TPT_OVERVIEW_DERIVED = {
                 0,
                 0,
                 3,
+                0,
                 0
               ]
             }
@@ -1746,7 +1711,7 @@ export const TPT_OVERVIEW_DERIVED = {
           "id": "at-risk",
           "title": "0 items at risk",
           "subtitle": "Carried past Sprint 24",
-          "href": "/delivery-analysis?riskFocus=schedule",
+          "href": "/delivery-analysis?riskFocus=schedule#schedule-risk",
           "tone": "success",
           "glyph": "\u25f7"
         },
@@ -1841,7 +1806,7 @@ export const TPT_OVERVIEW_DERIVED = {
           "id": "at-risk",
           "title": "2 items at risk",
           "subtitle": "Carried past Sprint 24",
-          "href": "/delivery-analysis?riskFocus=schedule",
+          "href": "/delivery-analysis?riskFocus=schedule#schedule-risk",
           "tone": "info",
           "glyph": "\u25f7"
         },
@@ -1936,7 +1901,7 @@ export const TPT_OVERVIEW_DERIVED = {
           "id": "at-risk",
           "title": "4 items at risk",
           "subtitle": "Carried past Sprint 24",
-          "href": "/delivery-analysis?riskFocus=schedule",
+          "href": "/delivery-analysis?riskFocus=schedule#schedule-risk",
           "tone": "info",
           "glyph": "\u25f7"
         },
@@ -2031,7 +1996,7 @@ export const TPT_OVERVIEW_DERIVED = {
           "id": "at-risk",
           "title": "0 items at risk",
           "subtitle": "Carried past Sprint 24",
-          "href": "/delivery-analysis?riskFocus=schedule",
+          "href": "/delivery-analysis?riskFocus=schedule#schedule-risk",
           "tone": "success",
           "glyph": "\u25f7"
         },
@@ -2126,7 +2091,7 @@ export const TPT_OVERVIEW_DERIVED = {
           "id": "at-risk",
           "title": "3 items at risk",
           "subtitle": "Carried past Sprint 25",
-          "href": "/delivery-analysis?riskFocus=schedule",
+          "href": "/delivery-analysis?riskFocus=schedule#schedule-risk",
           "tone": "info",
           "glyph": "\u25f7"
         },
@@ -2221,7 +2186,7 @@ export const TPT_OVERVIEW_DERIVED = {
           "id": "at-risk",
           "title": "2 items at risk",
           "subtitle": "Carried past Sprint 25",
-          "href": "/delivery-analysis?riskFocus=schedule",
+          "href": "/delivery-analysis?riskFocus=schedule#schedule-risk",
           "tone": "info",
           "glyph": "\u25f7"
         },
@@ -2316,7 +2281,7 @@ export const TPT_OVERVIEW_DERIVED = {
           "id": "at-risk",
           "title": "2 items at risk",
           "subtitle": "Carried past Sprint 25",
-          "href": "/delivery-analysis?riskFocus=schedule",
+          "href": "/delivery-analysis?riskFocus=schedule#schedule-risk",
           "tone": "info",
           "glyph": "\u25f7"
         },
@@ -2412,7 +2377,7 @@ export const TPT_OVERVIEW_DERIVED = {
           "id": "at-risk",
           "title": "19 items at risk",
           "subtitle": "Carried past Sprint 25",
-          "href": "/delivery-analysis?riskFocus=schedule",
+          "href": "/delivery-analysis?riskFocus=schedule#schedule-risk",
           "tone": "warning",
           "glyph": "\u25f7",
           "needsAction": true
@@ -2508,7 +2473,7 @@ export const TPT_OVERVIEW_DERIVED = {
           "id": "at-risk",
           "title": "0 items at risk",
           "subtitle": "Carried past Sprint 26",
-          "href": "/delivery-analysis?riskFocus=schedule",
+          "href": "/delivery-analysis?riskFocus=schedule#schedule-risk",
           "tone": "success",
           "glyph": "\u25f7"
         },
@@ -2603,7 +2568,7 @@ export const TPT_OVERVIEW_DERIVED = {
           "id": "at-risk",
           "title": "0 items at risk",
           "subtitle": "Carried past Sprint 26",
-          "href": "/delivery-analysis?riskFocus=schedule",
+          "href": "/delivery-analysis?riskFocus=schedule#schedule-risk",
           "tone": "success",
           "glyph": "\u25f7"
         },
@@ -2698,7 +2663,7 @@ export const TPT_OVERVIEW_DERIVED = {
           "id": "at-risk",
           "title": "2 items at risk",
           "subtitle": "Carried past Sprint 26",
-          "href": "/delivery-analysis?riskFocus=schedule",
+          "href": "/delivery-analysis?riskFocus=schedule#schedule-risk",
           "tone": "info",
           "glyph": "\u25f7"
         },
@@ -2793,7 +2758,7 @@ export const TPT_OVERVIEW_DERIVED = {
           "id": "at-risk",
           "title": "13 items at risk",
           "subtitle": "Carried past Sprint 26",
-          "href": "/delivery-analysis?riskFocus=schedule",
+          "href": "/delivery-analysis?riskFocus=schedule#schedule-risk",
           "tone": "warning",
           "glyph": "\u25f7",
           "needsAction": true
@@ -2865,6 +2830,2060 @@ export const TPT_OVERVIEW_DERIVED = {
       "attention_message": "13 items look likely to spill \u2014 review scope before close."
     }
   },
+  "scheduleRiskBySprint": {
+    "27": {
+      "definition": "Open sprint work that is Highest/High priority or still To Do \u2014 likely to miss the sprint end.",
+      "total": 52,
+      "byTeam": [
+        {
+          "key": "AVENGERS",
+          "name": "Agile Avengers",
+          "count": 28
+        },
+        {
+          "key": "APEX",
+          "name": "Apex Team",
+          "count": 10
+        },
+        {
+          "key": "DARK",
+          "name": "Dark Side Team",
+          "count": 10
+        },
+        {
+          "key": "MOBILE",
+          "name": "Mobile",
+          "count": 3
+        },
+        {
+          "key": "UNASSIGNED",
+          "name": "UNASSIGNED",
+          "count": 1
+        }
+      ],
+      "items": [
+        {
+          "key": "TP-9740",
+          "summary": "[BE] Orchestration logic is not functional on test-env-2",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "Highest",
+          "status": "To Do",
+          "reason": "high_priority_not_started"
+        },
+        {
+          "key": "TP-9289",
+          "summary": "[BE] Port partner commission crediting, tier recalc, and cash bonus",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "Highest",
+          "status": "Testing",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9525",
+          "summary": "[BE] DOWN script for WalletPaymentFunctions has an uppercase .SQL extension, breaking case-sensitive tooling",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "Highest",
+          "status": "Ready for Testing",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9568",
+          "summary": "[FE] The main table and scroll bar on the Referral codes page are displayed incorrectly when viewed from a tablet",
+          "teamKey": "APEX",
+          "teamName": "Apex Team",
+          "priority": "High",
+          "status": "To Do",
+          "reason": "high_priority_not_started"
+        },
+        {
+          "key": "TP-9781",
+          "summary": "[BE] Payment method is changed to PayPal before PayPal confirmation",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "To Do",
+          "reason": "high_priority_not_started"
+        },
+        {
+          "key": "TP-9847",
+          "summary": "[BE] Braintree Create Subscription persists as active regardless of initial charge outcome",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "To Do",
+          "reason": "high_priority_not_started"
+        },
+        {
+          "key": "TP-9848",
+          "summary": "[BE] Braintree Create Subscription activates promo code even when initial charge is declined",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "To Do",
+          "reason": "high_priority_not_started"
+        },
+        {
+          "key": "TP-9867",
+          "summary": "[FE] System ignores AVS Fraud checks and successfully processes payments with invalid ZIP codes (e.g., 20001)",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "To Do",
+          "reason": "high_priority_not_started"
+        },
+        {
+          "key": "TP-9980",
+          "summary": "[FE] Add feature flag for forsing user to Braintree",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "To Do",
+          "reason": "high_priority_not_started"
+        },
+        {
+          "key": "TP-7392",
+          "summary": "[BE] Implement handling of the subscription cancellation integration event in Accounts MS to trigger the existing accoun",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "High",
+          "status": "In Progress",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-8908",
+          "summary": "[BE] Idempotency Fixes - Kafka payout",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "Ready for Testing",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-8918",
+          "summary": "[BE] No client-supplied idempotency-key support on write endpoints",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "Code Review",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9104",
+          "summary": "[BE] Retry transient Kafka consumer failures",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "Ready for Testing",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9105",
+          "summary": "[BE] Dead-letter permanently failed Kafka messages",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "Ready for Testing",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9127",
+          "summary": "[BE] Front-end can't connect to realtime notifications with temp KYC or MFA token",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "Ready for Testing",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9260",
+          "summary": "[BE] Create Chargeflow simulator for lower environments",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "Ready for Testing",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9515",
+          "summary": "[BE] Replace SELECT * with Explicit Column Lists in Repository Queries",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "Ready for Testing",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9605",
+          "summary": "[BE] Partner is not got commission from Nuvei and Braintree transactions",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "Ready for Testing",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9681",
+          "summary": "[BE] Nuvei subscription activation fails to complete for most real purchases",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "Code Review",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9712",
+          "summary": "Complete Operational Jobs Ownership and Escalation Matrix",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "High",
+          "status": "In Progress",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9741",
+          "summary": "[Des] Research, Tracking Plan & Amplitude Analytics Integration",
+          "teamKey": "UNASSIGNED",
+          "teamName": "Unassigned team",
+          "priority": "High",
+          "status": "In Progress",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9755",
+          "summary": "[FE] Different messages are displayed for risky emails on the sign-up form",
+          "teamKey": "APEX",
+          "teamName": "Apex Team",
+          "priority": "High",
+          "status": "Testing",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9779",
+          "summary": "[BE] Active subscription price return 404 for BT subscription",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "In Progress",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9788",
+          "summary": "[BE] Alerts are incorrectly handled as Daily Loss Limit breaches in some cases for PRO+ Development accounts",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "High",
+          "status": "Ready for Testing",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9840",
+          "summary": "[FE] Incorrect modal displayed for Bank-Side Fraud Block (shows \"Block user\" modal instead of \"Bank-Side Fraud Block\")",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "In Progress",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9843",
+          "summary": "[FE] Validation and UX issues in the card expiration date input fields (MM/YY) Braintree",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "Code Review",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9846",
+          "summary": "[FE] Braintree Missing client-side validation for billing information fields allows submitting invalid or incomplete dat",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "In Progress",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9850",
+          "summary": "[BE] Braintree Create Subscription can double-charge on retry after a persistence failure",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "In Progress",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9856",
+          "summary": "[FE] Localization issues for risky emails",
+          "teamKey": "APEX",
+          "teamName": "Apex Team",
+          "priority": "High",
+          "status": "Testing",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9887",
+          "summary": "[BE] Subscription is stuck in pending and no nuvei transaction is not created",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "Code Review",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9905",
+          "summary": "[BE] The completion timestamp is not saved to the \"AllReportsProcessingInfo\" table after running \"RithmicTradingDataJob\"",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "High",
+          "status": "Testing",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9963",
+          "summary": "[FE] The text in \u201cDifferences between Take Profit and other companies\u201d is duplicated",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "High",
+          "status": "Testing",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-6427",
+          "summary": "[Des] [Mob] Audit and fix padding inconsistencies across all screens",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-7329",
+          "summary": "Add \u201cNote\u201d field inside withdrawal request window",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-7565",
+          "summary": "Update the logic of working with the \"PendingNuveiTransactions\" table to prevent duplicate creation",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-8875",
+          "summary": "Identify QA Coverage & Impacted User Flows for Payments Rewrite API Endpoints",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-8930",
+          "summary": "Add extended monitoring for exchange with tradovate",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-8950",
+          "summary": "[FE] Add Email Code Option to MFA Setup and Authentication",
+          "teamKey": "APEX",
+          "teamName": "Apex Team",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-8952",
+          "summary": "[BE] Sync SMS MFA Methods and Activity with the CRM",
+          "teamKey": "APEX",
+          "teamName": "Apex Team",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-8955",
+          "summary": "[BE] Sync Email MFA Methods and Activity with the CRM",
+          "teamKey": "APEX",
+          "teamName": "Apex Team",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-8956",
+          "summary": "[CRM] Add Email MFA Data to the User Profile MFA Section",
+          "teamKey": "APEX",
+          "teamName": "Apex Team",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-9089",
+          "summary": "[PEN TEST] Pen test new payments API",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-9358",
+          "summary": "[MOB] Display Refund Original Transaction (Wallet History)",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-9676",
+          "summary": "[BE] Investigate PRO+ User Synchronization with Zendesk",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-9725",
+          "summary": "[MOB] 10/10 attempts Automated withdrawal",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-9879",
+          "summary": "[FE] Create a reliable mechanism to identify new users to move them to Braintree provider",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-9894",
+          "summary": "[FE Tech Spike] Investigate Amplitude SDK Performance & Client Load Impact on Take Profit Trader",
+          "teamKey": "APEX",
+          "teamName": "Apex Team",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-9895",
+          "summary": "[FE Task] Auto-Configure Amplitude SDK Setup & Event Tracking Verification in DEV Environment",
+          "teamKey": "APEX",
+          "teamName": "Apex Team",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-9909",
+          "summary": "[BE] Send User Email Notifications for SMS MFA Activity",
+          "teamKey": "APEX",
+          "teamName": "Apex Team",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-9971",
+          "summary": "[BE] Spike: check validation from Braintree for billing address fields",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-8721",
+          "summary": "Optimyze the check for the limit for the Pro accounts",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "Low",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-9418",
+          "summary": "[BE] Add Stuck Subscription-Activation Detection",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "Low",
+          "status": "To Do",
+          "reason": "not_started"
+        }
+      ]
+    },
+    "26": {
+      "definition": "Open work that remained unfinished when Sprint 26 closed.",
+      "total": 15,
+      "byTeam": [
+        {
+          "key": "MOBILE",
+          "name": "Mobile",
+          "count": 13
+        },
+        {
+          "key": "DARK",
+          "name": "Dark Side Team",
+          "count": 2
+        }
+      ],
+      "items": [
+        {
+          "key": "TP-6003",
+          "summary": "[MOB] Error \"Something went wrong\" is shown to user after swithing from wallet screen to journey screen",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-7667",
+          "summary": "[BE] Actualize information about countries and states in Accounts MS",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8193",
+          "summary": "[MOB] Affiliate Banner Reset \u2013 Button & Confirmation Modal Design",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "In Progress",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8365",
+          "summary": "[MOB] Verification Outcome Notifications (In-App + Email) for KYC & KYB",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8418",
+          "summary": "[MOB] Error appears after tap on [PROCEED] button",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8547",
+          "summary": "[MOB] Account type format is not matched to design on Certificates tab",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8556",
+          "summary": "[MOB] Inncorect filtering by date for PRO certificates",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-9242",
+          "summary": "[MOB] Changes after Design improvements in the Identity flow",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-9256",
+          "summary": "[MOB] Remove the bottom padding across the app",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-9356",
+          "summary": "[MOB] Hide/unhide login and password",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-9357",
+          "summary": "[MOB] Reserved money for withdrawal",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-9367",
+          "summary": "[MOB] Change UI Layout on Account page",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-9577",
+          "summary": "[MOB] Change Free Test Reset Credit prices",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-9592",
+          "summary": "[MOB] Improve Login Page Keyboard & Input Behavior",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-9238",
+          "summary": "[BE] The \"IsManuallyDisabled\" field is not set to false after activating a previously manually disabled account",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "Low",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        }
+      ]
+    },
+    "25": {
+      "definition": "Open work that remained unfinished when Sprint 25 closed.",
+      "total": 26,
+      "byTeam": [
+        {
+          "key": "MOBILE",
+          "name": "Mobile",
+          "count": 19
+        },
+        {
+          "key": "AVENGERS",
+          "name": "Agile Avengers",
+          "count": 3
+        },
+        {
+          "key": "APEX",
+          "name": "Apex Team",
+          "count": 2
+        },
+        {
+          "key": "DARK",
+          "name": "Dark Side Team",
+          "count": 2
+        }
+      ],
+      "items": [
+        {
+          "key": "TP-8322",
+          "summary": "[BE] New \u201cAffiliates\u201d users are not added to the database in the new \u2018AffiliatePartnershipHistory\u2019 and \u201cAffiliatePartner",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8335",
+          "summary": "[BE] \u201cTerminate\u201d and \u201cRe-Activate\u201d don`t change the value of the \u201ccommission configuration\u201d parameter in the database",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8359",
+          "summary": "[BE] We can order a subscription using a referral code with the status \"Terminate\"",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8364",
+          "summary": "[MOB] Re-verify KYB Data (Company)",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8489",
+          "summary": "SPIKE: Investigate Mobile Integration with Existing Sardine Backend Infrastructure",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8538",
+          "summary": "[SPIKE] Research and Document potential backup gaps in TPT architecture",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8944",
+          "summary": "[MOB] Failed Account Verification Handling",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-3520",
+          "summary": "Automated Breakdown of Withdrawal Amounts for Plaid Requests",
+          "teamKey": "APEX",
+          "teamName": "Apex Team",
+          "priority": "Medium",
+          "status": "Code Review",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-5392",
+          "summary": "[MOB] Mobile app UI consistency improvements based on design review",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-7301",
+          "summary": "[MOB] Documents hub - endpoints & data infrastructure",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-7302",
+          "summary": "[MOB] Tax forms tab",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-7303",
+          "summary": "[MOB]  Certificates tab",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-7305",
+          "summary": "[MOB] Identity Screen: Entry Points",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-7383",
+          "summary": "[Mob] Fix padding inconsistencies across all screens",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-7402",
+          "summary": "[MOB] Migration from deprecated /api/Agreements/sign to /api/v1/trading-agreements",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-7532",
+          "summary": "[MOB] Documents - implement all tabs",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-7545",
+          "summary": "[MOB] Implement Date picker component",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-7698",
+          "summary": "[MOB] Trading Agreements tab",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-7879",
+          "summary": "Move ActiveCampaign logic to its own microservice and decouple the hot path via Kafka",
+          "teamKey": "APEX",
+          "teamName": "Apex Team",
+          "priority": "Medium",
+          "status": "Code Review",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8191",
+          "summary": "[MOB] Display Active vs Inactive Affiliate Status in User Dashboard -> Affiliate section",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8225",
+          "summary": "[BE] Some accounts have the active trading account status despite the filled \"TradingAccountDisabledAt\" field",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8294",
+          "summary": "[MOB] Implement endpoints for Reset Banner Functionality",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8296",
+          "summary": "[MOB] Implement Core MR & Code Quality Standards",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8360",
+          "summary": "[MOB] Re-verify KYC Data (Individual)",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8362",
+          "summary": "[MOB] Switch Trading Account Type (Individual \u2194 Company)",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8491",
+          "summary": "[MOB] Implement UI Screens and Full-Screen States for Identity Verification Flow",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        }
+      ]
+    },
+    "24": {
+      "definition": "Open work that remained unfinished when Sprint 24 closed.",
+      "total": 6,
+      "byTeam": [
+        {
+          "key": "DARK",
+          "name": "Dark Side Team",
+          "count": 4
+        },
+        {
+          "key": "APEX",
+          "name": "Apex Team",
+          "count": 2
+        }
+      ],
+      "items": [
+        {
+          "key": "TP-8715",
+          "summary": "[BE] The active Tradovate account is stuck with a pending trading account status on our side",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "High",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-5709",
+          "summary": "New Promocode Feature - Auto Test Reset Discount",
+          "teamKey": "APEX",
+          "teamName": "Apex Team",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-6356",
+          "summary": "Implement Retry Mechanism for SignNow Group Document Creation",
+          "teamKey": "APEX",
+          "teamName": "Apex Team",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-1750",
+          "summary": "Schedule Weekly Execution of Index Monitoring SQL Scripts",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-4446",
+          "summary": "Investigation \u2013 Duplicate Identities and CRM Block Enforcement Gap",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8434",
+          "summary": "[BE] The \"Request failed\" error is displayed in CRM after receiving \"Decline-Suspected fraud\" result while trying to ref",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        }
+      ]
+    }
+  },
+  "scheduleRiskByTeamSprint": {
+    "AVENGERS:27": {
+      "definition": "Open sprint work that is Highest/High priority or still To Do \u2014 likely to miss the sprint end.",
+      "total": 28,
+      "byTeam": [
+        {
+          "key": "AVENGERS",
+          "name": "Agile Avengers",
+          "count": 28
+        }
+      ],
+      "items": [
+        {
+          "key": "TP-9740",
+          "summary": "[BE] Orchestration logic is not functional on test-env-2",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "Highest",
+          "status": "To Do",
+          "reason": "high_priority_not_started"
+        },
+        {
+          "key": "TP-9289",
+          "summary": "[BE] Port partner commission crediting, tier recalc, and cash bonus",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "Highest",
+          "status": "Testing",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9525",
+          "summary": "[BE] DOWN script for WalletPaymentFunctions has an uppercase .SQL extension, breaking case-sensitive tooling",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "Highest",
+          "status": "Ready for Testing",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9781",
+          "summary": "[BE] Payment method is changed to PayPal before PayPal confirmation",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "To Do",
+          "reason": "high_priority_not_started"
+        },
+        {
+          "key": "TP-9847",
+          "summary": "[BE] Braintree Create Subscription persists as active regardless of initial charge outcome",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "To Do",
+          "reason": "high_priority_not_started"
+        },
+        {
+          "key": "TP-9848",
+          "summary": "[BE] Braintree Create Subscription activates promo code even when initial charge is declined",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "To Do",
+          "reason": "high_priority_not_started"
+        },
+        {
+          "key": "TP-9867",
+          "summary": "[FE] System ignores AVS Fraud checks and successfully processes payments with invalid ZIP codes (e.g., 20001)",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "To Do",
+          "reason": "high_priority_not_started"
+        },
+        {
+          "key": "TP-9980",
+          "summary": "[FE] Add feature flag for forsing user to Braintree",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "To Do",
+          "reason": "high_priority_not_started"
+        },
+        {
+          "key": "TP-8908",
+          "summary": "[BE] Idempotency Fixes - Kafka payout",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "Ready for Testing",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-8918",
+          "summary": "[BE] No client-supplied idempotency-key support on write endpoints",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "Code Review",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9104",
+          "summary": "[BE] Retry transient Kafka consumer failures",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "Ready for Testing",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9105",
+          "summary": "[BE] Dead-letter permanently failed Kafka messages",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "Ready for Testing",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9127",
+          "summary": "[BE] Front-end can't connect to realtime notifications with temp KYC or MFA token",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "Ready for Testing",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9260",
+          "summary": "[BE] Create Chargeflow simulator for lower environments",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "Ready for Testing",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9515",
+          "summary": "[BE] Replace SELECT * with Explicit Column Lists in Repository Queries",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "Ready for Testing",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9605",
+          "summary": "[BE] Partner is not got commission from Nuvei and Braintree transactions",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "Ready for Testing",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9681",
+          "summary": "[BE] Nuvei subscription activation fails to complete for most real purchases",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "Code Review",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9779",
+          "summary": "[BE] Active subscription price return 404 for BT subscription",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "In Progress",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9840",
+          "summary": "[FE] Incorrect modal displayed for Bank-Side Fraud Block (shows \"Block user\" modal instead of \"Bank-Side Fraud Block\")",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "In Progress",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9843",
+          "summary": "[FE] Validation and UX issues in the card expiration date input fields (MM/YY) Braintree",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "Code Review",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9846",
+          "summary": "[FE] Braintree Missing client-side validation for billing information fields allows submitting invalid or incomplete dat",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "In Progress",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9850",
+          "summary": "[BE] Braintree Create Subscription can double-charge on retry after a persistence failure",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "In Progress",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9887",
+          "summary": "[BE] Subscription is stuck in pending and no nuvei transaction is not created",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "High",
+          "status": "Code Review",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-8875",
+          "summary": "Identify QA Coverage & Impacted User Flows for Payments Rewrite API Endpoints",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-9089",
+          "summary": "[PEN TEST] Pen test new payments API",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-9879",
+          "summary": "[FE] Create a reliable mechanism to identify new users to move them to Braintree provider",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-9971",
+          "summary": "[BE] Spike: check validation from Braintree for billing address fields",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-9418",
+          "summary": "[BE] Add Stuck Subscription-Activation Detection",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "Low",
+          "status": "To Do",
+          "reason": "not_started"
+        }
+      ]
+    },
+    "APEX:27": {
+      "definition": "Open sprint work that is Highest/High priority or still To Do \u2014 likely to miss the sprint end.",
+      "total": 10,
+      "byTeam": [
+        {
+          "key": "APEX",
+          "name": "Apex Team",
+          "count": 10
+        }
+      ],
+      "items": [
+        {
+          "key": "TP-9568",
+          "summary": "[FE] The main table and scroll bar on the Referral codes page are displayed incorrectly when viewed from a tablet",
+          "teamKey": "APEX",
+          "teamName": "Apex Team",
+          "priority": "High",
+          "status": "To Do",
+          "reason": "high_priority_not_started"
+        },
+        {
+          "key": "TP-9755",
+          "summary": "[FE] Different messages are displayed for risky emails on the sign-up form",
+          "teamKey": "APEX",
+          "teamName": "Apex Team",
+          "priority": "High",
+          "status": "Testing",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9856",
+          "summary": "[FE] Localization issues for risky emails",
+          "teamKey": "APEX",
+          "teamName": "Apex Team",
+          "priority": "High",
+          "status": "Testing",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-8950",
+          "summary": "[FE] Add Email Code Option to MFA Setup and Authentication",
+          "teamKey": "APEX",
+          "teamName": "Apex Team",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-8952",
+          "summary": "[BE] Sync SMS MFA Methods and Activity with the CRM",
+          "teamKey": "APEX",
+          "teamName": "Apex Team",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-8955",
+          "summary": "[BE] Sync Email MFA Methods and Activity with the CRM",
+          "teamKey": "APEX",
+          "teamName": "Apex Team",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-8956",
+          "summary": "[CRM] Add Email MFA Data to the User Profile MFA Section",
+          "teamKey": "APEX",
+          "teamName": "Apex Team",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-9894",
+          "summary": "[FE Tech Spike] Investigate Amplitude SDK Performance & Client Load Impact on Take Profit Trader",
+          "teamKey": "APEX",
+          "teamName": "Apex Team",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-9895",
+          "summary": "[FE Task] Auto-Configure Amplitude SDK Setup & Event Tracking Verification in DEV Environment",
+          "teamKey": "APEX",
+          "teamName": "Apex Team",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-9909",
+          "summary": "[BE] Send User Email Notifications for SMS MFA Activity",
+          "teamKey": "APEX",
+          "teamName": "Apex Team",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        }
+      ]
+    },
+    "DARK:27": {
+      "definition": "Open sprint work that is Highest/High priority or still To Do \u2014 likely to miss the sprint end.",
+      "total": 10,
+      "byTeam": [
+        {
+          "key": "DARK",
+          "name": "Dark Side Team",
+          "count": 10
+        }
+      ],
+      "items": [
+        {
+          "key": "TP-7392",
+          "summary": "[BE] Implement handling of the subscription cancellation integration event in Accounts MS to trigger the existing accoun",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "High",
+          "status": "In Progress",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9712",
+          "summary": "Complete Operational Jobs Ownership and Escalation Matrix",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "High",
+          "status": "In Progress",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9788",
+          "summary": "[BE] Alerts are incorrectly handled as Daily Loss Limit breaches in some cases for PRO+ Development accounts",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "High",
+          "status": "Ready for Testing",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9905",
+          "summary": "[BE] The completion timestamp is not saved to the \"AllReportsProcessingInfo\" table after running \"RithmicTradingDataJob\"",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "High",
+          "status": "Testing",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-9963",
+          "summary": "[FE] The text in \u201cDifferences between Take Profit and other companies\u201d is duplicated",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "High",
+          "status": "Testing",
+          "reason": "high_priority"
+        },
+        {
+          "key": "TP-7329",
+          "summary": "Add \u201cNote\u201d field inside withdrawal request window",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-7565",
+          "summary": "Update the logic of working with the \"PendingNuveiTransactions\" table to prevent duplicate creation",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-8930",
+          "summary": "Add extended monitoring for exchange with tradovate",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-9676",
+          "summary": "[BE] Investigate PRO+ User Synchronization with Zendesk",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-8721",
+          "summary": "Optimyze the check for the limit for the Pro accounts",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "Low",
+          "status": "To Do",
+          "reason": "not_started"
+        }
+      ]
+    },
+    "MOBILE:27": {
+      "definition": "Open sprint work that is Highest/High priority or still To Do \u2014 likely to miss the sprint end.",
+      "total": 3,
+      "byTeam": [
+        {
+          "key": "MOBILE",
+          "name": "Mobile",
+          "count": 3
+        }
+      ],
+      "items": [
+        {
+          "key": "TP-6427",
+          "summary": "[Des] [Mob] Audit and fix padding inconsistencies across all screens",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-9358",
+          "summary": "[MOB] Display Refund Original Transaction (Wallet History)",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        },
+        {
+          "key": "TP-9725",
+          "summary": "[MOB] 10/10 attempts Automated withdrawal",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "not_started"
+        }
+      ]
+    },
+    "AVENGERS:26": {
+      "definition": "Open work that remained unfinished when Sprint 26 closed.",
+      "total": 0,
+      "byTeam": [],
+      "items": []
+    },
+    "APEX:26": {
+      "definition": "Open work that remained unfinished when Sprint 26 closed.",
+      "total": 0,
+      "byTeam": [],
+      "items": []
+    },
+    "DARK:26": {
+      "definition": "Open work that remained unfinished when Sprint 26 closed.",
+      "total": 2,
+      "byTeam": [
+        {
+          "key": "DARK",
+          "name": "Dark Side Team",
+          "count": 2
+        }
+      ],
+      "items": [
+        {
+          "key": "TP-7667",
+          "summary": "[BE] Actualize information about countries and states in Accounts MS",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-9238",
+          "summary": "[BE] The \"IsManuallyDisabled\" field is not set to false after activating a previously manually disabled account",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "Low",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        }
+      ]
+    },
+    "MOBILE:26": {
+      "definition": "Open work that remained unfinished when Sprint 26 closed.",
+      "total": 13,
+      "byTeam": [
+        {
+          "key": "MOBILE",
+          "name": "Mobile",
+          "count": 13
+        }
+      ],
+      "items": [
+        {
+          "key": "TP-6003",
+          "summary": "[MOB] Error \"Something went wrong\" is shown to user after swithing from wallet screen to journey screen",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8193",
+          "summary": "[MOB] Affiliate Banner Reset \u2013 Button & Confirmation Modal Design",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "In Progress",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8365",
+          "summary": "[MOB] Verification Outcome Notifications (In-App + Email) for KYC & KYB",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8418",
+          "summary": "[MOB] Error appears after tap on [PROCEED] button",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8547",
+          "summary": "[MOB] Account type format is not matched to design on Certificates tab",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8556",
+          "summary": "[MOB] Inncorect filtering by date for PRO certificates",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-9242",
+          "summary": "[MOB] Changes after Design improvements in the Identity flow",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-9256",
+          "summary": "[MOB] Remove the bottom padding across the app",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-9356",
+          "summary": "[MOB] Hide/unhide login and password",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-9357",
+          "summary": "[MOB] Reserved money for withdrawal",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-9367",
+          "summary": "[MOB] Change UI Layout on Account page",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-9577",
+          "summary": "[MOB] Change Free Test Reset Credit prices",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-9592",
+          "summary": "[MOB] Improve Login Page Keyboard & Input Behavior",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        }
+      ]
+    },
+    "AVENGERS:25": {
+      "definition": "Open work that remained unfinished when Sprint 25 closed.",
+      "total": 3,
+      "byTeam": [
+        {
+          "key": "AVENGERS",
+          "name": "Agile Avengers",
+          "count": 3
+        }
+      ],
+      "items": [
+        {
+          "key": "TP-8322",
+          "summary": "[BE] New \u201cAffiliates\u201d users are not added to the database in the new \u2018AffiliatePartnershipHistory\u2019 and \u201cAffiliatePartner",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8335",
+          "summary": "[BE] \u201cTerminate\u201d and \u201cRe-Activate\u201d don`t change the value of the \u201ccommission configuration\u201d parameter in the database",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8359",
+          "summary": "[BE] We can order a subscription using a referral code with the status \"Terminate\"",
+          "teamKey": "AVENGERS",
+          "teamName": "Agile Avengers",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "carryover"
+        }
+      ]
+    },
+    "APEX:25": {
+      "definition": "Open work that remained unfinished when Sprint 25 closed.",
+      "total": 2,
+      "byTeam": [
+        {
+          "key": "APEX",
+          "name": "Apex Team",
+          "count": 2
+        }
+      ],
+      "items": [
+        {
+          "key": "TP-3520",
+          "summary": "Automated Breakdown of Withdrawal Amounts for Plaid Requests",
+          "teamKey": "APEX",
+          "teamName": "Apex Team",
+          "priority": "Medium",
+          "status": "Code Review",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-7879",
+          "summary": "Move ActiveCampaign logic to its own microservice and decouple the hot path via Kafka",
+          "teamKey": "APEX",
+          "teamName": "Apex Team",
+          "priority": "Medium",
+          "status": "Code Review",
+          "reason": "carryover"
+        }
+      ]
+    },
+    "DARK:25": {
+      "definition": "Open work that remained unfinished when Sprint 25 closed.",
+      "total": 2,
+      "byTeam": [
+        {
+          "key": "DARK",
+          "name": "Dark Side Team",
+          "count": 2
+        }
+      ],
+      "items": [
+        {
+          "key": "TP-8538",
+          "summary": "[SPIKE] Research and Document potential backup gaps in TPT architecture",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8225",
+          "summary": "[BE] Some accounts have the active trading account status despite the filled \"TradingAccountDisabledAt\" field",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        }
+      ]
+    },
+    "MOBILE:25": {
+      "definition": "Open work that remained unfinished when Sprint 25 closed.",
+      "total": 19,
+      "byTeam": [
+        {
+          "key": "MOBILE",
+          "name": "Mobile",
+          "count": 19
+        }
+      ],
+      "items": [
+        {
+          "key": "TP-8364",
+          "summary": "[MOB] Re-verify KYB Data (Company)",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8489",
+          "summary": "SPIKE: Investigate Mobile Integration with Existing Sardine Backend Infrastructure",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8944",
+          "summary": "[MOB] Failed Account Verification Handling",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-5392",
+          "summary": "[MOB] Mobile app UI consistency improvements based on design review",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-7301",
+          "summary": "[MOB] Documents hub - endpoints & data infrastructure",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-7302",
+          "summary": "[MOB] Tax forms tab",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-7303",
+          "summary": "[MOB]  Certificates tab",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-7305",
+          "summary": "[MOB] Identity Screen: Entry Points",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-7383",
+          "summary": "[Mob] Fix padding inconsistencies across all screens",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-7402",
+          "summary": "[MOB] Migration from deprecated /api/Agreements/sign to /api/v1/trading-agreements",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-7532",
+          "summary": "[MOB] Documents - implement all tabs",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-7545",
+          "summary": "[MOB] Implement Date picker component",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-7698",
+          "summary": "[MOB] Trading Agreements tab",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8191",
+          "summary": "[MOB] Display Active vs Inactive Affiliate Status in User Dashboard -> Affiliate section",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8294",
+          "summary": "[MOB] Implement endpoints for Reset Banner Functionality",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8296",
+          "summary": "[MOB] Implement Core MR & Code Quality Standards",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8360",
+          "summary": "[MOB] Re-verify KYC Data (Individual)",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8362",
+          "summary": "[MOB] Switch Trading Account Type (Individual \u2194 Company)",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8491",
+          "summary": "[MOB] Implement UI Screens and Full-Screen States for Identity Verification Flow",
+          "teamKey": "MOBILE",
+          "teamName": "Mobile",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        }
+      ]
+    },
+    "AVENGERS:24": {
+      "definition": "Open work that remained unfinished when Sprint 24 closed.",
+      "total": 0,
+      "byTeam": [],
+      "items": []
+    },
+    "APEX:24": {
+      "definition": "Open work that remained unfinished when Sprint 24 closed.",
+      "total": 2,
+      "byTeam": [
+        {
+          "key": "APEX",
+          "name": "Apex Team",
+          "count": 2
+        }
+      ],
+      "items": [
+        {
+          "key": "TP-5709",
+          "summary": "New Promocode Feature - Auto Test Reset Discount",
+          "teamKey": "APEX",
+          "teamName": "Apex Team",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-6356",
+          "summary": "Implement Retry Mechanism for SignNow Group Document Creation",
+          "teamKey": "APEX",
+          "teamName": "Apex Team",
+          "priority": "Medium",
+          "status": "To Do",
+          "reason": "carryover"
+        }
+      ]
+    },
+    "DARK:24": {
+      "definition": "Open work that remained unfinished when Sprint 24 closed.",
+      "total": 4,
+      "byTeam": [
+        {
+          "key": "DARK",
+          "name": "Dark Side Team",
+          "count": 4
+        }
+      ],
+      "items": [
+        {
+          "key": "TP-8715",
+          "summary": "[BE] The active Tradovate account is stuck with a pending trading account status on our side",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "High",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-1750",
+          "summary": "Schedule Weekly Execution of Index Monitoring SQL Scripts",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-4446",
+          "summary": "Investigation \u2013 Duplicate Identities and CRM Block Enforcement Gap",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        },
+        {
+          "key": "TP-8434",
+          "summary": "[BE] The \"Request failed\" error is displayed in CRM after receiving \"Decline-Suspected fraud\" result while trying to ref",
+          "teamKey": "DARK",
+          "teamName": "Dark Side Team",
+          "priority": "Medium",
+          "status": "Ready for Testing",
+          "reason": "carryover"
+        }
+      ]
+    },
+    "MOBILE:24": {
+      "definition": "Open work that remained unfinished when Sprint 24 closed.",
+      "total": 0,
+      "byTeam": [],
+      "items": []
+    }
+  },
   "notes": {
     "jiraSource": "/Users/musthafa/Downloads/tbt.csv",
     "scope": "Latest sprint; Story/Bug/Feature/Epic only (Sub-tasks excluded)",
@@ -2880,6 +4899,7 @@ export const TPT_OVERVIEW_DERIVED = {
       "completion",
       "blocked",
       "spillover",
+      "scheduleRiskEvidence",
       "burndown",
       "jiraHeatmap",
       "trend",

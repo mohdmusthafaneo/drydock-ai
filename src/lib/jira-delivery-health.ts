@@ -466,7 +466,7 @@ function buildBaseJiraSignals(
     },
     {
       id: "jira-spillover",
-      category: "sprint",
+      category: "schedule",
       label: "Spillover work",
       value:
         metrics.spilloverCount > 0
@@ -617,7 +617,7 @@ export function analyzePortfolioDeliveryHealth(input: {
 
   signals.push({
     id: "spillover",
-    category: "sprint",
+    category: "schedule",
     label: isOrgScope ? "Sprint spillover" : "Spillover work",
     value:
       metrics.spilloverCount > 0

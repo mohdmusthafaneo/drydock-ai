@@ -20,7 +20,7 @@ export const mockRisk: RiskData = {
       severity: "medium",
       summary:
         "16 items are likely to spill out of Sprint 37. Matches Overview schedule-risk attention.",
-      href: "/delivery-analysis?riskFocus=schedule",
+      href: "/delivery-analysis?riskFocus=schedule#schedule-risk",
     },
   ],
 };

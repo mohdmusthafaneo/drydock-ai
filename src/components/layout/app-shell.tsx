@@ -84,7 +84,6 @@ export function AppShell({
   return (
     <div className="app-canvas flex h-dvh overflow-hidden bg-base text-primary">
       <Sidebar
-        organizationName={chrome.organizationName}
         homePath={homePath}
         projects={chrome.projects}
         lastSyncAt={chrome.lastSyncAt}

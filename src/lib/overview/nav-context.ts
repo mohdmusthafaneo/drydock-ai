@@ -37,6 +37,9 @@ export const SCORE_DERIVATION_HASH = "score-derivation";
 /** Hash target for Overview sprint completion → Active sprints card. */
 export const ACTIVE_SPRINTS_HASH = "active-sprints";
 
+/** Hash target for Overview spillover / items-at-risk → schedule risk evidence. */
+export const SCHEDULE_RISK_HASH = "schedule-risk";
+
 export const PILLAR_HREFS: Record<string, string> = {
   delivery: "/delivery-analysis",
   code: "/code-analysis",
@@ -47,7 +50,7 @@ export const PILLAR_HREFS: Record<string, string> = {
 export const METRIC_HREFS: Record<string, string> = {
   completion: `/delivery-analysis?riskFocus=sprint#${ACTIVE_SPRINTS_HASH}`,
   blocked: "/delivery-analysis?riskFocus=blockers",
-  spillover: "/delivery-analysis?riskFocus=schedule",
-  "at-risk": "/delivery-analysis?riskFocus=schedule",
+  spillover: "/delivery-analysis?riskFocus=schedule#schedule-risk",
+  "at-risk": "/delivery-analysis?riskFocus=schedule#schedule-risk",
   "ai-risk": "/code-analysis",
 };

@@ -25,14 +25,12 @@ export type SidebarProject = {
 };
 
 export function Sidebar({
-  organizationName,
   homePath,
   projects,
   lastSyncAt,
   activeTeam,
   onOpenCommandPalette,
 }: {
-  organizationName: string;
   homePath: string;
   projects: SidebarProject[];
   lastSyncAt: string | null;
@@ -73,7 +71,7 @@ export function Sidebar({
         <Link href={homePath} className="mb-[21px] flex min-w-0 items-center gap-2.5 px-2.5">
           <OrgMark size={25} />
           <span className="truncate text-[18px] font-bold tracking-[-0.35px] text-ink">
-            {organizationName}
+            DryDock
           </span>
         </Link>
 

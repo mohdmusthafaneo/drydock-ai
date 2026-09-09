@@ -40,7 +40,7 @@ describe("analyzePortfolioDeliveryHealth — reopened and spillover", () => {
     assert.ok(reopened?.value.includes("3"));
 
     assert.ok(spillover);
-    assert.equal(spillover?.category, "sprint");
+    assert.equal(spillover?.category, "schedule");
     assert.equal(spillover?.severity, "warning");
     assert.ok(spillover?.value.includes("4"));
 

@@ -1,5 +1,6 @@
 import { resolve } from "@/lib/store/dimensions";
 import { MOCK_DEFAULT_SPRINT_ID } from "@/lib/store/mock/dimensions";
+import { resolveMockScheduleRisk } from "@/lib/store/mock/schedule-risk";
 import type {
   AppStoreState,
   OverviewDashboardModel,
@@ -46,6 +47,27 @@ export function selectOverviewModel(state: AppStoreState): OverviewDashboardMode
     sprint.name,
   );
 
+  // Keep Overview “items at risk” aligned with the Delivery schedule-risk panel.
+  // Live Connexus overlays can otherwise show a different spillover total than the
+  // TPT mock evidence set for the selected sprint/team.
+  const mockScheduleRisk =
+    data.meta.mode === "live"
+      ? undefined
+      : resolveMockScheduleRisk(sprintId, filters.team);
+  const metrics = leaf.deliveryConfidence.metrics.map((metric) => {
+    if (
+      mockScheduleRisk &&
+      (metric.id === "spillover" || metric.id === "at-risk")
+    ) {
+      return {
+        ...metric,
+        value: mockScheduleRisk.total,
+        progress: Math.min(100, mockScheduleRisk.total),
+      };
+    }
+    return metric;
+  });
+
   return {
     greetingName: data.user.greetingName,
     greeting: greetingForHour(new Date().getHours()),
@@ -62,6 +84,7 @@ export function selectOverviewModel(state: AppStoreState): OverviewDashboardMode
     deliveryConfidence: {
       ...leaf.deliveryConfidence,
       caption,
+      metrics,
     },
     keyTakeaways: leaf.keyTakeaways,
     pillars: leaf.pillars,

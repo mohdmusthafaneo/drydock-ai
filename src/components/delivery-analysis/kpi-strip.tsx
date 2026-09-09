@@ -81,7 +81,7 @@ const KPI_ITEMS: {
   {
     key: "spillover",
     label: "Spillover",
-    subtitle: "Carried from prior sprint",
+    subtitle: "Likely to miss or carry past sprint end",
     deltaKey: "spilloverDelta",
     invertDelta: true,
   },
