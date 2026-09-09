@@ -19,14 +19,8 @@ export type AttentionQueueItem = {
   tone: "danger" | "warning" | "info";
 };
 
-export type DataMode = "mock" | "live" | "hybrid";
-export type ProvenanceKind = "mock" | "live";
-
 export type AppDataMeta = {
   lastSyncAt: string | null;
-  mode: DataMode;
-  /** Dotted paths supplied by the live overlay. */
-  provenance: Record<string, ProvenanceKind>;
 };
 
 export type AppTeam = { key: string; name: string };
@@ -37,6 +31,8 @@ export type AppService = { id: string; name: string };
 export type AppDimensions = {
   teams: AppTeam[];
   sprints: OverviewSprintOption[];
+  /** Sprint used when filters.sprint is unset. */
+  defaultSprintId: string;
   projects: AppProject[];
   repos: AppRepo[];
   services: AppService[];
@@ -98,9 +94,7 @@ export type CodeAnalysisData = {
   defaultAiRiskPct: number;
 };
 
-export type DeliveryAnalysisData = {
-  snapshot: DeliveryAnalysisSnapshot | null;
-};
+export type DeliveryAnalysisData = Dimensioned<DeliveryAnalysisSnapshot>;
 
 export type ObservabilityData = {
   snapshot: ObservabilityAnalysisSnapshot | null;
@@ -165,9 +159,10 @@ export type IntegrationsData = {
     lastSyncAt: string | null;
     /** Jira (and similar) sync targets — e.g. `["TP"]` for mock connect session. */
     projectKeys?: string[];
-    /** Human-readable site / org label for the mock connect session. */
+    /** Human-readable site / org label. */
     siteName?: string;
-    /** When true, Connect page treats this as the mock session (no live OAuth). */
+    siteUrl?: string;
+    /** When true, Connect page shows the store session card (no live OAuth). */
     mockSession?: boolean;
   }>;
 };

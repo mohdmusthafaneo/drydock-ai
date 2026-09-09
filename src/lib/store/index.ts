@@ -13,6 +13,7 @@ export {
 export { mergeAppData } from "@/lib/store/merge";
 export {
   resolve,
+  pick,
   DEFAULT_FILTERS,
   asDimensioned,
   teamSprintKey,
@@ -27,19 +28,18 @@ export type {
   AppDataMeta,
   AppDimensions,
   AttentionQueueItem,
-  DataMode,
   OverviewData,
   OverviewLeaf,
   StoreStatus,
   OverviewDashboardModel,
   OverviewSprintOption,
 } from "@/lib/store/types";
-export { getMockAppData } from "@/lib/store/mock";
 export {
   greetingForHour,
   selectOverviewModel,
   selectShellChrome,
   selectAiRiskPct,
+  selectDeliveryAnalysisSnapshot,
   type ShellChrome,
 } from "@/lib/store/selectors";
 export { FilterUrlSync } from "@/lib/store/url-sync";

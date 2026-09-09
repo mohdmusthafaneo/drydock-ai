@@ -4,7 +4,7 @@ export const mockRisk: RiskData = {
   available: true,
   title: "Release risk",
   description:
-    "Risk signals aligned with Overview attention for Sprint 37 — blocked backlog and spillover.",
+    "Risk signals aligned with Overview attention for Sprint 27 — blocked backlog and spillover.",
   items: [
     {
       id: "risk-blocked",
@@ -19,7 +19,7 @@ export const mockRisk: RiskData = {
       title: "Sprint spillover candidates",
       severity: "medium",
       summary:
-        "16 items are likely to spill out of Sprint 37. Matches Overview schedule-risk attention.",
+        "52 items are likely to spill out of Sprint 27. Matches Overview schedule-risk attention.",
       href: "/delivery-analysis?riskFocus=schedule#schedule-risk",
     },
   ],

@@ -5,20 +5,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { formatFixedLocaleDateTime } from "@/lib/format-date";
 import { useAppData } from "@/lib/store";
 
-/**
- * Mock Connect-session card for Jira — used when the evidence set is mock
- * so Connect shows “connected to Jira on project key TP” without live OAuth.
- */
+/** Jira connect card from store integrations data. */
 export function JiraMockSessionFromStore() {
-  const mode = useAppData((s) => s.data.meta.mode);
   const jira = useAppData((s) =>
     s.data.integrations.items.find((i) => i.provider.toLowerCase() === "jira"),
   );
 
-  if (mode === "live" || !jira?.mockSession) return null;
+  if (!jira?.mockSession) return null;
 
-  const projectKey = jira.projectKeys?.[0] ?? "TP";
-  const siteName = jira.siteName ?? "TPT Platform";
+  const projectKey = jira.projectKeys?.[0] ?? "";
+  const siteName = jira.siteName ?? "";
 
   return (
     <Card>
@@ -28,7 +24,7 @@ export function JiraMockSessionFromStore() {
           <Badge variant="success">CONNECTED</Badge>
         </div>
         <CardDescription>
-          Mock connect session for the TPT evidence set — no live OAuth tokens.
+          Connected for this workspace — read-only delivery evidence.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -36,23 +32,28 @@ export function JiraMockSessionFromStore() {
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="brand">Jira Cloud · read-only</Badge>
             <Badge variant="success">Connection OK</Badge>
-            <Badge variant="muted">Mock session</Badge>
           </div>
-          <p className="text-sm text-primary">
-            Connected to Jira on project key{" "}
-            <span className="font-semibold tabular-nums">{projectKey}</span>
-          </p>
-          <p className="text-xs text-secondary">
-            Site: <span className="text-primary">{siteName}</span>
-          </p>
+          {projectKey ? (
+            <p className="text-sm text-primary">
+              Connected to Jira on project key{" "}
+              <span className="font-semibold tabular-nums">{projectKey}</span>
+            </p>
+          ) : null}
+          {siteName ? (
+            <p className="text-xs text-secondary">
+              Site: <span className="text-primary">{siteName}</span>
+            </p>
+          ) : null}
           {jira.lastSyncAt && (
             <p className="text-xs text-muted">
               Last sync: {formatFixedLocaleDateTime(jira.lastSyncAt)}
             </p>
           )}
-          <p className="text-xs text-muted">
-            Sync targets: {jira.projectKeys?.join(", ") ?? projectKey}
-          </p>
+          {jira.projectKeys && jira.projectKeys.length > 0 ? (
+            <p className="text-xs text-muted">
+              Sync targets: {jira.projectKeys.join(", ")}
+            </p>
+          ) : null}
         </div>
       </CardContent>
     </Card>

@@ -69,12 +69,68 @@ def parse_dt(s):
     s = (s or "").strip()
     if not s:
         return None
-    for fmt in ("%d/%b/%y %I:%M %p", "%d/%b/%Y %I:%M %p"):
+    for fmt in ("%d/%b/%y %I:%M %p", "%d/%b/%Y %I:%M %p", "%d/%b/%y", "%d/%b/%Y"):
         try:
             return datetime.strptime(s, fmt)
         except ValueError:
             pass
     return None
+
+
+_VERSION_DATE_PAT = re.compile(r"(\d{1,2})[-/ ](\d{1,2})[-/ ](\d{2,4})")
+_VERSION_MON_PAT = re.compile(
+    r"(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(\d{2,4})",
+    re.I,
+)
+_MONTH = {
+    "jan": 1,
+    "feb": 2,
+    "mar": 3,
+    "apr": 4,
+    "may": 5,
+    "jun": 6,
+    "jul": 7,
+    "aug": 8,
+    "sep": 9,
+    "oct": 10,
+    "nov": 11,
+    "dec": 12,
+}
+
+
+def parse_version_date(name: str):
+    """Best-effort target date from TPT fix-version names (mm-dd-yy or dd Mon yyyy)."""
+    cleaned = name.replace(" -", "-").replace("- ", "-")
+    m = _VERSION_DATE_PAT.search(cleaned)
+    if m:
+        a, b, y = int(m.group(1)), int(m.group(2)), int(m.group(3))
+        y = 2000 + y if y < 100 else y
+        if a > 12:
+            day, month = a, b
+        elif b > 12:
+            month, day = a, b
+        else:
+            month, day = a, b
+        try:
+            return date(y, month, day)
+        except ValueError:
+            return None
+    m = _VERSION_MON_PAT.search(name)
+    if m:
+        day = int(m.group(1))
+        month = _MONTH[m.group(2)[:3].lower()]
+        y = int(m.group(3))
+        y = 2000 + y if y < 100 else y
+        try:
+            return date(y, month, day)
+        except ValueError:
+            return None
+    return None
+
+
+def version_id(name: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+    return (slug or "version")[:48]
 
 
 def sprint_num_from_raw(raw):
@@ -161,6 +217,13 @@ def main():
                 "created": parse_dt(get(headers, r, "Created")),
                 "resolved": parse_dt(get(headers, r, "Resolved")),
                 "updated": parse_dt(get(headers, r, "Updated")),
+                "due": parse_dt(get(headers, r, "Due date"))
+                or parse_dt(get(headers, r, "Custom field (Due Date)")),
+                "assignee": get(headers, r, "Assignee"),
+                "story_points": get(headers, r, "Custom field (Story Points)")
+                or get(headers, r, "Custom field (Story point estimate)"),
+                "fix_versions": get_all(headers, r, "Fix versions"),
+                "status_category": get(headers, r, "Status Category"),
                 "last_name": last[0] if last else None,
                 "last_num": last[1] if last else None,
                 "in_scope": get(headers, r, "Issue Type") in SCOPE_TYPES,
@@ -548,6 +611,76 @@ def main():
             ],
         }
 
+    def build_delivery_extras(sprint_id, team_key=None):
+        """Schedule/hygiene/version evidence for the Delivery analysis page."""
+        issues = filter_committed(sprint_id, team_key)
+        week_start = AS_OF_DATE - timedelta(days=7)
+        stale_cutoff = AS_OF - timedelta(days=30)
+        todo = in_progress = done = overdue = 0
+        missing_due_in_progress = stale_open = missing_estimates = unassigned = 0
+        resolved_last_7d = 0
+        versions = {}
+        for p in issues:
+            cat = p["status_category"]
+            if p["resolved"] and p["resolved"].date() >= week_start:
+                resolved_last_7d += 1
+            for name in p["fix_versions"]:
+                bucket = versions.setdefault(name, {"open": 0, "done": 0})
+                bucket["done" if p["done"] else "open"] += 1
+            if p["done"] or cat == "Done":
+                done += 1
+                continue
+            if cat == "To Do":
+                todo += 1
+            else:
+                in_progress += 1
+            if p["due"] and p["due"].date() < AS_OF_DATE:
+                overdue += 1
+            if cat == "In Progress" and not p["due"]:
+                missing_due_in_progress += 1
+            if p["created"] and p["created"] < stale_cutoff:
+                stale_open += 1
+            if not p["story_points"]:
+                missing_estimates += 1
+            if not p["assignee"]:
+                unassigned += 1
+
+        version_rows = []
+        for name, counts in versions.items():
+            target = parse_version_date(name)
+            open_n = counts["open"]
+            released = open_n == 0
+            overdue_version = bool(open_n > 0 and target and target < AS_OF_DATE)
+            version_rows.append(
+                {
+                    "id": version_id(name),
+                    "name": name,
+                    "released": released,
+                    "releaseDate": target.isoformat() if target else None,
+                    "overdue": overdue_version,
+                    "openIssuesInVersion": open_n,
+                }
+            )
+        version_rows.sort(
+            key=lambda v: (-v["openIssuesInVersion"], v["name"])
+        )
+
+        return {
+            "overdue": overdue,
+            "resolvedLast7d": resolved_last_7d,
+            "statusBreakdown": {
+                "todo": todo,
+                "inProgress": in_progress,
+                "done": done,
+            },
+            "openIssues": todo + in_progress,
+            "missingDueDateInProgress": missing_due_in_progress,
+            "staleOpen": stale_open,
+            "missingEstimates": missing_estimates,
+            "unassigned": unassigned,
+            "versions": version_rows,
+        }
+
     def build_trend(sprint_id, team_key=None):
         """Weekly throughput-vs-created ratio as a confidence proxy (0–100)."""
         end = SPRINT_BY_ID[sprint_id]["end"]
@@ -638,6 +771,15 @@ def main():
             for sid in [s["id"] for s in SPRINTS]
             for tk in TEAM_KEY_TO_NAME
         },
+        "jiraSiteUrl": "https://takeprofittrader.atlassian.net",
+        "deliveryBySprint": {
+            sid: build_delivery_extras(sid) for sid in [s["id"] for s in SPRINTS]
+        },
+        "deliveryByTeamSprint": {
+            f"{tk}:{sid}": build_delivery_extras(sid, tk)
+            for sid in [s["id"] for s in SPRINTS]
+            for tk in TEAM_KEY_TO_NAME
+        },
         "notes": {
             "jiraSource": str(csv_path),
             "scope": "Latest sprint; Story/Bug/Feature/Epic only (Sub-tasks excluded)",
@@ -659,6 +801,9 @@ def main():
                 "trend",
                 "qaOpenBugs",
                 "confidenceScore",
+                "deliveryVersions",
+                "deliveryHygiene",
+                "overdue",
             ],
         },
     }
@@ -669,7 +814,8 @@ def main():
  * Regenerated by `scripts/generate-tpt-overview-mock.py`.
  *
  * Jira-backed: teams/sprints, completion, blocked, spillover, burndown,
- * delivery-trend proxy, Jira heatmap row, open bugs, confidence score.
+ * delivery-trend proxy, Jira heatmap row, open bugs, confidence score,
+ * overdue, fix versions, and Jira hygiene counts.
  * Still mocked: AI code risk, compliance, commits/PRs/deployments rows,
  * leadership approvals.
  */

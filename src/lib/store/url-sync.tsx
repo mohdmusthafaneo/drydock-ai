@@ -66,7 +66,7 @@ export function FilterUrlSync() {
     setOrDelete("team", filters.team);
     setOrDelete("sprint", filters.sprint);
 
-    // Drop legacy fixture flag — mode lives in store meta now.
+    // Drop legacy fixture query param if present.
     params.delete("fixture");
 
     const next = params.toString();

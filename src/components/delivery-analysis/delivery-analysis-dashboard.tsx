@@ -1,11 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import type {
   DeliveryAnalysisFilters,
   DeliveryAnalysisSnapshot,
   RiskFocus,
-  ScheduleRiskEvidence,
   TimeRange,
   CompareMode,
 } from "@/lib/delivery-analysis/types";
@@ -29,10 +29,8 @@ import {
 import { AnalysisTabs } from "@/components/delivery-analysis/analysis-tabs";
 import { ScoreDerivationPanel } from "@/components/delivery-analysis/score-derivation-panel";
 import { SnapshotUnavailable } from "@/components/delivery-analysis/snapshot-unavailable";
-import { MOCK_DEFAULT_SPRINT_ID } from "@/lib/store/mock/dimensions";
-import { resolveMockScheduleRisk } from "@/lib/store/mock/schedule-risk";
-import type { DataMode } from "@/lib/store/types";
 import {
+  selectDeliveryAnalysisSnapshot,
   selectOverviewModel,
   useAppData,
   useFilters,
@@ -53,6 +51,12 @@ const RISK_FOCUS_VALUES: RiskFocus[] = [
   "quality",
   "sprint",
 ];
+
+function keepScopedRows<T>(rows: T[], matches: (row: T) => boolean): T[] {
+  const matching = rows.filter(matches);
+  // Team keys are not Jira project keys — keep org-level sprints/versions.
+  return matching.length > 0 ? matching : rows;
+}
 
 function parseRiskFocus(value: string | null): RiskFocus {
   if (value && (RISK_FOCUS_VALUES as string[]).includes(value)) {
@@ -81,8 +85,14 @@ function filterSnapshot(
       ...snapshot,
       projectKeys: [project.key],
       byProject,
-      sprints: snapshot.sprints.filter((s) => s.projectKey === project.key),
-      versions: snapshot.versions.filter((v) => v.projectKey === project.key),
+      sprints: keepScopedRows(
+        snapshot.sprints,
+        (s) => s.projectKey === project.key,
+      ),
+      versions: keepScopedRows(
+        snapshot.versions,
+        (v) => v.projectKey === project.key,
+      ),
       kpis: {
         ...snapshot.kpis,
         openWork: project.openIssues,
@@ -139,18 +149,18 @@ export function DeliveryAnalysisDashboard({
   lastSyncedAt,
   initialProjectKey = null,
 }: Props) {
-  const storeSnapshot = useAppData((s) => s.data.deliveryAnalysis.snapshot);
-  const dataMode = useAppData((s) => s.data.meta.mode);
+  const storeSnapshot = useAppData((s) => selectDeliveryAnalysisSnapshot(s));
   const organizationName = useAppData((s) => s.data.org.name);
   const overviewModel = useAppData((s) => selectOverviewModel(s));
   const deliveryConfidence = overviewModel.deliveryConfidence;
   const dimensions = useAppData((s) => s.data.dimensions);
   const storeFilters = useFilters();
   const setFilter = useSetFilter();
+  const searchParams = useSearchParams();
 
   const effectiveSprintId =
     storeFilters.sprint ??
-    dimensions.sprints.find((s) => s.id === MOCK_DEFAULT_SPRINT_ID)?.id ??
+    dimensions.defaultSprintId ??
     dimensions.sprints[0]?.id ??
     null;
 
@@ -220,13 +230,16 @@ export function DeliveryAnalysisDashboard({
   const filters: DeliveryAnalysisFilters = useMemo(
     () => ({
       projectKey: deliveryProjectKey,
-      riskFocus: parseRiskFocus(storeFilters.riskFocus),
+      riskFocus: parseRiskFocus(
+        storeFilters.riskFocus ?? searchParams.get("riskFocus"),
+      ),
       range: (storeFilters.range as TimeRange | null) ?? "30d",
       compare: (storeFilters.compare as CompareMode | null) ?? "previous_sync",
     }),
     [
       deliveryProjectKey,
       storeFilters.riskFocus,
+      searchParams,
       storeFilters.range,
       storeFilters.compare,
     ],
@@ -236,89 +249,8 @@ export function DeliveryAnalysisDashboard({
 
   const snapshot = useMemo(() => {
     if (!storeSnapshot) return null;
-    const filtered = filterSnapshot(storeSnapshot, filters);
-    const spilloverFromOverview =
-      metricValue(deliveryConfidence.metrics, "spillover") ??
-      metricValue(deliveryConfidence.metrics, "at-risk");
-    const mockRisk = resolveMockScheduleRisk(
-      effectiveSprintId,
-      storeFilters.team,
-      { siteUrl: storeSnapshot.siteUrl },
-    );
-
-    // Keep the same count the Overview metric showed — never drift to a
-    // different fixture total after navigation.
-    const scheduleRisk = alignScheduleRiskToOverview({
-      overviewTotal: spilloverFromOverview,
-      mockRisk,
-      liveRisk: filtered.scheduleRisk,
-      organizationName,
-      siteUrl: storeSnapshot.siteUrl,
-      dataMode,
-    });
-
-    const sprintOverlay = selectedSprintMeta
-      ? {
-          rangeLabel: selectedSprintMeta.rangeLabel ?? filtered.rangeLabel,
-          scopeLabel: selectedSprintMeta.name,
-          scopeMode: "sprint" as const,
-          byProject: filtered.byProject.map((p) =>
-            p.activeSprint
-              ? {
-                  ...p,
-                  activeSprint: {
-                    ...p.activeSprint,
-                    name: selectedSprintMeta.name,
-                  },
-                }
-              : p,
-          ),
-        }
-      : {};
-
-    // Project drill-down keeps local KPIs; otherwise overlay sprint/team-aware Overview counts.
-    if (filters.projectKey) {
-      return {
-        ...filtered,
-        ...sprintOverlay,
-        ...(scheduleRisk ? { scheduleRisk } : {}),
-      };
-    }
-
-    const blocked = metricValue(deliveryConfidence.metrics, "blocked");
-    const spillover = spilloverFromOverview;
-    const completion = metricValue(deliveryConfidence.metrics, "completion");
-
-    return {
-      ...filtered,
-      ...sprintOverlay,
-      ...(scheduleRisk ? { scheduleRisk } : {}),
-      kpis: {
-        ...filtered.kpis,
-        healthScore: deliveryConfidence.score,
-        ...(blocked != null ? { blocked } : {}),
-        ...(spillover != null ? { spillover } : {}),
-        ...(completion != null ? { sprintCompletionPct: completion } : {}),
-        ...(overviewCompletion && overviewCompletion.total > 0
-          ? { openWork: overviewCompletion.total }
-          : {}),
-      },
-      riskMix: {
-        ...filtered.riskMix,
-        ...(blocked != null ? { blocked } : {}),
-      },
-    };
-  }, [
-    storeSnapshot,
-    filters,
-    deliveryConfidence,
-    overviewCompletion,
-    selectedSprintMeta,
-    effectiveSprintId,
-    storeFilters.team,
-    dataMode,
-    organizationName,
-  ]);
+    return filterSnapshot(storeSnapshot, filters);
+  }, [storeSnapshot, filters]);
 
   const loadState = !storeSnapshot
     ? "missing"
@@ -354,11 +286,12 @@ export function DeliveryAnalysisDashboard({
     const orgKey =
       snapshot.sprints[0]?.projectKey ??
       dimensions.projects[0]?.key ??
-      "TP";
+      snapshot.projectKeys[0] ??
+      "";
     const orgName =
       snapshot.sprints[0]?.projectName ??
       dimensions.projects[0]?.name ??
-      "TPT Platform";
+      organizationName;
     return resolveActiveSprintCards({
       sprints: snapshot.sprints,
       selectedSprint: selectedSprintMeta,
@@ -375,24 +308,19 @@ export function DeliveryAnalysisDashboard({
     storeFilters.team,
     teamName,
     dimensions.projects,
+    organizationName,
   ]);
 
   const deliveryVerdict = useMemo(() => {
     if (!snapshot) return null;
-    // Prefer Overview leaf (sprint/team-aware) so the banner tracks the top-bar sprint.
-    const blocked =
-      metricValue(deliveryConfidence.metrics, "blocked") ?? snapshot.kpis.blocked;
-    const completion =
-      metricValue(deliveryConfidence.metrics, "completion") ??
-      activeSprintCards[0]?.pct ??
-      snapshot.kpis.sprintCompletionPct;
     return buildDeliveryConfidenceOneLiner({
-      healthScore: deliveryConfidence.score,
-      blocked,
+      healthScore: snapshot.kpis.healthScore,
+      blocked: snapshot.kpis.blocked,
       overdue: snapshot.kpis.overdue,
-      sprintCompletionPct: completion,
+      sprintCompletionPct:
+        activeSprintCards[0]?.pct ?? snapshot.kpis.sprintCompletionPct,
     });
-  }, [snapshot, deliveryConfidence, activeSprintCards]);
+  }, [snapshot, activeSprintCards]);
 
   const syncMeta =
     loadState === "ready" && syncedAt
@@ -456,7 +384,9 @@ export function DeliveryAnalysisDashboard({
               />
             )}
 
-          <ScoreDerivationPanel derivation={deliveryConfidence.derivation} />
+          {deliveryConfidence.derivation && (
+            <ScoreDerivationPanel derivation={deliveryConfidence.derivation} />
+          )}
 
           {snapshot.jiraHygiene && <JiraHygieneBanner hygiene={snapshot.jiraHygiene} />}
 
@@ -515,88 +445,6 @@ function metricValue(
     return Number.isFinite(parsed) ? parsed : null;
   }
   return null;
-}
-
-function teamSum(risk: ScheduleRiskEvidence | undefined): number {
-  return risk?.byTeam.reduce((n, t) => n + t.count, 0) ?? 0;
-}
-
-/**
- * Schedule-risk panel must show the same total as the Overview metric the user
- * clicked. Prefer mock team breakdown only when its counts match that total.
- */
-function alignScheduleRiskToOverview(input: {
-  overviewTotal: number | null;
-  mockRisk?: ScheduleRiskEvidence;
-  liveRisk?: ScheduleRiskEvidence;
-  organizationName: string;
-  siteUrl?: string;
-  dataMode: DataMode;
-}): ScheduleRiskEvidence | undefined {
-  const { overviewTotal, mockRisk, liveRisk, organizationName, dataMode } = input;
-  const preferred =
-    dataMode === "live" ? liveRisk : mockRisk ?? liveRisk;
-  const total = overviewTotal ?? preferred?.total ?? liveRisk?.total ?? 0;
-  if (total <= 0) return undefined;
-
-  if (mockRisk && teamSum(mockRisk) === total) {
-    return { ...mockRisk, total };
-  }
-
-  if (liveRisk && teamSum(liveRisk) === total) {
-    const byTeam = liveRisk.byTeam.map((t) => ({
-      ...t,
-      name:
-        t.name.toLowerCase() === "connexus" ? organizationName : t.name,
-    }));
-    return {
-      ...liveRisk,
-      total,
-      byTeam,
-    };
-  }
-
-  if (preferred) {
-    return {
-      definition: preferred.definition,
-      total,
-      byTeam:
-        preferred.byTeam.length === 1
-          ? [
-              {
-                ...preferred.byTeam[0]!,
-                name:
-                  preferred.byTeam[0]!.name.toLowerCase() === "connexus"
-                    ? organizationName
-                    : preferred.byTeam[0]!.name,
-                count: total,
-                jiraUrl: preferred.byTeam[0]!.jiraUrl ?? preferred.jiraUrl,
-              },
-            ]
-          : [
-              {
-                key: "all",
-                name: organizationName,
-                count: total,
-                jiraUrl: preferred.jiraUrl,
-              },
-            ],
-      jiraUrl: preferred.jiraUrl,
-    };
-  }
-
-  return {
-    definition:
-      "Open sprint work that is Highest/High priority or still To Do — likely to miss the sprint end.",
-    total,
-    byTeam: [
-      {
-        key: "all",
-        name: organizationName,
-        count: total,
-      },
-    ],
-  };
 }
 
 function formatRelative(iso: string): string {

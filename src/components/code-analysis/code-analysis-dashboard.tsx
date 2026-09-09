@@ -1,14 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { DEFAULT_CODE_ANALYSIS_RANGE } from "@/lib/code-analysis/default-filters";
 import type {
   CodeAnalysisFilters,
   TimeRange,
   TrendMetric,
 } from "@/lib/code-analysis/types";
-import { getMockCodeAnalysisSnapshot } from "@/lib/store/mock/code-analysis";
 import { buildCodeAnalysisGovernanceHighlights } from "@/lib/governance/presentation";
 import { BriefingHighlights } from "@/components/executive-briefing/briefing-highlights";
 import { AiRiskCard } from "@/components/code-analysis/ai-risk-card";
@@ -43,16 +41,19 @@ export function CodeAnalysisDashboard({
   showCompliancePanel = false,
   canManageCompliance = false,
 }: Props) {
+  const storeSnapshot = useAppData((s) => s.data.codeAnalysis.snapshot);
   const availableRepos = useAppData((s) => s.data.codeAnalysis.availableRepos);
   const lastSyncAt = useAppData((s) => s.data.meta.lastSyncAt);
-  const mode = useAppData((s) => s.data.meta.mode);
+  const jiraSiteUrl = useAppData(
+    (s) =>
+      s.data.integrations.items.find((i) => i.provider.toLowerCase() === "jira")
+        ?.siteUrl ?? "",
+  );
   const aiRiskPct = useAppData(selectAiRiskPct);
   const storeFilters = useFilters();
   const setFilter = useSetFilter();
 
-  const allRepos = availableRepos.length
-    ? availableRepos
-    : ["aidos-neo/platform", "aidos-neo/web-client", "aidos-neo/api-gateway"];
+  const allRepos = availableRepos.length ? availableRepos : [];
 
   const filters: CodeAnalysisFilters = useMemo(
     () => ({
@@ -69,30 +70,51 @@ export function CodeAnalysisDashboard({
 
   const [trendMetric, setTrendMetric] = useState<TrendMetric>("lines");
 
-  const baseSnapshot = useMemo(
-    () => getMockCodeAnalysisSnapshot(filters),
-    [filters],
-  );
+  const snapshot = useMemo(() => {
+    if (!storeSnapshot) return null;
+    const selected = new Set(filters.repos);
+    const filterByRepo = filters.repos.length > 0 && filters.repos.length < allRepos.length;
 
-  const snapshot = useMemo(
-    () => ({
-      ...baseSnapshot,
+    let pullRequests = storeSnapshot.pullRequests;
+    let commits = storeSnapshot.commits;
+    let byRepo = storeSnapshot.byRepo;
+    let byAuthor = storeSnapshot.byAuthor;
+
+    if (filterByRepo) {
+      pullRequests = pullRequests.filter((p) => selected.has(p.repo));
+      commits = commits.filter((c) => selected.has(c.repo));
+      byRepo = byRepo.filter((r) => selected.has(r.repo));
+    }
+    if (filters.author) {
+      pullRequests = pullRequests.filter((p) => p.author === filters.author);
+      commits = commits.filter((c) => c.author === filters.author);
+      byAuthor = byAuthor.filter((a) => a.login === filters.author);
+    }
+
+    return {
+      ...storeSnapshot,
+      pullRequests,
+      commits,
+      byRepo,
+      byAuthor,
       kpis: {
-        ...baseSnapshot.kpis,
+        ...storeSnapshot.kpis,
         aiLinesPct: aiRiskPct,
       },
       aiRisk: {
-        ...baseSnapshot.aiRisk,
+        ...storeSnapshot.aiRisk,
         aiLinesPct: aiRiskPct,
         highRiskCount: 0,
       },
-    }),
-    [aiRiskPct, baseSnapshot],
-  );
+    };
+  }, [aiRiskPct, allRepos.length, filters.author, filters.repos, storeSnapshot]);
 
   const governanceHighlights = useMemo(
-    () => buildCodeAnalysisGovernanceHighlights(snapshot.governanceSignals),
-    [snapshot.governanceSignals],
+    () =>
+      snapshot
+        ? buildCodeAnalysisGovernanceHighlights(snapshot.governanceSignals)
+        : [],
+    [snapshot],
   );
 
   function handleRepoSelect(repo: string) {
@@ -101,24 +123,21 @@ export function CodeAnalysisDashboard({
   }
 
   const selectedRepo = filters.repos.length === 1 ? filters.repos[0] : null;
-  const demoMode = mode !== "live";
 
   const syncMeta = lastSyncAt
-    ? `Demo evidence · last synced ${formatRelative(lastSyncAt)}`
-    : "Demo evidence";
+    ? `Last synced ${formatRelative(lastSyncAt)}`
+    : "From store";
+
+  if (!snapshot) {
+    return (
+      <p className="rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm text-secondary">
+        No code analysis snapshot in the store yet.
+      </p>
+    );
+  }
 
   return (
     <div className="space-y-[13px]">
-      {demoMode && (
-        <p className="rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm text-secondary">
-          Showing demo data aligned with Overview. Run analysis from{" "}
-          <Link href="/integrations" className="font-medium text-primary underline-offset-2 hover:underline">
-            Integrations
-          </Link>{" "}
-          for live GitHub metrics.
-        </p>
-      )}
-
       <p className="text-xs text-muted">
         {snapshot.rangeLabel}
         {selectedRepo ? ` · ${selectedRepo}` : ` · ${filters.repos.length} repos`}
@@ -169,7 +188,7 @@ export function CodeAnalysisDashboard({
 
       <AnalysisTabs
         snapshot={snapshot}
-        jiraSiteUrl="https://aidos.atlassian.net"
+        jiraSiteUrl={jiraSiteUrl}
         needsReviewerBackfill={snapshot.pullRequests.some(
           (pr) => pr.reviewCount > 0 && (pr.reviewers?.length ?? 0) === 0,
         )}

@@ -75,6 +75,28 @@ export function resolve<T>(
   return result;
 }
 
+/**
+ * Return the most specific complete leaf (no merge).
+ * Use when each cell is a full value, not a patch — merge would leak
+ * optional fields from `base`.
+ */
+export function pick<T>(
+  dimensioned: Dimensioned<T>,
+  filters: Pick<AppFilters, "team" | "sprint">,
+): T {
+  if (filters.team && filters.sprint && dimensioned.byTeamSprint) {
+    const cell = dimensioned.byTeamSprint[teamSprintKey(filters.team, filters.sprint)];
+    if (cell) return cell as T;
+  }
+  if (filters.team && dimensioned.byTeam?.[filters.team]) {
+    return dimensioned.byTeam[filters.team] as T;
+  }
+  if (filters.sprint && dimensioned.bySprint?.[filters.sprint]) {
+    return dimensioned.bySprint[filters.sprint] as T;
+  }
+  return dimensioned.base;
+}
+
 /** Convenience: wrap a plain value as Dimensioned with only `base`. */
 export function asDimensioned<T>(base: T): Dimensioned<T> {
   return { base };

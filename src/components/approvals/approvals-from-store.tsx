@@ -9,8 +9,6 @@ import { useAppData } from "@/lib/store";
 
 export function ApprovalsFromStore() {
   const approvals = useAppData((s) => s.data.approvals);
-  const mode = useAppData((s) => s.data.meta.mode);
-  const demoMode = mode !== "live";
 
   const historyItems = approvals.decisionHistory.map((item) => ({
     id: item.id,
@@ -58,7 +56,7 @@ export function ApprovalsFromStore() {
                 approvalId={item.approvalId}
                 riskScore={item.riskScore}
                 recommendation={item.recommendation}
-                demoMode={demoMode}
+                demoMode
               />
             ))}
           </div>
