@@ -86,27 +86,44 @@ function DecisionGroup({
 export function AgentDecisionList({
   decisions,
   approvalLevelLabels,
+  engineeringSection,
+  leadershipSection,
 }: {
   decisions: AgentDecision[];
   approvalLevelLabels?: Record<string, string>;
+  /** Override default engineering decision section chrome. */
+  engineeringSection?: { title: string; description: string };
+  /** Override default leadership decision section chrome. */
+  leadershipSection?: { title: string; description: string };
 }) {
   const leadership = decisions.filter((d) => d.audience === "leadership");
   const engineering = decisions.filter((d) => d.audience === "engineering");
 
-  const engineeringLabel = approvalLevelLabels?.level3 ?? "For your engineering lead";
+  const engineeringLabel =
+    engineeringSection?.title ??
+    approvalLevelLabels?.level3 ??
+    "For your engineering lead";
+  const engineeringDescription =
+    engineeringSection?.description ??
+    "Operational depth to delegate — not for you to monitor daily.";
+  const leadershipTitle =
+    leadershipSection?.title ?? "Waiting on leadership";
+  const leadershipDescription =
+    leadershipSection?.description ??
+    "Items that need an executive decision or awareness before the organization ships.";
 
   if (decisions.length === 0) return null;
 
   return (
     <div className="space-y-10">
       <DecisionGroup
-        title="Waiting on leadership"
-        description="Items that need an executive decision or awareness before the organization ships."
+        title={leadershipTitle}
+        description={leadershipDescription}
         items={leadership}
       />
       <DecisionGroup
         title={engineeringLabel}
-        description="Operational depth to delegate — not for you to monitor daily."
+        description={engineeringDescription}
         items={engineering}
       />
     </div>

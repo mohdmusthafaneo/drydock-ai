@@ -8,6 +8,7 @@ import type { MockBriefing, MockLedger } from "@/lib/drydock/types";
 import type { StandardView } from "@/lib/drydock/standard";
 import type { ObservabilityAnalysisSnapshot } from "@/lib/observability-analysis/types";
 import type { OverviewDashboardModel, OverviewSprintOption } from "@/lib/overview/types";
+import type { SuiteHealthSnapshot } from "@/lib/qa/suite-health";
 import type { AppFilters, Dimensioned } from "@/lib/store/dimensions";
 
 export type AttentionQueueItem = {
@@ -83,6 +84,8 @@ export type QaData = {
   /** Serialized page view from buildQaPageView — opaque for store stability. */
   view: unknown | null;
   empty: boolean;
+  /** Curated automation suite-health audit (file evidence), when available. */
+  suiteHealth: SuiteHealthSnapshot | null;
 };
 
 export type CodeAnalysisData = {

@@ -1,60 +1,83 @@
 import type { AgentPageView } from "@/lib/agent-analysis/types";
 import type { QaData } from "@/lib/store/types";
+import { MOCK_SUITE_HEALTH } from "@/lib/store/mock/qa-suite-health";
 
-/** Demo QA board view aligned with Overview delivery pressure. */
+/** Demo QA view: automation suite health from the commerceflow-wdio audit. */
 const MOCK_QA_VIEW: AgentPageView = {
   hero: {
     verdict: "attention",
-    verdictLabel: "Board pressure",
-    headline: "31 blocked issues holding release confidence",
+    verdictLabel: "Needs attention",
+    headline: "21 serious issues in the test suite",
     subcopy:
-      "22 open bugs across WEB, MOB, DATA, and INFRA. Clear blockers before the next ship window.",
+      "commerceflow-wdio has 1,097 scenarios across 3 suites. Oversized files, copied helpers, and shared globals make a green run harder to trust.",
   },
   highlights: [
     {
-      id: "blocked",
-      label: "Blocked",
-      value: "31",
-      subtext: "26% of open work",
+      id: "high-findings",
+      label: "Serious issues",
+      value: "21",
+      subtext: "56 issues found in total",
       tone: "risk",
     },
     {
-      id: "open-bugs",
-      label: "Open bugs",
-      value: "22",
+      id: "god-classes",
+      label: "Oversized files",
+      value: "9",
+      subtext: "Largest is 10,073 lines",
+      tone: "risk",
+    },
+    {
+      id: "clones",
+      label: "Copied across suites",
+      value: "21",
+      subtext: "Same helpers maintained 3 times",
       tone: "attention",
     },
     {
-      id: "open",
-      label: "Open issues",
-      value: "117",
-      tone: "neutral",
+      id: "global-vars",
+      label: "Shared global writes",
+      value: "527",
+      subtext: "Across 88 files",
+      tone: "attention",
     },
   ],
   decisions: [
     {
-      id: "clear-blockers",
-      audience: "leadership",
-      title: "Assign owners and ETAs for blocked work",
-      detail: "31 blocked items lack a clear path — ask engineering for ownership before sprint end.",
-      href: "/delivery-analysis?riskFocus=blockers",
-      ctaLabel: "Open delivery analysis",
+      id: "hygiene-first",
+      audience: "engineering",
+      title: "Clean dead and duplicate steps before bigger refactors",
+      detail:
+        "443 commented-out lines and several duplicate step wordings are cheap to fix and reduce noise immediately.",
+      href: "/qa#start-here",
+      ctaLabel: "See small fixes",
       tone: "attention",
     },
     {
-      id: "triage-bugs",
+      id: "shared-support",
       audience: "engineering",
-      title: "Triage open bugs before the next release gate",
-      detail: "22 open bugs remain in the evidence set — elevate ownership on WEB and MOB.",
-      href: "/attention",
-      ctaLabel: "Open attention queue",
+      title: "Keep one shared copy of support files",
+      detail:
+        "Sign-in and helpers are exact or near copies across suites. One shared package means a fix lands once.",
+      href: "/qa#files",
+      ctaLabel: "See files",
+      tone: "attention",
+    },
+    {
+      id: "kill-global-vars",
+      audience: "engineering",
+      title: "Stop passing data through a global variable",
+      detail:
+        "527 shared writes couple scenarios together and make parallel runs flaky. Use per-scenario context instead.",
+      href: "/ledger",
+      ctaLabel: "Open Tests",
       tone: "attention",
     },
   ],
-  scope: "WEB, MOB, DATA, INFRA · Sprint 37",
+  scope: `${MOCK_SUITE_HEALTH.repo} · ${MOCK_SUITE_HEALTH.framework} · ${MOCK_SUITE_HEALTH.totals.suites} suites · ${MOCK_SUITE_HEALTH.totals.scenarios.toLocaleString()} scenarios`,
 };
 
 export const mockQa: QaData = {
   view: MOCK_QA_VIEW,
   empty: false,
+  suiteHealth: MOCK_SUITE_HEALTH,
 };

@@ -5,6 +5,7 @@ import { BriefingContextChip } from "@/components/briefing/briefing-context-chip
 import { DataTrustStrip } from "@/components/trust/data-trust-strip";
 import { AgentPageShell } from "@/components/agent-analysis/agent-page-shell";
 import { AgentAnalysisRefreshButton } from "@/components/agent-analysis/agent-analysis-refresh-button";
+import { SuiteHealthPanel } from "@/components/qa/suite-health-panel";
 import type { AgentPageView } from "@/lib/agent-analysis/types";
 import { useAppData } from "@/lib/store";
 import { formatDistanceToNow } from "@/lib/format-date";
@@ -21,47 +22,55 @@ export function QaFromStore({ from }: Props) {
     hero: {
       verdict: "neutral" as const,
       verdictLabel: "Awaiting data",
-      headline: "No QA scan yet",
-      subcopy: "Connect Jira projects and refresh agents to see blocked work and open bugs.",
+      headline: "No suite scan yet",
+      subcopy: "Connect the test repository and refresh to see suite-health issues.",
     },
     highlights: [],
     decisions: [
       {
         id: "configure",
         audience: "engineering" as const,
-        title: "Run the next agent refresh",
-        detail: "Connect the required integration, then use Refresh all agents.",
+        title: "Connect the test repository",
+        detail: "Add the integration, then use Refresh all agents.",
         href: "/integrations",
         ctaLabel: "Open integrations",
         tone: "neutral" as const,
       },
     ],
-    scope: "QA board health",
+    scope: "Test suite health",
   };
 
   const lastSyncLabel = lastSyncAt
     ? formatDistanceToNow(new Date(lastSyncAt))
     : null;
   const blindSpots: string[] = [];
-  if (qa.empty || !qa.view) blindSpots.push("QA agent scan not available");
+  if (qa.empty || !qa.view) blindSpots.push("QA scan not available");
+  if (!qa.suiteHealth) blindSpots.push("Suite-health details not available");
 
   return (
     <div className="space-y-[13px]">
       <PageHeader
-        title="QA intelligence"
-        description="Board health from the QA agent — blocked work and open bugs that gate release confidence."
+        title="QA"
+        description="Issues found in the automation suite."
       >
-        <AgentAnalysisRefreshButton label="Refresh all agents" />
+        <AgentAnalysisRefreshButton label="Refresh" />
       </PageHeader>
 
       <BriefingContextChip from={from} />
       <DataTrustStrip lastSyncLabel={lastSyncLabel} blindSpots={blindSpots} />
 
-      <AgentPageShell view={view}>
+      <AgentPageShell
+        view={view}
+        engineeringSection={{
+          title: "What to do next",
+          description: "Highest-leverage moves for this suite.",
+        }}
+      >
+        {qa.suiteHealth ? <SuiteHealthPanel snapshot={qa.suiteHealth} /> : null}
         {qa.empty ? (
           <div className="border-t border-border pt-8">
             <p className="text-sm text-secondary">
-              Demo empty — refresh agents after connecting Jira for live board evidence.
+              No suite scan yet — connect the test repository and refresh.
             </p>
           </div>
         ) : null}

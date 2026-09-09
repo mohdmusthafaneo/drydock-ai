@@ -11,12 +11,23 @@ type Props = {
   afterHighlights?: React.ReactNode;
   /** Optional org-configurable role labels for dynamic audience naming. */
   approvalLevelLabels?: Record<string, string>;
+  /** Override engineering decision section chrome (title + description). */
+  engineeringSection?: { title: string; description: string };
+  /** Override leadership decision section chrome (title + description). */
+  leadershipSection?: { title: string; description: string };
 };
 /**
  * Shared executive layout for agent analysis pages:
  * verdict hero → scope → highlights → optional mid slot → decide/delegate → detail children.
  */
-export function AgentPageShell({ view, children, afterHighlights, approvalLevelLabels }: Props) {
+export function AgentPageShell({
+  view,
+  children,
+  afterHighlights,
+  approvalLevelLabels,
+  engineeringSection,
+  leadershipSection,
+}: Props) {
   return (
     <div className="space-y-[13px]">
       <div className="space-y-3">
@@ -40,7 +51,12 @@ export function AgentPageShell({ view, children, afterHighlights, approvalLevelL
       ) : null}
 
       {afterHighlights}
-      <AgentDecisionList decisions={view.decisions} approvalLevelLabels={approvalLevelLabels} />
+      <AgentDecisionList
+        decisions={view.decisions}
+        approvalLevelLabels={approvalLevelLabels}
+        engineeringSection={engineeringSection}
+        leadershipSection={leadershipSection}
+      />
 
       {children}
     </div>
