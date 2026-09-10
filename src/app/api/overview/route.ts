@@ -36,6 +36,7 @@ export async function GET(request: Request) {
     const data = await loadOverviewDashboard({
       organizationId: session.organizationId,
       userName: session.name,
+      email: session.email,
       teamKey: query.team ?? null,
       sprintId: query.sprint ?? null,
     });

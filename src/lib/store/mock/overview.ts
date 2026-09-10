@@ -4,6 +4,7 @@ import { METRIC_HREFS, PILLAR_HREFS } from "@/lib/overview/nav-context";
 import { type Dimensioned } from "@/lib/store/dimensions";
 import type { DeepPartial } from "@/lib/store/deep";
 import { TPT_OVERVIEW_DERIVED } from "@/lib/store/mock/tpt-overview-derived";
+import type { OverviewDerivedPack } from "@/lib/store/mock/overview-derived";
 
 export const OVERVIEW_LAST_SYNC_AT = TPT_OVERVIEW_DERIVED.lastSyncAt;
 
@@ -132,11 +133,11 @@ function leafFromDerived(kpis: DerivedKpis, charts: DerivedCharts): OverviewLeaf
   };
 }
 
-function teamPatch(kpis: DerivedKpis): DeepPartial<OverviewLeaf> {
-  const leaf = leafFromDerived(
-    kpis,
-    asCharts(TPT_OVERVIEW_DERIVED.base.charts),
-  );
+function teamPatch(
+  kpis: DerivedKpis,
+  baseCharts: DerivedCharts,
+): DeepPartial<OverviewLeaf> {
+  const leaf = leafFromDerived(kpis, baseCharts);
   return {
     deliveryConfidence: leaf.deliveryConfidence,
     keyTakeaways: leaf.keyTakeaways,
@@ -163,34 +164,41 @@ function sprintOrgPatch(
 }
 
 /**
- * Overview fixture from TPT Jira CSV (`tpt-overview-derived.ts`).
+ * Overview fixture from a Jira-derived pack (`tpt` / `connexus-overview-derived.ts`).
  * AI risk, compliance, git/deploy heatmap rows, and leadership stay mocked.
  */
-export function buildMockOverview(): Dimensioned<OverviewLeaf> {
+export function buildMockOverviewFromDerived(
+  derived: OverviewDerivedPack,
+): Dimensioned<OverviewLeaf> {
+  const baseCharts = asCharts(derived.base.charts);
+
   const byTeam: Dimensioned<OverviewLeaf>["byTeam"] = {};
-  for (const [key, kpis] of Object.entries(TPT_OVERVIEW_DERIVED.byTeam)) {
-    byTeam[key] = teamPatch(asKpis(kpis));
+  for (const [key, kpis] of Object.entries(derived.byTeam)) {
+    byTeam[key] = teamPatch(asKpis(kpis), baseCharts);
   }
 
   const bySprint: Dimensioned<OverviewLeaf>["bySprint"] = {};
-  for (const [id, entry] of Object.entries(TPT_OVERVIEW_DERIVED.bySprint)) {
+  for (const [id, entry] of Object.entries(derived.bySprint)) {
     bySprint[id] = sprintOrgPatch(asKpis(entry.kpis), asCharts(entry.charts));
   }
 
   const byTeamSprint: Dimensioned<OverviewLeaf>["byTeamSprint"] = {};
-  for (const [key, kpis] of Object.entries(TPT_OVERVIEW_DERIVED.byTeamSprint)) {
-    byTeamSprint[key] = teamPatch(asKpis(kpis));
+  for (const [key, kpis] of Object.entries(derived.byTeamSprint)) {
+    byTeamSprint[key] = teamPatch(asKpis(kpis), baseCharts);
   }
 
   return {
-    base: leafFromDerived(
-      asKpis(TPT_OVERVIEW_DERIVED.base),
-      asCharts(TPT_OVERVIEW_DERIVED.base.charts),
-    ),
+    base: leafFromDerived(asKpis(derived.base), baseCharts),
     byTeam,
     bySprint,
     byTeamSprint,
   };
+}
+
+export function buildMockOverview(): Dimensioned<OverviewLeaf> {
+  return buildMockOverviewFromDerived(
+    TPT_OVERVIEW_DERIVED as unknown as OverviewDerivedPack,
+  );
 }
 
 /** @deprecated Prefer buildMockOverview; kept for gradual migration. */

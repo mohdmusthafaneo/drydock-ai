@@ -1,5 +1,6 @@
 import { SignJWT } from "jose";
 import { NextResponse } from "next/server";
+import { appUrl } from "@/lib/app-url";
 import type { SessionPayload } from "@/lib/session";
 import {
   DEV_AUTH_SECRET_FALLBACK,
@@ -17,18 +18,15 @@ function getSecret() {
   );
 }
 
-export async function jsonWithSession(
-  payload: SessionPayload,
-  body: Record<string, unknown>,
-  status = 200,
-) {
-  const token = await new SignJWT({ ...payload })
+async function sessionToken(payload: SessionPayload) {
+  return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(`${MAX_AGE}s`)
     .sign(getSecret());
+}
 
-  const response = NextResponse.json(body, { status });
+function applySessionCookies(response: NextResponse, token: string) {
   response.cookies.set(COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -37,5 +35,26 @@ export async function jsonWithSession(
     maxAge: MAX_AGE,
   });
   response.cookies.delete(LEGACY_SESSION_COOKIE_NAME);
+}
+
+export async function jsonWithSession(
+  payload: SessionPayload,
+  body: Record<string, unknown>,
+  status = 200,
+) {
+  const token = await sessionToken(payload);
+  const response = NextResponse.json(body, { status });
+  applySessionCookies(response, token);
+  return response;
+}
+
+/** HTML form login fallback — set cookie and 303 to the landing path. */
+export async function redirectWithSession(
+  payload: SessionPayload,
+  redirectTo: string,
+) {
+  const token = await sessionToken(payload);
+  const response = NextResponse.redirect(appUrl(redirectTo), 303);
+  applySessionCookies(response, token);
   return response;
 }

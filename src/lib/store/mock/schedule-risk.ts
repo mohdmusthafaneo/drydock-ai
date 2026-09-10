@@ -1,6 +1,7 @@
 import { jqlQuoteLiteral } from "@/lib/jira-jql";
 import type { ScheduleRiskEvidence } from "@/lib/delivery-analysis/types";
 import { TPT_OVERVIEW_DERIVED } from "@/lib/store/mock/tpt-overview-derived";
+import type { OverviewDerivedPack } from "@/lib/store/mock/overview-derived";
 
 /** Client-safe Jira search URL — do not import `@/lib/jira-issue-links` here (pulls Prisma/Redis). */
 function buildJiraIssuesSearchUrl(siteUrl: string, jql: string): string {
@@ -24,7 +25,7 @@ type DerivedScheduleRisk = {
 
 /**
  * Overview mock heuristic: open sprint work that is Highest/High or still To Do.
- * Mirrors `scripts/generate-tpt-overview-mock.py` spillover_count.
+ * Mirrors spillover_count in the overview mock generators.
  */
 export function buildMockScheduleRiskJql(input: {
   projectKey: string;
@@ -46,10 +47,10 @@ export function buildMockScheduleRiskJql(input: {
 
 function withJiraUrls(
   risk: DerivedScheduleRisk,
+  projectKey: string,
   siteUrl: string | null | undefined,
   sprintName: string,
 ): ScheduleRiskEvidence {
-  const projectKey = TPT_OVERVIEW_DERIVED.projectKey;
   const href = (teamKey?: string) =>
     siteUrl
       ? buildJiraIssuesSearchUrl(
@@ -75,29 +76,46 @@ function withJiraUrls(
   };
 }
 
-/** Resolve spillover evidence for the mock Overview sprint/team leaf. */
+/** Resolve spillover evidence for a mock Overview sprint/team leaf. */
+export function resolveMockScheduleRiskFromDerived(
+  derived: OverviewDerivedPack,
+  sprintId: string | null,
+  teamKey: string | null,
+  options?: { siteUrl?: string | null },
+): ScheduleRiskEvidence | undefined {
+  const sid = sprintId ?? derived.defaultSprintId;
+  const sprint =
+    derived.sprints.find((s) => s.id === sid) ?? derived.sprints[0];
+  const sprintName = sprint?.name ?? `Sprint ${sid}`;
+  const siteUrl = options?.siteUrl ?? derived.jiraSiteUrl;
+
+  if (teamKey) {
+    const scoped = derived.scheduleRiskByTeamSprint[`${teamKey}:${sid}`] as
+      | DerivedScheduleRisk
+      | undefined;
+    if (scoped) {
+      return withJiraUrls(scoped, derived.projectKey, siteUrl, sprintName);
+    }
+  }
+
+  const bySprint = derived.scheduleRiskBySprint[sid] as
+    | DerivedScheduleRisk
+    | undefined;
+  return bySprint
+    ? withJiraUrls(bySprint, derived.projectKey, siteUrl, sprintName)
+    : undefined;
+}
+
+/** Resolve spillover evidence for the TPT mock Overview sprint/team leaf. */
 export function resolveMockScheduleRisk(
   sprintId: string | null,
   teamKey: string | null,
   options?: { siteUrl?: string | null },
 ): ScheduleRiskEvidence | undefined {
-  const sid = sprintId ?? TPT_OVERVIEW_DERIVED.defaultSprintId;
-  const sprint =
-    TPT_OVERVIEW_DERIVED.sprints.find((s) => s.id === sid) ??
-    TPT_OVERVIEW_DERIVED.sprints[0];
-  const sprintName = sprint?.name ?? `Sprint ${sid}`;
-
-  if (teamKey) {
-    const key =
-      `${teamKey}:${sid}` as keyof typeof TPT_OVERVIEW_DERIVED.scheduleRiskByTeamSprint;
-    const scoped = TPT_OVERVIEW_DERIVED.scheduleRiskByTeamSprint[key] as
-      | DerivedScheduleRisk
-      | undefined;
-    if (scoped) return withJiraUrls(scoped, options?.siteUrl, sprintName);
-  }
-
-  const bySprint = TPT_OVERVIEW_DERIVED.scheduleRiskBySprint[
-    sid as keyof typeof TPT_OVERVIEW_DERIVED.scheduleRiskBySprint
-  ] as DerivedScheduleRisk | undefined;
-  return bySprint ? withJiraUrls(bySprint, options?.siteUrl, sprintName) : undefined;
+  return resolveMockScheduleRiskFromDerived(
+    TPT_OVERVIEW_DERIVED as unknown as OverviewDerivedPack,
+    sprintId,
+    teamKey,
+    options,
+  );
 }

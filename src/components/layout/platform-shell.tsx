@@ -44,6 +44,10 @@ export async function PlatformShell({
   const greetingName = session.name.split(/\s+/)[0] || session.name;
 
   const overlay: DeepPartial<AppData> = {
+    org: {
+      id: org.id,
+      name: org.name,
+    },
     user: {
       name: session.name,
       greetingName,
@@ -52,7 +56,12 @@ export async function PlatformShell({
   };
 
   return (
-    <AppDataProvider initialStatus="loading" overlay={overlay}>
+    <AppDataProvider
+      key={session.organizationId}
+      seedEmail={session.email}
+      initialStatus="loading"
+      overlay={overlay}
+    >
       <FilterUrlSync />
       <ShowcaseStatusBoot />
       <AppShell

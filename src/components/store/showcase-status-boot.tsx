@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { useSetStoreStatus } from "@/lib/store/hooks";
 
 /** Shared showcase skeleton delay (ms) for demo surfaces. */
-export const SHOWCASE_LOAD_MS = 2000;
+export const SHOWCASE_LOAD_MS = 1000;
 
 /**
  * Drives central `status` from loading → ready after SHOWCASE_LOAD_MS.

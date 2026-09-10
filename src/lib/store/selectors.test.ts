@@ -1,25 +1,92 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { DEFAULT_FILTERS } from "@/lib/store/dimensions";
-import { seedAppData } from "@/lib/store/mock";
+import {
+  CONNEXUS_DEMO_EMAIL,
+  TPT_DEMO_EMAIL,
+  resolveMockSeed,
+  seedAppData,
+} from "@/lib/store/mock";
 import {
   selectDeliveryAnalysisSnapshot,
   selectOverviewModel,
 } from "@/lib/store/selectors";
 import type { AppStoreState } from "@/lib/store/types";
 
-function deliveryState(input: {
-  sprint: string;
-  team?: string | null;
-}): AppStoreState {
-  const base = seedAppData();
+function stateFromSeed(
+  seed: ReturnType<typeof resolveMockSeed>,
+  input: { sprint?: string | null; team?: string | null },
+): AppStoreState {
   return {
-    data: base,
-    filters: { ...DEFAULT_FILTERS, sprint: input.sprint, team: input.team ?? null },
+    data: seed,
+    filters: {
+      ...DEFAULT_FILTERS,
+      sprint: input.sprint ?? null,
+      team: input.team ?? null,
+    },
     status: "ready",
     error: null,
   };
 }
+
+function deliveryState(input: {
+  sprint: string;
+  team?: string | null;
+}): AppStoreState {
+  return stateFromSeed(seedAppData(), input);
+}
+
+describe("resolveMockSeed", () => {
+  it("maps tpt@neoito.com to TPT teams and default sprint 27", () => {
+    const seed = resolveMockSeed({ email: TPT_DEMO_EMAIL });
+    assert.equal(seed.org.name, "TPT Platform");
+    assert.equal(seed.dimensions.defaultSprintId, "27");
+    assert.deepEqual(
+      seed.dimensions.teams.map((t) => t.key),
+      ["AVENGERS", "APEX", "DARK", "MOBILE"],
+    );
+    assert.equal(seed.integrations.items[0]?.projectKeys?.[0], "TP");
+    assert.equal(seed.settings.organizationName, "TPT Platform");
+  });
+
+  it("maps connexus@neoito.com to a single CONNEXUS team and sprint 37", () => {
+    const seed = resolveMockSeed({ email: CONNEXUS_DEMO_EMAIL });
+    assert.equal(seed.org.name, "Connexus");
+    assert.equal(seed.dimensions.defaultSprintId, "37");
+    assert.deepEqual(
+      seed.dimensions.teams.map((t) => t.key),
+      ["CONNEXUS"],
+    );
+    assert.deepEqual(
+      seed.dimensions.sprints.map((s) => s.id),
+      ["37", "36", "35", "34"],
+    );
+    assert.equal(seed.integrations.items[0]?.projectKeys?.[0], "CX");
+    assert.equal(
+      seed.integrations.items[0]?.siteUrl,
+      "https://neoito-team-connexus.atlassian.net",
+    );
+    assert.equal(seed.settings.organizationName, "Connexus");
+  });
+
+  it("falls back to TPT for unknown emails", () => {
+    const seed = resolveMockSeed({ email: "someone@example.com" });
+    assert.equal(seed.dimensions.defaultSprintId, "27");
+    assert.equal(seed.org.name, "TPT Platform");
+  });
+
+  it("serves Connexus Overview metrics for sprint 37", () => {
+    const seed = resolveMockSeed({ email: CONNEXUS_DEMO_EMAIL });
+    const model = selectOverviewModel(stateFromSeed(seed, { sprint: "37" }));
+    assert.equal(model.deliveryConfidence.score, 61);
+    assert.equal(model.deliveryConfidence.band, "Caution");
+    const completion = model.deliveryConfidence.metrics.find(
+      (m) => m.id === "completion",
+    );
+    assert.equal(completion?.value, "67%");
+    assert.equal(completion?.annotation, "79 / 118");
+  });
+});
 
 describe("selectOverviewModel", () => {
   it("returns store metrics for the selected sprint", () => {
@@ -78,5 +145,15 @@ describe("selectDeliveryAnalysisSnapshot", () => {
     assert.equal(snapshot.byProject.length, 1);
     assert.equal(snapshot.byProject[0]?.key, "AVENGERS");
     assert.equal(snapshot.kpis.spillover, snapshot.byProject[0]?.spilloverCount);
+  });
+
+  it("scopes Connexus delivery to the single CONNEXUS team", () => {
+    const seed = resolveMockSeed({ email: CONNEXUS_DEMO_EMAIL });
+    const snapshot = selectDeliveryAnalysisSnapshot(
+      stateFromSeed(seed, { sprint: "37", team: "CONNEXUS" }),
+    );
+    assert.deepEqual(snapshot.projectKeys, ["CONNEXUS"]);
+    assert.equal(snapshot.scopeLabel, "Sprint 37");
+    assert.equal(snapshot.kpis.sprintCompletionPct, 67);
   });
 });

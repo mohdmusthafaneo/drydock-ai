@@ -12,7 +12,7 @@ import {
 import { createStore, type Store } from "@/lib/store/create-store";
 import { DEFAULT_FILTERS, type AppFilters } from "@/lib/store/dimensions";
 import type { AppData, AppStoreState, StoreStatus } from "@/lib/store/types";
-import { seedAppData } from "@/lib/store/mock";
+import { resolveMockSeed } from "@/lib/store/mock";
 import { mergeAppData } from "@/lib/store/merge";
 import type { DeepPartial } from "@/lib/store/deep";
 
@@ -21,11 +21,13 @@ export type AppDataStore = Store<AppStoreState>;
 const AppDataStoreContext = createContext<AppDataStore | null>(null);
 
 function buildInitialState(
+  seedEmail: string | undefined,
   overlay: DeepPartial<AppData> | null | undefined,
   initialFilters: Partial<AppFilters> | undefined,
   initialStatus: StoreStatus,
 ): AppStoreState {
-  const data = mergeAppData(seedAppData(), overlay ?? undefined);
+  const seed = resolveMockSeed({ email: seedEmail ?? "" });
+  const data = mergeAppData(seed, overlay ?? undefined);
   return {
     data,
     filters: { ...DEFAULT_FILTERS, ...initialFilters },
@@ -36,12 +38,15 @@ function buildInitialState(
 
 export function AppDataProvider({
   children,
+  seedEmail,
   overlay,
   initialFilters,
   initialStatus = "ready",
 }: {
   children: ReactNode;
-  /** Optional session/user fields merged onto the store seed. */
+  /** Login email selects the demo mock pack (TPT vs Connexus). */
+  seedEmail?: string;
+  /** Optional session/user/org fields merged onto the store seed. */
   overlay?: DeepPartial<AppData> | null;
   initialFilters?: Partial<AppFilters>;
   initialStatus?: StoreStatus;
@@ -49,7 +54,7 @@ export function AppDataProvider({
   const storeRef = useRef<AppDataStore | null>(null);
   if (!storeRef.current) {
     storeRef.current = createStore(
-      buildInitialState(overlay, initialFilters, initialStatus),
+      buildInitialState(seedEmail, overlay, initialFilters, initialStatus),
     );
   }
 

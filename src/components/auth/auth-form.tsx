@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
@@ -11,16 +10,17 @@ import { AidosLogo } from "@/components/brand/aidos-logo";
 type Mode = "login" | "signup";
 
 export function AuthForm({ mode }: { mode: Mode }) {
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    e.stopPropagation();
     setLoading(true);
     setError(null);
 
-    const form = new FormData(e.currentTarget);
+    const formEl = e.currentTarget;
+    const form = new FormData(formEl);
     const payload = Object.fromEntries(form.entries());
     if (mode === "signup") {
       (payload as Record<string, string>).workspaceMode = "ENTERPRISE";
@@ -28,23 +28,32 @@ export function AuthForm({ mode }: { mode: Mode }) {
 
     const endpoint = mode === "login" ? "/api/auth/login" : "/api/auth/signup";
 
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "same-origin",
-      body: JSON.stringify(payload),
-    });
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify(payload),
+      });
 
-    const data = await res.json();
-    setLoading(false);
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        redirect?: string;
+      };
 
-    if (!res.ok) {
-      setError(data.error || "Something went wrong");
-      return;
+      if (!res.ok) {
+        setLoading(false);
+        setError(data.error || "Something went wrong");
+        return;
+      }
+
+      // Full navigation so the Set-Cookie from login is reliably applied
+      // before the first authenticated render (router.push can race).
+      window.location.assign(data.redirect || "/dashboard");
+    } catch {
+      setLoading(false);
+      setError("Could not reach the server. Try again.");
     }
-
-    router.push(data.redirect || "/dashboard");
-    router.refresh();
   }
 
   return (
@@ -52,12 +61,12 @@ export function AuthForm({ mode }: { mode: Mode }) {
       <div className="relative z-10 hidden w-full flex-col justify-center px-12 lg:flex lg:max-w-md xl:max-w-lg xl:px-16">
         <AidosLogo size={48} className="mb-8" />
         <h1 className="text-[28px] font-bold leading-[1.12] tracking-[-0.75px] text-ink xl:text-[64px] xl:tracking-[-1.6px]">
-          Which of your green checks
+          <span className="block">Which of your green checks</span>
           <span className="block text-rust">actually mean something.</span>
         </h1>
         <p className="mt-4 max-w-sm text-[16px] leading-relaxed text-ash">
-          DryDock is the instrument for the QA Architect. Trust counts, the full test inventory,
-          and what needs you today — never a dashboard of scores.
+          Turn engineering signals into clear delivery confidence, early risks, and actionable
+          insights—without the status meetings.
         </p>
         <p className="mt-3 max-w-sm text-[14px] text-graphite">
           DryDock only advises — you decide.
@@ -82,12 +91,17 @@ export function AuthForm({ mode }: { mode: Mode }) {
             </div>
           </CardHeader>
           <CardContent>
-            <form onSubmit={onSubmit} className="space-y-4">
+            <form
+              method="post"
+              action={mode === "login" ? "/api/auth/login" : "/api/auth/signup"}
+              onSubmit={onSubmit}
+              className="space-y-4"
+            >
               {mode === "signup" && (
                 <>
                   <div className="space-y-2">
                     <Label htmlFor="name">Full name</Label>
-                    <Input id="name" name="name" required placeholder="Alex Morgan" />
+                    <Input id="name" name="name" required placeholder="Alex Morgan" autoComplete="name" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="organizationName">Organization</Label>
@@ -96,6 +110,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
                       name="organizationName"
                       required
                       placeholder="Acme Engineering"
+                      autoComplete="organization"
                     />
                   </div>
                 </>
@@ -108,6 +123,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
                   type="email"
                   required
                   placeholder="you@company.com"
+                  autoComplete="username"
                 />
               </div>
               <div className="space-y-2">
@@ -119,6 +135,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
                   required
                   minLength={8}
                   placeholder="••••••••"
+                  autoComplete={mode === "login" ? "current-password" : "new-password"}
                 />
               </div>
               {error && (

@@ -1,19 +1,20 @@
 import type { OverviewDashboardModel } from "@/lib/overview/types";
 import { DEFAULT_FILTERS } from "@/lib/store/dimensions";
-import { seedAppData } from "@/lib/store/mock";
+import { resolveMockSeed } from "@/lib/store/mock";
 import { selectOverviewModel } from "@/lib/store/selectors";
 
 /**
- * Compose Overview from the store seed. Demo stage — replace when the backend lands.
+ * Compose Overview from the email-keyed mock seed. Demo stage — replace when the backend lands.
  */
 export async function loadOverviewDashboard(input: {
   organizationId: string;
   userName: string;
+  email: string;
   teamKey?: string | null;
   sprintId?: string | null;
 }): Promise<OverviewDashboardModel> {
   void input.organizationId;
-  const seed = seedAppData();
+  const seed = resolveMockSeed({ email: input.email });
   const greetingName = input.userName.split(" ")[0] || input.userName;
   return selectOverviewModel({
     data: {
