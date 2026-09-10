@@ -6,6 +6,7 @@ import { CommandPalette } from "@/components/ui/command-palette";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
+import { useOverviewNavHref } from "@/components/overview/overview-link";
 import type { SessionPayload } from "@/lib/session";
 import type { IntegrationNavGates } from "@/lib/nav-availability";
 import { getSectionTabs } from "@/lib/workspace-mode";
@@ -61,6 +62,7 @@ export function AppShell({
   const chrome = useAppData(selectShellChrome);
   const filters = useFilters();
   const setFilter = useSetFilter();
+  const resolveHref = useOverviewNavHref();
   const [paletteOpen, setPaletteOpen] = useState(false);
 
   const chatMode = isChatPath(pathname);
@@ -76,9 +78,9 @@ export function AppShell({
   const onSelectWorkspace = useCallback(
     (key: string) => {
       setFilter({ team: key });
-      router.push("/dashboard");
+      router.push(resolveHref(`/dashboard?team=${encodeURIComponent(key)}`));
     },
-    [router, setFilter],
+    [resolveHref, router, setFilter],
   );
 
   return (

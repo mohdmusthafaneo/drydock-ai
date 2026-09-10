@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -9,6 +8,7 @@ import {
   Settings,
   type LucideIcon,
 } from "lucide-react";
+import { OverviewLink } from "@/components/overview/overview-link";
 import { cn } from "@/lib/utils";
 
 const MOBILE_PINS: Array<{ href: string; label: string; icon: LucideIcon }> = [
@@ -39,7 +39,7 @@ export function MobileNav(_props?: MobileNavProps) {
         const Icon = item.icon;
         const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
         return (
-          <Link
+          <OverviewLink
             key={item.href}
             href={item.href}
             className={cn(
@@ -49,7 +49,7 @@ export function MobileNav(_props?: MobileNavProps) {
           >
             <Icon className="h-5 w-5" strokeWidth={1.5} />
             <span className="max-w-[4rem] truncate">{item.label}</span>
-          </Link>
+          </OverviewLink>
         );
       })}
     </nav>

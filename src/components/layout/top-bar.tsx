@@ -13,6 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { OverviewLink } from "@/components/overview/overview-link";
 import { ROLE_LABELS } from "@/lib/roles";
 import type { SessionPayload } from "@/lib/session";
 import { getSectionTabs, isNavItemActive } from "@/lib/workspace-mode";
@@ -50,7 +51,7 @@ function SectionTabs() {
       {tabs.map((tab) => {
         const active = isNavItemActive(pathname, tab.href);
         return (
-          <Link
+          <OverviewLink
             key={tab.href}
             href={tab.href}
             className={cn(
@@ -64,7 +65,7 @@ function SectionTabs() {
             {active ? (
               <span className="absolute inset-x-0 bottom-0 h-[3px] rounded-t-[3px] bg-brown-underline" />
             ) : null}
-          </Link>
+          </OverviewLink>
         );
       })}
     </nav>

@@ -6,11 +6,8 @@ import type { ComponentProps } from "react";
 import { withOverviewContext } from "@/lib/overview/nav-context";
 import { useAppData, useFilters } from "@/lib/store";
 
-/** Link that carries Overview `team` / `sprint` query params to destinations. */
-export function OverviewLink({
-  href,
-  ...props
-}: Omit<ComponentProps<typeof Link>, "href"> & { href: string }) {
+/** Resolve a path with current Overview `team` / `sprint` query params. */
+export function useOverviewNavHref() {
   const searchParams = useSearchParams();
   const filters = useFilters();
   const defaultSprintId = useAppData((s) => s.data.dimensions.defaultSprintId);
@@ -25,9 +22,18 @@ export function OverviewLink({
     sprints[0]?.id ??
     null;
 
-  const resolved = withOverviewContext(href, {
-    team: teamFromUrl ?? filters.team,
-    sprint: effectiveSprint,
-  });
-  return <Link href={resolved} {...props} />;
+  return (href: string) =>
+    withOverviewContext(href, {
+      team: teamFromUrl ?? filters.team,
+      sprint: effectiveSprint,
+    });
+}
+
+/** Link that carries Overview `team` / `sprint` query params to destinations. */
+export function OverviewLink({
+  href,
+  ...props
+}: Omit<ComponentProps<typeof Link>, "href"> & { href: string }) {
+  const resolveHref = useOverviewNavHref();
+  return <Link href={resolveHref(href)} {...props} />;
 }

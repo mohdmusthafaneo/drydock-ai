@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useOverviewNavHref } from "@/components/overview/overview-link";
 import { cn } from "@/lib/utils";
 
 export type CommandPaletteDestination = {
@@ -36,6 +37,7 @@ export function CommandPalette({
   onSelectWorkspace?: (key: string) => void;
 }) {
   const router = useRouter();
+  const resolveHref = useOverviewNavHref();
   const [query, setQuery] = useState("");
 
   useEffect(() => {
@@ -72,7 +74,7 @@ export function CommandPalette({
 
   function go(href: string) {
     handleOpenChange(false);
-    router.push(href);
+    router.push(resolveHref(href));
   }
 
   function selectWorkspace(key: string) {
@@ -81,7 +83,7 @@ export function CommandPalette({
       onSelectWorkspace(key);
       return;
     }
-    router.push(`/dashboard?team=${encodeURIComponent(key)}`);
+    router.push(resolveHref(`/dashboard?team=${encodeURIComponent(key)}`));
   }
 
   return (
