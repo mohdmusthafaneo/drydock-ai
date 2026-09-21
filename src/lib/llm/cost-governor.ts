@@ -202,15 +202,3 @@ export async function runMeteredLlmCall<T>(
     model: routed.model,
   };
 }
-
-/** Test / ops helpers. */
-export function resetLlmGovernorForTests(): void {
-  localResponseCache.clear();
-  localOrgBudgets.clear();
-}
-
-export async function getOrgTokenUsageForTests(
-  organizationId: string,
-): Promise<number> {
-  return getOrgTokens(organizationId);
-}

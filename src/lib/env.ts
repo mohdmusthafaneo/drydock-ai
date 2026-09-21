@@ -135,8 +135,3 @@ export function validateRuntimeEnv(): void {
     throw new Error(`Environment validation failed:\n- ${errors.join("\n- ")}`);
   }
 }
-
-/** Reset cached env — for tests only. */
-export function resetEnvCacheForTests(): void {
-  cachedEnv = null;
-}

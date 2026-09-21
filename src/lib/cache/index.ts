@@ -46,10 +46,4 @@ export function getCacheBackend(): CacheBackend {
   return globalForCache.aidosCacheBackend ?? "memory";
 }
 
-/** Test helper — reset singleton. */
-export function resetCacheClientForTests(): void {
-  globalForCache.aidosCacheClient = undefined;
-  globalForCache.aidosCacheBackend = undefined;
-}
-
 export type { CacheClient, CacheBackend } from "./types";

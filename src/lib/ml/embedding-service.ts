@@ -90,8 +90,3 @@ export function getEmbeddingService(): EmbeddingService {
   if (!cached) cached = new HttpEmbeddingService();
   return cached;
 }
-
-/** Test helper. */
-export function resetEmbeddingServiceForTests(): void {
-  cached = null;
-}
