@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Database,
@@ -40,10 +41,15 @@ export function Sidebar({
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [syncRelative, setSyncRelative] = useState<string | null>(null);
 
-  const syncRelative = lastSyncAt
-    ? formatDistanceToNow(new Date(lastSyncAt))
-    : null;
+  useEffect(() => {
+    if (!lastSyncAt) {
+      setSyncRelative(null);
+      return;
+    }
+    setSyncRelative(formatDistanceToNow(new Date(lastSyncAt)));
+  }, [lastSyncAt]);
 
   function setTeam(team: string | null) {
     const params = new URLSearchParams(searchParams.toString());

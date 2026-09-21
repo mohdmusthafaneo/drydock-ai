@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { CommandPalette } from "@/components/ui/command-palette";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { OpsQuickNav, isOpsQuickNavPath } from "@/components/layout/ops-quick-nav";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
 import { useOverviewNavHref } from "@/components/overview/overview-link";
@@ -67,6 +68,8 @@ export function AppShell({
 
   const chatMode = isChatPath(pathname);
   const hideMobileNav = isWizardPath(pathname);
+  const showOpsQuickNav = !chatMode && !hideMobileNav && isOpsQuickNavPath(pathname);
+  const showMobileNav = !hideMobileNav && !showOpsQuickNav;
   const overviewMode = usesConnexusChrome(pathname);
 
   const destinations = useMemo(() => getSectionTabs(), []);
@@ -93,7 +96,7 @@ export function AppShell({
         onOpenCommandPalette={() => setPaletteOpen(true)}
       />
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-base">
+      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-base">
         {!chatMode ? (
           <TopBar
             session={session}
@@ -109,9 +112,13 @@ export function AppShell({
               ? "flex flex-col overflow-hidden px-0 pb-0 pt-0 lg:px-3 lg:pb-3 lg:pt-3"
               : hideMobileNav
                 ? "overflow-y-auto px-4 pb-8 pt-4 lg:px-6 lg:pb-7 lg:pt-[25px]"
-                : overviewMode
-                  ? "overflow-y-auto px-6 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-[25px] lg:px-6 lg:pb-7"
-                  : "overflow-y-auto px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-4 lg:px-8 lg:pb-8 lg:pt-5",
+                : showOpsQuickNav
+                  ? overviewMode
+                    ? "overflow-y-auto px-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-[25px] lg:px-6"
+                    : "overflow-y-auto px-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-4 lg:px-8 lg:pt-5"
+                  : overviewMode
+                    ? "overflow-y-auto px-6 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-[25px] lg:px-6 lg:pb-7"
+                    : "overflow-y-auto px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-4 lg:px-8 lg:pb-8 lg:pt-5",
           )}
         >
           <div
@@ -126,7 +133,8 @@ export function AppShell({
             {children}
           </div>
         </main>
-        {!hideMobileNav ? (
+        {showOpsQuickNav ? <OpsQuickNav /> : null}
+        {showMobileNav ? (
           <MobileNav
             integrationGates={integrationGates}
             userRole={session.role}
