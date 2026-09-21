@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { FloatingAssistant } from "@/components/drydock-assistant/floating-assistant";
 import { CommandPalette } from "@/components/ui/command-palette";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { OpsQuickNav, isOpsQuickNavPath } from "@/components/layout/ops-quick-nav";
@@ -151,6 +152,7 @@ export function AppShell({
         workspaces={chrome.projects}
         onSelectWorkspace={onSelectWorkspace}
       />
+      {!chatMode ? <FloatingAssistant /> : null}
     </div>
   );
 }

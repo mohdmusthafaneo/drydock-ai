@@ -38,9 +38,11 @@ export {
   devopsAgent,
   aidosAssistant,
   productIntelligenceAgent,
+  drydockAssistant,
   AIDOS_ASSISTANT_ID,
   AIDOS_ASSISTANT_INSTRUCTIONS,
   DRYDOCK_ASSISTANT_ID,
+  DRYDOCK_ASSISTANT_INSTRUCTIONS,
 } from "./agents";
 export {
   aidosWorkflows,
@@ -53,6 +55,13 @@ export type {
   RunAssistantInput,
   RunAssistantResult,
 } from "./workflows/run-assistant";
+export { runDrydockAssistant } from "./workflows/run-drydock-assistant";
+export type {
+  DrydockAssistantStreamHandlers,
+  RunDrydockAssistantInput,
+  RunDrydockAssistantResult,
+  DrydockAssistantHistoryMessage,
+} from "./workflows/run-drydock-assistant";
 export {
   createAidosRequestContext,
   createAidosToolContext,
@@ -66,6 +75,17 @@ export type {
   AidosToolContext,
   AidosRequestContextValues,
 } from "./tools/aidos";
+export {
+  createDrydockAssistantRequestContext,
+  createDrydockAssistantToolContext,
+  getDrydockAssistantToolContext,
+  drydockAssistantTools,
+} from "./tools/drydock-assistant";
+export type {
+  DrydockAssistantToolId,
+  DrydockAssistantToolContext,
+  DrydockAssistantRequestContextValues,
+} from "./tools/drydock-assistant";
 export {
   repositoryCloneTool,
   getCommitsTool,

@@ -4,7 +4,6 @@ import { resolveMastraModelConfig } from "../config/models";
 import { buildAidosSlackChannelConfig } from "../channels/slack";
 
 export const AIDOS_ASSISTANT_ID = "aidosAssistant";
-export const DRYDOCK_ASSISTANT_ID = AIDOS_ASSISTANT_ID;
 
 export const AIDOS_ASSISTANT_INSTRUCTIONS = `You are the DryDock Assistant — an instrument for the QA Architect.
 
