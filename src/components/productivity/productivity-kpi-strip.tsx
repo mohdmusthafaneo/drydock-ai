@@ -45,15 +45,15 @@ function DeltaLine({
   invertGood: boolean;
 }) {
   if (delta === null) {
-    return <p className="mt-1 text-[12px] text-faint">No prior sprint</p>;
+    return <p className="mt-1 text-[11px] leading-[15px] text-faint">No prior sprint</p>;
   }
   if (delta === undefined) {
-    return <p className="mt-1 text-[12px] text-faint">Flat vs prior</p>;
+    return <p className="mt-1 text-[11px] leading-[15px] text-faint">Flat vs prior</p>;
   }
   const up = delta.startsWith("+");
   const good = invertGood ? !up : up;
   return (
-    <p className="mt-1 text-[12px]">
+    <p className="mt-1 text-[11px] leading-[15px]">
       <span className={cn("font-medium", good ? "text-success" : "text-error")}>
         {delta}
       </span>
@@ -108,10 +108,10 @@ export function ProductivityKpiStrip({
       {items.map((item) => (
         <div
           key={item.key}
-          className="rounded-[var(--radius-card)] border border-border bg-pure-white px-[18px] py-4 shadow-[var(--shadow)]"
+          className="rounded-[var(--radius-card)] border border-border bg-pure-white px-[18px] py-[15px] shadow-[var(--shadow)]"
         >
-          <p className="text-[12px] font-medium text-muted">{item.label}</p>
-          <p className="mt-1.5 text-[28px] font-semibold tracking-[-0.5px] text-ink">
+          <p className="text-[11px] font-medium text-muted">{item.label}</p>
+          <p className="mt-[5px] text-[24px] font-semibold leading-[32px] tracking-[-0.7px] text-ink">
             {item.value}
           </p>
           <DeltaLine delta={item.delta} invertGood={item.invertGood} />

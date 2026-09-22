@@ -72,7 +72,19 @@ function filterReviews(
 function computeTotals(
   merged: ProductivityPullRequest[],
   reviews: ProductivityReviewEvent[],
-): Omit<ProductivityTeamTotals, "prsMergedDelta" | "medianCycleHoursDelta" | "medianFirstReviewHoursDelta" | "reviewsGivenDelta"> {
+  ticketRollup: {
+    ticketsWorkedOn: number;
+    storyPointsCompleted: number;
+    ticketsSkipped: number;
+    storyPointsSkipped: number;
+  },
+): Omit<
+  ProductivityTeamTotals,
+  | "prsMergedDelta"
+  | "medianCycleHoursDelta"
+  | "medianFirstReviewHoursDelta"
+  | "reviewsGivenDelta"
+> {
   const cycleHours = merged
     .filter((pr) => pr.mergedAt)
     .map((pr) => hoursBetween(pr.openedAt, pr.mergedAt!));
@@ -85,7 +97,39 @@ function computeTotals(
     medianCycleHours: median(cycleHours),
     medianFirstReviewHours: median(firstReviewHours),
     reviewsGiven: reviews.length,
+    ticketsWorkedOn: ticketRollup.ticketsWorkedOn,
+    storyPointsCompleted: ticketRollup.storyPointsCompleted,
+    ticketsSkipped: ticketRollup.ticketsSkipped,
+    storyPointsSkipped: ticketRollup.storyPointsSkipped,
   };
+}
+
+function emptyTicketStats() {
+  return {
+    ticketsWorkedOn: 0,
+    storyPointsCompleted: 0,
+    ticketsSkipped: 0,
+    storyPointsSkipped: 0,
+  };
+}
+
+function rollupTicketStats(
+  pack: ProductivityDerivedPack,
+  teamKey: string | null,
+  sprintId: string,
+) {
+  const rollup = emptyTicketStats();
+  for (const contributor of pack.contributors) {
+    if (teamKey && contributor.teamKey !== teamKey) continue;
+    const stats =
+      pack.ticketStatsByContributorSprint[contributor.id]?.[sprintId] ??
+      emptyTicketStats();
+    rollup.ticketsWorkedOn += stats.ticketsWorkedOn;
+    rollup.storyPointsCompleted += stats.storyPointsCompleted;
+    rollup.ticketsSkipped += stats.ticketsSkipped;
+    rollup.storyPointsSkipped += stats.storyPointsSkipped;
+  }
+  return rollup;
 }
 
 function computeContributorMetrics(
@@ -128,12 +172,19 @@ function computeContributorMetrics(
 
     const issueKeys =
       pack.issuesResolvedByContributorSprint[contributor.id]?.[sprintId] ?? [];
+    const ticketStats =
+      pack.ticketStatsByContributorSprint[contributor.id]?.[sprintId] ??
+      emptyTicketStats();
 
     return {
       contributor,
       rank: 0,
       prsMerged: authored.length,
       issuesResolved: issueKeys.length,
+      ticketsWorkedOn: ticketStats.ticketsWorkedOn,
+      storyPointsCompleted: ticketStats.storyPointsCompleted,
+      ticketsSkipped: ticketStats.ticketsSkipped,
+      storyPointsSkipped: ticketStats.storyPointsSkipped,
       medianCycleHours: median(cycleHours),
       medianFirstReviewHours: median(firstReviewHours),
       reviewsGiven: given.length,
@@ -220,13 +271,15 @@ export function computeProductivitySnapshot(
   const merged = filterPrs(pack.pullRequests, team, sprint);
   const reviews = filterReviews(pack.reviewEvents, team, sprint);
   const priorId = previousSprintId(derived, sprint);
+  const ticketRollup = rollupTicketStats(pack, team, sprint);
 
-  const currentTotals = computeTotals(merged, reviews);
+  const currentTotals = computeTotals(merged, reviews, ticketRollup);
   let priorTotals: ReturnType<typeof computeTotals> | null = null;
   if (priorId) {
     priorTotals = computeTotals(
       filterPrs(pack.pullRequests, team, priorId),
       filterReviews(pack.reviewEvents, team, priorId),
+      rollupTicketStats(pack, team, priorId),
     );
   }
 

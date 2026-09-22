@@ -27,7 +27,7 @@ purpose-built mock dataset. Invariant 1 is revoked for this surface only
 ## Page layout (top → bottom)
 
 1. **KPI strip** — team totals: PRs merged, median cycle time, median time to first review, reviews given — each with prior-sprint delta.
-2. **Contributor table** — ranked, sortable, expandable PR drill-down. Default sort: PRs merged descending. Columns: rank, contributor, PRs merged, issues resolved, med. cycle, med. first review, reviews given, med. review turnaround, lines net, unreviewed %, AI mix.
+2. **Contributor table** — ranked, sortable, expandable PR drill-down. Default sort: PRs merged descending. Columns: rank, contributor, PRs merged, tickets worked, SP done, skipped (tickets · points), med. cycle, med. first review, reviews given, med. review turnaround, lines net, unreviewed %, AI mix.
 3. **Throughput trend** + **Review load** — side by side (`AreaTrendChart` + horizontal bars).
 
 No intent banner, no role-gate chrome, no composite person score.
@@ -39,6 +39,7 @@ No intent banner, no role-gate chrome, no composite person score.
 - Generator: `scripts/generate-productivity-mock.ts` → `src/lib/store/mock/productivity-derived.ts`
 - TPT: 10–12 contributors across 4 teams; Connexus: 4–5 on one team
 - ~130 PRs + review events across the four existing sprints
+- Per-contributor ticket activity: tickets worked, story points completed, tickets/SP skipped
 - Static contributor identity map (no runtime resolution yet)
 - Store: `Dimensioned<ProductivitySnapshot>` via `pick(team, sprint)`
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useMemo, useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 import type {
   ProductivityContributorMetrics,
   ProductivityPullRequest,
@@ -13,7 +13,9 @@ type SortKey =
   | "rank"
   | "name"
   | "prsMerged"
-  | "issuesResolved"
+  | "ticketsWorkedOn"
+  | "storyPointsCompleted"
+  | "ticketsSkipped"
   | "medianCycleHours"
   | "medianFirstReviewHours"
   | "reviewsGiven"
@@ -99,8 +101,12 @@ function sortContributors(
         return a.contributor.displayName.localeCompare(b.contributor.displayName) * dir;
       case "prsMerged":
         return (a.prsMerged - b.prsMerged) * dir;
-      case "issuesResolved":
-        return (a.issuesResolved - b.issuesResolved) * dir;
+      case "ticketsWorkedOn":
+        return (a.ticketsWorkedOn - b.ticketsWorkedOn) * dir;
+      case "storyPointsCompleted":
+        return (a.storyPointsCompleted - b.storyPointsCompleted) * dir;
+      case "ticketsSkipped":
+        return (a.ticketsSkipped - b.ticketsSkipped) * dir;
       case "medianCycleHours":
         return compareNullable(a.medianCycleHours, b.medianCycleHours, dir);
       case "medianFirstReviewHours":
@@ -185,6 +191,12 @@ function AiMixBar({ share }: { share: number }) {
   );
 }
 
+function attributionLabel(attr: ProductivityPullRequest["attribution"]): string {
+  if (attr === "ai_generated") return "AI gen";
+  if (attr === "ai_assisted") return "AI assist";
+  return "Human";
+}
+
 function PrDrillDown({
   prs,
 }: {
@@ -192,36 +204,120 @@ function PrDrillDown({
 }) {
   if (prs.length === 0) {
     return (
-      <p className="px-3 py-2 text-[12px] text-muted">No merged PRs this sprint.</p>
+      <p className="px-4 py-3 text-[12px] text-muted">No merged PRs this sprint.</p>
     );
   }
+
+  const sorted = [...prs].sort((a, b) => {
+    const am = a.mergedAt ? Date.parse(a.mergedAt) : 0;
+    const bm = b.mergedAt ? Date.parse(b.mergedAt) : 0;
+    return bm - am;
+  });
+
   return (
-    <ul className="space-y-1 px-3 py-2">
-      {prs.map((pr) => {
-        const cycle =
-          pr.mergedAt != null
-            ? formatDays(
-                (Date.parse(pr.mergedAt) - Date.parse(pr.openedAt)) / (1000 * 60 * 60),
-              )
-            : "—";
-                const key = pr.jiraKeys[0] ?? `#${pr.number}`;
-        return (
-          <li key={pr.id}>
-            <a
-              href={pr.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[12px] text-info hover:underline"
-            >
-              {key} • {pr.title} • merged {pr.mergedAt ? formatDateShort(pr.mergedAt) : "—"} •
-              cycle {cycle}
-            </a>
-          </li>
-        );
-      })}
-    </ul>
+    <div className="mx-3 my-2 overflow-hidden rounded-[9px] border border-border-soft bg-pure-white">
+      <div className="flex items-center justify-between border-b border-border-soft px-3 py-2">
+        <p className="text-[11px] font-medium text-muted">
+          Merged PRs this sprint
+        </p>
+        <p className="text-[11px] tabular-nums text-faint">{sorted.length}</p>
+      </div>
+      <table className="w-full border-collapse">
+        <thead>
+          <tr className="border-b border-border-soft text-left">
+            <th className="px-3 py-1.5 text-[10px] font-medium text-muted">Ticket</th>
+            <th className="px-3 py-1.5 text-[10px] font-medium text-muted">Title</th>
+            <th className="px-3 py-1.5 text-right text-[10px] font-medium text-muted">
+              Merged
+            </th>
+            <th className="px-3 py-1.5 text-right text-[10px] font-medium text-muted">
+              Cycle
+            </th>
+            <th className="px-3 py-1.5 text-right text-[10px] font-medium text-muted">
+              Lines
+            </th>
+            <th className="px-3 py-1.5 text-[10px] font-medium text-muted">Review</th>
+            <th className="px-3 py-1.5 text-[10px] font-medium text-muted">Authorship</th>
+            <th className="w-8 px-2 py-1.5" aria-hidden />
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map((pr) => {
+            const cycle =
+              pr.mergedAt != null
+                ? formatDays(
+                    (Date.parse(pr.mergedAt) - Date.parse(pr.openedAt)) /
+                      (1000 * 60 * 60),
+                  )
+                : "—";
+            const key = pr.jiraKeys[0] ?? `PR #${pr.number}`;
+            const net = pr.additions - pr.deletions;
+            return (
+              <tr
+                key={pr.id}
+                className="border-b border-border-soft last:border-b-0 hover:bg-[#FAFBFC]"
+              >
+                <td className="px-3 py-2 align-middle">
+                  <span className="inline-flex rounded-[5px] bg-elevated px-[6px] py-[2px] text-[11px] font-semibold tabular-nums text-ink">
+                    {key}
+                  </span>
+                </td>
+                <td className="max-w-[280px] px-3 py-2 align-middle">
+                  <p className="truncate text-[12px] font-medium text-ink">{pr.title}</p>
+                  {pr.jiraKeys.length > 1 ? (
+                    <p className="mt-0.5 truncate text-[10px] text-muted">
+                      Also {pr.jiraKeys.slice(1).join(", ")}
+                    </p>
+                  ) : null}
+                </td>
+                <td className="whitespace-nowrap px-3 py-2 text-right text-[12px] tabular-nums text-secondary">
+                  {pr.mergedAt ? formatDateShort(pr.mergedAt) : "—"}
+                </td>
+                <td className="whitespace-nowrap px-3 py-2 text-right text-[12px] tabular-nums text-secondary">
+                  {cycle}
+                </td>
+                <td
+                  className={cn(
+                    "whitespace-nowrap px-3 py-2 text-right text-[12px] tabular-nums font-medium",
+                    net > 0 ? "text-success" : "text-secondary",
+                  )}
+                >
+                  {formatLinesNet(net)}
+                </td>
+                <td className="px-3 py-2 align-middle">
+                  {pr.unreviewed ? (
+                    <span className="inline-flex rounded-[5px] bg-coral-soft px-[6px] py-[2px] text-[10px] font-medium text-coral">
+                      Unreviewed
+                    </span>
+                  ) : (
+                    <span className="text-[12px] text-secondary">Reviewed</span>
+                  )}
+                </td>
+                <td className="px-3 py-2 align-middle text-[12px] text-secondary">
+                  {attributionLabel(pr.attribution)}
+                </td>
+                <td className="px-2 py-2 align-middle">
+                  <a
+                    href={pr.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-[7px] text-faint hover:bg-hover hover:text-ink"
+                    aria-label={`Open PR #${pr.number}`}
+                    title={`PR #${pr.number}`}
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }
+
+const COL_COUNT = 13;
 
 export function ProductivityContributorTable({
   snapshot,
@@ -260,16 +356,21 @@ export function ProductivityContributorTable({
         <h2 className="text-[16px] font-semibold tracking-[-0.2px] text-ink">
           Contributors
         </h2>
+        <p className="text-[11px] text-muted">
+          Tickets &amp; story points for {snapshot.sprintLabel}
+        </p>
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[960px] border-collapse">
+        <table className="w-full min-w-[1100px] border-collapse">
           <thead>
             <tr className="border-b border-border-soft">
               <SortHeader label="#" sortKey="rank" active={sortKey} asc={asc} onSort={onSort} align="left" />
               <SortHeader label="Contributor" sortKey="name" active={sortKey} asc={asc} onSort={onSort} align="left" />
               <SortHeader label="PRs merged" sortKey="prsMerged" active={sortKey} asc={asc} onSort={onSort} />
-              <SortHeader label="Issues resolved" sortKey="issuesResolved" active={sortKey} asc={asc} onSort={onSort} />
+              <SortHeader label="Tickets worked" sortKey="ticketsWorkedOn" active={sortKey} asc={asc} onSort={onSort} />
+              <SortHeader label="SP done" sortKey="storyPointsCompleted" active={sortKey} asc={asc} onSort={onSort} />
+              <SortHeader label="Skipped" sortKey="ticketsSkipped" active={sortKey} asc={asc} onSort={onSort} />
               <SortHeader label="Med. cycle" sortKey="medianCycleHours" active={sortKey} asc={asc} onSort={onSort} />
               <SortHeader label="Med. first review" sortKey="medianFirstReviewHours" active={sortKey} asc={asc} onSort={onSort} />
               <SortHeader label="Reviews given" sortKey="reviewsGiven" active={sortKey} asc={asc} onSort={onSort} />
@@ -310,7 +411,7 @@ export function ProductivityContributorTable({
                       >
                         <span
                           className={cn(
-                            "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold",
+                            "flex h-[31px] w-[31px] shrink-0 items-center justify-center rounded-full text-[12px] font-semibold",
                             tone.bg,
                             tone.text,
                           )}
@@ -318,7 +419,7 @@ export function ProductivityContributorTable({
                           {row.contributor.avatarInitials}
                         </span>
                         <span>
-                          <span className="block text-[13px] font-medium text-ink">
+                          <span className="block text-[13px] font-semibold text-ink">
                             {row.contributor.displayName}
                           </span>
                           <span className="block text-[11px] text-muted">
@@ -337,7 +438,22 @@ export function ProductivityContributorTable({
                       {row.prsMerged}
                     </td>
                     <td className="px-2.5 py-2.5 text-right text-[13px] tabular-nums text-ink">
-                      {row.issuesResolved}
+                      {row.ticketsWorkedOn}
+                    </td>
+                    <td className="px-2.5 py-2.5 text-right text-[13px] tabular-nums font-medium text-ink">
+                      {row.storyPointsCompleted}
+                    </td>
+                    <td
+                      className={cn(
+                        "px-2.5 py-2.5 text-right text-[13px] tabular-nums",
+                        row.ticketsSkipped > 0 ? "text-ink" : "text-secondary",
+                      )}
+                    >
+                      <span className="font-medium">{row.ticketsSkipped}</span>
+                      <span className="text-muted">
+                        {" "}
+                        · {row.storyPointsSkipped}sp
+                      </span>
                     </td>
                     <td className="px-2.5 py-2.5 text-right text-[13px] tabular-nums text-secondary">
                       {formatDays(row.medianCycleHours)}
@@ -373,7 +489,7 @@ export function ProductivityContributorTable({
                   </tr>
                   {open ? (
                     <tr className="border-b border-border-soft bg-[#FCFCFD]">
-                      <td colSpan={11} className="px-2 py-1">
+                      <td colSpan={COL_COUNT} className="px-2 py-1">
                         <PrDrillDown prs={prs} />
                       </td>
                     </tr>

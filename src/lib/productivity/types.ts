@@ -47,11 +47,27 @@ export type ProductivityReviewEvent = {
   turnaroundHours: number;
 };
 
+/** Per-contributor Jira ticket activity for one sprint. */
+export type ProductivityTicketSprintStats = {
+  /** Tickets assigned / touched in the sprint (done + in-progress + skipped). */
+  ticketsWorkedOn: number;
+  /** Story points on tickets completed (Done) in the sprint. */
+  storyPointsCompleted: number;
+  /** Tickets planned but not completed (spillover / deferred / removed). */
+  ticketsSkipped: number;
+  /** Story points on skipped tickets. */
+  storyPointsSkipped: number;
+};
+
 export type ProductivityContributorMetrics = {
   contributor: Contributor;
   rank: number;
   prsMerged: number;
   issuesResolved: number;
+  ticketsWorkedOn: number;
+  storyPointsCompleted: number;
+  ticketsSkipped: number;
+  storyPointsSkipped: number;
   /** Median hours open → merge; null if no merged PRs. */
   medianCycleHours: number | null;
   /** Median hours open → first review; null if none. */
@@ -83,6 +99,10 @@ export type ProductivityTeamTotals = {
   medianFirstReviewHoursDelta: number | null;
   reviewsGiven: number;
   reviewsGivenDelta: number | null;
+  ticketsWorkedOn: number;
+  storyPointsCompleted: number;
+  ticketsSkipped: number;
+  storyPointsSkipped: number;
 };
 
 export type ProductivityThroughputPoint = {
@@ -130,4 +150,12 @@ export type ProductivityDerivedPack = {
   issuesResolvedByContributor: Record<string, string[]>;
   /** Issues resolved per contributor per sprint: contributorId → sprintId → keys. */
   issuesResolvedByContributorSprint: Record<string, Record<string, string[]>>;
+  /**
+   * Ticket + story-point activity per contributor per sprint.
+   * contributorId → sprintId → stats.
+   */
+  ticketStatsByContributorSprint: Record<
+    string,
+    Record<string, ProductivityTicketSprintStats>
+  >;
 };

@@ -41,6 +41,7 @@ export function ProductivityDashboard({ className }: { className?: string }) {
       <PageHeader
         title="Productivity"
         description="Per-contributor delivery metrics for this sprint."
+        className="mb-[18px] [&_p]:mt-[5px]"
       />
 
       {!mounted ? (

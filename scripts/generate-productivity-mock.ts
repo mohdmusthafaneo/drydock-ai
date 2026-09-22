@@ -13,7 +13,10 @@ import type {
   ProductivityDerivedPack,
   ProductivityPullRequest,
   ProductivityReviewEvent,
+  ProductivityTicketSprintStats,
 } from "../src/lib/productivity/types";
+
+const STORY_POINT_CHOICES = [1, 2, 3, 5, 8] as const;
 
 /** Mulberry32 seeded PRNG — deterministic across runs. */
 function createRng(seed: number) {
@@ -256,12 +259,23 @@ function generatePack(spec: TenantSpec): ProductivityDerivedPack {
     string,
     Record<string, string[]>
   > = {};
+  const ticketStatsByContributorSprint: Record<
+    string,
+    Record<string, ProductivityTicketSprintStats>
+  > = {};
 
   for (const c of contributors) {
     issuesResolvedByContributor[c.id] = [];
     issuesResolvedByContributorSprint[c.id] = {};
+    ticketStatsByContributorSprint[c.id] = {};
     for (const s of spec.sprints) {
       issuesResolvedByContributorSprint[c.id]![s.id] = [];
+      ticketStatsByContributorSprint[c.id]![s.id] = {
+        ticketsWorkedOn: 0,
+        storyPointsCompleted: 0,
+        ticketsSkipped: 0,
+        storyPointsSkipped: 0,
+      };
     }
   }
 
@@ -420,6 +434,40 @@ function generatePack(spec: TenantSpec): ProductivityDerivedPack {
         sprintIssues.push(key);
         issuesResolvedByContributor[author.id]!.push(key);
       }
+
+      // Ticket + story-point activity (completed via this PR)
+      const ticketStats = ticketStatsByContributorSprint[author.id]![sprint.id]!;
+      for (const _key of issueKeys) {
+        const points = pick(rng, STORY_POINT_CHOICES);
+        ticketStats.ticketsWorkedOn += 1;
+        ticketStats.storyPointsCompleted += points;
+      }
+    }
+  }
+
+  // Skipped / spillover tickets: planned but not completed in the sprint.
+  // Roughly 15–35% of completed ticket volume per contributor per sprint.
+  for (const c of contributors) {
+    for (const sprint of spec.sprints) {
+      const stats = ticketStatsByContributorSprint[c.id]![sprint.id]!;
+      const completed = stats.ticketsWorkedOn;
+      if (completed === 0) {
+        // Still give light activity so empty teams aren't blank
+        const worked = 1 + Math.floor(rng() * 3);
+        stats.ticketsWorkedOn = worked;
+        for (let i = 0; i < worked; i++) {
+          stats.storyPointsCompleted += pick(rng, STORY_POINT_CHOICES);
+        }
+      }
+      const skipCount = Math.max(
+        0,
+        Math.round(stats.ticketsWorkedOn * (0.15 + rng() * 0.2)),
+      );
+      stats.ticketsSkipped = skipCount;
+      stats.ticketsWorkedOn += skipCount;
+      for (let i = 0; i < skipCount; i++) {
+        stats.storyPointsSkipped += pick(rng, STORY_POINT_CHOICES);
+      }
     }
   }
 
@@ -431,6 +479,7 @@ function generatePack(spec: TenantSpec): ProductivityDerivedPack {
     reviewEvents,
     issuesResolvedByContributor,
     issuesResolvedByContributorSprint,
+    ticketStatsByContributorSprint,
   };
 }
 

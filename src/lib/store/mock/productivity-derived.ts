@@ -124,90 +124,90 @@ export const TPT_PRODUCTIVITY_DERIVED = {
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-435",
-      "number": 435,
+      "id": "pr-tpt-434",
+      "number": 434,
       "title": "upgrade prisma client",
-      "url": "https://github.com/neoito/tpt-platform/pull/435",
-      "repo": "tpt-platform",
-      "authorId": "c-aisha",
-      "teamKey": "AVENGERS",
+      "url": "https://github.com/neoito/tpt-mobile/pull/434",
+      "repo": "tpt-mobile",
+      "authorId": "c-devon",
+      "teamKey": "DARK",
       "sprintId": "27",
-      "openedAt": "2026-09-07T13:21:00.000Z",
-      "firstReviewAt": "2026-09-07T21:33:26.566Z",
-      "mergedAt": "2026-09-10T10:27:00.000Z",
-      "reviewerIds": [
-        "c-samira",
-        "c-jordan"
-      ],
-      "additions": 393,
-      "deletions": 119,
-      "attribution": "ai_assisted",
+      "openedAt": "2026-09-03T13:07:00.000Z",
+      "firstReviewAt": null,
+      "mergedAt": "2026-09-05T12:45:00.000Z",
+      "reviewerIds": [],
+      "additions": 294,
+      "deletions": 137,
+      "attribution": "human_only",
       "jiraKeys": [
         "TP-102"
       ],
-      "unreviewed": false
+      "unreviewed": true
     },
     {
-      "id": "pr-tpt-436",
-      "number": 436,
-      "title": "harden rate limiter",
-      "url": "https://github.com/neoito/tpt-platform/pull/436",
-      "repo": "tpt-platform",
-      "authorId": "c-elena",
-      "teamKey": "DARK",
+      "id": "pr-tpt-437",
+      "number": 437,
+      "title": "improve checkout validation",
+      "url": "https://github.com/neoito/tpt-mobile/pull/437",
+      "repo": "tpt-mobile",
+      "authorId": "c-jordan",
+      "teamKey": "AVENGERS",
       "sprintId": "27",
-      "openedAt": "2026-09-02T10:24:00.000Z",
-      "firstReviewAt": "2026-09-03T00:22:40.653Z",
-      "mergedAt": "2026-09-06T11:56:00.000Z",
+      "openedAt": "2026-09-06T16:15:00.000Z",
+      "firstReviewAt": "2026-09-07T12:42:00.000Z",
+      "mergedAt": "2026-09-07T13:42:00.000Z",
       "reviewerIds": [
-        "c-devon"
+        "c-samira"
       ],
-      "additions": 453,
-      "deletions": 45,
-      "attribution": "ai_assisted",
+      "additions": 407,
+      "deletions": 41,
+      "attribution": "ai_generated",
       "jiraKeys": [
         "TP-103"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-439",
-      "number": 439,
-      "title": "wire observability alerts",
-      "url": "https://github.com/neoito/tpt-mobile/pull/439",
+      "id": "pr-tpt-438",
+      "number": 438,
+      "title": "reduce flaky e2e waits",
+      "url": "https://github.com/neoito/tpt-mobile/pull/438",
       "repo": "tpt-mobile",
-      "authorId": "c-morgan",
-      "teamKey": "APEX",
+      "authorId": "c-elena",
+      "teamKey": "DARK",
       "sprintId": "27",
-      "openedAt": "2026-09-05T10:37:00.000Z",
-      "firstReviewAt": null,
-      "mergedAt": "2026-09-08T12:22:00.000Z",
-      "reviewerIds": [],
-      "additions": 369,
-      "deletions": 44,
-      "attribution": "human_only",
+      "openedAt": "2026-09-02T13:14:00.000Z",
+      "firstReviewAt": "2026-09-03T05:25:26.602Z",
+      "mergedAt": "2026-09-05T14:20:00.000Z",
+      "reviewerIds": [
+        "c-devon"
+      ],
+      "additions": 122,
+      "deletions": 42,
+      "attribution": "ai_generated",
       "jiraKeys": [
         "TP-104"
       ],
-      "unreviewed": true
+      "unreviewed": false
     },
     {
-      "id": "pr-tpt-442",
-      "number": 442,
-      "title": "document release checklist",
-      "url": "https://github.com/neoito/tpt-platform/pull/442",
-      "repo": "tpt-platform",
-      "authorId": "c-casey",
-      "teamKey": "MOBILE",
+      "id": "pr-tpt-441",
+      "number": 441,
+      "title": "add empty-state illustration",
+      "url": "https://github.com/neoito/tpt-mobile/pull/441",
+      "repo": "tpt-mobile",
+      "authorId": "c-priya",
+      "teamKey": "DARK",
       "sprintId": "27",
-      "openedAt": "2026-09-02T10:24:00.000Z",
-      "firstReviewAt": "2026-09-05T04:14:13.283Z",
-      "mergedAt": "2026-09-05T15:31:00.000Z",
+      "openedAt": "2026-09-05T14:31:00.000Z",
+      "firstReviewAt": "2026-09-06T00:24:01.111Z",
+      "mergedAt": "2026-09-08T15:48:00.000Z",
       "reviewerIds": [
-        "c-riley"
+        "c-elena",
+        "c-devon"
       ],
-      "additions": 72,
-      "deletions": 22,
+      "additions": 390,
+      "deletions": 169,
       "attribution": "human_only",
       "jiraKeys": [
         "TP-105"
@@ -215,113 +215,94 @@ export const TPT_PRODUCTIVITY_DERIVED = {
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-444",
-      "number": 444,
-      "title": "tighten CORS allowlist",
-      "url": "https://github.com/neoito/tpt-platform/pull/444",
-      "repo": "tpt-platform",
-      "authorId": "c-casey",
-      "teamKey": "MOBILE",
+      "id": "pr-tpt-442",
+      "number": 442,
+      "title": "migrate feature flags",
+      "url": "https://github.com/neoito/tpt-mobile/pull/442",
+      "repo": "tpt-mobile",
+      "authorId": "c-samira",
+      "teamKey": "AVENGERS",
       "sprintId": "27",
-      "openedAt": "2026-08-31T14:53:00.000Z",
-      "firstReviewAt": "2026-09-02T07:56:22.686Z",
-      "mergedAt": "2026-09-04T14:07:00.000Z",
+      "openedAt": "2026-09-06T14:00:00.000Z",
+      "firstReviewAt": "2026-09-09T01:18:18.548Z",
+      "mergedAt": "2026-09-09T14:58:00.000Z",
       "reviewerIds": [
-        "c-riley"
+        "c-jordan"
       ],
-      "additions": 491,
-      "deletions": 280,
+      "additions": 150,
+      "deletions": 5,
       "attribution": "human_only",
       "jiraKeys": [
-        "TP-106"
+        "TP-106",
+        "TP-107"
+      ],
+      "unreviewed": false
+    },
+    {
+      "id": "pr-tpt-445",
+      "number": 445,
+      "title": "surface unmatched activity",
+      "url": "https://github.com/neoito/tpt-platform/pull/445",
+      "repo": "tpt-platform",
+      "authorId": "c-devon",
+      "teamKey": "DARK",
+      "sprintId": "27",
+      "openedAt": "2026-09-07T12:32:00.000Z",
+      "firstReviewAt": "2026-09-07T23:34:57.381Z",
+      "mergedAt": "2026-09-10T13:03:00.000Z",
+      "reviewerIds": [
+        "c-priya",
+        "c-elena"
+      ],
+      "additions": 286,
+      "deletions": 47,
+      "attribution": "human_only",
+      "jiraKeys": [
+        "TP-108",
+        "TP-109"
       ],
       "unreviewed": false
     },
     {
       "id": "pr-tpt-446",
       "number": 446,
-      "title": "surface unmatched activity",
-      "url": "https://github.com/neoito/tpt-platform/pull/446",
-      "repo": "tpt-platform",
-      "authorId": "c-alex",
-      "teamKey": "APEX",
-      "sprintId": "27",
-      "openedAt": "2026-08-31T11:14:00.000Z",
-      "firstReviewAt": null,
-      "mergedAt": "2026-09-03T11:18:00.000Z",
-      "reviewerIds": [],
-      "additions": 399,
-      "deletions": 102,
-      "attribution": "ai_assisted",
-      "jiraKeys": [
-        "TP-107",
-        "TP-108"
-      ],
-      "unreviewed": true
-    },
-    {
-      "id": "pr-tpt-447",
-      "number": 447,
-      "title": "add sprint burndown API",
-      "url": "https://github.com/neoito/tpt-mobile/pull/447",
+      "title": "cache inventory lookups",
+      "url": "https://github.com/neoito/tpt-mobile/pull/446",
       "repo": "tpt-mobile",
-      "authorId": "c-casey",
-      "teamKey": "MOBILE",
+      "authorId": "c-samira",
+      "teamKey": "AVENGERS",
       "sprintId": "27",
-      "openedAt": "2026-09-08T09:17:00.000Z",
-      "firstReviewAt": "2026-09-08T14:33:14.303Z",
-      "mergedAt": "2026-09-09T10:36:00.000Z",
+      "openedAt": "2026-09-05T14:56:00.000Z",
+      "firstReviewAt": "2026-09-06T20:05:51.276Z",
+      "mergedAt": "2026-09-08T12:35:00.000Z",
       "reviewerIds": [
-        "c-riley"
+        "c-aisha"
       ],
-      "additions": 132,
-      "deletions": 61,
+      "additions": 271,
+      "deletions": 7,
       "attribution": "human_only",
-      "jiraKeys": [
-        "TP-109"
-      ],
-      "unreviewed": false
-    },
-    {
-      "id": "pr-tpt-449",
-      "number": 449,
-      "title": "fix mobile deep link",
-      "url": "https://github.com/neoito/tpt-platform/pull/449",
-      "repo": "tpt-platform",
-      "authorId": "c-elena",
-      "teamKey": "DARK",
-      "sprintId": "27",
-      "openedAt": "2026-09-04T11:35:00.000Z",
-      "firstReviewAt": "2026-09-05T19:07:34.195Z",
-      "mergedAt": "2026-09-06T11:48:00.000Z",
-      "reviewerIds": [
-        "c-priya"
-      ],
-      "additions": 209,
-      "deletions": 78,
-      "attribution": "ai_assisted",
       "jiraKeys": [
         "TP-110"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-451",
-      "number": 451,
-      "title": "cleanup dead feature flags",
-      "url": "https://github.com/neoito/tpt-mobile/pull/451",
+      "id": "pr-tpt-448",
+      "number": 448,
+      "title": "tighten CORS allowlist",
+      "url": "https://github.com/neoito/tpt-mobile/pull/448",
       "repo": "tpt-mobile",
-      "authorId": "c-elena",
-      "teamKey": "DARK",
+      "authorId": "c-samira",
+      "teamKey": "AVENGERS",
       "sprintId": "27",
-      "openedAt": "2026-09-03T14:22:00.000Z",
-      "firstReviewAt": "2026-09-06T00:15:24.121Z",
-      "mergedAt": "2026-09-08T16:20:00.000Z",
+      "openedAt": "2026-09-08T16:21:00.000Z",
+      "firstReviewAt": "2026-09-10T05:07:40.806Z",
+      "mergedAt": "2026-09-10T13:56:00.000Z",
       "reviewerIds": [
-        "c-devon"
+        "c-jordan"
       ],
-      "additions": 267,
-      "deletions": 143,
+      "additions": 435,
+      "deletions": 208,
       "attribution": "ai_assisted",
       "jiraKeys": [
         "TP-111"
@@ -329,33 +310,33 @@ export const TPT_PRODUCTIVITY_DERIVED = {
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-452",
-      "number": 452,
-      "title": "auth session refresh",
-      "url": "https://github.com/neoito/tpt-mobile/pull/452",
-      "repo": "tpt-mobile",
-      "authorId": "c-aisha",
-      "teamKey": "AVENGERS",
+      "id": "pr-tpt-450",
+      "number": 450,
+      "title": "wire observability alerts",
+      "url": "https://github.com/neoito/tpt-platform/pull/450",
+      "repo": "tpt-platform",
+      "authorId": "c-riley",
+      "teamKey": "MOBILE",
       "sprintId": "27",
-      "openedAt": "2026-09-06T12:23:00.000Z",
-      "firstReviewAt": "2026-09-06T13:23:00.000Z",
-      "mergedAt": "2026-09-06T11:28:00.000Z",
+      "openedAt": "2026-09-07T14:25:00.000Z",
+      "firstReviewAt": "2026-09-08T18:28:00.568Z",
+      "mergedAt": "2026-09-09T10:09:00.000Z",
       "reviewerIds": [
-        "c-jordan"
+        "c-casey"
       ],
-      "additions": 492,
-      "deletions": 133,
-      "attribution": "ai_assisted",
+      "additions": 23,
+      "deletions": 13,
+      "attribution": "human_only",
       "jiraKeys": [
         "TP-112"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-453",
-      "number": 453,
+      "id": "pr-tpt-451",
+      "number": 451,
       "title": "batch Jira sync deltas",
-      "url": "https://github.com/neoito/tpt-mobile/pull/453",
+      "url": "https://github.com/neoito/tpt-mobile/pull/451",
       "repo": "tpt-mobile",
       "authorId": "c-jordan",
       "teamKey": "AVENGERS",
@@ -375,46 +356,70 @@ export const TPT_PRODUCTIVITY_DERIVED = {
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-455",
-      "number": 455,
-      "title": "document release checklist",
-      "url": "https://github.com/neoito/tpt-platform/pull/455",
-      "repo": "tpt-platform",
-      "authorId": "c-devon",
-      "teamKey": "DARK",
+      "id": "pr-tpt-453",
+      "number": 453,
+      "title": "auth session refresh",
+      "url": "https://github.com/neoito/tpt-mobile/pull/453",
+      "repo": "tpt-mobile",
+      "authorId": "c-samira",
+      "teamKey": "AVENGERS",
       "sprintId": "27",
-      "openedAt": "2026-09-01T13:50:00.000Z",
-      "firstReviewAt": "2026-09-03T21:49:14.061Z",
-      "mergedAt": "2026-09-06T10:58:00.000Z",
+      "openedAt": "2026-09-04T15:49:00.000Z",
+      "firstReviewAt": "2026-09-04T16:49:00.000Z",
+      "mergedAt": "2026-09-04T17:35:00.000Z",
       "reviewerIds": [
-        "c-priya"
+        "c-aisha",
+        "c-jordan"
       ],
-      "additions": 107,
-      "deletions": 59,
+      "additions": 177,
+      "deletions": 26,
       "attribution": "human_only",
       "jiraKeys": [
-        "TP-114",
+        "TP-114"
+      ],
+      "unreviewed": false
+    },
+    {
+      "id": "pr-tpt-456",
+      "number": 456,
+      "title": "harden rate limiter",
+      "url": "https://github.com/neoito/tpt-mobile/pull/456",
+      "repo": "tpt-mobile",
+      "authorId": "c-aisha",
+      "teamKey": "AVENGERS",
+      "sprintId": "27",
+      "openedAt": "2026-09-03T11:21:00.000Z",
+      "firstReviewAt": "2026-09-03T13:32:44.363Z",
+      "mergedAt": "2026-09-06T15:03:00.000Z",
+      "reviewerIds": [
+        "c-samira",
+        "c-jordan"
+      ],
+      "additions": 264,
+      "deletions": 37,
+      "attribution": "ai_assisted",
+      "jiraKeys": [
         "TP-115"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-457",
-      "number": 457,
-      "title": "auth session refresh",
-      "url": "https://github.com/neoito/tpt-platform/pull/457",
+      "id": "pr-tpt-458",
+      "number": 458,
+      "title": "add empty-state illustration",
+      "url": "https://github.com/neoito/tpt-platform/pull/458",
       "repo": "tpt-platform",
-      "authorId": "c-jordan",
-      "teamKey": "AVENGERS",
+      "authorId": "c-riley",
+      "teamKey": "MOBILE",
       "sprintId": "27",
-      "openedAt": "2026-09-05T16:44:00.000Z",
-      "firstReviewAt": "2026-09-07T10:15:01.283Z",
-      "mergedAt": "2026-09-09T12:22:00.000Z",
+      "openedAt": "2026-08-31T16:06:00.000Z",
+      "firstReviewAt": "2026-08-31T22:19:21.628Z",
+      "mergedAt": "2026-09-01T10:10:00.000Z",
       "reviewerIds": [
-        "c-samira"
+        "c-casey"
       ],
-      "additions": 481,
-      "deletions": 2,
+      "additions": 145,
+      "deletions": 74,
       "attribution": "ai_assisted",
       "jiraKeys": [
         "TP-116"
@@ -422,66 +427,68 @@ export const TPT_PRODUCTIVITY_DERIVED = {
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-458",
-      "number": 458,
-      "title": "batch Jira sync deltas",
-      "url": "https://github.com/neoito/tpt-platform/pull/458",
-      "repo": "tpt-platform",
-      "authorId": "c-devon",
+      "id": "pr-tpt-459",
+      "number": 459,
+      "title": "fix mobile deep link",
+      "url": "https://github.com/neoito/tpt-mobile/pull/459",
+      "repo": "tpt-mobile",
+      "authorId": "c-priya",
       "teamKey": "DARK",
       "sprintId": "27",
-      "openedAt": "2026-09-02T14:27:00.000Z",
-      "firstReviewAt": "2026-09-03T00:32:13.982Z",
-      "mergedAt": "2026-09-05T15:11:00.000Z",
+      "openedAt": "2026-09-01T16:54:00.000Z",
+      "firstReviewAt": "2026-09-04T04:54:37.375Z",
+      "mergedAt": "2026-09-04T17:40:00.000Z",
       "reviewerIds": [
-        "c-priya"
+        "c-elena"
       ],
-      "additions": 45,
-      "deletions": 4,
-      "attribution": "human_only",
+      "additions": 335,
+      "deletions": 33,
+      "attribution": "ai_assisted",
       "jiraKeys": [
         "TP-117"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-460",
-      "number": 460,
-      "title": "harden rate limiter",
-      "url": "https://github.com/neoito/tpt-mobile/pull/460",
-      "repo": "tpt-mobile",
-      "authorId": "c-jordan",
-      "teamKey": "AVENGERS",
+      "id": "pr-tpt-461",
+      "number": 461,
+      "title": "migrate feature flags",
+      "url": "https://github.com/neoito/tpt-platform/pull/461",
+      "repo": "tpt-platform",
+      "authorId": "c-devon",
+      "teamKey": "DARK",
       "sprintId": "27",
-      "openedAt": "2026-09-02T15:45:00.000Z",
-      "firstReviewAt": null,
-      "mergedAt": "2026-09-06T12:43:00.000Z",
-      "reviewerIds": [],
-      "additions": 117,
-      "deletions": 66,
-      "attribution": "ai_generated",
+      "openedAt": "2026-08-31T10:55:00.000Z",
+      "firstReviewAt": "2026-09-01T08:29:27.097Z",
+      "mergedAt": "2026-09-05T15:39:00.000Z",
+      "reviewerIds": [
+        "c-elena"
+      ],
+      "additions": 311,
+      "deletions": 80,
+      "attribution": "human_only",
       "jiraKeys": [
         "TP-118"
       ],
-      "unreviewed": true
+      "unreviewed": false
     },
     {
       "id": "pr-tpt-462",
       "number": 462,
-      "title": "surface unmatched activity",
+      "title": "align sprint filter chrome",
       "url": "https://github.com/neoito/tpt-mobile/pull/462",
       "repo": "tpt-mobile",
-      "authorId": "c-priya",
-      "teamKey": "DARK",
+      "authorId": "c-casey",
+      "teamKey": "MOBILE",
       "sprintId": "27",
-      "openedAt": "2026-09-01T13:42:00.000Z",
-      "firstReviewAt": "2026-09-02T20:55:28.665Z",
-      "mergedAt": "2026-09-06T15:10:00.000Z",
+      "openedAt": "2026-09-05T12:06:00.000Z",
+      "firstReviewAt": "2026-09-06T08:31:54.353Z",
+      "mergedAt": "2026-09-09T11:42:00.000Z",
       "reviewerIds": [
-        "c-devon"
+        "c-riley"
       ],
-      "additions": 287,
-      "deletions": 9,
+      "additions": 282,
+      "deletions": 98,
       "attribution": "human_only",
       "jiraKeys": [
         "TP-119"
@@ -491,115 +498,116 @@ export const TPT_PRODUCTIVITY_DERIVED = {
     {
       "id": "pr-tpt-463",
       "number": 463,
-      "title": "support dark mode tokens",
+      "title": "upgrade prisma client",
       "url": "https://github.com/neoito/tpt-platform/pull/463",
       "repo": "tpt-platform",
-      "authorId": "c-riley",
-      "teamKey": "MOBILE",
+      "authorId": "c-devon",
+      "teamKey": "DARK",
       "sprintId": "27",
-      "openedAt": "2026-09-04T12:33:00.000Z",
-      "firstReviewAt": "2026-09-07T08:53:10.415Z",
-      "mergedAt": "2026-09-07T12:36:00.000Z",
+      "openedAt": "2026-09-05T09:42:00.000Z",
+      "firstReviewAt": "2026-09-07T01:44:14.579Z",
+      "mergedAt": "2026-09-09T11:15:00.000Z",
       "reviewerIds": [
-        "c-casey"
+        "c-elena"
       ],
-      "additions": 394,
-      "deletions": 172,
-      "attribution": "ai_assisted",
+      "additions": 462,
+      "deletions": 136,
+      "attribution": "human_only",
       "jiraKeys": [
         "TP-120"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-465",
-      "number": 465,
-      "title": "wire observability alerts",
-      "url": "https://github.com/neoito/tpt-platform/pull/465",
-      "repo": "tpt-platform",
-      "authorId": "c-alex",
-      "teamKey": "APEX",
+      "id": "pr-tpt-464",
+      "number": 464,
+      "title": "reduce flaky e2e waits",
+      "url": "https://github.com/neoito/tpt-mobile/pull/464",
+      "repo": "tpt-mobile",
+      "authorId": "c-samira",
+      "teamKey": "AVENGERS",
       "sprintId": "27",
-      "openedAt": "2026-09-06T16:10:00.000Z",
-      "firstReviewAt": "2026-09-08T19:55:21.858Z",
-      "mergedAt": "2026-09-10T16:15:00.000Z",
+      "openedAt": "2026-09-07T11:18:00.000Z",
+      "firstReviewAt": "2026-09-08T11:53:21.492Z",
+      "mergedAt": "2026-09-09T13:21:00.000Z",
       "reviewerIds": [
-        "c-noah"
+        "c-jordan"
       ],
-      "additions": 154,
-      "deletions": 44,
-      "attribution": "ai_assisted",
+      "additions": 408,
+      "deletions": 119,
+      "attribution": "human_only",
       "jiraKeys": [
         "TP-121"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-468",
-      "number": 468,
-      "title": "improve checkout validation",
-      "url": "https://github.com/neoito/tpt-mobile/pull/468",
-      "repo": "tpt-mobile",
-      "authorId": "c-casey",
-      "teamKey": "MOBILE",
+      "id": "pr-tpt-467",
+      "number": 467,
+      "title": "align sprint filter chrome",
+      "url": "https://github.com/neoito/tpt-platform/pull/467",
+      "repo": "tpt-platform",
+      "authorId": "c-morgan",
+      "teamKey": "APEX",
       "sprintId": "27",
-      "openedAt": "2026-09-01T11:51:00.000Z",
-      "firstReviewAt": "2026-09-01T15:58:00.000Z",
-      "mergedAt": "2026-09-01T16:58:00.000Z",
+      "openedAt": "2026-09-07T15:07:00.000Z",
+      "firstReviewAt": "2026-09-08T13:19:00.000Z",
+      "mergedAt": "2026-09-08T14:19:00.000Z",
       "reviewerIds": [
-        "c-riley"
+        "c-noah"
       ],
-      "additions": 74,
-      "deletions": 18,
-      "attribution": "ai_generated",
+      "additions": 236,
+      "deletions": 76,
+      "attribution": "ai_assisted",
       "jiraKeys": [
         "TP-122"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-469",
-      "number": 469,
-      "title": "reduce flaky e2e waits",
-      "url": "https://github.com/neoito/tpt-platform/pull/469",
-      "repo": "tpt-platform",
-      "authorId": "c-alex",
-      "teamKey": "APEX",
+      "id": "pr-tpt-468",
+      "number": 468,
+      "title": "align sprint filter chrome",
+      "url": "https://github.com/neoito/tpt-mobile/pull/468",
+      "repo": "tpt-mobile",
+      "authorId": "c-samira",
+      "teamKey": "AVENGERS",
       "sprintId": "27",
-      "openedAt": "2026-09-02T12:21:00.000Z",
-      "firstReviewAt": "2026-09-02T23:56:13.227Z",
-      "mergedAt": "2026-09-03T11:58:00.000Z",
+      "openedAt": "2026-09-07T14:13:00.000Z",
+      "firstReviewAt": "2026-09-08T00:52:12.208Z",
+      "mergedAt": "2026-09-10T11:10:00.000Z",
       "reviewerIds": [
-        "c-morgan"
+        "c-aisha",
+        "c-jordan"
       ],
-      "additions": 162,
-      "deletions": 97,
-      "attribution": "ai_assisted",
+      "additions": 234,
+      "deletions": 71,
+      "attribution": "human_only",
       "jiraKeys": [
-        "TP-123"
+        "TP-123",
+        "TP-124"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-472",
-      "number": 472,
-      "title": "split large dashboard query",
-      "url": "https://github.com/neoito/tpt-platform/pull/472",
+      "id": "pr-tpt-471",
+      "number": 471,
+      "title": "auth session refresh",
+      "url": "https://github.com/neoito/tpt-platform/pull/471",
       "repo": "tpt-platform",
-      "authorId": "c-noah",
+      "authorId": "c-morgan",
       "teamKey": "APEX",
       "sprintId": "27",
-      "openedAt": "2026-09-01T10:30:00.000Z",
-      "firstReviewAt": "2026-09-03T02:06:26.257Z",
-      "mergedAt": "2026-09-03T17:46:00.000Z",
+      "openedAt": "2026-09-08T14:00:00.000Z",
+      "firstReviewAt": "2026-09-08T15:00:00.000Z",
+      "mergedAt": "2026-09-08T11:37:00.000Z",
       "reviewerIds": [
         "c-alex"
       ],
-      "additions": 358,
-      "deletions": 205,
+      "additions": 283,
+      "deletions": 103,
       "attribution": "human_only",
       "jiraKeys": [
-        "TP-124",
         "TP-125"
       ],
       "unreviewed": false
@@ -607,248 +615,224 @@ export const TPT_PRODUCTIVITY_DERIVED = {
     {
       "id": "pr-tpt-473",
       "number": 473,
-      "title": "add sprint burndown API",
-      "url": "https://github.com/neoito/tpt-platform/pull/473",
-      "repo": "tpt-platform",
-      "authorId": "c-aisha",
-      "teamKey": "AVENGERS",
+      "title": "surface unmatched activity",
+      "url": "https://github.com/neoito/tpt-mobile/pull/473",
+      "repo": "tpt-mobile",
+      "authorId": "c-elena",
+      "teamKey": "DARK",
       "sprintId": "27",
-      "openedAt": "2026-09-05T10:49:00.000Z",
+      "openedAt": "2026-08-31T09:41:00.000Z",
       "firstReviewAt": null,
-      "mergedAt": "2026-09-06T11:32:00.000Z",
+      "mergedAt": "2026-09-05T14:32:00.000Z",
       "reviewerIds": [],
-      "additions": 335,
-      "deletions": 24,
-      "attribution": "human_only",
+      "additions": 431,
+      "deletions": 30,
+      "attribution": "ai_assisted",
       "jiraKeys": [
         "TP-126"
       ],
       "unreviewed": true
     },
     {
-      "id": "pr-tpt-476",
-      "number": 476,
-      "title": "harden rate limiter",
-      "url": "https://github.com/neoito/tpt-mobile/pull/476",
-      "repo": "tpt-mobile",
+      "id": "pr-tpt-475",
+      "number": 475,
+      "title": "batch Jira sync deltas",
+      "url": "https://github.com/neoito/tpt-platform/pull/475",
+      "repo": "tpt-platform",
       "authorId": "c-jordan",
       "teamKey": "AVENGERS",
       "sprintId": "27",
-      "openedAt": "2026-09-08T15:14:00.000Z",
-      "firstReviewAt": "2026-09-09T10:22:03.235Z",
-      "mergedAt": "2026-09-10T15:22:00.000Z",
+      "openedAt": "2026-09-05T09:50:00.000Z",
+      "firstReviewAt": "2026-09-07T06:29:44.714Z",
+      "mergedAt": "2026-09-09T10:48:00.000Z",
       "reviewerIds": [
-        "c-samira",
-        "c-aisha"
+        "c-samira"
       ],
-      "additions": 374,
-      "deletions": 103,
-      "attribution": "human_only",
+      "additions": 314,
+      "deletions": 99,
+      "attribution": "ai_assisted",
       "jiraKeys": [
         "TP-127"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-479",
-      "number": 479,
-      "title": "add sprint burndown API",
-      "url": "https://github.com/neoito/tpt-mobile/pull/479",
-      "repo": "tpt-mobile",
-      "authorId": "c-alex",
-      "teamKey": "APEX",
+      "id": "pr-tpt-476",
+      "number": 476,
+      "title": "improve checkout validation",
+      "url": "https://github.com/neoito/tpt-platform/pull/476",
+      "repo": "tpt-platform",
+      "authorId": "c-riley",
+      "teamKey": "MOBILE",
       "sprintId": "27",
-      "openedAt": "2026-08-31T09:43:00.000Z",
-      "firstReviewAt": "2026-08-31T16:04:00.000Z",
-      "mergedAt": "2026-08-31T17:04:00.000Z",
+      "openedAt": "2026-09-06T12:18:00.000Z",
+      "firstReviewAt": "2026-09-07T09:03:13.977Z",
+      "mergedAt": "2026-09-10T14:04:00.000Z",
       "reviewerIds": [
-        "c-noah"
+        "c-casey"
       ],
-      "additions": 44,
-      "deletions": 14,
-      "attribution": "ai_generated",
+      "additions": 355,
+      "deletions": 30,
+      "attribution": "ai_assisted",
       "jiraKeys": [
         "TP-128"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-480",
-      "number": 480,
-      "title": "fix mobile deep link",
-      "url": "https://github.com/neoito/tpt-mobile/pull/480",
+      "id": "pr-tpt-477",
+      "number": 477,
+      "title": "wire observability alerts",
+      "url": "https://github.com/neoito/tpt-mobile/pull/477",
       "repo": "tpt-mobile",
-      "authorId": "c-riley",
-      "teamKey": "MOBILE",
+      "authorId": "c-priya",
+      "teamKey": "DARK",
       "sprintId": "27",
-      "openedAt": "2026-09-07T09:04:00.000Z",
-      "firstReviewAt": "2026-09-09T08:22:59.228Z",
-      "mergedAt": "2026-09-10T10:50:00.000Z",
+      "openedAt": "2026-09-03T16:48:00.000Z",
+      "firstReviewAt": "2026-09-05T04:07:44.195Z",
+      "mergedAt": "2026-09-06T13:06:00.000Z",
       "reviewerIds": [
-        "c-casey"
+        "c-elena"
       ],
-      "additions": 399,
-      "deletions": 22,
-      "attribution": "ai_assisted",
+      "additions": 481,
+      "deletions": 211,
+      "attribution": "ai_generated",
       "jiraKeys": [
         "TP-129"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-483",
-      "number": 483,
-      "title": "reduce flaky e2e waits",
-      "url": "https://github.com/neoito/tpt-mobile/pull/483",
+      "id": "pr-tpt-479",
+      "number": 479,
+      "title": "add empty-state illustration",
+      "url": "https://github.com/neoito/tpt-mobile/pull/479",
       "repo": "tpt-mobile",
-      "authorId": "c-casey",
-      "teamKey": "MOBILE",
+      "authorId": "c-samira",
+      "teamKey": "AVENGERS",
       "sprintId": "27",
-      "openedAt": "2026-09-01T15:30:00.000Z",
-      "firstReviewAt": "2026-09-04T07:35:53.603Z",
-      "mergedAt": "2026-09-04T15:22:00.000Z",
+      "openedAt": "2026-09-02T09:11:00.000Z",
+      "firstReviewAt": "2026-09-03T09:21:03.848Z",
+      "mergedAt": "2026-09-04T17:05:00.000Z",
       "reviewerIds": [
-        "c-riley"
+        "c-aisha"
       ],
-      "additions": 70,
-      "deletions": 13,
-      "attribution": "ai_assisted",
+      "additions": 370,
+      "deletions": 144,
+      "attribution": "human_only",
       "jiraKeys": [
-        "TP-130",
-        "TP-131"
+        "TP-130"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-486",
-      "number": 486,
-      "title": "split large dashboard query",
-      "url": "https://github.com/neoito/tpt-platform/pull/486",
-      "repo": "tpt-platform",
-      "authorId": "c-devon",
-      "teamKey": "DARK",
+      "id": "pr-tpt-480",
+      "number": 480,
+      "title": "cleanup dead feature flags",
+      "url": "https://github.com/neoito/tpt-mobile/pull/480",
+      "repo": "tpt-mobile",
+      "authorId": "c-aisha",
+      "teamKey": "AVENGERS",
       "sprintId": "27",
-      "openedAt": "2026-09-01T12:37:00.000Z",
-      "firstReviewAt": "2026-09-01T13:37:00.000Z",
-      "mergedAt": "2026-09-01T13:23:00.000Z",
-      "reviewerIds": [
-        "c-priya"
-      ],
-      "additions": 255,
-      "deletions": 49,
-      "attribution": "ai_assisted",
+      "openedAt": "2026-09-05T14:14:00.000Z",
+      "firstReviewAt": null,
+      "mergedAt": "2026-09-09T13:00:00.000Z",
+      "reviewerIds": [],
+      "additions": 355,
+      "deletions": 162,
+      "attribution": "ai_generated",
       "jiraKeys": [
+        "TP-131",
         "TP-132"
       ],
-      "unreviewed": false
+      "unreviewed": true
     },
     {
-      "id": "pr-tpt-487",
-      "number": 487,
-      "title": "batch Jira sync deltas",
-      "url": "https://github.com/neoito/tpt-mobile/pull/487",
+      "id": "pr-tpt-481",
+      "number": 481,
+      "title": "tighten CORS allowlist",
+      "url": "https://github.com/neoito/tpt-mobile/pull/481",
       "repo": "tpt-mobile",
-      "authorId": "c-casey",
-      "teamKey": "MOBILE",
+      "authorId": "c-morgan",
+      "teamKey": "APEX",
       "sprintId": "27",
-      "openedAt": "2026-09-08T13:30:00.000Z",
-      "firstReviewAt": "2026-09-10T14:07:00.000Z",
-      "mergedAt": "2026-09-10T15:07:00.000Z",
+      "openedAt": "2026-09-08T13:28:00.000Z",
+      "firstReviewAt": "2026-09-10T09:37:00.000Z",
+      "mergedAt": "2026-09-10T10:37:00.000Z",
       "reviewerIds": [
-        "c-riley"
+        "c-noah",
+        "c-alex"
       ],
-      "additions": 62,
-      "deletions": 10,
+      "additions": 77,
+      "deletions": 41,
       "attribution": "human_only",
       "jiraKeys": [
-        "TP-133"
-      ],
-      "unreviewed": false
-    },
-    {
-      "id": "pr-tpt-489",
-      "number": 489,
-      "title": "reduce flaky e2e waits",
-      "url": "https://github.com/neoito/tpt-mobile/pull/489",
-      "repo": "tpt-mobile",
-      "authorId": "c-casey",
-      "teamKey": "MOBILE",
-      "sprintId": "26",
-      "openedAt": "2026-08-22T09:42:00.000Z",
-      "firstReviewAt": "2026-08-24T14:19:28.600Z",
-      "mergedAt": "2026-08-27T17:28:00.000Z",
-      "reviewerIds": [
-        "c-riley"
-      ],
-      "additions": 222,
-      "deletions": 1,
-      "attribution": "human_only",
-      "jiraKeys": [
+        "TP-133",
         "TP-134"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-491",
-      "number": 491,
-      "title": "fix payment webhook retry",
-      "url": "https://github.com/neoito/tpt-mobile/pull/491",
+      "id": "pr-tpt-482",
+      "number": 482,
+      "title": "reduce flaky e2e waits",
+      "url": "https://github.com/neoito/tpt-mobile/pull/482",
       "repo": "tpt-mobile",
-      "authorId": "c-noah",
-      "teamKey": "APEX",
+      "authorId": "c-casey",
+      "teamKey": "MOBILE",
       "sprintId": "26",
-      "openedAt": "2026-08-21T15:11:00.000Z",
-      "firstReviewAt": "2026-08-21T22:17:58.157Z",
-      "mergedAt": "2026-08-23T14:21:00.000Z",
-      "reviewerIds": [
-        "c-alex"
-      ],
-      "additions": 317,
-      "deletions": 170,
-      "attribution": "human_only",
+      "openedAt": "2026-08-25T11:29:00.000Z",
+      "firstReviewAt": null,
+      "mergedAt": "2026-08-28T14:48:00.000Z",
+      "reviewerIds": [],
+      "additions": 208,
+      "deletions": 48,
+      "attribution": "ai_assisted",
       "jiraKeys": [
         "TP-135"
-      ],
-      "unreviewed": false
-    },
-    {
-      "id": "pr-tpt-492",
-      "number": 492,
-      "title": "reduce flaky e2e waits",
-      "url": "https://github.com/neoito/tpt-platform/pull/492",
-      "repo": "tpt-platform",
-      "authorId": "c-morgan",
-      "teamKey": "APEX",
-      "sprintId": "26",
-      "openedAt": "2026-08-25T09:53:00.000Z",
-      "firstReviewAt": null,
-      "mergedAt": "2026-08-26T17:32:00.000Z",
-      "reviewerIds": [],
-      "additions": 231,
-      "deletions": 104,
-      "attribution": "ai_generated",
-      "jiraKeys": [
-        "TP-136"
       ],
       "unreviewed": true
     },
     {
-      "id": "pr-tpt-495",
-      "number": 495,
-      "title": "split large dashboard query",
-      "url": "https://github.com/neoito/tpt-mobile/pull/495",
+      "id": "pr-tpt-485",
+      "number": 485,
+      "title": "wire observability alerts",
+      "url": "https://github.com/neoito/tpt-mobile/pull/485",
       "repo": "tpt-mobile",
-      "authorId": "c-devon",
+      "authorId": "c-priya",
       "teamKey": "DARK",
       "sprintId": "26",
-      "openedAt": "2026-08-24T09:17:00.000Z",
-      "firstReviewAt": "2026-08-25T20:50:03.287Z",
-      "mergedAt": "2026-08-26T13:49:00.000Z",
+      "openedAt": "2026-08-25T12:08:00.000Z",
+      "firstReviewAt": "2026-08-25T23:03:48.359Z",
+      "mergedAt": "2026-08-28T16:21:00.000Z",
       "reviewerIds": [
-        "c-priya"
+        "c-devon"
       ],
-      "additions": 450,
-      "deletions": 117,
+      "additions": 120,
+      "deletions": 35,
+      "attribution": "ai_generated",
+      "jiraKeys": [
+        "TP-136"
+      ],
+      "unreviewed": false
+    },
+    {
+      "id": "pr-tpt-488",
+      "number": 488,
+      "title": "fix payment webhook retry",
+      "url": "https://github.com/neoito/tpt-mobile/pull/488",
+      "repo": "tpt-mobile",
+      "authorId": "c-jordan",
+      "teamKey": "AVENGERS",
+      "sprintId": "26",
+      "openedAt": "2026-08-23T14:31:00.000Z",
+      "firstReviewAt": "2026-08-26T12:01:52.535Z",
+      "mergedAt": "2026-08-28T12:23:00.000Z",
+      "reviewerIds": [
+        "c-samira"
+      ],
+      "additions": 190,
+      "deletions": 45,
       "attribution": "human_only",
       "jiraKeys": [
         "TP-137"
@@ -856,46 +840,45 @@ export const TPT_PRODUCTIVITY_DERIVED = {
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-497",
-      "number": 497,
-      "title": "cleanup dead feature flags",
-      "url": "https://github.com/neoito/tpt-mobile/pull/497",
+      "id": "pr-tpt-490",
+      "number": 490,
+      "title": "reduce flaky e2e waits",
+      "url": "https://github.com/neoito/tpt-mobile/pull/490",
       "repo": "tpt-mobile",
-      "authorId": "c-casey",
-      "teamKey": "MOBILE",
+      "authorId": "c-noah",
+      "teamKey": "APEX",
       "sprintId": "26",
-      "openedAt": "2026-08-23T13:08:00.000Z",
-      "firstReviewAt": "2026-08-24T10:29:00.000Z",
-      "mergedAt": "2026-08-24T11:29:00.000Z",
+      "openedAt": "2026-08-19T14:06:00.000Z",
+      "firstReviewAt": "2026-08-19T15:06:00.000Z",
+      "mergedAt": "2026-08-19T12:18:00.000Z",
       "reviewerIds": [
-        "c-riley"
+        "c-morgan"
       ],
-      "additions": 61,
-      "deletions": 25,
-      "attribution": "ai_assisted",
+      "additions": 454,
+      "deletions": 69,
+      "attribution": "human_only",
       "jiraKeys": [
         "TP-138"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-499",
-      "number": 499,
-      "title": "fix payment webhook retry",
-      "url": "https://github.com/neoito/tpt-platform/pull/499",
+      "id": "pr-tpt-491",
+      "number": 491,
+      "title": "reduce flaky e2e waits",
+      "url": "https://github.com/neoito/tpt-platform/pull/491",
       "repo": "tpt-platform",
-      "authorId": "c-morgan",
-      "teamKey": "APEX",
+      "authorId": "c-aisha",
+      "teamKey": "AVENGERS",
       "sprintId": "26",
-      "openedAt": "2026-08-23T15:43:00.000Z",
-      "firstReviewAt": "2026-08-25T06:07:12.008Z",
-      "mergedAt": "2026-08-25T17:21:00.000Z",
+      "openedAt": "2026-08-18T11:39:00.000Z",
+      "firstReviewAt": "2026-08-19T22:38:51.287Z",
+      "mergedAt": "2026-08-22T17:23:00.000Z",
       "reviewerIds": [
-        "c-noah",
-        "c-alex"
+        "c-jordan"
       ],
-      "additions": 138,
-      "deletions": 59,
+      "additions": 118,
+      "deletions": 1,
       "attribution": "human_only",
       "jiraKeys": [
         "TP-139"
@@ -903,101 +886,57 @@ export const TPT_PRODUCTIVITY_DERIVED = {
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-500",
-      "number": 500,
-      "title": "split large dashboard query",
-      "url": "https://github.com/neoito/tpt-platform/pull/500",
+      "id": "pr-tpt-493",
+      "number": 493,
+      "title": "add empty-state illustration",
+      "url": "https://github.com/neoito/tpt-platform/pull/493",
       "repo": "tpt-platform",
-      "authorId": "c-elena",
+      "authorId": "c-priya",
       "teamKey": "DARK",
       "sprintId": "26",
-      "openedAt": "2026-08-20T14:56:00.000Z",
-      "firstReviewAt": null,
-      "mergedAt": "2026-08-21T17:15:00.000Z",
-      "reviewerIds": [],
-      "additions": 465,
-      "deletions": 146,
-      "attribution": "human_only",
+      "openedAt": "2026-08-23T15:22:00.000Z",
+      "firstReviewAt": "2026-08-24T13:10:54.087Z",
+      "mergedAt": "2026-08-25T12:41:00.000Z",
+      "reviewerIds": [
+        "c-elena",
+        "c-devon"
+      ],
+      "additions": 35,
+      "deletions": 5,
+      "attribution": "ai_assisted",
       "jiraKeys": [
         "TP-140"
       ],
-      "unreviewed": true
+      "unreviewed": false
     },
     {
-      "id": "pr-tpt-502",
-      "number": 502,
-      "title": "improve checkout validation",
-      "url": "https://github.com/neoito/tpt-platform/pull/502",
+      "id": "pr-tpt-496",
+      "number": 496,
+      "title": "cache inventory lookups",
+      "url": "https://github.com/neoito/tpt-platform/pull/496",
       "repo": "tpt-platform",
       "authorId": "c-riley",
       "teamKey": "MOBILE",
       "sprintId": "26",
-      "openedAt": "2026-08-23T16:23:00.000Z",
-      "firstReviewAt": "2026-08-24T00:02:55.689Z",
-      "mergedAt": "2026-08-24T10:46:00.000Z",
+      "openedAt": "2026-08-17T16:58:00.000Z",
+      "firstReviewAt": "2026-08-17T21:33:37.874Z",
+      "mergedAt": "2026-08-22T10:30:00.000Z",
       "reviewerIds": [
         "c-casey"
       ],
-      "additions": 153,
-      "deletions": 43,
-      "attribution": "ai_assisted",
+      "additions": 458,
+      "deletions": 140,
+      "attribution": "ai_generated",
       "jiraKeys": [
         "TP-141"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-505",
-      "number": 505,
+      "id": "pr-tpt-497",
+      "number": 497,
       "title": "wire observability alerts",
-      "url": "https://github.com/neoito/tpt-mobile/pull/505",
-      "repo": "tpt-mobile",
-      "authorId": "c-noah",
-      "teamKey": "APEX",
-      "sprintId": "26",
-      "openedAt": "2026-08-20T12:19:00.000Z",
-      "firstReviewAt": "2026-08-21T07:37:26.758Z",
-      "mergedAt": "2026-08-24T15:37:00.000Z",
-      "reviewerIds": [
-        "c-morgan",
-        "c-alex"
-      ],
-      "additions": 318,
-      "deletions": 137,
-      "attribution": "human_only",
-      "jiraKeys": [
-        "TP-142"
-      ],
-      "unreviewed": false
-    },
-    {
-      "id": "pr-tpt-508",
-      "number": 508,
-      "title": "cache inventory lookups",
-      "url": "https://github.com/neoito/tpt-mobile/pull/508",
-      "repo": "tpt-mobile",
-      "authorId": "c-jordan",
-      "teamKey": "AVENGERS",
-      "sprintId": "26",
-      "openedAt": "2026-08-25T16:59:00.000Z",
-      "firstReviewAt": "2026-08-25T17:59:00.000Z",
-      "mergedAt": "2026-08-25T14:49:00.000Z",
-      "reviewerIds": [
-        "c-samira"
-      ],
-      "additions": 265,
-      "deletions": 141,
-      "attribution": "human_only",
-      "jiraKeys": [
-        "TP-143"
-      ],
-      "unreviewed": false
-    },
-    {
-      "id": "pr-tpt-509",
-      "number": 509,
-      "title": "wire observability alerts",
-      "url": "https://github.com/neoito/tpt-platform/pull/509",
+      "url": "https://github.com/neoito/tpt-platform/pull/497",
       "repo": "tpt-platform",
       "authorId": "c-morgan",
       "teamKey": "APEX",
@@ -1010,177 +949,159 @@ export const TPT_PRODUCTIVITY_DERIVED = {
       "deletions": 21,
       "attribution": "human_only",
       "jiraKeys": [
-        "TP-144",
-        "TP-145"
+        "TP-142",
+        "TP-143"
       ],
       "unreviewed": true
     },
     {
-      "id": "pr-tpt-510",
-      "number": 510,
-      "title": "wire observability alerts",
-      "url": "https://github.com/neoito/tpt-mobile/pull/510",
+      "id": "pr-tpt-500",
+      "number": 500,
+      "title": "surface unmatched activity",
+      "url": "https://github.com/neoito/tpt-mobile/pull/500",
       "repo": "tpt-mobile",
-      "authorId": "c-samira",
-      "teamKey": "AVENGERS",
+      "authorId": "c-noah",
+      "teamKey": "APEX",
       "sprintId": "26",
-      "openedAt": "2026-08-19T15:34:00.000Z",
-      "firstReviewAt": "2026-08-20T01:26:06.208Z",
-      "mergedAt": "2026-08-22T10:06:00.000Z",
+      "openedAt": "2026-08-22T13:05:00.000Z",
+      "firstReviewAt": "2026-08-22T15:46:30.088Z",
+      "mergedAt": "2026-08-23T12:00:00.000Z",
       "reviewerIds": [
-        "c-aisha"
+        "c-alex",
+        "c-morgan"
       ],
-      "additions": 217,
-      "deletions": 1,
-      "attribution": "human_only",
+      "additions": 374,
+      "deletions": 156,
+      "attribution": "ai_assisted",
       "jiraKeys": [
+        "TP-144"
+      ],
+      "unreviewed": false
+    },
+    {
+      "id": "pr-tpt-503",
+      "number": 503,
+      "title": "reduce flaky e2e waits",
+      "url": "https://github.com/neoito/tpt-mobile/pull/503",
+      "repo": "tpt-mobile",
+      "authorId": "c-casey",
+      "teamKey": "MOBILE",
+      "sprintId": "26",
+      "openedAt": "2026-08-21T12:13:00.000Z",
+      "firstReviewAt": "2026-08-22T23:37:57.017Z",
+      "mergedAt": "2026-08-25T14:44:00.000Z",
+      "reviewerIds": [
+        "c-riley"
+      ],
+      "additions": 180,
+      "deletions": 14,
+      "attribution": "ai_generated",
+      "jiraKeys": [
+        "TP-145",
         "TP-146"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-511",
-      "number": 511,
-      "title": "add sprint burndown API",
-      "url": "https://github.com/neoito/tpt-platform/pull/511",
+      "id": "pr-tpt-506",
+      "number": 506,
+      "title": "improve checkout validation",
+      "url": "https://github.com/neoito/tpt-platform/pull/506",
       "repo": "tpt-platform",
       "authorId": "c-riley",
       "teamKey": "MOBILE",
       "sprintId": "26",
-      "openedAt": "2026-08-25T15:17:00.000Z",
-      "firstReviewAt": "2026-08-27T21:11:30.851Z",
-      "mergedAt": "2026-08-28T15:29:00.000Z",
+      "openedAt": "2026-08-17T16:32:00.000Z",
+      "firstReviewAt": "2026-08-17T20:31:05.076Z",
+      "mergedAt": "2026-08-22T14:56:00.000Z",
       "reviewerIds": [
         "c-casey"
       ],
-      "additions": 492,
-      "deletions": 239,
-      "attribution": "ai_assisted",
+      "additions": 351,
+      "deletions": 163,
+      "attribution": "human_only",
       "jiraKeys": [
         "TP-147"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-512",
-      "number": 512,
-      "title": "add empty-state illustration",
-      "url": "https://github.com/neoito/tpt-mobile/pull/512",
+      "id": "pr-tpt-507",
+      "number": 507,
+      "title": "improve checkout validation",
+      "url": "https://github.com/neoito/tpt-mobile/pull/507",
       "repo": "tpt-mobile",
-      "authorId": "c-samira",
-      "teamKey": "AVENGERS",
+      "authorId": "c-priya",
+      "teamKey": "DARK",
       "sprintId": "26",
-      "openedAt": "2026-08-25T11:35:00.000Z",
-      "firstReviewAt": "2026-08-25T12:35:00.000Z",
-      "mergedAt": "2026-08-25T11:30:00.000Z",
+      "openedAt": "2026-08-17T16:11:00.000Z",
+      "firstReviewAt": "2026-08-19T22:41:26.936Z",
+      "mergedAt": "2026-08-21T12:32:00.000Z",
       "reviewerIds": [
-        "c-aisha"
+        "c-elena"
       ],
-      "additions": 297,
-      "deletions": 166,
+      "additions": 444,
+      "deletions": 5,
       "attribution": "human_only",
       "jiraKeys": [
-        "TP-148",
-        "TP-149"
+        "TP-148"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-514",
-      "number": 514,
-      "title": "upgrade prisma client",
-      "url": "https://github.com/neoito/tpt-platform/pull/514",
+      "id": "pr-tpt-509",
+      "number": 509,
+      "title": "cleanup dead feature flags",
+      "url": "https://github.com/neoito/tpt-platform/pull/509",
       "repo": "tpt-platform",
-      "authorId": "c-jordan",
-      "teamKey": "AVENGERS",
+      "authorId": "c-morgan",
+      "teamKey": "APEX",
       "sprintId": "26",
-      "openedAt": "2026-08-23T15:08:00.000Z",
-      "firstReviewAt": null,
-      "mergedAt": "2026-08-24T11:38:00.000Z",
-      "reviewerIds": [],
-      "additions": 46,
-      "deletions": 24,
-      "attribution": "human_only",
+      "openedAt": "2026-08-21T14:25:00.000Z",
+      "firstReviewAt": "2026-08-21T15:25:00.000Z",
+      "mergedAt": "2026-08-21T12:01:00.000Z",
+      "reviewerIds": [
+        "c-noah",
+        "c-alex"
+      ],
+      "additions": 246,
+      "deletions": 144,
+      "attribution": "ai_assisted",
       "jiraKeys": [
+        "TP-149",
         "TP-150"
       ],
-      "unreviewed": true
+      "unreviewed": false
     },
     {
-      "id": "pr-tpt-515",
-      "number": 515,
-      "title": "support dark mode tokens",
-      "url": "https://github.com/neoito/tpt-platform/pull/515",
+      "id": "pr-tpt-511",
+      "number": 511,
+      "title": "document release checklist",
+      "url": "https://github.com/neoito/tpt-platform/pull/511",
       "repo": "tpt-platform",
       "authorId": "c-aisha",
       "teamKey": "AVENGERS",
       "sprintId": "26",
-      "openedAt": "2026-08-19T13:37:00.000Z",
-      "firstReviewAt": "2026-08-20T19:36:30.594Z",
-      "mergedAt": "2026-08-23T17:01:00.000Z",
+      "openedAt": "2026-08-20T13:26:00.000Z",
+      "firstReviewAt": "2026-08-22T15:15:00.000Z",
+      "mergedAt": "2026-08-22T16:15:00.000Z",
       "reviewerIds": [
-        "c-samira"
+        "c-jordan"
       ],
-      "additions": 198,
-      "deletions": 63,
+      "additions": 379,
+      "deletions": 147,
       "attribution": "ai_assisted",
       "jiraKeys": [
-        "TP-151"
-      ],
-      "unreviewed": false
-    },
-    {
-      "id": "pr-tpt-517",
-      "number": 517,
-      "title": "align sprint filter chrome",
-      "url": "https://github.com/neoito/tpt-mobile/pull/517",
-      "repo": "tpt-mobile",
-      "authorId": "c-jordan",
-      "teamKey": "AVENGERS",
-      "sprintId": "26",
-      "openedAt": "2026-08-23T14:13:00.000Z",
-      "firstReviewAt": "2026-08-25T05:42:08.336Z",
-      "mergedAt": "2026-08-28T11:00:00.000Z",
-      "reviewerIds": [
-        "c-aisha"
-      ],
-      "additions": 113,
-      "deletions": 8,
-      "attribution": "ai_assisted",
-      "jiraKeys": [
+        "TP-151",
         "TP-152"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-518",
-      "number": 518,
-      "title": "improve checkout validation",
-      "url": "https://github.com/neoito/tpt-mobile/pull/518",
-      "repo": "tpt-mobile",
-      "authorId": "c-devon",
-      "teamKey": "DARK",
-      "sprintId": "26",
-      "openedAt": "2026-08-20T12:51:00.000Z",
-      "firstReviewAt": "2026-08-21T10:28:00.000Z",
-      "mergedAt": "2026-08-21T11:28:00.000Z",
-      "reviewerIds": [
-        "c-elena"
-      ],
-      "additions": 314,
-      "deletions": 60,
-      "attribution": "human_only",
-      "jiraKeys": [
-        "TP-153",
-        "TP-154"
-      ],
-      "unreviewed": false
-    },
-    {
-      "id": "pr-tpt-519",
-      "number": 519,
+      "id": "pr-tpt-512",
+      "number": 512,
       "title": "tighten CORS allowlist",
-      "url": "https://github.com/neoito/tpt-platform/pull/519",
+      "url": "https://github.com/neoito/tpt-platform/pull/512",
       "repo": "tpt-platform",
       "authorId": "c-aisha",
       "teamKey": "AVENGERS",
@@ -1195,500 +1116,474 @@ export const TPT_PRODUCTIVITY_DERIVED = {
       "deletions": 26,
       "attribution": "ai_generated",
       "jiraKeys": [
-        "TP-155"
+        "TP-153"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-521",
-      "number": 521,
-      "title": "add empty-state illustration",
-      "url": "https://github.com/neoito/tpt-platform/pull/521",
+      "id": "pr-tpt-514",
+      "number": 514,
+      "title": "migrate feature flags",
+      "url": "https://github.com/neoito/tpt-platform/pull/514",
       "repo": "tpt-platform",
-      "authorId": "c-elena",
-      "teamKey": "DARK",
+      "authorId": "c-noah",
+      "teamKey": "APEX",
       "sprintId": "26",
-      "openedAt": "2026-08-24T16:05:00.000Z",
-      "firstReviewAt": "2026-08-25T07:59:54.547Z",
-      "mergedAt": "2026-08-26T10:32:00.000Z",
+      "openedAt": "2026-08-25T09:23:00.000Z",
+      "firstReviewAt": "2026-08-25T13:55:00.000Z",
+      "mergedAt": "2026-08-25T14:55:00.000Z",
       "reviewerIds": [
-        "c-devon"
+        "c-alex"
       ],
-      "additions": 371,
-      "deletions": 171,
+      "additions": 390,
+      "deletions": 182,
       "attribution": "ai_assisted",
       "jiraKeys": [
-        "TP-156",
+        "TP-154"
+      ],
+      "unreviewed": false
+    },
+    {
+      "id": "pr-tpt-517",
+      "number": 517,
+      "title": "fix mobile deep link",
+      "url": "https://github.com/neoito/tpt-platform/pull/517",
+      "repo": "tpt-platform",
+      "authorId": "c-jordan",
+      "teamKey": "AVENGERS",
+      "sprintId": "26",
+      "openedAt": "2026-08-18T09:50:00.000Z",
+      "firstReviewAt": "2026-08-19T16:24:46.191Z",
+      "mergedAt": "2026-08-22T11:38:00.000Z",
+      "reviewerIds": [
+        "c-samira"
+      ],
+      "additions": 396,
+      "deletions": 60,
+      "attribution": "ai_assisted",
+      "jiraKeys": [
+        "TP-155",
+        "TP-156"
+      ],
+      "unreviewed": false
+    },
+    {
+      "id": "pr-tpt-519",
+      "number": 519,
+      "title": "upgrade prisma client",
+      "url": "https://github.com/neoito/tpt-platform/pull/519",
+      "repo": "tpt-platform",
+      "authorId": "c-casey",
+      "teamKey": "MOBILE",
+      "sprintId": "26",
+      "openedAt": "2026-08-18T09:31:00.000Z",
+      "firstReviewAt": "2026-08-19T03:06:50.328Z",
+      "mergedAt": "2026-08-20T15:00:00.000Z",
+      "reviewerIds": [
+        "c-riley"
+      ],
+      "additions": 64,
+      "deletions": 14,
+      "attribution": "ai_assisted",
+      "jiraKeys": [
         "TP-157"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-523",
-      "number": 523,
+      "id": "pr-tpt-520",
+      "number": 520,
       "title": "reduce flaky e2e waits",
-      "url": "https://github.com/neoito/tpt-mobile/pull/523",
-      "repo": "tpt-mobile",
-      "authorId": "c-casey",
-      "teamKey": "MOBILE",
+      "url": "https://github.com/neoito/tpt-platform/pull/520",
+      "repo": "tpt-platform",
+      "authorId": "c-devon",
+      "teamKey": "DARK",
       "sprintId": "26",
-      "openedAt": "2026-08-23T09:06:00.000Z",
-      "firstReviewAt": "2026-08-23T15:38:00.000Z",
-      "mergedAt": "2026-08-23T16:38:00.000Z",
+      "openedAt": "2026-08-19T09:07:00.000Z",
+      "firstReviewAt": "2026-08-22T09:01:26.234Z",
+      "mergedAt": "2026-08-22T10:35:00.000Z",
       "reviewerIds": [
-        "c-riley"
+        "c-elena"
       ],
-      "additions": 215,
-      "deletions": 52,
-      "attribution": "ai_assisted",
+      "additions": 197,
+      "deletions": 108,
+      "attribution": "human_only",
       "jiraKeys": [
         "TP-158"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-524",
-      "number": 524,
-      "title": "migrate feature flags",
-      "url": "https://github.com/neoito/tpt-platform/pull/524",
-      "repo": "tpt-platform",
-      "authorId": "c-priya",
-      "teamKey": "DARK",
-      "sprintId": "26",
-      "openedAt": "2026-08-17T09:54:00.000Z",
-      "firstReviewAt": "2026-08-18T09:56:19.515Z",
-      "mergedAt": "2026-08-21T11:00:00.000Z",
-      "reviewerIds": [
-        "c-devon"
-      ],
-      "additions": 295,
-      "deletions": 25,
-      "attribution": "ai_assisted",
-      "jiraKeys": [
-        "TP-159"
-      ],
-      "unreviewed": false
-    },
-    {
-      "id": "pr-tpt-525",
-      "number": 525,
-      "title": "align sprint filter chrome",
-      "url": "https://github.com/neoito/tpt-platform/pull/525",
-      "repo": "tpt-platform",
-      "authorId": "c-riley",
-      "teamKey": "MOBILE",
-      "sprintId": "26",
-      "openedAt": "2026-08-24T09:30:00.000Z",
-      "firstReviewAt": null,
-      "mergedAt": "2026-08-28T14:16:00.000Z",
-      "reviewerIds": [],
-      "additions": 281,
-      "deletions": 18,
-      "attribution": "ai_assisted",
-      "jiraKeys": [
-        "TP-160"
-      ],
-      "unreviewed": true
-    },
-    {
-      "id": "pr-tpt-528",
-      "number": 528,
-      "title": "support dark mode tokens",
-      "url": "https://github.com/neoito/tpt-platform/pull/528",
+      "id": "pr-tpt-523",
+      "number": 523,
+      "title": "harden rate limiter",
+      "url": "https://github.com/neoito/tpt-platform/pull/523",
       "repo": "tpt-platform",
       "authorId": "c-noah",
       "teamKey": "APEX",
       "sprintId": "26",
-      "openedAt": "2026-08-25T11:54:00.000Z",
-      "firstReviewAt": "2026-08-27T09:30:07.818Z",
-      "mergedAt": "2026-08-28T12:21:00.000Z",
-      "reviewerIds": [
-        "c-morgan"
+      "openedAt": "2026-08-24T13:40:00.000Z",
+      "firstReviewAt": null,
+      "mergedAt": "2026-08-26T12:26:00.000Z",
+      "reviewerIds": [],
+      "additions": 291,
+      "deletions": 122,
+      "attribution": "ai_generated",
+      "jiraKeys": [
+        "TP-159"
       ],
-      "additions": 346,
-      "deletions": 62,
-      "attribution": "human_only",
+      "unreviewed": true
+    },
+    {
+      "id": "pr-tpt-526",
+      "number": 526,
+      "title": "document release checklist",
+      "url": "https://github.com/neoito/tpt-mobile/pull/526",
+      "repo": "tpt-mobile",
+      "authorId": "c-elena",
+      "teamKey": "DARK",
+      "sprintId": "26",
+      "openedAt": "2026-08-23T09:14:00.000Z",
+      "firstReviewAt": "2026-08-25T14:20:02.034Z",
+      "mergedAt": "2026-08-27T14:56:00.000Z",
+      "reviewerIds": [
+        "c-devon",
+        "c-priya"
+      ],
+      "additions": 147,
+      "deletions": 15,
+      "attribution": "ai_assisted",
+      "jiraKeys": [
+        "TP-160"
+      ],
+      "unreviewed": false
+    },
+    {
+      "id": "pr-tpt-529",
+      "number": 529,
+      "title": "surface unmatched activity",
+      "url": "https://github.com/neoito/tpt-platform/pull/529",
+      "repo": "tpt-platform",
+      "authorId": "c-devon",
+      "teamKey": "DARK",
+      "sprintId": "26",
+      "openedAt": "2026-08-23T13:25:00.000Z",
+      "firstReviewAt": "2026-08-25T09:32:00.000Z",
+      "mergedAt": "2026-08-25T10:32:00.000Z",
+      "reviewerIds": [
+        "c-priya"
+      ],
+      "additions": 426,
+      "deletions": 212,
+      "attribution": "ai_generated",
       "jiraKeys": [
         "TP-161"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-531",
-      "number": 531,
-      "title": "cleanup dead feature flags",
-      "url": "https://github.com/neoito/tpt-mobile/pull/531",
+      "id": "pr-tpt-532",
+      "number": 532,
+      "title": "reduce flaky e2e waits",
+      "url": "https://github.com/neoito/tpt-mobile/pull/532",
       "repo": "tpt-mobile",
-      "authorId": "c-devon",
+      "authorId": "c-elena",
       "teamKey": "DARK",
       "sprintId": "26",
-      "openedAt": "2026-08-23T16:27:00.000Z",
-      "firstReviewAt": "2026-08-25T17:53:43.071Z",
-      "mergedAt": "2026-08-26T15:14:00.000Z",
+      "openedAt": "2026-08-24T10:27:00.000Z",
+      "firstReviewAt": "2026-08-25T09:41:00.000Z",
+      "mergedAt": "2026-08-25T10:41:00.000Z",
       "reviewerIds": [
-        "c-priya",
-        "c-elena"
+        "c-devon"
       ],
-      "additions": 493,
-      "deletions": 254,
+      "additions": 124,
+      "deletions": 59,
       "attribution": "human_only",
       "jiraKeys": [
-        "TP-162"
-      ],
-      "unreviewed": false
-    },
-    {
-      "id": "pr-tpt-533",
-      "number": 533,
-      "title": "document release checklist",
-      "url": "https://github.com/neoito/tpt-mobile/pull/533",
-      "repo": "tpt-mobile",
-      "authorId": "c-aisha",
-      "teamKey": "AVENGERS",
-      "sprintId": "26",
-      "openedAt": "2026-08-19T10:36:00.000Z",
-      "firstReviewAt": "2026-08-20T18:40:42.391Z",
-      "mergedAt": "2026-08-21T16:28:00.000Z",
-      "reviewerIds": [
-        "c-samira"
-      ],
-      "additions": 181,
-      "deletions": 8,
-      "attribution": "ai_assisted",
-      "jiraKeys": [
+        "TP-162",
         "TP-163"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-536",
-      "number": 536,
-      "title": "batch Jira sync deltas",
-      "url": "https://github.com/neoito/tpt-platform/pull/536",
+      "id": "pr-tpt-534",
+      "number": 534,
+      "title": "split large dashboard query",
+      "url": "https://github.com/neoito/tpt-platform/pull/534",
       "repo": "tpt-platform",
-      "authorId": "c-jordan",
-      "teamKey": "AVENGERS",
-      "sprintId": "25",
-      "openedAt": "2026-08-11T15:49:00.000Z",
-      "firstReviewAt": "2026-08-12T06:41:43.367Z",
-      "mergedAt": "2026-08-15T17:14:00.000Z",
-      "reviewerIds": [
-        "c-aisha"
-      ],
-      "additions": 237,
-      "deletions": 35,
-      "attribution": "human_only",
+      "authorId": "c-riley",
+      "teamKey": "MOBILE",
+      "sprintId": "26",
+      "openedAt": "2026-08-20T10:44:00.000Z",
+      "firstReviewAt": null,
+      "mergedAt": "2026-08-23T15:44:00.000Z",
+      "reviewerIds": [],
+      "additions": 277,
+      "deletions": 125,
+      "attribution": "ai_assisted",
       "jiraKeys": [
         "TP-164"
       ],
-      "unreviewed": false
+      "unreviewed": true
     },
     {
-      "id": "pr-tpt-537",
-      "number": 537,
-      "title": "wire observability alerts",
-      "url": "https://github.com/neoito/tpt-mobile/pull/537",
-      "repo": "tpt-mobile",
-      "authorId": "c-riley",
-      "teamKey": "MOBILE",
-      "sprintId": "25",
-      "openedAt": "2026-08-08T16:13:00.000Z",
-      "firstReviewAt": "2026-08-10T14:45:07.078Z",
-      "mergedAt": "2026-08-12T11:17:00.000Z",
+      "id": "pr-tpt-535",
+      "number": 535,
+      "title": "tighten CORS allowlist",
+      "url": "https://github.com/neoito/tpt-platform/pull/535",
+      "repo": "tpt-platform",
+      "authorId": "c-elena",
+      "teamKey": "DARK",
+      "sprintId": "26",
+      "openedAt": "2026-08-22T10:22:00.000Z",
+      "firstReviewAt": "2026-08-24T16:00:07.838Z",
+      "mergedAt": "2026-08-25T15:30:00.000Z",
       "reviewerIds": [
-        "c-casey"
+        "c-priya",
+        "c-devon"
       ],
-      "additions": 226,
-      "deletions": 33,
-      "attribution": "ai_assisted",
+      "additions": 112,
+      "deletions": 6,
+      "attribution": "human_only",
       "jiraKeys": [
         "TP-165"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-539",
-      "number": 539,
-      "title": "cleanup dead feature flags",
-      "url": "https://github.com/neoito/tpt-mobile/pull/539",
+      "id": "pr-tpt-536",
+      "number": 536,
+      "title": "wire observability alerts",
+      "url": "https://github.com/neoito/tpt-mobile/pull/536",
       "repo": "tpt-mobile",
-      "authorId": "c-samira",
+      "authorId": "c-jordan",
       "teamKey": "AVENGERS",
-      "sprintId": "25",
-      "openedAt": "2026-08-08T13:45:00.000Z",
-      "firstReviewAt": "2026-08-09T02:26:03.464Z",
-      "mergedAt": "2026-08-11T16:27:00.000Z",
+      "sprintId": "26",
+      "openedAt": "2026-08-25T11:41:00.000Z",
+      "firstReviewAt": "2026-08-26T11:44:00.000Z",
+      "mergedAt": "2026-08-26T12:44:00.000Z",
       "reviewerIds": [
         "c-aisha"
       ],
-      "additions": 199,
-      "deletions": 73,
-      "attribution": "ai_assisted",
+      "additions": 44,
+      "deletions": 8,
+      "attribution": "human_only",
       "jiraKeys": [
-        "TP-166"
+        "TP-166",
+        "TP-167"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-542",
-      "number": 542,
-      "title": "fix payment webhook retry",
-      "url": "https://github.com/neoito/tpt-mobile/pull/542",
-      "repo": "tpt-mobile",
-      "authorId": "c-morgan",
-      "teamKey": "APEX",
-      "sprintId": "25",
-      "openedAt": "2026-08-03T15:26:00.000Z",
-      "firstReviewAt": null,
-      "mergedAt": "2026-08-07T11:06:00.000Z",
-      "reviewerIds": [],
-      "additions": 227,
-      "deletions": 129,
-      "attribution": "ai_generated",
-      "jiraKeys": [
-        "TP-167"
-      ],
-      "unreviewed": true
-    },
-    {
-      "id": "pr-tpt-544",
-      "number": 544,
+      "id": "pr-tpt-538",
+      "number": 538,
       "title": "upgrade prisma client",
-      "url": "https://github.com/neoito/tpt-mobile/pull/544",
-      "repo": "tpt-mobile",
-      "authorId": "c-casey",
-      "teamKey": "MOBILE",
+      "url": "https://github.com/neoito/tpt-platform/pull/538",
+      "repo": "tpt-platform",
+      "authorId": "c-priya",
+      "teamKey": "DARK",
       "sprintId": "25",
-      "openedAt": "2026-08-05T11:44:00.000Z",
-      "firstReviewAt": "2026-08-06T07:38:45.153Z",
-      "mergedAt": "2026-08-08T11:35:00.000Z",
-      "reviewerIds": [
-        "c-riley"
-      ],
-      "additions": 304,
-      "deletions": 111,
+      "openedAt": "2026-08-10T13:50:00.000Z",
+      "firstReviewAt": null,
+      "mergedAt": "2026-08-14T16:22:00.000Z",
+      "reviewerIds": [],
+      "additions": 442,
+      "deletions": 260,
       "attribution": "human_only",
       "jiraKeys": [
         "TP-168"
       ],
-      "unreviewed": false
+      "unreviewed": true
     },
     {
-      "id": "pr-tpt-547",
-      "number": 547,
-      "title": "add sprint burndown API",
-      "url": "https://github.com/neoito/tpt-mobile/pull/547",
-      "repo": "tpt-mobile",
-      "authorId": "c-noah",
-      "teamKey": "APEX",
+      "id": "pr-tpt-539",
+      "number": 539,
+      "title": "reduce flaky e2e waits",
+      "url": "https://github.com/neoito/tpt-platform/pull/539",
+      "repo": "tpt-platform",
+      "authorId": "c-samira",
+      "teamKey": "AVENGERS",
       "sprintId": "25",
-      "openedAt": "2026-08-08T15:48:00.000Z",
-      "firstReviewAt": "2026-08-10T23:23:35.402Z",
-      "mergedAt": "2026-08-13T12:04:00.000Z",
+      "openedAt": "2026-08-11T14:21:00.000Z",
+      "firstReviewAt": "2026-08-12T15:58:01.488Z",
+      "mergedAt": "2026-08-15T17:11:00.000Z",
       "reviewerIds": [
-        "c-alex"
+        "c-aisha",
+        "c-jordan"
       ],
-      "additions": 82,
-      "deletions": 13,
-      "attribution": "ai_generated",
+      "additions": 425,
+      "deletions": 232,
+      "attribution": "human_only",
       "jiraKeys": [
         "TP-169"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-549",
-      "number": 549,
-      "title": "wire observability alerts",
-      "url": "https://github.com/neoito/tpt-mobile/pull/549",
+      "id": "pr-tpt-540",
+      "number": 540,
+      "title": "fix mobile deep link",
+      "url": "https://github.com/neoito/tpt-mobile/pull/540",
       "repo": "tpt-mobile",
-      "authorId": "c-morgan",
-      "teamKey": "APEX",
+      "authorId": "c-aisha",
+      "teamKey": "AVENGERS",
       "sprintId": "25",
-      "openedAt": "2026-08-10T16:11:00.000Z",
-      "firstReviewAt": "2026-08-10T19:23:19.086Z",
-      "mergedAt": "2026-08-13T12:19:00.000Z",
+      "openedAt": "2026-08-04T11:51:00.000Z",
+      "firstReviewAt": "2026-08-06T10:31:25.525Z",
+      "mergedAt": "2026-08-06T15:00:00.000Z",
       "reviewerIds": [
-        "c-noah",
-        "c-alex"
+        "c-jordan"
       ],
-      "additions": 146,
-      "deletions": 2,
-      "attribution": "ai_assisted",
+      "additions": 193,
+      "deletions": 49,
+      "attribution": "human_only",
       "jiraKeys": [
-        "TP-170",
-        "TP-171"
+        "TP-170"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-550",
-      "number": 550,
-      "title": "cleanup dead feature flags",
-      "url": "https://github.com/neoito/tpt-mobile/pull/550",
-      "repo": "tpt-mobile",
-      "authorId": "c-alex",
-      "teamKey": "APEX",
+      "id": "pr-tpt-543",
+      "number": 543,
+      "title": "surface unmatched activity",
+      "url": "https://github.com/neoito/tpt-platform/pull/543",
+      "repo": "tpt-platform",
+      "authorId": "c-jordan",
+      "teamKey": "AVENGERS",
       "sprintId": "25",
-      "openedAt": "2026-08-10T12:39:00.000Z",
-      "firstReviewAt": "2026-08-10T15:06:00.000Z",
-      "mergedAt": "2026-08-10T16:06:00.000Z",
+      "openedAt": "2026-08-03T10:41:00.000Z",
+      "firstReviewAt": "2026-08-04T04:09:58.940Z",
+      "mergedAt": "2026-08-08T12:29:00.000Z",
       "reviewerIds": [
-        "c-morgan"
+        "c-aisha"
       ],
-      "additions": 189,
-      "deletions": 68,
+      "additions": 71,
+      "deletions": 25,
       "attribution": "ai_generated",
       "jiraKeys": [
-        "TP-172",
+        "TP-171",
+        "TP-172"
+      ],
+      "unreviewed": false
+    },
+    {
+      "id": "pr-tpt-545",
+      "number": 545,
+      "title": "wire observability alerts",
+      "url": "https://github.com/neoito/tpt-platform/pull/545",
+      "repo": "tpt-platform",
+      "authorId": "c-samira",
+      "teamKey": "AVENGERS",
+      "sprintId": "25",
+      "openedAt": "2026-08-11T12:17:00.000Z",
+      "firstReviewAt": "2026-08-14T09:26:50.901Z",
+      "mergedAt": "2026-08-15T13:59:00.000Z",
+      "reviewerIds": [
+        "c-aisha"
+      ],
+      "additions": 434,
+      "deletions": 32,
+      "attribution": "ai_generated",
+      "jiraKeys": [
         "TP-173"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-553",
-      "number": 553,
-      "title": "cache inventory lookups",
-      "url": "https://github.com/neoito/tpt-platform/pull/553",
+      "id": "pr-tpt-548",
+      "number": 548,
+      "title": "batch Jira sync deltas",
+      "url": "https://github.com/neoito/tpt-platform/pull/548",
       "repo": "tpt-platform",
-      "authorId": "c-jordan",
+      "authorId": "c-aisha",
       "teamKey": "AVENGERS",
       "sprintId": "25",
-      "openedAt": "2026-08-04T14:59:00.000Z",
-      "firstReviewAt": "2026-08-05T00:27:15.846Z",
-      "mergedAt": "2026-08-06T13:13:00.000Z",
+      "openedAt": "2026-08-10T16:25:00.000Z",
+      "firstReviewAt": "2026-08-13T07:22:03.156Z",
+      "mergedAt": "2026-08-14T16:32:00.000Z",
       "reviewerIds": [
         "c-samira"
       ],
-      "additions": 302,
-      "deletions": 153,
-      "attribution": "ai_generated",
-      "jiraKeys": [
-        "TP-174"
-      ],
-      "unreviewed": false
-    },
-    {
-      "id": "pr-tpt-555",
-      "number": 555,
-      "title": "tighten CORS allowlist",
-      "url": "https://github.com/neoito/tpt-mobile/pull/555",
-      "repo": "tpt-mobile",
-      "authorId": "c-alex",
-      "teamKey": "APEX",
-      "sprintId": "25",
-      "openedAt": "2026-08-04T16:27:00.000Z",
-      "firstReviewAt": "2026-08-06T15:24:00.000Z",
-      "mergedAt": "2026-08-06T16:24:00.000Z",
-      "reviewerIds": [
-        "c-noah"
-      ],
-      "additions": 480,
-      "deletions": 248,
+      "additions": 145,
+      "deletions": 27,
       "attribution": "human_only",
       "jiraKeys": [
+        "TP-174",
         "TP-175"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-557",
-      "number": 557,
-      "title": "document release checklist",
-      "url": "https://github.com/neoito/tpt-platform/pull/557",
-      "repo": "tpt-platform",
-      "authorId": "c-aisha",
-      "teamKey": "AVENGERS",
+      "id": "pr-tpt-551",
+      "number": 551,
+      "title": "upgrade prisma client",
+      "url": "https://github.com/neoito/tpt-mobile/pull/551",
+      "repo": "tpt-mobile",
+      "authorId": "c-noah",
+      "teamKey": "APEX",
       "sprintId": "25",
-      "openedAt": "2026-08-11T15:49:00.000Z",
-      "firstReviewAt": "2026-08-14T10:06:38.637Z",
-      "mergedAt": "2026-08-15T13:48:00.000Z",
-      "reviewerIds": [
-        "c-samira"
-      ],
-      "additions": 310,
-      "deletions": 161,
-      "attribution": "human_only",
+      "openedAt": "2026-08-09T10:25:00.000Z",
+      "firstReviewAt": null,
+      "mergedAt": "2026-08-09T10:02:00.000Z",
+      "reviewerIds": [],
+      "additions": 114,
+      "deletions": 51,
+      "attribution": "ai_generated",
       "jiraKeys": [
-        "TP-176"
-      ],
-      "unreviewed": false
-    },
-    {
-      "id": "pr-tpt-558",
-      "number": 558,
-      "title": "split large dashboard query",
-      "url": "https://github.com/neoito/tpt-platform/pull/558",
-      "repo": "tpt-platform",
-      "authorId": "c-jordan",
-      "teamKey": "AVENGERS",
-      "sprintId": "25",
-      "openedAt": "2026-08-05T10:52:00.000Z",
-      "firstReviewAt": "2026-08-05T16:08:52.174Z",
-      "mergedAt": "2026-08-10T15:13:00.000Z",
-      "reviewerIds": [
-        "c-samira",
-        "c-aisha"
-      ],
-      "additions": 379,
-      "deletions": 203,
-      "attribution": "ai_assisted",
-      "jiraKeys": [
+        "TP-176",
         "TP-177"
       ],
-      "unreviewed": false
+      "unreviewed": true
     },
     {
-      "id": "pr-tpt-559",
-      "number": 559,
-      "title": "split large dashboard query",
-      "url": "https://github.com/neoito/tpt-mobile/pull/559",
+      "id": "pr-tpt-553",
+      "number": 553,
+      "title": "migrate feature flags",
+      "url": "https://github.com/neoito/tpt-mobile/pull/553",
       "repo": "tpt-mobile",
-      "authorId": "c-riley",
-      "teamKey": "MOBILE",
+      "authorId": "c-noah",
+      "teamKey": "APEX",
       "sprintId": "25",
-      "openedAt": "2026-08-11T11:50:00.000Z",
-      "firstReviewAt": "2026-08-12T14:17:51.063Z",
-      "mergedAt": "2026-08-13T13:36:00.000Z",
-      "reviewerIds": [
-        "c-casey"
-      ],
-      "additions": 265,
-      "deletions": 32,
+      "openedAt": "2026-08-06T15:16:00.000Z",
+      "firstReviewAt": null,
+      "mergedAt": "2026-08-08T14:40:00.000Z",
+      "reviewerIds": [],
+      "additions": 351,
+      "deletions": 73,
       "attribution": "ai_assisted",
       "jiraKeys": [
         "TP-178"
       ],
-      "unreviewed": false
+      "unreviewed": true
     },
     {
-      "id": "pr-tpt-560",
-      "number": 560,
-      "title": "batch Jira sync deltas",
-      "url": "https://github.com/neoito/tpt-platform/pull/560",
-      "repo": "tpt-platform",
-      "authorId": "c-noah",
-      "teamKey": "APEX",
+      "id": "pr-tpt-555",
+      "number": 555,
+      "title": "auth session refresh",
+      "url": "https://github.com/neoito/tpt-mobile/pull/555",
+      "repo": "tpt-mobile",
+      "authorId": "c-riley",
+      "teamKey": "MOBILE",
       "sprintId": "25",
-      "openedAt": "2026-08-05T12:58:00.000Z",
-      "firstReviewAt": "2026-08-05T13:58:00.000Z",
-      "mergedAt": "2026-08-05T11:41:00.000Z",
+      "openedAt": "2026-08-10T11:22:00.000Z",
+      "firstReviewAt": "2026-08-11T01:40:19.960Z",
+      "mergedAt": "2026-08-15T10:10:00.000Z",
       "reviewerIds": [
-        "c-alex"
+        "c-casey"
       ],
-      "additions": 325,
-      "deletions": 126,
-      "attribution": "human_only",
+      "additions": 91,
+      "deletions": 34,
+      "attribution": "ai_assisted",
       "jiraKeys": [
         "TP-179"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-563",
-      "number": 563,
+      "id": "pr-tpt-558",
+      "number": 558,
       "title": "add sprint burndown API",
-      "url": "https://github.com/neoito/tpt-platform/pull/563",
+      "url": "https://github.com/neoito/tpt-platform/pull/558",
       "repo": "tpt-platform",
       "authorId": "c-casey",
       "teamKey": "MOBILE",
@@ -1709,72 +1604,182 @@ export const TPT_PRODUCTIVITY_DERIVED = {
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-566",
-      "number": 566,
-      "title": "fix mobile deep link",
-      "url": "https://github.com/neoito/tpt-mobile/pull/566",
-      "repo": "tpt-mobile",
-      "authorId": "c-jordan",
+      "id": "pr-tpt-559",
+      "number": 559,
+      "title": "cleanup dead feature flags",
+      "url": "https://github.com/neoito/tpt-platform/pull/559",
+      "repo": "tpt-platform",
+      "authorId": "c-aisha",
       "teamKey": "AVENGERS",
       "sprintId": "25",
-      "openedAt": "2026-08-06T15:20:00.000Z",
-      "firstReviewAt": "2026-08-07T10:15:00.000Z",
-      "mergedAt": "2026-08-07T11:15:00.000Z",
-      "reviewerIds": [
-        "c-samira",
-        "c-aisha"
-      ],
-      "additions": 268,
-      "deletions": 36,
+      "openedAt": "2026-08-06T10:10:00.000Z",
+      "firstReviewAt": null,
+      "mergedAt": "2026-08-07T17:48:00.000Z",
+      "reviewerIds": [],
+      "additions": 394,
+      "deletions": 54,
       "attribution": "ai_generated",
       "jiraKeys": [
         "TP-182"
       ],
+      "unreviewed": true
+    },
+    {
+      "id": "pr-tpt-562",
+      "number": 562,
+      "title": "reduce flaky e2e waits",
+      "url": "https://github.com/neoito/tpt-platform/pull/562",
+      "repo": "tpt-platform",
+      "authorId": "c-riley",
+      "teamKey": "MOBILE",
+      "sprintId": "25",
+      "openedAt": "2026-08-08T15:06:00.000Z",
+      "firstReviewAt": "2026-08-08T21:12:46.184Z",
+      "mergedAt": "2026-08-09T11:44:00.000Z",
+      "reviewerIds": [
+        "c-casey"
+      ],
+      "additions": 483,
+      "deletions": 102,
+      "attribution": "ai_assisted",
+      "jiraKeys": [
+        "TP-183"
+      ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-568",
-      "number": 568,
-      "title": "cleanup dead feature flags",
-      "url": "https://github.com/neoito/tpt-platform/pull/568",
+      "id": "pr-tpt-564",
+      "number": 564,
+      "title": "fix mobile deep link",
+      "url": "https://github.com/neoito/tpt-platform/pull/564",
       "repo": "tpt-platform",
-      "authorId": "c-noah",
-      "teamKey": "APEX",
+      "authorId": "c-jordan",
+      "teamKey": "AVENGERS",
       "sprintId": "25",
-      "openedAt": "2026-08-04T09:10:00.000Z",
+      "openedAt": "2026-08-09T11:30:00.000Z",
       "firstReviewAt": null,
-      "mergedAt": "2026-08-08T16:48:00.000Z",
+      "mergedAt": "2026-08-11T11:43:00.000Z",
       "reviewerIds": [],
-      "additions": 48,
-      "deletions": 27,
-      "attribution": "human_only",
+      "additions": 105,
+      "deletions": 15,
+      "attribution": "ai_generated",
       "jiraKeys": [
-        "TP-183",
         "TP-184"
       ],
       "unreviewed": true
     },
     {
-      "id": "pr-tpt-571",
-      "number": 571,
-      "title": "improve checkout validation",
-      "url": "https://github.com/neoito/tpt-platform/pull/571",
-      "repo": "tpt-platform",
-      "authorId": "c-devon",
-      "teamKey": "DARK",
+      "id": "pr-tpt-566",
+      "number": 566,
+      "title": "tighten CORS allowlist",
+      "url": "https://github.com/neoito/tpt-mobile/pull/566",
+      "repo": "tpt-mobile",
+      "authorId": "c-alex",
+      "teamKey": "APEX",
       "sprintId": "25",
-      "openedAt": "2026-08-08T09:42:00.000Z",
-      "firstReviewAt": "2026-08-09T00:06:46.402Z",
-      "mergedAt": "2026-08-09T14:18:00.000Z",
-      "reviewerIds": [
-        "c-priya",
-        "c-elena"
-      ],
-      "additions": 317,
-      "deletions": 46,
-      "attribution": "ai_assisted",
+      "openedAt": "2026-08-08T12:05:00.000Z",
+      "firstReviewAt": null,
+      "mergedAt": "2026-08-08T11:07:00.000Z",
+      "reviewerIds": [],
+      "additions": 441,
+      "deletions": 199,
+      "attribution": "human_only",
       "jiraKeys": [
         "TP-185"
+      ],
+      "unreviewed": true
+    },
+    {
+      "id": "pr-tpt-567",
+      "number": 567,
+      "title": "auth session refresh",
+      "url": "https://github.com/neoito/tpt-mobile/pull/567",
+      "repo": "tpt-mobile",
+      "authorId": "c-elena",
+      "teamKey": "DARK",
+      "sprintId": "25",
+      "openedAt": "2026-08-04T09:05:00.000Z",
+      "firstReviewAt": "2026-08-04T10:20:00.000Z",
+      "mergedAt": "2026-08-04T11:20:00.000Z",
+      "reviewerIds": [
+        "c-devon"
+      ],
+      "additions": 159,
+      "deletions": 28,
+      "attribution": "ai_generated",
+      "jiraKeys": [
+        "TP-186"
+      ],
+      "unreviewed": false
+    },
+    {
+      "id": "pr-tpt-569",
+      "number": 569,
+      "title": "add sprint burndown API",
+      "url": "https://github.com/neoito/tpt-platform/pull/569",
+      "repo": "tpt-platform",
+      "authorId": "c-aisha",
+      "teamKey": "AVENGERS",
+      "sprintId": "25",
+      "openedAt": "2026-08-08T10:31:00.000Z",
+      "firstReviewAt": "2026-08-08T13:46:00.000Z",
+      "mergedAt": "2026-08-08T14:46:00.000Z",
+      "reviewerIds": [
+        "c-samira"
+      ],
+      "additions": 108,
+      "deletions": 6,
+      "attribution": "human_only",
+      "jiraKeys": [
+        "TP-187"
+      ],
+      "unreviewed": false
+    },
+    {
+      "id": "pr-tpt-570",
+      "number": 570,
+      "title": "align sprint filter chrome",
+      "url": "https://github.com/neoito/tpt-platform/pull/570",
+      "repo": "tpt-platform",
+      "authorId": "c-elena",
+      "teamKey": "DARK",
+      "sprintId": "25",
+      "openedAt": "2026-08-04T11:04:00.000Z",
+      "firstReviewAt": "2026-08-05T15:11:11.268Z",
+      "mergedAt": "2026-08-08T17:26:00.000Z",
+      "reviewerIds": [
+        "c-devon",
+        "c-priya"
+      ],
+      "additions": 377,
+      "deletions": 163,
+      "attribution": "ai_generated",
+      "jiraKeys": [
+        "TP-188"
+      ],
+      "unreviewed": false
+    },
+    {
+      "id": "pr-tpt-572",
+      "number": 572,
+      "title": "split large dashboard query",
+      "url": "https://github.com/neoito/tpt-platform/pull/572",
+      "repo": "tpt-platform",
+      "authorId": "c-elena",
+      "teamKey": "DARK",
+      "sprintId": "25",
+      "openedAt": "2026-08-06T16:18:00.000Z",
+      "firstReviewAt": "2026-08-08T05:58:03.999Z",
+      "mergedAt": "2026-08-09T11:09:00.000Z",
+      "reviewerIds": [
+        "c-priya",
+        "c-devon"
+      ],
+      "additions": 75,
+      "deletions": 23,
+      "attribution": "human_only",
+      "jiraKeys": [
+        "TP-189"
       ],
       "unreviewed": false
     },
@@ -1787,223 +1792,131 @@ export const TPT_PRODUCTIVITY_DERIVED = {
       "authorId": "c-priya",
       "teamKey": "DARK",
       "sprintId": "25",
-      "openedAt": "2026-08-03T09:07:00.000Z",
-      "firstReviewAt": "2026-08-03T12:26:55.143Z",
-      "mergedAt": "2026-08-04T10:29:00.000Z",
+      "openedAt": "2026-08-09T11:50:00.000Z",
+      "firstReviewAt": "2026-08-11T10:37:00.000Z",
+      "mergedAt": "2026-08-11T11:37:00.000Z",
       "reviewerIds": [
-        "c-elena",
-        "c-devon"
+        "c-elena"
       ],
-      "additions": 490,
-      "deletions": 39,
+      "additions": 228,
+      "deletions": 57,
       "attribution": "human_only",
       "jiraKeys": [
-        "TP-186",
-        "TP-187"
+        "TP-190",
+        "TP-191"
       ],
       "unreviewed": false
     },
     {
       "id": "pr-tpt-577",
       "number": 577,
-      "title": "fix payment webhook retry",
+      "title": "harden rate limiter",
       "url": "https://github.com/neoito/tpt-mobile/pull/577",
       "repo": "tpt-mobile",
-      "authorId": "c-morgan",
-      "teamKey": "APEX",
+      "authorId": "c-elena",
+      "teamKey": "DARK",
       "sprintId": "25",
-      "openedAt": "2026-08-09T11:41:00.000Z",
-      "firstReviewAt": "2026-08-11T19:28:19.703Z",
-      "mergedAt": "2026-08-14T12:17:00.000Z",
+      "openedAt": "2026-08-05T14:17:00.000Z",
+      "firstReviewAt": "2026-08-06T01:20:06.976Z",
+      "mergedAt": "2026-08-10T15:53:00.000Z",
       "reviewerIds": [
-        "c-noah",
-        "c-alex"
+        "c-devon",
+        "c-priya"
       ],
-      "additions": 311,
-      "deletions": 45,
-      "attribution": "ai_assisted",
+      "additions": 375,
+      "deletions": 27,
+      "attribution": "human_only",
       "jiraKeys": [
-        "TP-188"
+        "TP-192",
+        "TP-193"
       ],
       "unreviewed": false
     },
     {
       "id": "pr-tpt-578",
       "number": 578,
-      "title": "fix payment webhook retry",
-      "url": "https://github.com/neoito/tpt-mobile/pull/578",
-      "repo": "tpt-mobile",
-      "authorId": "c-elena",
-      "teamKey": "DARK",
-      "sprintId": "25",
-      "openedAt": "2026-08-07T16:57:00.000Z",
-      "firstReviewAt": "2026-08-09T06:20:40.448Z",
-      "mergedAt": "2026-08-11T11:06:00.000Z",
-      "reviewerIds": [
-        "c-devon"
-      ],
-      "additions": 479,
-      "deletions": 53,
-      "attribution": "human_only",
-      "jiraKeys": [
-        "TP-189"
-      ],
-      "unreviewed": false
-    },
-    {
-      "id": "pr-tpt-581",
-      "number": 581,
-      "title": "align sprint filter chrome",
-      "url": "https://github.com/neoito/tpt-platform/pull/581",
+      "title": "auth session refresh",
+      "url": "https://github.com/neoito/tpt-platform/pull/578",
       "repo": "tpt-platform",
-      "authorId": "c-priya",
-      "teamKey": "DARK",
-      "sprintId": "25",
-      "openedAt": "2026-08-05T09:08:00.000Z",
-      "firstReviewAt": "2026-08-08T06:00:43.394Z",
-      "mergedAt": "2026-08-09T12:15:00.000Z",
-      "reviewerIds": [
-        "c-elena"
-      ],
-      "additions": 82,
-      "deletions": 25,
-      "attribution": "ai_generated",
-      "jiraKeys": [
-        "TP-190"
-      ],
-      "unreviewed": false
-    },
-    {
-      "id": "pr-tpt-584",
-      "number": 584,
-      "title": "cleanup dead feature flags",
-      "url": "https://github.com/neoito/tpt-platform/pull/584",
-      "repo": "tpt-platform",
-      "authorId": "c-alex",
+      "authorId": "c-morgan",
       "teamKey": "APEX",
       "sprintId": "25",
-      "openedAt": "2026-08-07T10:09:00.000Z",
-      "firstReviewAt": null,
-      "mergedAt": "2026-08-10T13:02:00.000Z",
-      "reviewerIds": [],
-      "additions": 466,
-      "deletions": 142,
+      "openedAt": "2026-08-10T15:39:00.000Z",
+      "firstReviewAt": "2026-08-11T16:02:00.000Z",
+      "mergedAt": "2026-08-11T17:02:00.000Z",
+      "reviewerIds": [
+        "c-noah"
+      ],
+      "additions": 174,
+      "deletions": 4,
       "attribution": "human_only",
       "jiraKeys": [
-        "TP-191"
-      ],
-      "unreviewed": true
-    },
-    {
-      "id": "pr-tpt-585",
-      "number": 585,
-      "title": "support dark mode tokens",
-      "url": "https://github.com/neoito/tpt-platform/pull/585",
-      "repo": "tpt-platform",
-      "authorId": "c-samira",
-      "teamKey": "AVENGERS",
-      "sprintId": "24",
-      "openedAt": "2026-07-23T10:24:00.000Z",
-      "firstReviewAt": "2026-07-25T00:52:18.434Z",
-      "mergedAt": "2026-07-27T12:50:00.000Z",
-      "reviewerIds": [
-        "c-aisha"
-      ],
-      "additions": 337,
-      "deletions": 199,
-      "attribution": "ai_generated",
-      "jiraKeys": [
-        "TP-192"
-      ],
-      "unreviewed": false
-    },
-    {
-      "id": "pr-tpt-586",
-      "number": 586,
-      "title": "split large dashboard query",
-      "url": "https://github.com/neoito/tpt-platform/pull/586",
-      "repo": "tpt-platform",
-      "authorId": "c-jordan",
-      "teamKey": "AVENGERS",
-      "sprintId": "24",
-      "openedAt": "2026-07-22T09:07:00.000Z",
-      "firstReviewAt": "2026-07-24T16:13:00.000Z",
-      "mergedAt": "2026-07-24T17:13:00.000Z",
-      "reviewerIds": [
-        "c-aisha"
-      ],
-      "additions": 78,
-      "deletions": 41,
-      "attribution": "human_only",
-      "jiraKeys": [
-        "TP-193",
         "TP-194"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-587",
-      "number": 587,
-      "title": "auth session refresh",
-      "url": "https://github.com/neoito/tpt-platform/pull/587",
-      "repo": "tpt-platform",
-      "authorId": "c-devon",
+      "id": "pr-tpt-580",
+      "number": 580,
+      "title": "reduce flaky e2e waits",
+      "url": "https://github.com/neoito/tpt-mobile/pull/580",
+      "repo": "tpt-mobile",
+      "authorId": "c-elena",
       "teamKey": "DARK",
-      "sprintId": "24",
-      "openedAt": "2026-07-26T09:07:00.000Z",
-      "firstReviewAt": "2026-07-28T22:13:08.948Z",
-      "mergedAt": "2026-07-29T15:14:00.000Z",
+      "sprintId": "25",
+      "openedAt": "2026-08-03T09:34:00.000Z",
+      "firstReviewAt": "2026-08-05T03:08:59.071Z",
+      "mergedAt": "2026-08-05T11:36:00.000Z",
       "reviewerIds": [
-        "c-elena"
+        "c-devon"
       ],
-      "additions": 339,
-      "deletions": 21,
-      "attribution": "ai_generated",
+      "additions": 73,
+      "deletions": 14,
+      "attribution": "ai_assisted",
       "jiraKeys": [
         "TP-195"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-589",
-      "number": 589,
-      "title": "add sprint burndown API",
-      "url": "https://github.com/neoito/tpt-mobile/pull/589",
+      "id": "pr-tpt-582",
+      "number": 582,
+      "title": "cleanup dead feature flags",
+      "url": "https://github.com/neoito/tpt-mobile/pull/582",
       "repo": "tpt-mobile",
-      "authorId": "c-riley",
-      "teamKey": "MOBILE",
-      "sprintId": "24",
-      "openedAt": "2026-07-27T14:19:00.000Z",
-      "firstReviewAt": "2026-07-27T15:19:00.000Z",
-      "mergedAt": "2026-07-27T12:01:00.000Z",
-      "reviewerIds": [
-        "c-casey"
-      ],
-      "additions": 34,
-      "deletions": 11,
-      "attribution": "human_only",
+      "authorId": "c-devon",
+      "teamKey": "DARK",
+      "sprintId": "25",
+      "openedAt": "2026-08-05T16:27:00.000Z",
+      "firstReviewAt": null,
+      "mergedAt": "2026-08-07T14:30:00.000Z",
+      "reviewerIds": [],
+      "additions": 146,
+      "deletions": 14,
+      "attribution": "ai_assisted",
       "jiraKeys": [
         "TP-196"
       ],
-      "unreviewed": false
+      "unreviewed": true
     },
     {
-      "id": "pr-tpt-592",
-      "number": 592,
-      "title": "cache inventory lookups",
-      "url": "https://github.com/neoito/tpt-mobile/pull/592",
-      "repo": "tpt-mobile",
-      "authorId": "c-priya",
-      "teamKey": "DARK",
+      "id": "pr-tpt-584",
+      "number": 584,
+      "title": "tighten CORS allowlist",
+      "url": "https://github.com/neoito/tpt-platform/pull/584",
+      "repo": "tpt-platform",
+      "authorId": "c-samira",
+      "teamKey": "AVENGERS",
       "sprintId": "24",
-      "openedAt": "2026-07-23T15:33:00.000Z",
-      "firstReviewAt": "2026-07-24T11:40:00.000Z",
-      "mergedAt": "2026-07-24T12:40:00.000Z",
+      "openedAt": "2026-07-22T15:46:00.000Z",
+      "firstReviewAt": "2026-07-22T23:33:56.669Z",
+      "mergedAt": "2026-07-23T13:05:00.000Z",
       "reviewerIds": [
-        "c-devon"
+        "c-jordan",
+        "c-aisha"
       ],
-      "additions": 173,
-      "deletions": 90,
+      "additions": 274,
+      "deletions": 18,
       "attribution": "human_only",
       "jiraKeys": [
         "TP-197"
@@ -2011,24 +1924,23 @@ export const TPT_PRODUCTIVITY_DERIVED = {
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-594",
-      "number": 594,
-      "title": "support dark mode tokens",
-      "url": "https://github.com/neoito/tpt-platform/pull/594",
+      "id": "pr-tpt-587",
+      "number": 587,
+      "title": "add sprint burndown API",
+      "url": "https://github.com/neoito/tpt-platform/pull/587",
       "repo": "tpt-platform",
-      "authorId": "c-jordan",
+      "authorId": "c-aisha",
       "teamKey": "AVENGERS",
       "sprintId": "24",
-      "openedAt": "2026-07-23T11:10:00.000Z",
-      "firstReviewAt": "2026-07-24T08:10:07.689Z",
-      "mergedAt": "2026-07-26T14:39:00.000Z",
+      "openedAt": "2026-07-21T14:10:00.000Z",
+      "firstReviewAt": "2026-07-22T16:46:00.000Z",
+      "mergedAt": "2026-07-22T17:46:00.000Z",
       "reviewerIds": [
-        "c-samira",
-        "c-aisha"
+        "c-jordan"
       ],
-      "additions": 246,
-      "deletions": 12,
-      "attribution": "human_only",
+      "additions": 335,
+      "deletions": 114,
+      "attribution": "ai_assisted",
       "jiraKeys": [
         "TP-198",
         "TP-199"
@@ -2036,92 +1948,93 @@ export const TPT_PRODUCTIVITY_DERIVED = {
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-596",
-      "number": 596,
-      "title": "add empty-state illustration",
-      "url": "https://github.com/neoito/tpt-platform/pull/596",
-      "repo": "tpt-platform",
-      "authorId": "c-noah",
-      "teamKey": "APEX",
-      "sprintId": "24",
-      "openedAt": "2026-07-22T09:31:00.000Z",
-      "firstReviewAt": null,
-      "mergedAt": "2026-07-23T10:53:00.000Z",
-      "reviewerIds": [],
-      "additions": 203,
-      "deletions": 100,
-      "attribution": "human_only",
-      "jiraKeys": [
-        "TP-200",
-        "TP-201"
-      ],
-      "unreviewed": true
-    },
-    {
-      "id": "pr-tpt-598",
-      "number": 598,
-      "title": "surface unmatched activity",
-      "url": "https://github.com/neoito/tpt-platform/pull/598",
-      "repo": "tpt-platform",
+      "id": "pr-tpt-588",
+      "number": 588,
+      "title": "harden rate limiter",
+      "url": "https://github.com/neoito/tpt-mobile/pull/588",
+      "repo": "tpt-mobile",
       "authorId": "c-elena",
       "teamKey": "DARK",
       "sprintId": "24",
-      "openedAt": "2026-07-26T11:48:00.000Z",
-      "firstReviewAt": "2026-07-27T20:56:36.803Z",
-      "mergedAt": "2026-07-31T11:55:00.000Z",
+      "openedAt": "2026-07-21T09:18:00.000Z",
+      "firstReviewAt": "2026-07-23T19:53:12.458Z",
+      "mergedAt": "2026-07-26T13:39:00.000Z",
       "reviewerIds": [
         "c-priya"
       ],
-      "additions": 127,
-      "deletions": 59,
-      "attribution": "ai_assisted",
+      "additions": 150,
+      "deletions": 48,
+      "attribution": "human_only",
       "jiraKeys": [
-        "TP-202",
-        "TP-203"
+        "TP-200"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-601",
-      "number": 601,
-      "title": "document release checklist",
-      "url": "https://github.com/neoito/tpt-platform/pull/601",
+      "id": "pr-tpt-589",
+      "number": 589,
+      "title": "wire observability alerts",
+      "url": "https://github.com/neoito/tpt-platform/pull/589",
       "repo": "tpt-platform",
-      "authorId": "c-alex",
+      "authorId": "c-casey",
+      "teamKey": "MOBILE",
+      "sprintId": "24",
+      "openedAt": "2026-07-22T09:23:00.000Z",
+      "firstReviewAt": "2026-07-24T16:17:23.607Z",
+      "mergedAt": "2026-07-27T11:49:00.000Z",
+      "reviewerIds": [
+        "c-riley"
+      ],
+      "additions": 321,
+      "deletions": 173,
+      "attribution": "human_only",
+      "jiraKeys": [
+        "TP-201",
+        "TP-202"
+      ],
+      "unreviewed": false
+    },
+    {
+      "id": "pr-tpt-591",
+      "number": 591,
+      "title": "add sprint burndown API",
+      "url": "https://github.com/neoito/tpt-platform/pull/591",
+      "repo": "tpt-platform",
+      "authorId": "c-noah",
       "teamKey": "APEX",
       "sprintId": "24",
-      "openedAt": "2026-07-28T12:39:00.000Z",
-      "firstReviewAt": "2026-07-29T17:34:32.660Z",
-      "mergedAt": "2026-08-01T12:30:00.000Z",
+      "openedAt": "2026-07-27T13:54:00.000Z",
+      "firstReviewAt": "2026-07-27T22:15:37.674Z",
+      "mergedAt": "2026-07-31T11:26:00.000Z",
       "reviewerIds": [
-        "c-noah",
         "c-morgan"
       ],
-      "additions": 217,
-      "deletions": 121,
-      "attribution": "ai_assisted",
+      "additions": 267,
+      "deletions": 103,
+      "attribution": "ai_generated",
       "jiraKeys": [
+        "TP-203",
         "TP-204"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-603",
-      "number": 603,
-      "title": "upgrade prisma client",
-      "url": "https://github.com/neoito/tpt-mobile/pull/603",
+      "id": "pr-tpt-592",
+      "number": 592,
+      "title": "split large dashboard query",
+      "url": "https://github.com/neoito/tpt-mobile/pull/592",
       "repo": "tpt-mobile",
-      "authorId": "c-elena",
-      "teamKey": "DARK",
+      "authorId": "c-riley",
+      "teamKey": "MOBILE",
       "sprintId": "24",
-      "openedAt": "2026-07-21T15:11:00.000Z",
-      "firstReviewAt": "2026-07-22T13:38:00.000Z",
-      "mergedAt": "2026-07-22T14:38:00.000Z",
+      "openedAt": "2026-07-26T10:32:00.000Z",
+      "firstReviewAt": "2026-07-28T09:30:00.000Z",
+      "mergedAt": "2026-07-28T10:30:00.000Z",
       "reviewerIds": [
-        "c-priya"
+        "c-casey"
       ],
-      "additions": 123,
-      "deletions": 12,
+      "additions": 358,
+      "deletions": 196,
       "attribution": "human_only",
       "jiraKeys": [
         "TP-205"
@@ -2129,26 +2042,189 @@ export const TPT_PRODUCTIVITY_DERIVED = {
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-606",
-      "number": 606,
-      "title": "improve checkout validation",
-      "url": "https://github.com/neoito/tpt-mobile/pull/606",
+      "id": "pr-tpt-594",
+      "number": 594,
+      "title": "batch Jira sync deltas",
+      "url": "https://github.com/neoito/tpt-mobile/pull/594",
       "repo": "tpt-mobile",
       "authorId": "c-devon",
       "teamKey": "DARK",
       "sprintId": "24",
-      "openedAt": "2026-07-28T14:11:00.000Z",
-      "firstReviewAt": "2026-07-29T00:35:03.295Z",
-      "mergedAt": "2026-07-30T14:32:00.000Z",
+      "openedAt": "2026-07-21T14:20:00.000Z",
+      "firstReviewAt": "2026-07-22T11:24:00.000Z",
+      "mergedAt": "2026-07-22T12:24:00.000Z",
       "reviewerIds": [
         "c-elena",
         "c-priya"
       ],
-      "additions": 132,
-      "deletions": 7,
-      "attribution": "ai_assisted",
+      "additions": 388,
+      "deletions": 9,
+      "attribution": "human_only",
       "jiraKeys": [
         "TP-206"
+      ],
+      "unreviewed": false
+    },
+    {
+      "id": "pr-tpt-596",
+      "number": 596,
+      "title": "tighten CORS allowlist",
+      "url": "https://github.com/neoito/tpt-mobile/pull/596",
+      "repo": "tpt-mobile",
+      "authorId": "c-devon",
+      "teamKey": "DARK",
+      "sprintId": "24",
+      "openedAt": "2026-07-22T15:04:00.000Z",
+      "firstReviewAt": "2026-07-24T04:46:15.303Z",
+      "mergedAt": "2026-07-24T12:41:00.000Z",
+      "reviewerIds": [
+        "c-elena"
+      ],
+      "additions": 399,
+      "deletions": 8,
+      "attribution": "human_only",
+      "jiraKeys": [
+        "TP-207"
+      ],
+      "unreviewed": false
+    },
+    {
+      "id": "pr-tpt-598",
+      "number": 598,
+      "title": "batch Jira sync deltas",
+      "url": "https://github.com/neoito/tpt-mobile/pull/598",
+      "repo": "tpt-mobile",
+      "authorId": "c-devon",
+      "teamKey": "DARK",
+      "sprintId": "24",
+      "openedAt": "2026-07-28T10:03:00.000Z",
+      "firstReviewAt": "2026-07-28T21:58:13.251Z",
+      "mergedAt": "2026-07-31T12:39:00.000Z",
+      "reviewerIds": [
+        "c-elena",
+        "c-priya"
+      ],
+      "additions": 494,
+      "deletions": 177,
+      "attribution": "ai_assisted",
+      "jiraKeys": [
+        "TP-208"
+      ],
+      "unreviewed": false
+    },
+    {
+      "id": "pr-tpt-599",
+      "number": 599,
+      "title": "document release checklist",
+      "url": "https://github.com/neoito/tpt-mobile/pull/599",
+      "repo": "tpt-mobile",
+      "authorId": "c-morgan",
+      "teamKey": "APEX",
+      "sprintId": "24",
+      "openedAt": "2026-07-28T10:56:00.000Z",
+      "firstReviewAt": "2026-07-29T10:55:07.058Z",
+      "mergedAt": "2026-07-29T14:50:00.000Z",
+      "reviewerIds": [
+        "c-alex"
+      ],
+      "additions": 237,
+      "deletions": 99,
+      "attribution": "human_only",
+      "jiraKeys": [
+        "TP-209",
+        "TP-210"
+      ],
+      "unreviewed": false
+    },
+    {
+      "id": "pr-tpt-600",
+      "number": 600,
+      "title": "surface unmatched activity",
+      "url": "https://github.com/neoito/tpt-mobile/pull/600",
+      "repo": "tpt-mobile",
+      "authorId": "c-riley",
+      "teamKey": "MOBILE",
+      "sprintId": "24",
+      "openedAt": "2026-07-27T14:10:00.000Z",
+      "firstReviewAt": "2026-07-29T08:38:05.044Z",
+      "mergedAt": "2026-07-30T10:27:00.000Z",
+      "reviewerIds": [
+        "c-casey"
+      ],
+      "additions": 119,
+      "deletions": 63,
+      "attribution": "ai_assisted",
+      "jiraKeys": [
+        "TP-211"
+      ],
+      "unreviewed": false
+    },
+    {
+      "id": "pr-tpt-603",
+      "number": 603,
+      "title": "reduce flaky e2e waits",
+      "url": "https://github.com/neoito/tpt-mobile/pull/603",
+      "repo": "tpt-mobile",
+      "authorId": "c-devon",
+      "teamKey": "DARK",
+      "sprintId": "24",
+      "openedAt": "2026-07-22T14:25:00.000Z",
+      "firstReviewAt": "2026-07-24T04:27:27.579Z",
+      "mergedAt": "2026-07-26T17:28:00.000Z",
+      "reviewerIds": [
+        "c-priya"
+      ],
+      "additions": 260,
+      "deletions": 75,
+      "attribution": "ai_generated",
+      "jiraKeys": [
+        "TP-212"
+      ],
+      "unreviewed": false
+    },
+    {
+      "id": "pr-tpt-604",
+      "number": 604,
+      "title": "document release checklist",
+      "url": "https://github.com/neoito/tpt-platform/pull/604",
+      "repo": "tpt-platform",
+      "authorId": "c-noah",
+      "teamKey": "APEX",
+      "sprintId": "24",
+      "openedAt": "2026-07-20T11:35:00.000Z",
+      "firstReviewAt": "2026-07-20T18:08:42.822Z",
+      "mergedAt": "2026-07-24T16:25:00.000Z",
+      "reviewerIds": [
+        "c-morgan"
+      ],
+      "additions": 79,
+      "deletions": 28,
+      "attribution": "ai_assisted",
+      "jiraKeys": [
+        "TP-213"
+      ],
+      "unreviewed": false
+    },
+    {
+      "id": "pr-tpt-606",
+      "number": 606,
+      "title": "cache inventory lookups",
+      "url": "https://github.com/neoito/tpt-platform/pull/606",
+      "repo": "tpt-platform",
+      "authorId": "c-riley",
+      "teamKey": "MOBILE",
+      "sprintId": "24",
+      "openedAt": "2026-07-28T10:23:00.000Z",
+      "firstReviewAt": "2026-07-30T18:35:07.720Z",
+      "mergedAt": "2026-08-01T12:56:00.000Z",
+      "reviewerIds": [
+        "c-casey"
+      ],
+      "additions": 423,
+      "deletions": 218,
+      "attribution": "ai_generated",
+      "jiraKeys": [
+        "TP-214"
       ],
       "unreviewed": false
     },
@@ -2158,137 +2234,68 @@ export const TPT_PRODUCTIVITY_DERIVED = {
       "title": "reduce flaky e2e waits",
       "url": "https://github.com/neoito/tpt-mobile/pull/608",
       "repo": "tpt-mobile",
-      "authorId": "c-alex",
+      "authorId": "c-morgan",
       "teamKey": "APEX",
       "sprintId": "24",
-      "openedAt": "2026-07-24T12:03:00.000Z",
-      "firstReviewAt": "2026-07-27T06:03:27.350Z",
-      "mergedAt": "2026-07-27T14:07:00.000Z",
+      "openedAt": "2026-07-27T09:26:00.000Z",
+      "firstReviewAt": "2026-07-28T06:51:50.999Z",
+      "mergedAt": "2026-07-31T11:49:00.000Z",
       "reviewerIds": [
-        "c-noah"
+        "c-alex"
       ],
-      "additions": 120,
-      "deletions": 57,
+      "additions": 155,
+      "deletions": 39,
       "attribution": "ai_assisted",
       "jiraKeys": [
-        "TP-207"
+        "TP-215",
+        "TP-216"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-609",
-      "number": 609,
-      "title": "auth session refresh",
-      "url": "https://github.com/neoito/tpt-mobile/pull/609",
+      "id": "pr-tpt-610",
+      "number": 610,
+      "title": "wire observability alerts",
+      "url": "https://github.com/neoito/tpt-mobile/pull/610",
       "repo": "tpt-mobile",
-      "authorId": "c-samira",
-      "teamKey": "AVENGERS",
-      "sprintId": "24",
-      "openedAt": "2026-07-26T11:06:00.000Z",
-      "firstReviewAt": "2026-07-28T11:56:38.089Z",
-      "mergedAt": "2026-07-28T13:21:00.000Z",
-      "reviewerIds": [
-        "c-jordan"
-      ],
-      "additions": 163,
-      "deletions": 75,
-      "attribution": "human_only",
-      "jiraKeys": [
-        "TP-208"
-      ],
-      "unreviewed": false
-    },
-    {
-      "id": "pr-tpt-612",
-      "number": 612,
-      "title": "tighten CORS allowlist",
-      "url": "https://github.com/neoito/tpt-mobile/pull/612",
-      "repo": "tpt-mobile",
-      "authorId": "c-devon",
+      "authorId": "c-priya",
       "teamKey": "DARK",
       "sprintId": "24",
-      "openedAt": "2026-07-28T13:19:00.000Z",
-      "firstReviewAt": "2026-07-30T03:01:15.303Z",
-      "mergedAt": "2026-08-01T10:17:00.000Z",
+      "openedAt": "2026-07-20T09:07:00.000Z",
+      "firstReviewAt": "2026-07-20T12:17:29.031Z",
+      "mergedAt": "2026-07-24T10:10:00.000Z",
       "reviewerIds": [
-        "c-elena",
-        "c-priya"
+        "c-devon",
+        "c-elena"
       ],
-      "additions": 399,
-      "deletions": 8,
+      "additions": 35,
+      "deletions": 10,
       "attribution": "human_only",
       "jiraKeys": [
-        "TP-209"
+        "TP-217"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-tpt-615",
-      "number": 615,
-      "title": "align sprint filter chrome",
-      "url": "https://github.com/neoito/tpt-mobile/pull/615",
+      "id": "pr-tpt-613",
+      "number": 613,
+      "title": "cleanup dead feature flags",
+      "url": "https://github.com/neoito/tpt-mobile/pull/613",
       "repo": "tpt-mobile",
-      "authorId": "c-casey",
-      "teamKey": "MOBILE",
+      "authorId": "c-morgan",
+      "teamKey": "APEX",
       "sprintId": "24",
-      "openedAt": "2026-07-25T16:09:00.000Z",
-      "firstReviewAt": "2026-07-25T17:09:00.000Z",
-      "mergedAt": "2026-07-25T14:19:00.000Z",
+      "openedAt": "2026-07-25T11:32:00.000Z",
+      "firstReviewAt": "2026-07-27T01:14:10.432Z",
+      "mergedAt": "2026-07-27T15:00:00.000Z",
       "reviewerIds": [
-        "c-riley"
+        "c-alex"
       ],
-      "additions": 322,
-      "deletions": 165,
-      "attribution": "human_only",
+      "additions": 404,
+      "deletions": 147,
+      "attribution": "ai_assisted",
       "jiraKeys": [
-        "TP-210"
-      ],
-      "unreviewed": false
-    },
-    {
-      "id": "pr-tpt-616",
-      "number": 616,
-      "title": "document release checklist",
-      "url": "https://github.com/neoito/tpt-platform/pull/616",
-      "repo": "tpt-platform",
-      "authorId": "c-riley",
-      "teamKey": "MOBILE",
-      "sprintId": "24",
-      "openedAt": "2026-07-28T16:21:00.000Z",
-      "firstReviewAt": "2026-07-29T17:26:19.344Z",
-      "mergedAt": "2026-07-30T17:11:00.000Z",
-      "reviewerIds": [
-        "c-casey"
-      ],
-      "additions": 134,
-      "deletions": 54,
-      "attribution": "human_only",
-      "jiraKeys": [
-        "TP-211"
-      ],
-      "unreviewed": false
-    },
-    {
-      "id": "pr-tpt-619",
-      "number": 619,
-      "title": "wire observability alerts",
-      "url": "https://github.com/neoito/tpt-platform/pull/619",
-      "repo": "tpt-platform",
-      "authorId": "c-jordan",
-      "teamKey": "AVENGERS",
-      "sprintId": "24",
-      "openedAt": "2026-07-23T16:03:00.000Z",
-      "firstReviewAt": "2026-07-23T20:10:33.398Z",
-      "mergedAt": "2026-07-25T10:36:00.000Z",
-      "reviewerIds": [
-        "c-aisha",
-        "c-samira"
-      ],
-      "additions": 129,
-      "deletions": 66,
-      "attribution": "human_only",
-      "jiraKeys": [
-        "TP-212"
+        "TP-218"
       ],
       "unreviewed": false
     }
@@ -2305,88 +2312,97 @@ export const TPT_PRODUCTIVITY_DERIVED = {
     },
     {
       "id": "rev-tpt-2",
-      "pullRequestId": "pr-tpt-435",
+      "pullRequestId": "pr-tpt-437",
       "reviewerId": "c-samira",
       "teamKey": "AVENGERS",
       "sprintId": "27",
-      "reviewedAt": "2026-09-09T07:26:35.558Z",
-      "turnaroundHours": 42.09321055555556
+      "reviewedAt": "2026-09-07T12:42:00.000Z",
+      "turnaroundHours": 20.45
     },
     {
       "id": "rev-tpt-3",
-      "pullRequestId": "pr-tpt-435",
-      "reviewerId": "c-jordan",
-      "teamKey": "AVENGERS",
+      "pullRequestId": "pr-tpt-438",
+      "reviewerId": "c-devon",
+      "teamKey": "DARK",
       "sprintId": "27",
-      "reviewedAt": "2026-09-07T21:33:26.566Z",
-      "turnaroundHours": 8.207379444444445
+      "reviewedAt": "2026-09-03T05:25:26.602Z",
+      "turnaroundHours": 16.19072277777778
     },
     {
       "id": "rev-tpt-4",
-      "pullRequestId": "pr-tpt-436",
-      "reviewerId": "c-devon",
+      "pullRequestId": "pr-tpt-441",
+      "reviewerId": "c-elena",
       "teamKey": "DARK",
       "sprintId": "27",
-      "reviewedAt": "2026-09-03T00:22:40.653Z",
-      "turnaroundHours": 13.977959166666666
+      "reviewedAt": "2026-09-06T22:56:48.941Z",
+      "turnaroundHours": 32.43026138888889
     },
     {
       "id": "rev-tpt-5",
-      "pullRequestId": "pr-tpt-442",
-      "reviewerId": "c-riley",
-      "teamKey": "MOBILE",
-      "sprintId": "27",
-      "reviewedAt": "2026-09-05T04:14:13.283Z",
-      "turnaroundHours": 65.83702305555556
-    },
-    {
-      "id": "rev-tpt-6",
-      "pullRequestId": "pr-tpt-444",
-      "reviewerId": "c-riley",
-      "teamKey": "MOBILE",
-      "sprintId": "27",
-      "reviewedAt": "2026-09-02T07:56:22.686Z",
-      "turnaroundHours": 41.05630166666667
-    },
-    {
-      "id": "rev-tpt-7",
-      "pullRequestId": "pr-tpt-447",
-      "reviewerId": "c-riley",
-      "teamKey": "MOBILE",
-      "sprintId": "27",
-      "reviewedAt": "2026-09-08T14:33:14.303Z",
-      "turnaroundHours": 5.2706397222222225
-    },
-    {
-      "id": "rev-tpt-8",
-      "pullRequestId": "pr-tpt-449",
-      "reviewerId": "c-priya",
-      "teamKey": "DARK",
-      "sprintId": "27",
-      "reviewedAt": "2026-09-05T19:07:34.195Z",
-      "turnaroundHours": 31.542831944444444
-    },
-    {
-      "id": "rev-tpt-9",
-      "pullRequestId": "pr-tpt-451",
+      "pullRequestId": "pr-tpt-441",
       "reviewerId": "c-devon",
       "teamKey": "DARK",
       "sprintId": "27",
-      "reviewedAt": "2026-09-06T00:15:24.121Z",
-      "turnaroundHours": 57.890033611111114
+      "reviewedAt": "2026-09-06T00:24:01.111Z",
+      "turnaroundHours": 9.883641944444445
     },
     {
-      "id": "rev-tpt-10",
-      "pullRequestId": "pr-tpt-452",
+      "id": "rev-tpt-6",
+      "pullRequestId": "pr-tpt-442",
       "reviewerId": "c-jordan",
       "teamKey": "AVENGERS",
       "sprintId": "27",
-      "reviewedAt": "2026-09-06T13:23:00.000Z",
-      "turnaroundHours": 1
+      "reviewedAt": "2026-09-09T01:18:18.548Z",
+      "turnaroundHours": 59.30515222222222
+    },
+    {
+      "id": "rev-tpt-7",
+      "pullRequestId": "pr-tpt-445",
+      "reviewerId": "c-priya",
+      "teamKey": "DARK",
+      "sprintId": "27",
+      "reviewedAt": "2026-09-07T23:34:57.381Z",
+      "turnaroundHours": 11.0492725
+    },
+    {
+      "id": "rev-tpt-8",
+      "pullRequestId": "pr-tpt-445",
+      "reviewerId": "c-elena",
+      "teamKey": "DARK",
+      "sprintId": "27",
+      "reviewedAt": "2026-09-09T09:19:59.701Z",
+      "turnaroundHours": 44.79991694444445
+    },
+    {
+      "id": "rev-tpt-9",
+      "pullRequestId": "pr-tpt-446",
+      "reviewerId": "c-aisha",
+      "teamKey": "AVENGERS",
+      "sprintId": "27",
+      "reviewedAt": "2026-09-06T20:05:51.276Z",
+      "turnaroundHours": 29.164243333333335
+    },
+    {
+      "id": "rev-tpt-10",
+      "pullRequestId": "pr-tpt-448",
+      "reviewerId": "c-jordan",
+      "teamKey": "AVENGERS",
+      "sprintId": "27",
+      "reviewedAt": "2026-09-10T05:07:40.806Z",
+      "turnaroundHours": 36.77800166666667
     },
     {
       "id": "rev-tpt-11",
-      "pullRequestId": "pr-tpt-453",
+      "pullRequestId": "pr-tpt-450",
+      "reviewerId": "c-casey",
+      "teamKey": "MOBILE",
+      "sprintId": "27",
+      "reviewedAt": "2026-09-08T18:28:00.568Z",
+      "turnaroundHours": 28.050157777777777
+    },
+    {
+      "id": "rev-tpt-12",
+      "pullRequestId": "pr-tpt-451",
       "reviewerId": "c-samira",
       "teamKey": "AVENGERS",
       "sprintId": "27",
@@ -2394,296 +2410,323 @@ export const TPT_PRODUCTIVITY_DERIVED = {
       "turnaroundHours": 27.73603138888889
     },
     {
-      "id": "rev-tpt-12",
-      "pullRequestId": "pr-tpt-455",
-      "reviewerId": "c-priya",
-      "teamKey": "DARK",
-      "sprintId": "27",
-      "reviewedAt": "2026-09-03T21:49:14.061Z",
-      "turnaroundHours": 55.98723916666667
-    },
-    {
       "id": "rev-tpt-13",
-      "pullRequestId": "pr-tpt-457",
-      "reviewerId": "c-samira",
-      "teamKey": "AVENGERS",
-      "sprintId": "27",
-      "reviewedAt": "2026-09-07T10:15:01.283Z",
-      "turnaroundHours": 41.517023055555555
-    },
-    {
-      "id": "rev-tpt-14",
-      "pullRequestId": "pr-tpt-458",
-      "reviewerId": "c-priya",
-      "teamKey": "DARK",
-      "sprintId": "27",
-      "reviewedAt": "2026-09-03T00:32:13.982Z",
-      "turnaroundHours": 10.087217222222222
-    },
-    {
-      "id": "rev-tpt-15",
-      "pullRequestId": "pr-tpt-462",
-      "reviewerId": "c-devon",
-      "teamKey": "DARK",
-      "sprintId": "27",
-      "reviewedAt": "2026-09-02T20:55:28.665Z",
-      "turnaroundHours": 31.224629166666666
-    },
-    {
-      "id": "rev-tpt-16",
-      "pullRequestId": "pr-tpt-463",
-      "reviewerId": "c-casey",
-      "teamKey": "MOBILE",
-      "sprintId": "27",
-      "reviewedAt": "2026-09-07T08:53:10.415Z",
-      "turnaroundHours": 68.33622638888889
-    },
-    {
-      "id": "rev-tpt-17",
-      "pullRequestId": "pr-tpt-465",
-      "reviewerId": "c-noah",
-      "teamKey": "APEX",
-      "sprintId": "27",
-      "reviewedAt": "2026-09-08T19:55:21.858Z",
-      "turnaroundHours": 51.756071666666664
-    },
-    {
-      "id": "rev-tpt-18",
-      "pullRequestId": "pr-tpt-468",
-      "reviewerId": "c-riley",
-      "teamKey": "MOBILE",
-      "sprintId": "27",
-      "reviewedAt": "2026-09-01T15:58:00.000Z",
-      "turnaroundHours": 4.116666666666666
-    },
-    {
-      "id": "rev-tpt-19",
-      "pullRequestId": "pr-tpt-469",
-      "reviewerId": "c-morgan",
-      "teamKey": "APEX",
-      "sprintId": "27",
-      "reviewedAt": "2026-09-02T23:56:13.227Z",
-      "turnaroundHours": 11.5870075
-    },
-    {
-      "id": "rev-tpt-20",
-      "pullRequestId": "pr-tpt-472",
-      "reviewerId": "c-alex",
-      "teamKey": "APEX",
-      "sprintId": "27",
-      "reviewedAt": "2026-09-03T02:06:26.257Z",
-      "turnaroundHours": 39.60729361111111
-    },
-    {
-      "id": "rev-tpt-21",
-      "pullRequestId": "pr-tpt-476",
-      "reviewerId": "c-samira",
-      "teamKey": "AVENGERS",
-      "sprintId": "27",
-      "reviewedAt": "2026-09-09T10:22:03.235Z",
-      "turnaroundHours": 19.134231944444444
-    },
-    {
-      "id": "rev-tpt-22",
-      "pullRequestId": "pr-tpt-476",
+      "pullRequestId": "pr-tpt-453",
       "reviewerId": "c-aisha",
       "teamKey": "AVENGERS",
       "sprintId": "27",
-      "reviewedAt": "2026-09-10T12:50:23.380Z",
-      "turnaroundHours": 45.606494444444444
+      "reviewedAt": "2026-09-04T16:49:00.000Z",
+      "turnaroundHours": 1
     },
     {
-      "id": "rev-tpt-23",
-      "pullRequestId": "pr-tpt-479",
-      "reviewerId": "c-noah",
-      "teamKey": "APEX",
+      "id": "rev-tpt-14",
+      "pullRequestId": "pr-tpt-453",
+      "reviewerId": "c-jordan",
+      "teamKey": "AVENGERS",
       "sprintId": "27",
-      "reviewedAt": "2026-08-31T16:04:00.000Z",
-      "turnaroundHours": 6.35
+      "reviewedAt": "2026-09-04T16:49:00.000Z",
+      "turnaroundHours": 1
     },
     {
-      "id": "rev-tpt-24",
-      "pullRequestId": "pr-tpt-480",
+      "id": "rev-tpt-15",
+      "pullRequestId": "pr-tpt-456",
+      "reviewerId": "c-samira",
+      "teamKey": "AVENGERS",
+      "sprintId": "27",
+      "reviewedAt": "2026-09-03T13:32:44.363Z",
+      "turnaroundHours": 2.1956563888888887
+    },
+    {
+      "id": "rev-tpt-16",
+      "pullRequestId": "pr-tpt-456",
+      "reviewerId": "c-jordan",
+      "teamKey": "AVENGERS",
+      "sprintId": "27",
+      "reviewedAt": "2026-09-05T16:23:49.638Z",
+      "turnaroundHours": 53.04712166666667
+    },
+    {
+      "id": "rev-tpt-17",
+      "pullRequestId": "pr-tpt-458",
       "reviewerId": "c-casey",
       "teamKey": "MOBILE",
       "sprintId": "27",
-      "reviewedAt": "2026-09-09T08:22:59.228Z",
-      "turnaroundHours": 47.316452222222225
+      "reviewedAt": "2026-08-31T22:19:21.628Z",
+      "turnaroundHours": 6.222674444444444
     },
     {
-      "id": "rev-tpt-25",
-      "pullRequestId": "pr-tpt-483",
+      "id": "rev-tpt-18",
+      "pullRequestId": "pr-tpt-459",
+      "reviewerId": "c-elena",
+      "teamKey": "DARK",
+      "sprintId": "27",
+      "reviewedAt": "2026-09-04T04:54:37.375Z",
+      "turnaroundHours": 60.01038194444445
+    },
+    {
+      "id": "rev-tpt-19",
+      "pullRequestId": "pr-tpt-461",
+      "reviewerId": "c-elena",
+      "teamKey": "DARK",
+      "sprintId": "27",
+      "reviewedAt": "2026-09-01T08:29:27.097Z",
+      "turnaroundHours": 21.57419361111111
+    },
+    {
+      "id": "rev-tpt-20",
+      "pullRequestId": "pr-tpt-462",
       "reviewerId": "c-riley",
       "teamKey": "MOBILE",
       "sprintId": "27",
-      "reviewedAt": "2026-09-04T07:35:53.603Z",
-      "turnaroundHours": 64.09822305555555
+      "reviewedAt": "2026-09-06T08:31:54.353Z",
+      "turnaroundHours": 20.431764722222223
+    },
+    {
+      "id": "rev-tpt-21",
+      "pullRequestId": "pr-tpt-463",
+      "reviewerId": "c-elena",
+      "teamKey": "DARK",
+      "sprintId": "27",
+      "reviewedAt": "2026-09-07T01:44:14.579Z",
+      "turnaroundHours": 40.03738305555556
+    },
+    {
+      "id": "rev-tpt-22",
+      "pullRequestId": "pr-tpt-464",
+      "reviewerId": "c-jordan",
+      "teamKey": "AVENGERS",
+      "sprintId": "27",
+      "reviewedAt": "2026-09-08T11:53:21.492Z",
+      "turnaroundHours": 24.589303333333334
+    },
+    {
+      "id": "rev-tpt-23",
+      "pullRequestId": "pr-tpt-467",
+      "reviewerId": "c-noah",
+      "teamKey": "APEX",
+      "sprintId": "27",
+      "reviewedAt": "2026-09-08T13:19:00.000Z",
+      "turnaroundHours": 22.2
+    },
+    {
+      "id": "rev-tpt-24",
+      "pullRequestId": "pr-tpt-468",
+      "reviewerId": "c-aisha",
+      "teamKey": "AVENGERS",
+      "sprintId": "27",
+      "reviewedAt": "2026-09-08T00:52:12.208Z",
+      "turnaroundHours": 10.65339111111111
+    },
+    {
+      "id": "rev-tpt-25",
+      "pullRequestId": "pr-tpt-468",
+      "reviewerId": "c-jordan",
+      "teamKey": "AVENGERS",
+      "sprintId": "27",
+      "reviewedAt": "2026-09-08T01:19:55.633Z",
+      "turnaroundHours": 11.11545361111111
     },
     {
       "id": "rev-tpt-26",
-      "pullRequestId": "pr-tpt-486",
-      "reviewerId": "c-priya",
-      "teamKey": "DARK",
+      "pullRequestId": "pr-tpt-471",
+      "reviewerId": "c-alex",
+      "teamKey": "APEX",
       "sprintId": "27",
-      "reviewedAt": "2026-09-01T13:37:00.000Z",
+      "reviewedAt": "2026-09-08T15:00:00.000Z",
       "turnaroundHours": 1
     },
     {
       "id": "rev-tpt-27",
-      "pullRequestId": "pr-tpt-487",
-      "reviewerId": "c-riley",
-      "teamKey": "MOBILE",
+      "pullRequestId": "pr-tpt-475",
+      "reviewerId": "c-samira",
+      "teamKey": "AVENGERS",
       "sprintId": "27",
-      "reviewedAt": "2026-09-10T14:07:00.000Z",
-      "turnaroundHours": 48.61666666666667
+      "reviewedAt": "2026-09-07T06:29:44.714Z",
+      "turnaroundHours": 44.662420555555556
     },
     {
       "id": "rev-tpt-28",
-      "pullRequestId": "pr-tpt-489",
-      "reviewerId": "c-riley",
+      "pullRequestId": "pr-tpt-476",
+      "reviewerId": "c-casey",
       "teamKey": "MOBILE",
-      "sprintId": "26",
-      "reviewedAt": "2026-08-24T14:19:28.600Z",
-      "turnaroundHours": 52.62461111111111
+      "sprintId": "27",
+      "reviewedAt": "2026-09-07T09:03:13.977Z",
+      "turnaroundHours": 20.7538825
     },
     {
       "id": "rev-tpt-29",
-      "pullRequestId": "pr-tpt-491",
-      "reviewerId": "c-alex",
-      "teamKey": "APEX",
-      "sprintId": "26",
-      "reviewedAt": "2026-08-21T22:17:58.157Z",
-      "turnaroundHours": 7.116154722222222
+      "pullRequestId": "pr-tpt-477",
+      "reviewerId": "c-elena",
+      "teamKey": "DARK",
+      "sprintId": "27",
+      "reviewedAt": "2026-09-05T04:07:44.195Z",
+      "turnaroundHours": 35.328943055555555
     },
     {
       "id": "rev-tpt-30",
-      "pullRequestId": "pr-tpt-495",
-      "reviewerId": "c-priya",
-      "teamKey": "DARK",
-      "sprintId": "26",
-      "reviewedAt": "2026-08-25T20:50:03.287Z",
-      "turnaroundHours": 35.550913055555554
+      "pullRequestId": "pr-tpt-479",
+      "reviewerId": "c-aisha",
+      "teamKey": "AVENGERS",
+      "sprintId": "27",
+      "reviewedAt": "2026-09-03T09:21:03.848Z",
+      "turnaroundHours": 24.167735555555556
     },
     {
       "id": "rev-tpt-31",
-      "pullRequestId": "pr-tpt-497",
-      "reviewerId": "c-riley",
-      "teamKey": "MOBILE",
-      "sprintId": "26",
-      "reviewedAt": "2026-08-24T10:29:00.000Z",
-      "turnaroundHours": 21.35
+      "pullRequestId": "pr-tpt-481",
+      "reviewerId": "c-noah",
+      "teamKey": "APEX",
+      "sprintId": "27",
+      "reviewedAt": "2026-09-10T09:37:00.000Z",
+      "turnaroundHours": 44.15
     },
     {
       "id": "rev-tpt-32",
-      "pullRequestId": "pr-tpt-499",
-      "reviewerId": "c-noah",
+      "pullRequestId": "pr-tpt-481",
+      "reviewerId": "c-alex",
       "teamKey": "APEX",
-      "sprintId": "26",
-      "reviewedAt": "2026-08-25T06:07:12.008Z",
-      "turnaroundHours": 38.40333555555556
+      "sprintId": "27",
+      "reviewedAt": "2026-09-10T09:37:00.000Z",
+      "turnaroundHours": 44.15
     },
     {
       "id": "rev-tpt-33",
-      "pullRequestId": "pr-tpt-499",
-      "reviewerId": "c-alex",
-      "teamKey": "APEX",
+      "pullRequestId": "pr-tpt-485",
+      "reviewerId": "c-devon",
+      "teamKey": "DARK",
       "sprintId": "26",
-      "reviewedAt": "2026-08-25T16:21:00.000Z",
-      "turnaroundHours": 48.63333333333333
+      "reviewedAt": "2026-08-25T23:03:48.359Z",
+      "turnaroundHours": 10.930099722222222
     },
     {
       "id": "rev-tpt-34",
-      "pullRequestId": "pr-tpt-502",
-      "reviewerId": "c-casey",
-      "teamKey": "MOBILE",
+      "pullRequestId": "pr-tpt-488",
+      "reviewerId": "c-samira",
+      "teamKey": "AVENGERS",
       "sprintId": "26",
-      "reviewedAt": "2026-08-24T00:02:55.689Z",
-      "turnaroundHours": 7.665469166666667
+      "reviewedAt": "2026-08-26T12:01:52.535Z",
+      "turnaroundHours": 69.51459305555555
     },
     {
       "id": "rev-tpt-35",
-      "pullRequestId": "pr-tpt-505",
+      "pullRequestId": "pr-tpt-490",
       "reviewerId": "c-morgan",
       "teamKey": "APEX",
       "sprintId": "26",
-      "reviewedAt": "2026-08-22T20:10:37.086Z",
-      "turnaroundHours": 55.860301666666665
+      "reviewedAt": "2026-08-19T15:06:00.000Z",
+      "turnaroundHours": 1
     },
     {
       "id": "rev-tpt-36",
-      "pullRequestId": "pr-tpt-505",
-      "reviewerId": "c-alex",
-      "teamKey": "APEX",
+      "pullRequestId": "pr-tpt-491",
+      "reviewerId": "c-jordan",
+      "teamKey": "AVENGERS",
       "sprintId": "26",
-      "reviewedAt": "2026-08-21T07:37:26.758Z",
-      "turnaroundHours": 19.307432777777777
+      "reviewedAt": "2026-08-19T22:38:51.287Z",
+      "turnaroundHours": 34.99757972222222
     },
     {
       "id": "rev-tpt-37",
-      "pullRequestId": "pr-tpt-508",
-      "reviewerId": "c-samira",
-      "teamKey": "AVENGERS",
-      "sprintId": "26",
-      "reviewedAt": "2026-08-25T17:59:00.000Z",
-      "turnaroundHours": 1
-    },
-    {
-      "id": "rev-tpt-38",
-      "pullRequestId": "pr-tpt-510",
-      "reviewerId": "c-aisha",
-      "teamKey": "AVENGERS",
-      "sprintId": "26",
-      "reviewedAt": "2026-08-20T01:26:06.208Z",
-      "turnaroundHours": 9.86839111111111
-    },
-    {
-      "id": "rev-tpt-39",
-      "pullRequestId": "pr-tpt-511",
-      "reviewerId": "c-casey",
-      "teamKey": "MOBILE",
-      "sprintId": "26",
-      "reviewedAt": "2026-08-27T21:11:30.851Z",
-      "turnaroundHours": 53.908569722222225
-    },
-    {
-      "id": "rev-tpt-40",
-      "pullRequestId": "pr-tpt-512",
-      "reviewerId": "c-aisha",
-      "teamKey": "AVENGERS",
-      "sprintId": "26",
-      "reviewedAt": "2026-08-25T12:35:00.000Z",
-      "turnaroundHours": 1
-    },
-    {
-      "id": "rev-tpt-41",
-      "pullRequestId": "pr-tpt-515",
-      "reviewerId": "c-samira",
-      "teamKey": "AVENGERS",
-      "sprintId": "26",
-      "reviewedAt": "2026-08-20T19:36:30.594Z",
-      "turnaroundHours": 29.991831666666666
-    },
-    {
-      "id": "rev-tpt-42",
-      "pullRequestId": "pr-tpt-517",
-      "reviewerId": "c-aisha",
-      "teamKey": "AVENGERS",
-      "sprintId": "26",
-      "reviewedAt": "2026-08-25T05:42:08.336Z",
-      "turnaroundHours": 39.48564888888889
-    },
-    {
-      "id": "rev-tpt-43",
-      "pullRequestId": "pr-tpt-518",
+      "pullRequestId": "pr-tpt-493",
       "reviewerId": "c-elena",
       "teamKey": "DARK",
       "sprintId": "26",
-      "reviewedAt": "2026-08-21T10:28:00.000Z",
-      "turnaroundHours": 21.616666666666667
+      "reviewedAt": "2026-08-24T13:10:54.087Z",
+      "turnaroundHours": 21.815024166666667
+    },
+    {
+      "id": "rev-tpt-38",
+      "pullRequestId": "pr-tpt-493",
+      "reviewerId": "c-devon",
+      "teamKey": "DARK",
+      "sprintId": "26",
+      "reviewedAt": "2026-08-25T11:41:00.000Z",
+      "turnaroundHours": 44.31666666666667
+    },
+    {
+      "id": "rev-tpt-39",
+      "pullRequestId": "pr-tpt-496",
+      "reviewerId": "c-casey",
+      "teamKey": "MOBILE",
+      "sprintId": "26",
+      "reviewedAt": "2026-08-17T21:33:37.874Z",
+      "turnaroundHours": 4.593853888888889
+    },
+    {
+      "id": "rev-tpt-40",
+      "pullRequestId": "pr-tpt-500",
+      "reviewerId": "c-alex",
+      "teamKey": "APEX",
+      "sprintId": "26",
+      "reviewedAt": "2026-08-22T15:46:30.088Z",
+      "turnaroundHours": 2.691691111111111
+    },
+    {
+      "id": "rev-tpt-41",
+      "pullRequestId": "pr-tpt-500",
+      "reviewerId": "c-morgan",
+      "teamKey": "APEX",
+      "sprintId": "26",
+      "reviewedAt": "2026-08-23T11:00:00.000Z",
+      "turnaroundHours": 21.916666666666668
+    },
+    {
+      "id": "rev-tpt-42",
+      "pullRequestId": "pr-tpt-503",
+      "reviewerId": "c-riley",
+      "teamKey": "MOBILE",
+      "sprintId": "26",
+      "reviewedAt": "2026-08-22T23:37:57.017Z",
+      "turnaroundHours": 35.415838055555554
+    },
+    {
+      "id": "rev-tpt-43",
+      "pullRequestId": "pr-tpt-506",
+      "reviewerId": "c-casey",
+      "teamKey": "MOBILE",
+      "sprintId": "26",
+      "reviewedAt": "2026-08-17T20:31:05.076Z",
+      "turnaroundHours": 3.9847433333333333
     },
     {
       "id": "rev-tpt-44",
-      "pullRequestId": "pr-tpt-519",
+      "pullRequestId": "pr-tpt-507",
+      "reviewerId": "c-elena",
+      "teamKey": "DARK",
+      "sprintId": "26",
+      "reviewedAt": "2026-08-19T22:41:26.936Z",
+      "turnaroundHours": 54.50748222222222
+    },
+    {
+      "id": "rev-tpt-45",
+      "pullRequestId": "pr-tpt-509",
+      "reviewerId": "c-noah",
+      "teamKey": "APEX",
+      "sprintId": "26",
+      "reviewedAt": "2026-08-21T15:25:00.000Z",
+      "turnaroundHours": 1
+    },
+    {
+      "id": "rev-tpt-46",
+      "pullRequestId": "pr-tpt-509",
+      "reviewerId": "c-alex",
+      "teamKey": "APEX",
+      "sprintId": "26",
+      "reviewedAt": "2026-08-21T15:25:00.000Z",
+      "turnaroundHours": 1
+    },
+    {
+      "id": "rev-tpt-47",
+      "pullRequestId": "pr-tpt-511",
+      "reviewerId": "c-jordan",
+      "teamKey": "AVENGERS",
+      "sprintId": "26",
+      "reviewedAt": "2026-08-22T15:15:00.000Z",
+      "turnaroundHours": 49.81666666666667
+    },
+    {
+      "id": "rev-tpt-48",
+      "pullRequestId": "pr-tpt-512",
       "reviewerId": "c-jordan",
       "teamKey": "AVENGERS",
       "sprintId": "26",
@@ -2691,206 +2734,170 @@ export const TPT_PRODUCTIVITY_DERIVED = {
       "turnaroundHours": 42.589735833333336
     },
     {
-      "id": "rev-tpt-45",
-      "pullRequestId": "pr-tpt-521",
-      "reviewerId": "c-devon",
-      "teamKey": "DARK",
-      "sprintId": "26",
-      "reviewedAt": "2026-08-25T07:59:54.547Z",
-      "turnaroundHours": 15.915151944444444
-    },
-    {
-      "id": "rev-tpt-46",
-      "pullRequestId": "pr-tpt-523",
-      "reviewerId": "c-riley",
-      "teamKey": "MOBILE",
-      "sprintId": "26",
-      "reviewedAt": "2026-08-23T15:38:00.000Z",
-      "turnaroundHours": 6.533333333333333
-    },
-    {
-      "id": "rev-tpt-47",
-      "pullRequestId": "pr-tpt-524",
-      "reviewerId": "c-devon",
-      "teamKey": "DARK",
-      "sprintId": "26",
-      "reviewedAt": "2026-08-18T09:56:19.515Z",
-      "turnaroundHours": 24.038754166666667
-    },
-    {
-      "id": "rev-tpt-48",
-      "pullRequestId": "pr-tpt-528",
-      "reviewerId": "c-morgan",
+      "id": "rev-tpt-49",
+      "pullRequestId": "pr-tpt-514",
+      "reviewerId": "c-alex",
       "teamKey": "APEX",
       "sprintId": "26",
-      "reviewedAt": "2026-08-27T09:30:07.818Z",
-      "turnaroundHours": 45.60217166666666
-    },
-    {
-      "id": "rev-tpt-49",
-      "pullRequestId": "pr-tpt-531",
-      "reviewerId": "c-priya",
-      "teamKey": "DARK",
-      "sprintId": "26",
-      "reviewedAt": "2026-08-25T17:53:43.071Z",
-      "turnaroundHours": 49.4452975
+      "reviewedAt": "2026-08-25T13:55:00.000Z",
+      "turnaroundHours": 4.533333333333333
     },
     {
       "id": "rev-tpt-50",
-      "pullRequestId": "pr-tpt-531",
-      "reviewerId": "c-elena",
-      "teamKey": "DARK",
-      "sprintId": "26",
-      "reviewedAt": "2026-08-26T12:20:15.772Z",
-      "turnaroundHours": 67.88771444444444
-    },
-    {
-      "id": "rev-tpt-51",
-      "pullRequestId": "pr-tpt-533",
+      "pullRequestId": "pr-tpt-517",
       "reviewerId": "c-samira",
       "teamKey": "AVENGERS",
       "sprintId": "26",
-      "reviewedAt": "2026-08-20T18:40:42.391Z",
-      "turnaroundHours": 32.07844194444444
+      "reviewedAt": "2026-08-19T16:24:46.191Z",
+      "turnaroundHours": 30.5794975
+    },
+    {
+      "id": "rev-tpt-51",
+      "pullRequestId": "pr-tpt-519",
+      "reviewerId": "c-riley",
+      "teamKey": "MOBILE",
+      "sprintId": "26",
+      "reviewedAt": "2026-08-19T03:06:50.328Z",
+      "turnaroundHours": 17.597313333333332
     },
     {
       "id": "rev-tpt-52",
-      "pullRequestId": "pr-tpt-536",
-      "reviewerId": "c-aisha",
-      "teamKey": "AVENGERS",
-      "sprintId": "25",
-      "reviewedAt": "2026-08-12T06:41:43.367Z",
-      "turnaroundHours": 14.878713055555556
+      "pullRequestId": "pr-tpt-520",
+      "reviewerId": "c-elena",
+      "teamKey": "DARK",
+      "sprintId": "26",
+      "reviewedAt": "2026-08-22T09:01:26.234Z",
+      "turnaroundHours": 71.90728722222222
     },
     {
       "id": "rev-tpt-53",
-      "pullRequestId": "pr-tpt-537",
-      "reviewerId": "c-casey",
-      "teamKey": "MOBILE",
-      "sprintId": "25",
-      "reviewedAt": "2026-08-10T14:45:07.078Z",
-      "turnaroundHours": 46.53529944444445
+      "pullRequestId": "pr-tpt-526",
+      "reviewerId": "c-devon",
+      "teamKey": "DARK",
+      "sprintId": "26",
+      "reviewedAt": "2026-08-25T14:20:02.034Z",
+      "turnaroundHours": 53.100565
     },
     {
       "id": "rev-tpt-54",
+      "pullRequestId": "pr-tpt-526",
+      "reviewerId": "c-priya",
+      "teamKey": "DARK",
+      "sprintId": "26",
+      "reviewedAt": "2026-08-25T18:27:06.260Z",
+      "turnaroundHours": 57.218405555555556
+    },
+    {
+      "id": "rev-tpt-55",
+      "pullRequestId": "pr-tpt-529",
+      "reviewerId": "c-priya",
+      "teamKey": "DARK",
+      "sprintId": "26",
+      "reviewedAt": "2026-08-25T09:32:00.000Z",
+      "turnaroundHours": 44.11666666666667
+    },
+    {
+      "id": "rev-tpt-56",
+      "pullRequestId": "pr-tpt-532",
+      "reviewerId": "c-devon",
+      "teamKey": "DARK",
+      "sprintId": "26",
+      "reviewedAt": "2026-08-25T09:41:00.000Z",
+      "turnaroundHours": 23.233333333333334
+    },
+    {
+      "id": "rev-tpt-57",
+      "pullRequestId": "pr-tpt-535",
+      "reviewerId": "c-priya",
+      "teamKey": "DARK",
+      "sprintId": "26",
+      "reviewedAt": "2026-08-24T21:08:01.076Z",
+      "turnaroundHours": 58.76696555555556
+    },
+    {
+      "id": "rev-tpt-58",
+      "pullRequestId": "pr-tpt-535",
+      "reviewerId": "c-devon",
+      "teamKey": "DARK",
+      "sprintId": "26",
+      "reviewedAt": "2026-08-24T16:00:07.838Z",
+      "turnaroundHours": 53.635510555555555
+    },
+    {
+      "id": "rev-tpt-59",
+      "pullRequestId": "pr-tpt-536",
+      "reviewerId": "c-aisha",
+      "teamKey": "AVENGERS",
+      "sprintId": "26",
+      "reviewedAt": "2026-08-26T11:44:00.000Z",
+      "turnaroundHours": 24.05
+    },
+    {
+      "id": "rev-tpt-60",
       "pullRequestId": "pr-tpt-539",
       "reviewerId": "c-aisha",
       "teamKey": "AVENGERS",
       "sprintId": "25",
-      "reviewedAt": "2026-08-09T02:26:03.464Z",
-      "turnaroundHours": 12.684295555555556
-    },
-    {
-      "id": "rev-tpt-55",
-      "pullRequestId": "pr-tpt-544",
-      "reviewerId": "c-riley",
-      "teamKey": "MOBILE",
-      "sprintId": "25",
-      "reviewedAt": "2026-08-06T07:38:45.153Z",
-      "turnaroundHours": 19.9125425
-    },
-    {
-      "id": "rev-tpt-56",
-      "pullRequestId": "pr-tpt-547",
-      "reviewerId": "c-alex",
-      "teamKey": "APEX",
-      "sprintId": "25",
-      "reviewedAt": "2026-08-10T23:23:35.402Z",
-      "turnaroundHours": 55.59316722222222
-    },
-    {
-      "id": "rev-tpt-57",
-      "pullRequestId": "pr-tpt-549",
-      "reviewerId": "c-noah",
-      "teamKey": "APEX",
-      "sprintId": "25",
-      "reviewedAt": "2026-08-13T05:22:40.475Z",
-      "turnaroundHours": 61.19457638888889
-    },
-    {
-      "id": "rev-tpt-58",
-      "pullRequestId": "pr-tpt-549",
-      "reviewerId": "c-alex",
-      "teamKey": "APEX",
-      "sprintId": "25",
-      "reviewedAt": "2026-08-10T19:23:19.086Z",
-      "turnaroundHours": 3.2053016666666667
-    },
-    {
-      "id": "rev-tpt-59",
-      "pullRequestId": "pr-tpt-550",
-      "reviewerId": "c-morgan",
-      "teamKey": "APEX",
-      "sprintId": "25",
-      "reviewedAt": "2026-08-10T15:06:00.000Z",
-      "turnaroundHours": 2.45
-    },
-    {
-      "id": "rev-tpt-60",
-      "pullRequestId": "pr-tpt-553",
-      "reviewerId": "c-samira",
-      "teamKey": "AVENGERS",
-      "sprintId": "25",
-      "reviewedAt": "2026-08-05T00:27:15.846Z",
-      "turnaroundHours": 9.471068333333333
+      "reviewedAt": "2026-08-12T15:58:01.488Z",
+      "turnaroundHours": 25.61708
     },
     {
       "id": "rev-tpt-61",
-      "pullRequestId": "pr-tpt-555",
-      "reviewerId": "c-noah",
-      "teamKey": "APEX",
+      "pullRequestId": "pr-tpt-539",
+      "reviewerId": "c-jordan",
+      "teamKey": "AVENGERS",
       "sprintId": "25",
-      "reviewedAt": "2026-08-06T15:24:00.000Z",
-      "turnaroundHours": 46.95
+      "reviewedAt": "2026-08-14T13:31:45.720Z",
+      "turnaroundHours": 71.17936666666667
     },
     {
       "id": "rev-tpt-62",
-      "pullRequestId": "pr-tpt-557",
-      "reviewerId": "c-samira",
+      "pullRequestId": "pr-tpt-540",
+      "reviewerId": "c-jordan",
       "teamKey": "AVENGERS",
       "sprintId": "25",
-      "reviewedAt": "2026-08-14T10:06:38.637Z",
-      "turnaroundHours": 66.29406583333333
+      "reviewedAt": "2026-08-06T10:31:25.525Z",
+      "turnaroundHours": 46.67375694444444
     },
     {
       "id": "rev-tpt-63",
-      "pullRequestId": "pr-tpt-558",
-      "reviewerId": "c-samira",
-      "teamKey": "AVENGERS",
-      "sprintId": "25",
-      "reviewedAt": "2026-08-05T16:08:52.174Z",
-      "turnaroundHours": 5.2811594444444445
-    },
-    {
-      "id": "rev-tpt-64",
-      "pullRequestId": "pr-tpt-558",
+      "pullRequestId": "pr-tpt-543",
       "reviewerId": "c-aisha",
       "teamKey": "AVENGERS",
       "sprintId": "25",
-      "reviewedAt": "2026-08-06T02:39:10.776Z",
-      "turnaroundHours": 15.786326666666668
+      "reviewedAt": "2026-08-04T04:09:58.940Z",
+      "turnaroundHours": 17.48303888888889
+    },
+    {
+      "id": "rev-tpt-64",
+      "pullRequestId": "pr-tpt-545",
+      "reviewerId": "c-aisha",
+      "teamKey": "AVENGERS",
+      "sprintId": "25",
+      "reviewedAt": "2026-08-14T09:26:50.901Z",
+      "turnaroundHours": 69.16413916666667
     },
     {
       "id": "rev-tpt-65",
-      "pullRequestId": "pr-tpt-559",
-      "reviewerId": "c-casey",
-      "teamKey": "MOBILE",
+      "pullRequestId": "pr-tpt-548",
+      "reviewerId": "c-samira",
+      "teamKey": "AVENGERS",
       "sprintId": "25",
-      "reviewedAt": "2026-08-12T14:17:51.063Z",
-      "turnaroundHours": 26.464184166666666
+      "reviewedAt": "2026-08-13T07:22:03.156Z",
+      "turnaroundHours": 62.950876666666666
     },
     {
       "id": "rev-tpt-66",
-      "pullRequestId": "pr-tpt-560",
-      "reviewerId": "c-alex",
-      "teamKey": "APEX",
+      "pullRequestId": "pr-tpt-555",
+      "reviewerId": "c-casey",
+      "teamKey": "MOBILE",
       "sprintId": "25",
-      "reviewedAt": "2026-08-05T13:58:00.000Z",
-      "turnaroundHours": 1
+      "reviewedAt": "2026-08-11T01:40:19.960Z",
+      "turnaroundHours": 14.305544444444445
     },
     {
       "id": "rev-tpt-67",
-      "pullRequestId": "pr-tpt-563",
+      "pullRequestId": "pr-tpt-558",
       "reviewerId": "c-riley",
       "teamKey": "MOBILE",
       "sprintId": "25",
@@ -2899,640 +2906,957 @@ export const TPT_PRODUCTIVITY_DERIVED = {
     },
     {
       "id": "rev-tpt-68",
-      "pullRequestId": "pr-tpt-566",
-      "reviewerId": "c-samira",
-      "teamKey": "AVENGERS",
+      "pullRequestId": "pr-tpt-562",
+      "reviewerId": "c-casey",
+      "teamKey": "MOBILE",
       "sprintId": "25",
-      "reviewedAt": "2026-08-07T10:15:00.000Z",
-      "turnaroundHours": 18.916666666666668
+      "reviewedAt": "2026-08-08T21:12:46.184Z",
+      "turnaroundHours": 6.112828888888889
     },
     {
       "id": "rev-tpt-69",
-      "pullRequestId": "pr-tpt-566",
-      "reviewerId": "c-aisha",
-      "teamKey": "AVENGERS",
+      "pullRequestId": "pr-tpt-567",
+      "reviewerId": "c-devon",
+      "teamKey": "DARK",
       "sprintId": "25",
-      "reviewedAt": "2026-08-07T10:15:00.000Z",
-      "turnaroundHours": 18.916666666666668
+      "reviewedAt": "2026-08-04T10:20:00.000Z",
+      "turnaroundHours": 1.25
     },
     {
       "id": "rev-tpt-70",
-      "pullRequestId": "pr-tpt-571",
-      "reviewerId": "c-priya",
-      "teamKey": "DARK",
+      "pullRequestId": "pr-tpt-569",
+      "reviewerId": "c-samira",
+      "teamKey": "AVENGERS",
       "sprintId": "25",
-      "reviewedAt": "2026-08-09T00:06:46.402Z",
-      "turnaroundHours": 14.412889444444444
+      "reviewedAt": "2026-08-08T13:46:00.000Z",
+      "turnaroundHours": 3.25
     },
     {
       "id": "rev-tpt-71",
-      "pullRequestId": "pr-tpt-571",
-      "reviewerId": "c-elena",
+      "pullRequestId": "pr-tpt-570",
+      "reviewerId": "c-devon",
       "teamKey": "DARK",
       "sprintId": "25",
-      "reviewedAt": "2026-08-09T13:18:00.000Z",
-      "turnaroundHours": 27.6
+      "reviewedAt": "2026-08-05T15:11:11.268Z",
+      "turnaroundHours": 28.119796666666666
     },
     {
       "id": "rev-tpt-72",
-      "pullRequestId": "pr-tpt-574",
-      "reviewerId": "c-elena",
+      "pullRequestId": "pr-tpt-570",
+      "reviewerId": "c-priya",
       "teamKey": "DARK",
       "sprintId": "25",
-      "reviewedAt": "2026-08-04T09:29:00.000Z",
-      "turnaroundHours": 24.366666666666667
+      "reviewedAt": "2026-08-06T21:46:11.526Z",
+      "turnaroundHours": 58.703201666666665
     },
     {
       "id": "rev-tpt-73",
-      "pullRequestId": "pr-tpt-574",
-      "reviewerId": "c-devon",
+      "pullRequestId": "pr-tpt-572",
+      "reviewerId": "c-priya",
       "teamKey": "DARK",
       "sprintId": "25",
-      "reviewedAt": "2026-08-03T12:26:55.143Z",
-      "turnaroundHours": 3.3319841666666665
+      "reviewedAt": "2026-08-09T03:33:16.704Z",
+      "turnaroundHours": 59.25464
     },
     {
       "id": "rev-tpt-74",
-      "pullRequestId": "pr-tpt-577",
-      "reviewerId": "c-noah",
-      "teamKey": "APEX",
+      "pullRequestId": "pr-tpt-572",
+      "reviewerId": "c-devon",
+      "teamKey": "DARK",
       "sprintId": "25",
-      "reviewedAt": "2026-08-11T23:50:31.866Z",
-      "turnaroundHours": 60.15885166666666
+      "reviewedAt": "2026-08-08T05:58:03.999Z",
+      "turnaroundHours": 37.6677775
     },
     {
       "id": "rev-tpt-75",
-      "pullRequestId": "pr-tpt-577",
-      "reviewerId": "c-alex",
-      "teamKey": "APEX",
+      "pullRequestId": "pr-tpt-574",
+      "reviewerId": "c-elena",
+      "teamKey": "DARK",
       "sprintId": "25",
-      "reviewedAt": "2026-08-11T19:28:19.703Z",
-      "turnaroundHours": 55.78880638888889
+      "reviewedAt": "2026-08-11T10:37:00.000Z",
+      "turnaroundHours": 46.78333333333333
     },
     {
       "id": "rev-tpt-76",
-      "pullRequestId": "pr-tpt-578",
+      "pullRequestId": "pr-tpt-577",
       "reviewerId": "c-devon",
       "teamKey": "DARK",
       "sprintId": "25",
-      "reviewedAt": "2026-08-09T06:20:40.448Z",
-      "turnaroundHours": 37.39456888888889
+      "reviewedAt": "2026-08-06T01:20:06.976Z",
+      "turnaroundHours": 11.051937777777777
     },
     {
       "id": "rev-tpt-77",
-      "pullRequestId": "pr-tpt-581",
-      "reviewerId": "c-elena",
+      "pullRequestId": "pr-tpt-577",
+      "reviewerId": "c-priya",
       "teamKey": "DARK",
       "sprintId": "25",
-      "reviewedAt": "2026-08-08T06:00:43.394Z",
-      "turnaroundHours": 68.87872055555556
+      "reviewedAt": "2026-08-07T03:30:00.532Z",
+      "turnaroundHours": 37.216814444444445
     },
     {
       "id": "rev-tpt-78",
-      "pullRequestId": "pr-tpt-585",
-      "reviewerId": "c-aisha",
-      "teamKey": "AVENGERS",
-      "sprintId": "24",
-      "reviewedAt": "2026-07-25T00:52:18.434Z",
-      "turnaroundHours": 38.471787222222225
+      "pullRequestId": "pr-tpt-578",
+      "reviewerId": "c-noah",
+      "teamKey": "APEX",
+      "sprintId": "25",
+      "reviewedAt": "2026-08-11T16:02:00.000Z",
+      "turnaroundHours": 24.383333333333333
     },
     {
       "id": "rev-tpt-79",
-      "pullRequestId": "pr-tpt-586",
-      "reviewerId": "c-aisha",
-      "teamKey": "AVENGERS",
-      "sprintId": "24",
-      "reviewedAt": "2026-07-24T16:13:00.000Z",
-      "turnaroundHours": 55.1
+      "pullRequestId": "pr-tpt-580",
+      "reviewerId": "c-devon",
+      "teamKey": "DARK",
+      "sprintId": "25",
+      "reviewedAt": "2026-08-05T03:08:59.071Z",
+      "turnaroundHours": 41.58307527777778
     },
     {
       "id": "rev-tpt-80",
-      "pullRequestId": "pr-tpt-587",
-      "reviewerId": "c-elena",
-      "teamKey": "DARK",
+      "pullRequestId": "pr-tpt-584",
+      "reviewerId": "c-jordan",
+      "teamKey": "AVENGERS",
       "sprintId": "24",
-      "reviewedAt": "2026-07-28T22:13:08.948Z",
-      "turnaroundHours": 61.10248555555555
+      "reviewedAt": "2026-07-23T12:05:00.000Z",
+      "turnaroundHours": 20.316666666666666
     },
     {
       "id": "rev-tpt-81",
-      "pullRequestId": "pr-tpt-589",
-      "reviewerId": "c-casey",
-      "teamKey": "MOBILE",
-      "sprintId": "24",
-      "reviewedAt": "2026-07-27T15:19:00.000Z",
-      "turnaroundHours": 1
-    },
-    {
-      "id": "rev-tpt-82",
-      "pullRequestId": "pr-tpt-592",
-      "reviewerId": "c-devon",
-      "teamKey": "DARK",
-      "sprintId": "24",
-      "reviewedAt": "2026-07-24T11:40:00.000Z",
-      "turnaroundHours": 20.116666666666667
-    },
-    {
-      "id": "rev-tpt-83",
-      "pullRequestId": "pr-tpt-594",
-      "reviewerId": "c-samira",
-      "teamKey": "AVENGERS",
-      "sprintId": "24",
-      "reviewedAt": "2026-07-25T20:08:31.259Z",
-      "turnaroundHours": 56.97534972222222
-    },
-    {
-      "id": "rev-tpt-84",
-      "pullRequestId": "pr-tpt-594",
+      "pullRequestId": "pr-tpt-584",
       "reviewerId": "c-aisha",
       "teamKey": "AVENGERS",
       "sprintId": "24",
-      "reviewedAt": "2026-07-24T08:10:07.689Z",
-      "turnaroundHours": 21.002135833333334
+      "reviewedAt": "2026-07-22T23:33:56.669Z",
+      "turnaroundHours": 7.7990747222222225
+    },
+    {
+      "id": "rev-tpt-82",
+      "pullRequestId": "pr-tpt-587",
+      "reviewerId": "c-jordan",
+      "teamKey": "AVENGERS",
+      "sprintId": "24",
+      "reviewedAt": "2026-07-22T16:46:00.000Z",
+      "turnaroundHours": 26.6
+    },
+    {
+      "id": "rev-tpt-83",
+      "pullRequestId": "pr-tpt-588",
+      "reviewerId": "c-priya",
+      "teamKey": "DARK",
+      "sprintId": "24",
+      "reviewedAt": "2026-07-23T19:53:12.458Z",
+      "turnaroundHours": 58.58679388888889
+    },
+    {
+      "id": "rev-tpt-84",
+      "pullRequestId": "pr-tpt-589",
+      "reviewerId": "c-riley",
+      "teamKey": "MOBILE",
+      "sprintId": "24",
+      "reviewedAt": "2026-07-24T16:17:23.607Z",
+      "turnaroundHours": 54.9065575
     },
     {
       "id": "rev-tpt-85",
+      "pullRequestId": "pr-tpt-591",
+      "reviewerId": "c-morgan",
+      "teamKey": "APEX",
+      "sprintId": "24",
+      "reviewedAt": "2026-07-27T22:15:37.674Z",
+      "turnaroundHours": 8.360465
+    },
+    {
+      "id": "rev-tpt-86",
+      "pullRequestId": "pr-tpt-592",
+      "reviewerId": "c-casey",
+      "teamKey": "MOBILE",
+      "sprintId": "24",
+      "reviewedAt": "2026-07-28T09:30:00.000Z",
+      "turnaroundHours": 46.96666666666667
+    },
+    {
+      "id": "rev-tpt-87",
+      "pullRequestId": "pr-tpt-594",
+      "reviewerId": "c-elena",
+      "teamKey": "DARK",
+      "sprintId": "24",
+      "reviewedAt": "2026-07-22T11:24:00.000Z",
+      "turnaroundHours": 21.066666666666666
+    },
+    {
+      "id": "rev-tpt-88",
+      "pullRequestId": "pr-tpt-594",
+      "reviewerId": "c-priya",
+      "teamKey": "DARK",
+      "sprintId": "24",
+      "reviewedAt": "2026-07-22T11:24:00.000Z",
+      "turnaroundHours": 21.066666666666666
+    },
+    {
+      "id": "rev-tpt-89",
+      "pullRequestId": "pr-tpt-596",
+      "reviewerId": "c-elena",
+      "teamKey": "DARK",
+      "sprintId": "24",
+      "reviewedAt": "2026-07-24T04:46:15.303Z",
+      "turnaroundHours": 37.70425083333333
+    },
+    {
+      "id": "rev-tpt-90",
+      "pullRequestId": "pr-tpt-598",
+      "reviewerId": "c-elena",
+      "teamKey": "DARK",
+      "sprintId": "24",
+      "reviewedAt": "2026-07-30T08:13:31.861Z",
+      "turnaroundHours": 46.175516944444446
+    },
+    {
+      "id": "rev-tpt-91",
       "pullRequestId": "pr-tpt-598",
       "reviewerId": "c-priya",
       "teamKey": "DARK",
       "sprintId": "24",
-      "reviewedAt": "2026-07-27T20:56:36.803Z",
-      "turnaroundHours": 33.14355638888889
+      "reviewedAt": "2026-07-28T21:58:13.251Z",
+      "turnaroundHours": 11.9203475
     },
     {
-      "id": "rev-tpt-86",
-      "pullRequestId": "pr-tpt-601",
-      "reviewerId": "c-noah",
+      "id": "rev-tpt-92",
+      "pullRequestId": "pr-tpt-599",
+      "reviewerId": "c-alex",
       "teamKey": "APEX",
       "sprintId": "24",
-      "reviewedAt": "2026-07-29T17:34:32.660Z",
-      "turnaroundHours": 28.92573888888889
+      "reviewedAt": "2026-07-29T10:55:07.058Z",
+      "turnaroundHours": 23.98529388888889
     },
     {
-      "id": "rev-tpt-87",
-      "pullRequestId": "pr-tpt-601",
-      "reviewerId": "c-morgan",
-      "teamKey": "APEX",
+      "id": "rev-tpt-93",
+      "pullRequestId": "pr-tpt-600",
+      "reviewerId": "c-casey",
+      "teamKey": "MOBILE",
       "sprintId": "24",
-      "reviewedAt": "2026-07-30T13:10:13.434Z",
-      "turnaroundHours": 48.52039833333333
+      "reviewedAt": "2026-07-29T08:38:05.044Z",
+      "turnaroundHours": 42.468067777777776
     },
     {
-      "id": "rev-tpt-88",
+      "id": "rev-tpt-94",
       "pullRequestId": "pr-tpt-603",
       "reviewerId": "c-priya",
       "teamKey": "DARK",
       "sprintId": "24",
-      "reviewedAt": "2026-07-22T13:38:00.000Z",
-      "turnaroundHours": 22.45
-    },
-    {
-      "id": "rev-tpt-89",
-      "pullRequestId": "pr-tpt-606",
-      "reviewerId": "c-elena",
-      "teamKey": "DARK",
-      "sprintId": "24",
-      "reviewedAt": "2026-07-30T13:32:00.000Z",
-      "turnaroundHours": 47.35
-    },
-    {
-      "id": "rev-tpt-90",
-      "pullRequestId": "pr-tpt-606",
-      "reviewerId": "c-priya",
-      "teamKey": "DARK",
-      "sprintId": "24",
-      "reviewedAt": "2026-07-29T00:35:03.295Z",
-      "turnaroundHours": 10.400915277777777
-    },
-    {
-      "id": "rev-tpt-91",
-      "pullRequestId": "pr-tpt-608",
-      "reviewerId": "c-noah",
-      "teamKey": "APEX",
-      "sprintId": "24",
-      "reviewedAt": "2026-07-27T06:03:27.350Z",
-      "turnaroundHours": 66.00759722222222
-    },
-    {
-      "id": "rev-tpt-92",
-      "pullRequestId": "pr-tpt-609",
-      "reviewerId": "c-jordan",
-      "teamKey": "AVENGERS",
-      "sprintId": "24",
-      "reviewedAt": "2026-07-28T11:56:38.089Z",
-      "turnaroundHours": 48.84391361111111
-    },
-    {
-      "id": "rev-tpt-93",
-      "pullRequestId": "pr-tpt-612",
-      "reviewerId": "c-elena",
-      "teamKey": "DARK",
-      "sprintId": "24",
-      "reviewedAt": "2026-07-30T22:28:15.612Z",
-      "turnaroundHours": 57.154336666666666
-    },
-    {
-      "id": "rev-tpt-94",
-      "pullRequestId": "pr-tpt-612",
-      "reviewerId": "c-priya",
-      "teamKey": "DARK",
-      "sprintId": "24",
-      "reviewedAt": "2026-07-30T03:01:15.303Z",
-      "turnaroundHours": 37.70425083333333
+      "reviewedAt": "2026-07-24T04:27:27.579Z",
+      "turnaroundHours": 38.040994166666664
     },
     {
       "id": "rev-tpt-95",
-      "pullRequestId": "pr-tpt-615",
-      "reviewerId": "c-riley",
-      "teamKey": "MOBILE",
+      "pullRequestId": "pr-tpt-604",
+      "reviewerId": "c-morgan",
+      "teamKey": "APEX",
       "sprintId": "24",
-      "reviewedAt": "2026-07-25T17:09:00.000Z",
-      "turnaroundHours": 1
+      "reviewedAt": "2026-07-20T18:08:42.822Z",
+      "turnaroundHours": 6.561895
     },
     {
       "id": "rev-tpt-96",
-      "pullRequestId": "pr-tpt-616",
+      "pullRequestId": "pr-tpt-606",
       "reviewerId": "c-casey",
       "teamKey": "MOBILE",
       "sprintId": "24",
-      "reviewedAt": "2026-07-29T17:26:19.344Z",
-      "turnaroundHours": 25.088706666666667
+      "reviewedAt": "2026-07-30T18:35:07.720Z",
+      "turnaroundHours": 56.20214444444444
     },
     {
       "id": "rev-tpt-97",
-      "pullRequestId": "pr-tpt-619",
-      "reviewerId": "c-aisha",
-      "teamKey": "AVENGERS",
+      "pullRequestId": "pr-tpt-608",
+      "reviewerId": "c-alex",
+      "teamKey": "APEX",
       "sprintId": "24",
-      "reviewedAt": "2026-07-23T20:10:33.398Z",
-      "turnaroundHours": 4.125943888888889
+      "reviewedAt": "2026-07-28T06:51:50.999Z",
+      "turnaroundHours": 21.430833055555556
     },
     {
       "id": "rev-tpt-98",
-      "pullRequestId": "pr-tpt-619",
-      "reviewerId": "c-samira",
-      "teamKey": "AVENGERS",
+      "pullRequestId": "pr-tpt-610",
+      "reviewerId": "c-devon",
+      "teamKey": "DARK",
       "sprintId": "24",
-      "reviewedAt": "2026-07-25T03:45:44.811Z",
-      "turnaroundHours": 35.7124475
+      "reviewedAt": "2026-07-20T12:17:29.031Z",
+      "turnaroundHours": 3.1747308333333333
+    },
+    {
+      "id": "rev-tpt-99",
+      "pullRequestId": "pr-tpt-610",
+      "reviewerId": "c-elena",
+      "teamKey": "DARK",
+      "sprintId": "24",
+      "reviewedAt": "2026-07-23T03:18:45.044Z",
+      "turnaroundHours": 66.19584555555555
+    },
+    {
+      "id": "rev-tpt-100",
+      "pullRequestId": "pr-tpt-613",
+      "reviewerId": "c-alex",
+      "teamKey": "APEX",
+      "sprintId": "24",
+      "reviewedAt": "2026-07-27T01:14:10.432Z",
+      "turnaroundHours": 37.70289777777778
     }
   ],
   "issuesResolvedByContributor": {
     "c-jordan": [
+      "TP-103",
       "TP-113",
-      "TP-116",
-      "TP-118",
       "TP-127",
-      "TP-143",
-      "TP-150",
-      "TP-152",
-      "TP-164",
-      "TP-174",
-      "TP-177",
-      "TP-182",
-      "TP-193",
-      "TP-194",
-      "TP-198",
-      "TP-199",
-      "TP-212"
+      "TP-137",
+      "TP-155",
+      "TP-156",
+      "TP-166",
+      "TP-167",
+      "TP-171",
+      "TP-172",
+      "TP-184"
     ],
     "c-samira": [
-      "TP-146",
-      "TP-148",
-      "TP-149",
-      "TP-166",
-      "TP-192",
-      "TP-208"
-    ],
-    "c-alex": [
+      "TP-106",
       "TP-107",
-      "TP-108",
+      "TP-110",
+      "TP-111",
+      "TP-114",
       "TP-121",
       "TP-123",
-      "TP-128",
-      "TP-172",
+      "TP-124",
+      "TP-130",
+      "TP-169",
       "TP-173",
-      "TP-175",
-      "TP-191",
-      "TP-204",
-      "TP-207"
-    ],
-    "c-morgan": [
-      "TP-104",
-      "TP-136",
-      "TP-139",
-      "TP-144",
-      "TP-145",
-      "TP-167",
-      "TP-170",
-      "TP-171",
-      "TP-188"
-    ],
-    "c-priya": [
-      "TP-119",
-      "TP-159",
-      "TP-186",
-      "TP-187",
-      "TP-190",
       "TP-197"
     ],
-    "c-devon": [
-      "TP-114",
-      "TP-115",
-      "TP-117",
-      "TP-132",
-      "TP-137",
-      "TP-153",
-      "TP-154",
-      "TP-162",
-      "TP-185",
-      "TP-195",
-      "TP-206",
-      "TP-209"
+    "c-alex": [
+      "TP-185"
     ],
-    "c-riley": [
-      "TP-120",
-      "TP-129",
-      "TP-141",
-      "TP-147",
-      "TP-160",
-      "TP-165",
-      "TP-178",
-      "TP-196",
-      "TP-211"
-    ],
-    "c-casey": [
-      "TP-105",
-      "TP-106",
-      "TP-109",
+    "c-morgan": [
       "TP-122",
-      "TP-130",
-      "TP-131",
+      "TP-125",
       "TP-133",
       "TP-134",
-      "TP-138",
-      "TP-158",
+      "TP-142",
+      "TP-143",
+      "TP-149",
+      "TP-150",
+      "TP-194",
+      "TP-209",
+      "TP-210",
+      "TP-215",
+      "TP-216",
+      "TP-218"
+    ],
+    "c-priya": [
+      "TP-105",
+      "TP-117",
+      "TP-129",
+      "TP-136",
+      "TP-140",
+      "TP-148",
       "TP-168",
+      "TP-190",
+      "TP-191",
+      "TP-217"
+    ],
+    "c-devon": [
+      "TP-102",
+      "TP-108",
+      "TP-109",
+      "TP-118",
+      "TP-120",
+      "TP-158",
+      "TP-161",
+      "TP-196",
+      "TP-206",
+      "TP-207",
+      "TP-208",
+      "TP-212"
+    ],
+    "c-riley": [
+      "TP-112",
+      "TP-116",
+      "TP-128",
+      "TP-141",
+      "TP-147",
+      "TP-164",
+      "TP-179",
+      "TP-183",
+      "TP-205",
+      "TP-211",
+      "TP-214"
+    ],
+    "c-casey": [
+      "TP-119",
+      "TP-135",
+      "TP-145",
+      "TP-146",
+      "TP-157",
       "TP-180",
       "TP-181",
-      "TP-210"
+      "TP-201",
+      "TP-202"
     ],
     "c-aisha": [
-      "TP-102",
-      "TP-112",
-      "TP-126",
+      "TP-115",
+      "TP-131",
+      "TP-132",
+      "TP-139",
       "TP-151",
-      "TP-155",
-      "TP-163",
-      "TP-176"
+      "TP-152",
+      "TP-153",
+      "TP-170",
+      "TP-174",
+      "TP-175",
+      "TP-182",
+      "TP-187",
+      "TP-198",
+      "TP-199"
     ],
     "c-noah": [
       "TP-100",
       "TP-101",
-      "TP-124",
-      "TP-125",
-      "TP-135",
-      "TP-142",
-      "TP-161",
-      "TP-169",
-      "TP-179",
-      "TP-183",
-      "TP-184",
-      "TP-200",
-      "TP-201"
+      "TP-138",
+      "TP-144",
+      "TP-154",
+      "TP-159",
+      "TP-176",
+      "TP-177",
+      "TP-178",
+      "TP-203",
+      "TP-204",
+      "TP-213"
     ],
     "c-elena": [
-      "TP-103",
-      "TP-110",
-      "TP-111",
-      "TP-140",
-      "TP-156",
-      "TP-157",
+      "TP-104",
+      "TP-126",
+      "TP-160",
+      "TP-162",
+      "TP-163",
+      "TP-165",
+      "TP-186",
+      "TP-188",
       "TP-189",
-      "TP-202",
-      "TP-203",
-      "TP-205"
+      "TP-192",
+      "TP-193",
+      "TP-195",
+      "TP-200"
     ]
   },
   "issuesResolvedByContributorSprint": {
     "c-jordan": {
-      "24": [
-        "TP-193",
-        "TP-194",
-        "TP-198",
-        "TP-199",
-        "TP-212"
-      ],
+      "24": [],
       "25": [
-        "TP-164",
-        "TP-174",
-        "TP-177",
-        "TP-182"
+        "TP-171",
+        "TP-172",
+        "TP-184"
       ],
       "26": [
-        "TP-143",
-        "TP-150",
-        "TP-152"
+        "TP-137",
+        "TP-155",
+        "TP-156",
+        "TP-166",
+        "TP-167"
       ],
       "27": [
+        "TP-103",
         "TP-113",
-        "TP-116",
-        "TP-118",
         "TP-127"
       ]
     },
     "c-samira": {
       "24": [
-        "TP-192",
-        "TP-208"
+        "TP-197"
       ],
       "25": [
-        "TP-166"
-      ],
-      "26": [
-        "TP-146",
-        "TP-148",
-        "TP-149"
-      ],
-      "27": []
-    },
-    "c-alex": {
-      "24": [
-        "TP-204",
-        "TP-207"
-      ],
-      "25": [
-        "TP-172",
-        "TP-173",
-        "TP-175",
-        "TP-191"
+        "TP-169",
+        "TP-173"
       ],
       "26": [],
       "27": [
+        "TP-106",
         "TP-107",
-        "TP-108",
+        "TP-110",
+        "TP-111",
+        "TP-114",
         "TP-121",
         "TP-123",
-        "TP-128"
+        "TP-124",
+        "TP-130"
       ]
     },
-    "c-morgan": {
+    "c-alex": {
       "24": [],
       "25": [
-        "TP-167",
-        "TP-170",
-        "TP-171",
-        "TP-188"
+        "TP-185"
+      ],
+      "26": [],
+      "27": []
+    },
+    "c-morgan": {
+      "24": [
+        "TP-209",
+        "TP-210",
+        "TP-215",
+        "TP-216",
+        "TP-218"
+      ],
+      "25": [
+        "TP-194"
       ],
       "26": [
-        "TP-136",
-        "TP-139",
-        "TP-144",
-        "TP-145"
+        "TP-142",
+        "TP-143",
+        "TP-149",
+        "TP-150"
       ],
       "27": [
-        "TP-104"
+        "TP-122",
+        "TP-125",
+        "TP-133",
+        "TP-134"
       ]
     },
     "c-priya": {
       "24": [
-        "TP-197"
+        "TP-217"
       ],
       "25": [
-        "TP-186",
-        "TP-187",
-        "TP-190"
+        "TP-168",
+        "TP-190",
+        "TP-191"
       ],
       "26": [
-        "TP-159"
+        "TP-136",
+        "TP-140",
+        "TP-148"
+      ],
+      "27": [
+        "TP-105",
+        "TP-117",
+        "TP-129"
+      ]
+    },
+    "c-devon": {
+      "24": [
+        "TP-206",
+        "TP-207",
+        "TP-208",
+        "TP-212"
+      ],
+      "25": [
+        "TP-196"
+      ],
+      "26": [
+        "TP-158",
+        "TP-161"
+      ],
+      "27": [
+        "TP-102",
+        "TP-108",
+        "TP-109",
+        "TP-118",
+        "TP-120"
+      ]
+    },
+    "c-riley": {
+      "24": [
+        "TP-205",
+        "TP-211",
+        "TP-214"
+      ],
+      "25": [
+        "TP-179",
+        "TP-183"
+      ],
+      "26": [
+        "TP-141",
+        "TP-147",
+        "TP-164"
+      ],
+      "27": [
+        "TP-112",
+        "TP-116",
+        "TP-128"
+      ]
+    },
+    "c-casey": {
+      "24": [
+        "TP-201",
+        "TP-202"
+      ],
+      "25": [
+        "TP-180",
+        "TP-181"
+      ],
+      "26": [
+        "TP-135",
+        "TP-145",
+        "TP-146",
+        "TP-157"
       ],
       "27": [
         "TP-119"
       ]
     },
-    "c-devon": {
-      "24": [
-        "TP-195",
-        "TP-206",
-        "TP-209"
-      ],
-      "25": [
-        "TP-185"
-      ],
-      "26": [
-        "TP-137",
-        "TP-153",
-        "TP-154",
-        "TP-162"
-      ],
-      "27": [
-        "TP-114",
-        "TP-115",
-        "TP-117",
-        "TP-132"
-      ]
-    },
-    "c-riley": {
-      "24": [
-        "TP-196",
-        "TP-211"
-      ],
-      "25": [
-        "TP-165",
-        "TP-178"
-      ],
-      "26": [
-        "TP-141",
-        "TP-147",
-        "TP-160"
-      ],
-      "27": [
-        "TP-120",
-        "TP-129"
-      ]
-    },
-    "c-casey": {
-      "24": [
-        "TP-210"
-      ],
-      "25": [
-        "TP-168",
-        "TP-180",
-        "TP-181"
-      ],
-      "26": [
-        "TP-134",
-        "TP-138",
-        "TP-158"
-      ],
-      "27": [
-        "TP-105",
-        "TP-106",
-        "TP-109",
-        "TP-122",
-        "TP-130",
-        "TP-131",
-        "TP-133"
-      ]
-    },
     "c-aisha": {
-      "24": [],
+      "24": [
+        "TP-198",
+        "TP-199"
+      ],
       "25": [
-        "TP-176"
+        "TP-170",
+        "TP-174",
+        "TP-175",
+        "TP-182",
+        "TP-187"
       ],
       "26": [
+        "TP-139",
         "TP-151",
-        "TP-155",
-        "TP-163"
+        "TP-152",
+        "TP-153"
       ],
       "27": [
-        "TP-102",
-        "TP-112",
-        "TP-126"
+        "TP-115",
+        "TP-131",
+        "TP-132"
       ]
     },
     "c-noah": {
       "24": [
-        "TP-200",
-        "TP-201"
+        "TP-203",
+        "TP-204",
+        "TP-213"
       ],
       "25": [
-        "TP-169",
-        "TP-179",
-        "TP-183",
-        "TP-184"
+        "TP-176",
+        "TP-177",
+        "TP-178"
       ],
       "26": [
-        "TP-135",
-        "TP-142",
-        "TP-161"
+        "TP-138",
+        "TP-144",
+        "TP-154",
+        "TP-159"
       ],
       "27": [
         "TP-100",
-        "TP-101",
-        "TP-124",
-        "TP-125"
+        "TP-101"
       ]
     },
     "c-elena": {
       "24": [
-        "TP-202",
-        "TP-203",
-        "TP-205"
+        "TP-200"
       ],
       "25": [
-        "TP-189"
+        "TP-186",
+        "TP-188",
+        "TP-189",
+        "TP-192",
+        "TP-193",
+        "TP-195"
       ],
       "26": [
-        "TP-140",
-        "TP-156",
-        "TP-157"
+        "TP-160",
+        "TP-162",
+        "TP-163",
+        "TP-165"
       ],
       "27": [
-        "TP-103",
-        "TP-110",
-        "TP-111"
+        "TP-104",
+        "TP-126"
       ]
+    }
+  },
+  "ticketStatsByContributorSprint": {
+    "c-jordan": {
+      "24": {
+        "ticketsWorkedOn": 4,
+        "storyPointsCompleted": 14,
+        "ticketsSkipped": 1,
+        "storyPointsSkipped": 3
+      },
+      "25": {
+        "ticketsWorkedOn": 4,
+        "storyPointsCompleted": 11,
+        "ticketsSkipped": 1,
+        "storyPointsSkipped": 2
+      },
+      "26": {
+        "ticketsWorkedOn": 6,
+        "storyPointsCompleted": 22,
+        "ticketsSkipped": 1,
+        "storyPointsSkipped": 1
+      },
+      "27": {
+        "ticketsWorkedOn": 4,
+        "storyPointsCompleted": 7,
+        "ticketsSkipped": 1,
+        "storyPointsSkipped": 1
+      }
+    },
+    "c-samira": {
+      "24": {
+        "ticketsWorkedOn": 1,
+        "storyPointsCompleted": 2,
+        "ticketsSkipped": 0,
+        "storyPointsSkipped": 0
+      },
+      "25": {
+        "ticketsWorkedOn": 2,
+        "storyPointsCompleted": 11,
+        "ticketsSkipped": 0,
+        "storyPointsSkipped": 0
+      },
+      "26": {
+        "ticketsWorkedOn": 1,
+        "storyPointsCompleted": 3,
+        "ticketsSkipped": 0,
+        "storyPointsSkipped": 0
+      },
+      "27": {
+        "ticketsWorkedOn": 11,
+        "storyPointsCompleted": 39,
+        "ticketsSkipped": 2,
+        "storyPointsSkipped": 13
+      }
+    },
+    "c-alex": {
+      "24": {
+        "ticketsWorkedOn": 1,
+        "storyPointsCompleted": 8,
+        "ticketsSkipped": 0,
+        "storyPointsSkipped": 0
+      },
+      "25": {
+        "ticketsWorkedOn": 1,
+        "storyPointsCompleted": 1,
+        "ticketsSkipped": 0,
+        "storyPointsSkipped": 0
+      },
+      "26": {
+        "ticketsWorkedOn": 2,
+        "storyPointsCompleted": 5,
+        "ticketsSkipped": 0,
+        "storyPointsSkipped": 0
+      },
+      "27": {
+        "ticketsWorkedOn": 4,
+        "storyPointsCompleted": 12,
+        "ticketsSkipped": 1,
+        "storyPointsSkipped": 5
+      }
+    },
+    "c-morgan": {
+      "24": {
+        "ticketsWorkedOn": 6,
+        "storyPointsCompleted": 9,
+        "ticketsSkipped": 1,
+        "storyPointsSkipped": 3
+      },
+      "25": {
+        "ticketsWorkedOn": 1,
+        "storyPointsCompleted": 1,
+        "ticketsSkipped": 0,
+        "storyPointsSkipped": 0
+      },
+      "26": {
+        "ticketsWorkedOn": 5,
+        "storyPointsCompleted": 16,
+        "ticketsSkipped": 1,
+        "storyPointsSkipped": 1
+      },
+      "27": {
+        "ticketsWorkedOn": 5,
+        "storyPointsCompleted": 7,
+        "ticketsSkipped": 1,
+        "storyPointsSkipped": 1
+      }
+    },
+    "c-priya": {
+      "24": {
+        "ticketsWorkedOn": 1,
+        "storyPointsCompleted": 1,
+        "ticketsSkipped": 0,
+        "storyPointsSkipped": 0
+      },
+      "25": {
+        "ticketsWorkedOn": 4,
+        "storyPointsCompleted": 11,
+        "ticketsSkipped": 1,
+        "storyPointsSkipped": 3
+      },
+      "26": {
+        "ticketsWorkedOn": 4,
+        "storyPointsCompleted": 13,
+        "ticketsSkipped": 1,
+        "storyPointsSkipped": 3
+      },
+      "27": {
+        "ticketsWorkedOn": 4,
+        "storyPointsCompleted": 11,
+        "ticketsSkipped": 1,
+        "storyPointsSkipped": 8
+      }
+    },
+    "c-devon": {
+      "24": {
+        "ticketsWorkedOn": 5,
+        "storyPointsCompleted": 23,
+        "ticketsSkipped": 1,
+        "storyPointsSkipped": 1
+      },
+      "25": {
+        "ticketsWorkedOn": 1,
+        "storyPointsCompleted": 2,
+        "ticketsSkipped": 0,
+        "storyPointsSkipped": 0
+      },
+      "26": {
+        "ticketsWorkedOn": 2,
+        "storyPointsCompleted": 13,
+        "ticketsSkipped": 0,
+        "storyPointsSkipped": 0
+      },
+      "27": {
+        "ticketsWorkedOn": 6,
+        "storyPointsCompleted": 25,
+        "ticketsSkipped": 1,
+        "storyPointsSkipped": 1
+      }
+    },
+    "c-riley": {
+      "24": {
+        "ticketsWorkedOn": 4,
+        "storyPointsCompleted": 11,
+        "ticketsSkipped": 1,
+        "storyPointsSkipped": 8
+      },
+      "25": {
+        "ticketsWorkedOn": 3,
+        "storyPointsCompleted": 13,
+        "ticketsSkipped": 1,
+        "storyPointsSkipped": 1
+      },
+      "26": {
+        "ticketsWorkedOn": 4,
+        "storyPointsCompleted": 9,
+        "ticketsSkipped": 1,
+        "storyPointsSkipped": 5
+      },
+      "27": {
+        "ticketsWorkedOn": 4,
+        "storyPointsCompleted": 4,
+        "ticketsSkipped": 1,
+        "storyPointsSkipped": 5
+      }
+    },
+    "c-casey": {
+      "24": {
+        "ticketsWorkedOn": 2,
+        "storyPointsCompleted": 6,
+        "ticketsSkipped": 0,
+        "storyPointsSkipped": 0
+      },
+      "25": {
+        "ticketsWorkedOn": 3,
+        "storyPointsCompleted": 3,
+        "ticketsSkipped": 1,
+        "storyPointsSkipped": 5
+      },
+      "26": {
+        "ticketsWorkedOn": 5,
+        "storyPointsCompleted": 10,
+        "ticketsSkipped": 1,
+        "storyPointsSkipped": 5
+      },
+      "27": {
+        "ticketsWorkedOn": 1,
+        "storyPointsCompleted": 3,
+        "ticketsSkipped": 0,
+        "storyPointsSkipped": 0
+      }
+    },
+    "c-aisha": {
+      "24": {
+        "ticketsWorkedOn": 2,
+        "storyPointsCompleted": 8,
+        "ticketsSkipped": 0,
+        "storyPointsSkipped": 0
+      },
+      "25": {
+        "ticketsWorkedOn": 7,
+        "storyPointsCompleted": 20,
+        "ticketsSkipped": 2,
+        "storyPointsSkipped": 9
+      },
+      "26": {
+        "ticketsWorkedOn": 5,
+        "storyPointsCompleted": 13,
+        "ticketsSkipped": 1,
+        "storyPointsSkipped": 3
+      },
+      "27": {
+        "ticketsWorkedOn": 4,
+        "storyPointsCompleted": 8,
+        "ticketsSkipped": 1,
+        "storyPointsSkipped": 1
+      }
+    },
+    "c-noah": {
+      "24": {
+        "ticketsWorkedOn": 4,
+        "storyPointsCompleted": 9,
+        "ticketsSkipped": 1,
+        "storyPointsSkipped": 8
+      },
+      "25": {
+        "ticketsWorkedOn": 4,
+        "storyPointsCompleted": 16,
+        "ticketsSkipped": 1,
+        "storyPointsSkipped": 8
+      },
+      "26": {
+        "ticketsWorkedOn": 5,
+        "storyPointsCompleted": 12,
+        "ticketsSkipped": 1,
+        "storyPointsSkipped": 3
+      },
+      "27": {
+        "ticketsWorkedOn": 3,
+        "storyPointsCompleted": 13,
+        "ticketsSkipped": 1,
+        "storyPointsSkipped": 2
+      }
+    },
+    "c-elena": {
+      "24": {
+        "ticketsWorkedOn": 1,
+        "storyPointsCompleted": 8,
+        "ticketsSkipped": 0,
+        "storyPointsSkipped": 0
+      },
+      "25": {
+        "ticketsWorkedOn": 8,
+        "storyPointsCompleted": 25,
+        "ticketsSkipped": 2,
+        "storyPointsSkipped": 7
+      },
+      "26": {
+        "ticketsWorkedOn": 5,
+        "storyPointsCompleted": 23,
+        "ticketsSkipped": 1,
+        "storyPointsSkipped": 8
+      },
+      "27": {
+        "ticketsWorkedOn": 2,
+        "storyPointsCompleted": 2,
+        "ticketsSkipped": 0,
+        "storyPointsSkipped": 0
+      }
     }
   }
 } as const satisfies ProductivityDerivedPack;
@@ -3607,44 +3931,47 @@ export const CONNEXUS_PRODUCTIVITY_DERIVED = {
       "unreviewed": false
     },
     {
-      "id": "pr-connexus-451",
-      "number": 451,
-      "title": "upgrade prisma client",
-      "url": "https://github.com/neoito/connexus-platform/pull/451",
-      "repo": "connexus-platform",
-      "authorId": "cx-morgan",
-      "teamKey": "CONNEXUS",
-      "sprintId": "37",
-      "openedAt": "2026-09-02T15:07:00.000Z",
-      "firstReviewAt": null,
-      "mergedAt": "2026-09-05T12:40:00.000Z",
-      "reviewerIds": [],
-      "additions": 157,
-      "deletions": 15,
-      "attribution": "ai_assisted",
-      "jiraKeys": [
-        "CX-101"
-      ],
-      "unreviewed": true
-    },
-    {
-      "id": "pr-connexus-452",
-      "number": 452,
-      "title": "fix mobile deep link",
-      "url": "https://github.com/neoito/connexus-platform/pull/452",
+      "id": "pr-connexus-449",
+      "number": 449,
+      "title": "tighten CORS allowlist",
+      "url": "https://github.com/neoito/connexus-platform/pull/449",
       "repo": "connexus-platform",
       "authorId": "cx-priya",
       "teamKey": "CONNEXUS",
       "sprintId": "37",
-      "openedAt": "2026-09-02T10:51:00.000Z",
-      "firstReviewAt": "2026-09-03T12:46:00.000Z",
-      "mergedAt": "2026-09-03T13:46:00.000Z",
+      "openedAt": "2026-09-03T10:37:00.000Z",
+      "firstReviewAt": "2026-09-05T05:29:10.524Z",
+      "mergedAt": "2026-09-05T15:05:00.000Z",
       "reviewerIds": [
+        "cx-morgan",
         "cx-samira"
       ],
-      "additions": 471,
-      "deletions": 34,
-      "attribution": "ai_generated",
+      "additions": 402,
+      "deletions": 176,
+      "attribution": "human_only",
+      "jiraKeys": [
+        "CX-101"
+      ],
+      "unreviewed": false
+    },
+    {
+      "id": "pr-connexus-452",
+      "number": 452,
+      "title": "cleanup dead feature flags",
+      "url": "https://github.com/neoito/connexus-platform/pull/452",
+      "repo": "connexus-platform",
+      "authorId": "cx-morgan",
+      "teamKey": "CONNEXUS",
+      "sprintId": "37",
+      "openedAt": "2026-08-29T14:42:00.000Z",
+      "firstReviewAt": "2026-09-01T00:43:36.704Z",
+      "mergedAt": "2026-09-01T16:56:00.000Z",
+      "reviewerIds": [
+        "cx-priya"
+      ],
+      "additions": 99,
+      "deletions": 56,
+      "attribution": "ai_assisted",
       "jiraKeys": [
         "CX-102"
       ],
@@ -3653,135 +3980,163 @@ export const CONNEXUS_PRODUCTIVITY_DERIVED = {
     {
       "id": "pr-connexus-453",
       "number": 453,
-      "title": "split large dashboard query",
+      "title": "auth session refresh",
       "url": "https://github.com/neoito/connexus-platform/pull/453",
       "repo": "connexus-platform",
-      "authorId": "cx-samira",
+      "authorId": "cx-jordan",
       "teamKey": "CONNEXUS",
       "sprintId": "37",
-      "openedAt": "2026-09-04T14:31:00.000Z",
-      "firstReviewAt": "2026-09-04T17:31:56.401Z",
-      "mergedAt": "2026-09-09T17:30:00.000Z",
+      "openedAt": "2026-08-27T09:15:00.000Z",
+      "firstReviewAt": "2026-08-27T14:31:00.000Z",
+      "mergedAt": "2026-08-27T15:31:00.000Z",
       "reviewerIds": [
-        "cx-morgan",
-        "cx-priya"
+        "cx-alex",
+        "cx-samira"
       ],
-      "additions": 416,
-      "deletions": 60,
-      "attribution": "human_only",
+      "additions": 236,
+      "deletions": 101,
+      "attribution": "ai_assisted",
       "jiraKeys": [
-        "CX-103"
+        "CX-103",
+        "CX-104"
       ],
       "unreviewed": false
     },
     {
       "id": "pr-connexus-455",
       "number": 455,
-      "title": "add empty-state illustration",
+      "title": "harden rate limiter",
       "url": "https://github.com/neoito/connexus-platform/pull/455",
       "repo": "connexus-platform",
       "authorId": "cx-jordan",
       "teamKey": "CONNEXUS",
       "sprintId": "37",
-      "openedAt": "2026-08-27T12:43:00.000Z",
-      "firstReviewAt": null,
-      "mergedAt": "2026-08-31T10:39:00.000Z",
-      "reviewerIds": [],
-      "additions": 301,
-      "deletions": 15,
-      "attribution": "ai_generated",
-      "jiraKeys": [
-        "CX-104",
-        "CX-105"
-      ],
-      "unreviewed": true
-    },
-    {
-      "id": "pr-connexus-457",
-      "number": 457,
-      "title": "upgrade prisma client",
-      "url": "https://github.com/neoito/connexus-platform/pull/457",
-      "repo": "connexus-platform",
-      "authorId": "cx-samira",
-      "teamKey": "CONNEXUS",
-      "sprintId": "37",
-      "openedAt": "2026-09-03T16:24:00.000Z",
-      "firstReviewAt": null,
-      "mergedAt": "2026-09-05T13:55:00.000Z",
-      "reviewerIds": [],
-      "additions": 319,
-      "deletions": 90,
-      "attribution": "human_only",
-      "jiraKeys": [
-        "CX-106",
-        "CX-107"
-      ],
-      "unreviewed": true
-    },
-    {
-      "id": "pr-connexus-459",
-      "number": 459,
-      "title": "add sprint burndown API",
-      "url": "https://github.com/neoito/connexus-platform/pull/459",
-      "repo": "connexus-platform",
-      "authorId": "cx-jordan",
-      "teamKey": "CONNEXUS",
-      "sprintId": "37",
-      "openedAt": "2026-08-28T14:49:00.000Z",
-      "firstReviewAt": "2026-08-30T14:19:00.000Z",
-      "mergedAt": "2026-08-30T15:19:00.000Z",
+      "openedAt": "2026-09-04T14:36:00.000Z",
+      "firstReviewAt": "2026-09-04T15:36:00.000Z",
+      "mergedAt": "2026-09-04T11:50:00.000Z",
       "reviewerIds": [
-        "cx-alex"
+        "cx-morgan"
       ],
-      "additions": 216,
-      "deletions": 67,
-      "attribution": "ai_generated",
+      "additions": 71,
+      "deletions": 21,
+      "attribution": "ai_assisted",
       "jiraKeys": [
-        "CX-108"
+        "CX-105"
       ],
       "unreviewed": false
     },
     {
+      "id": "pr-connexus-456",
+      "number": 456,
+      "title": "fix mobile deep link",
+      "url": "https://github.com/neoito/connexus-platform/pull/456",
+      "repo": "connexus-platform",
+      "authorId": "cx-samira",
+      "teamKey": "CONNEXUS",
+      "sprintId": "37",
+      "openedAt": "2026-08-27T10:42:00.000Z",
+      "firstReviewAt": "2026-08-28T17:24:05.150Z",
+      "mergedAt": "2026-09-01T13:39:00.000Z",
+      "reviewerIds": [
+        "cx-morgan",
+        "cx-priya"
+      ],
+      "additions": 269,
+      "deletions": 155,
+      "attribution": "human_only",
+      "jiraKeys": [
+        "CX-106"
+      ],
+      "unreviewed": false
+    },
+    {
+      "id": "pr-connexus-458",
+      "number": 458,
+      "title": "harden rate limiter",
+      "url": "https://github.com/neoito/connexus-platform/pull/458",
+      "repo": "connexus-platform",
+      "authorId": "cx-priya",
+      "teamKey": "CONNEXUS",
+      "sprintId": "37",
+      "openedAt": "2026-09-01T10:18:00.000Z",
+      "firstReviewAt": "2026-09-02T09:18:00.000Z",
+      "mergedAt": "2026-09-02T10:18:00.000Z",
+      "reviewerIds": [
+        "cx-morgan"
+      ],
+      "additions": 450,
+      "deletions": 49,
+      "attribution": "human_only",
+      "jiraKeys": [
+        "CX-107"
+      ],
+      "unreviewed": false
+    },
+    {
+      "id": "pr-connexus-459",
+      "number": 459,
+      "title": "fix payment webhook retry",
+      "url": "https://github.com/neoito/connexus-platform/pull/459",
+      "repo": "connexus-platform",
+      "authorId": "cx-alex",
+      "teamKey": "CONNEXUS",
+      "sprintId": "37",
+      "openedAt": "2026-09-02T13:56:00.000Z",
+      "firstReviewAt": null,
+      "mergedAt": "2026-09-07T16:58:00.000Z",
+      "reviewerIds": [],
+      "additions": 487,
+      "deletions": 251,
+      "attribution": "human_only",
+      "jiraKeys": [
+        "CX-108"
+      ],
+      "unreviewed": true
+    },
+    {
       "id": "pr-connexus-460",
       "number": 460,
-      "title": "auth session refresh",
+      "title": "upgrade prisma client",
       "url": "https://github.com/neoito/connexus-platform/pull/460",
       "repo": "connexus-platform",
       "authorId": "cx-alex",
       "teamKey": "CONNEXUS",
       "sprintId": "37",
-      "openedAt": "2026-08-29T16:37:00.000Z",
-      "firstReviewAt": null,
-      "mergedAt": "2026-08-30T12:07:00.000Z",
-      "reviewerIds": [],
-      "additions": 274,
-      "deletions": 92,
-      "attribution": "ai_generated",
-      "jiraKeys": [
-        "CX-109"
-      ],
-      "unreviewed": true
-    },
-    {
-      "id": "pr-connexus-462",
-      "number": 462,
-      "title": "tighten CORS allowlist",
-      "url": "https://github.com/neoito/connexus-platform/pull/462",
-      "repo": "connexus-platform",
-      "authorId": "cx-samira",
-      "teamKey": "CONNEXUS",
-      "sprintId": "37",
-      "openedAt": "2026-08-31T12:29:00.000Z",
-      "firstReviewAt": "2026-09-03T10:43:10.429Z",
-      "mergedAt": "2026-09-03T17:19:00.000Z",
+      "openedAt": "2026-08-28T12:09:00.000Z",
+      "firstReviewAt": "2026-08-30T05:22:19.372Z",
+      "mergedAt": "2026-08-31T13:40:00.000Z",
       "reviewerIds": [
+        "cx-morgan",
         "cx-priya"
       ],
-      "additions": 35,
-      "deletions": 0,
-      "attribution": "ai_generated",
+      "additions": 275,
+      "deletions": 9,
+      "attribution": "human_only",
       "jiraKeys": [
-        "CX-110",
+        "CX-109",
+        "CX-110"
+      ],
+      "unreviewed": false
+    },
+    {
+      "id": "pr-connexus-461",
+      "number": 461,
+      "title": "wire observability alerts",
+      "url": "https://github.com/neoito/connexus-platform/pull/461",
+      "repo": "connexus-platform",
+      "authorId": "cx-jordan",
+      "teamKey": "CONNEXUS",
+      "sprintId": "37",
+      "openedAt": "2026-09-03T15:09:00.000Z",
+      "firstReviewAt": "2026-09-05T00:44:39.132Z",
+      "mergedAt": "2026-09-07T14:44:00.000Z",
+      "reviewerIds": [
+        "cx-morgan"
+      ],
+      "additions": 213,
+      "deletions": 58,
+      "attribution": "human_only",
+      "jiraKeys": [
         "CX-111"
       ],
       "unreviewed": false
@@ -3792,18 +4147,19 @@ export const CONNEXUS_PRODUCTIVITY_DERIVED = {
       "title": "upgrade prisma client",
       "url": "https://github.com/neoito/connexus-platform/pull/464",
       "repo": "connexus-platform",
-      "authorId": "cx-alex",
+      "authorId": "cx-priya",
       "teamKey": "CONNEXUS",
       "sprintId": "37",
-      "openedAt": "2026-08-30T11:18:00.000Z",
-      "firstReviewAt": "2026-08-31T03:54:17.897Z",
-      "mergedAt": "2026-08-31T13:09:00.000Z",
+      "openedAt": "2026-08-31T15:12:00.000Z",
+      "firstReviewAt": "2026-09-01T06:03:02.215Z",
+      "mergedAt": "2026-09-01T12:43:00.000Z",
       "reviewerIds": [
-        "cx-jordan"
+        "cx-morgan",
+        "cx-samira"
       ],
-      "additions": 118,
-      "deletions": 39,
-      "attribution": "ai_generated",
+      "additions": 225,
+      "deletions": 100,
+      "attribution": "ai_assisted",
       "jiraKeys": [
         "CX-112",
         "CX-113"
@@ -3811,115 +4167,118 @@ export const CONNEXUS_PRODUCTIVITY_DERIVED = {
       "unreviewed": false
     },
     {
-      "id": "pr-connexus-467",
-      "number": 467,
+      "id": "pr-connexus-466",
+      "number": 466,
       "title": "support dark mode tokens",
-      "url": "https://github.com/neoito/connexus-platform/pull/467",
-      "repo": "connexus-platform",
-      "authorId": "cx-jordan",
-      "teamKey": "CONNEXUS",
-      "sprintId": "37",
-      "openedAt": "2026-09-02T11:12:00.000Z",
-      "firstReviewAt": "2026-09-03T02:41:40.301Z",
-      "mergedAt": "2026-09-07T11:02:00.000Z",
-      "reviewerIds": [
-        "cx-morgan",
-        "cx-alex"
-      ],
-      "additions": 413,
-      "deletions": 9,
-      "attribution": "human_only",
-      "jiraKeys": [
-        "CX-114",
-        "CX-115"
-      ],
-      "unreviewed": false
-    },
-    {
-      "id": "pr-connexus-468",
-      "number": 468,
-      "title": "harden rate limiter",
-      "url": "https://github.com/neoito/connexus-platform/pull/468",
+      "url": "https://github.com/neoito/connexus-platform/pull/466",
       "repo": "connexus-platform",
       "authorId": "cx-morgan",
       "teamKey": "CONNEXUS",
       "sprintId": "37",
-      "openedAt": "2026-08-28T15:57:00.000Z",
-      "firstReviewAt": "2026-08-29T00:42:20.306Z",
-      "mergedAt": "2026-09-01T14:45:00.000Z",
+      "openedAt": "2026-08-27T11:34:00.000Z",
+      "firstReviewAt": "2026-08-28T04:10:09.332Z",
+      "mergedAt": "2026-08-29T15:49:00.000Z",
       "reviewerIds": [
-        "cx-alex",
-        "cx-priya"
+        "cx-samira",
+        "cx-alex"
       ],
-      "additions": 30,
-      "deletions": 3,
-      "attribution": "ai_assisted",
+      "additions": 283,
+      "deletions": 37,
+      "attribution": "human_only",
       "jiraKeys": [
-        "CX-116"
+        "CX-114"
+      ],
+      "unreviewed": false
+    },
+    {
+      "id": "pr-connexus-467",
+      "number": 467,
+      "title": "tighten CORS allowlist",
+      "url": "https://github.com/neoito/connexus-platform/pull/467",
+      "repo": "connexus-platform",
+      "authorId": "cx-priya",
+      "teamKey": "CONNEXUS",
+      "sprintId": "37",
+      "openedAt": "2026-08-30T11:57:00.000Z",
+      "firstReviewAt": "2026-09-02T05:53:52.853Z",
+      "mergedAt": "2026-09-03T11:02:00.000Z",
+      "reviewerIds": [
+        "cx-jordan"
+      ],
+      "additions": 103,
+      "deletions": 16,
+      "attribution": "human_only",
+      "jiraKeys": [
+        "CX-115"
       ],
       "unreviewed": false
     },
     {
       "id": "pr-connexus-469",
       "number": 469,
-      "title": "split large dashboard query",
+      "title": "reduce flaky e2e waits",
       "url": "https://github.com/neoito/connexus-platform/pull/469",
       "repo": "connexus-platform",
-      "authorId": "cx-morgan",
+      "authorId": "cx-alex",
       "teamKey": "CONNEXUS",
-      "sprintId": "37",
-      "openedAt": "2026-09-02T09:06:00.000Z",
-      "firstReviewAt": null,
-      "mergedAt": "2026-09-04T11:36:00.000Z",
-      "reviewerIds": [],
-      "additions": 295,
-      "deletions": 72,
-      "attribution": "ai_assisted",
-      "jiraKeys": [
-        "CX-117"
+      "sprintId": "36",
+      "openedAt": "2026-08-15T09:49:00.000Z",
+      "firstReviewAt": "2026-08-18T08:48:45.770Z",
+      "mergedAt": "2026-08-18T14:04:00.000Z",
+      "reviewerIds": [
+        "cx-morgan"
       ],
-      "unreviewed": true
+      "additions": 331,
+      "deletions": 186,
+      "attribution": "human_only",
+      "jiraKeys": [
+        "CX-116"
+      ],
+      "unreviewed": false
     },
     {
       "id": "pr-connexus-471",
       "number": 471,
-      "title": "surface unmatched activity",
+      "title": "fix mobile deep link",
       "url": "https://github.com/neoito/connexus-platform/pull/471",
-      "repo": "connexus-platform",
-      "authorId": "cx-jordan",
-      "teamKey": "CONNEXUS",
-      "sprintId": "36",
-      "openedAt": "2026-08-16T14:34:00.000Z",
-      "firstReviewAt": null,
-      "mergedAt": "2026-08-17T14:13:00.000Z",
-      "reviewerIds": [],
-      "additions": 230,
-      "deletions": 38,
-      "attribution": "human_only",
-      "jiraKeys": [
-        "CX-118"
-      ],
-      "unreviewed": true
-    },
-    {
-      "id": "pr-connexus-472",
-      "number": 472,
-      "title": "document release checklist",
-      "url": "https://github.com/neoito/connexus-platform/pull/472",
       "repo": "connexus-platform",
       "authorId": "cx-priya",
       "teamKey": "CONNEXUS",
       "sprintId": "36",
-      "openedAt": "2026-08-20T10:02:00.000Z",
-      "firstReviewAt": "2026-08-21T06:40:55.007Z",
-      "mergedAt": "2026-08-24T11:21:00.000Z",
+      "openedAt": "2026-08-17T11:06:00.000Z",
+      "firstReviewAt": "2026-08-18T10:25:00.000Z",
+      "mergedAt": "2026-08-18T11:25:00.000Z",
       "reviewerIds": [
-        "cx-morgan"
+        "cx-alex"
       ],
-      "additions": 162,
-      "deletions": 86,
+      "additions": 92,
+      "deletions": 31,
       "attribution": "human_only",
       "jiraKeys": [
+        "CX-117"
+      ],
+      "unreviewed": false
+    },
+    {
+      "id": "pr-connexus-473",
+      "number": 473,
+      "title": "harden rate limiter",
+      "url": "https://github.com/neoito/connexus-platform/pull/473",
+      "repo": "connexus-platform",
+      "authorId": "cx-priya",
+      "teamKey": "CONNEXUS",
+      "sprintId": "36",
+      "openedAt": "2026-08-15T15:24:00.000Z",
+      "firstReviewAt": "2026-08-15T16:24:00.000Z",
+      "mergedAt": "2026-08-15T13:07:00.000Z",
+      "reviewerIds": [
+        "cx-jordan"
+      ],
+      "additions": 260,
+      "deletions": 83,
+      "attribution": "ai_generated",
+      "jiraKeys": [
+        "CX-118",
         "CX-119"
       ],
       "unreviewed": false
@@ -3927,22 +4286,21 @@ export const CONNEXUS_PRODUCTIVITY_DERIVED = {
     {
       "id": "pr-connexus-475",
       "number": 475,
-      "title": "tighten CORS allowlist",
+      "title": "split large dashboard query",
       "url": "https://github.com/neoito/connexus-platform/pull/475",
       "repo": "connexus-platform",
-      "authorId": "cx-samira",
+      "authorId": "cx-priya",
       "teamKey": "CONNEXUS",
       "sprintId": "36",
-      "openedAt": "2026-08-13T15:34:00.000Z",
-      "firstReviewAt": "2026-08-14T12:21:04.183Z",
-      "mergedAt": "2026-08-16T10:27:00.000Z",
+      "openedAt": "2026-08-21T10:50:00.000Z",
+      "firstReviewAt": "2026-08-23T21:40:06.585Z",
+      "mergedAt": "2026-08-24T12:01:00.000Z",
       "reviewerIds": [
-        "cx-morgan",
-        "cx-jordan"
+        "cx-morgan"
       ],
-      "additions": 431,
-      "deletions": 122,
-      "attribution": "human_only",
+      "additions": 334,
+      "deletions": 164,
+      "attribution": "ai_generated",
       "jiraKeys": [
         "CX-120"
       ],
@@ -3951,20 +4309,21 @@ export const CONNEXUS_PRODUCTIVITY_DERIVED = {
     {
       "id": "pr-connexus-477",
       "number": 477,
-      "title": "cleanup dead feature flags",
+      "title": "improve checkout validation",
       "url": "https://github.com/neoito/connexus-platform/pull/477",
       "repo": "connexus-platform",
-      "authorId": "cx-jordan",
+      "authorId": "cx-morgan",
       "teamKey": "CONNEXUS",
       "sprintId": "36",
-      "openedAt": "2026-08-14T10:25:00.000Z",
-      "firstReviewAt": "2026-08-16T04:02:54.638Z",
-      "mergedAt": "2026-08-16T13:21:00.000Z",
+      "openedAt": "2026-08-21T13:48:00.000Z",
+      "firstReviewAt": "2026-08-23T08:52:04.860Z",
+      "mergedAt": "2026-08-23T10:24:00.000Z",
       "reviewerIds": [
-        "cx-morgan"
+        "cx-priya",
+        "cx-samira"
       ],
-      "additions": 121,
-      "deletions": 44,
+      "additions": 290,
+      "deletions": 40,
       "attribution": "human_only",
       "jiraKeys": [
         "CX-121"
@@ -3972,115 +4331,114 @@ export const CONNEXUS_PRODUCTIVITY_DERIVED = {
       "unreviewed": false
     },
     {
-      "id": "pr-connexus-479",
-      "number": 479,
-      "title": "harden rate limiter",
-      "url": "https://github.com/neoito/connexus-platform/pull/479",
+      "id": "pr-connexus-480",
+      "number": 480,
+      "title": "improve checkout validation",
+      "url": "https://github.com/neoito/connexus-platform/pull/480",
+      "repo": "connexus-platform",
+      "authorId": "cx-morgan",
+      "teamKey": "CONNEXUS",
+      "sprintId": "36",
+      "openedAt": "2026-08-14T14:11:00.000Z",
+      "firstReviewAt": "2026-08-16T03:47:32.098Z",
+      "mergedAt": "2026-08-17T10:06:00.000Z",
+      "reviewerIds": [
+        "cx-priya",
+        "cx-samira"
+      ],
+      "additions": 453,
+      "deletions": 92,
+      "attribution": "human_only",
+      "jiraKeys": [
+        "CX-122"
+      ],
+      "unreviewed": false
+    },
+    {
+      "id": "pr-connexus-481",
+      "number": 481,
+      "title": "auth session refresh",
+      "url": "https://github.com/neoito/connexus-platform/pull/481",
       "repo": "connexus-platform",
       "authorId": "cx-alex",
       "teamKey": "CONNEXUS",
       "sprintId": "36",
-      "openedAt": "2026-08-20T12:04:00.000Z",
-      "firstReviewAt": "2026-08-22T10:26:00.000Z",
-      "mergedAt": "2026-08-22T11:26:00.000Z",
+      "openedAt": "2026-08-20T13:38:00.000Z",
+      "firstReviewAt": "2026-08-21T13:19:57.611Z",
+      "mergedAt": "2026-08-23T15:43:00.000Z",
       "reviewerIds": [
-        "cx-morgan"
+        "cx-samira"
       ],
-      "additions": 260,
-      "deletions": 83,
-      "attribution": "ai_generated",
+      "additions": 406,
+      "deletions": 233,
+      "attribution": "ai_assisted",
       "jiraKeys": [
-        "CX-122",
         "CX-123"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-connexus-480",
-      "number": 480,
-      "title": "split large dashboard query",
-      "url": "https://github.com/neoito/connexus-platform/pull/480",
-      "repo": "connexus-platform",
-      "authorId": "cx-alex",
-      "teamKey": "CONNEXUS",
-      "sprintId": "36",
-      "openedAt": "2026-08-18T16:58:00.000Z",
-      "firstReviewAt": "2026-08-19T15:32:00.000Z",
-      "mergedAt": "2026-08-19T16:32:00.000Z",
-      "reviewerIds": [
-        "cx-morgan",
-        "cx-jordan"
-      ],
-      "additions": 334,
-      "deletions": 164,
-      "attribution": "ai_generated",
-      "jiraKeys": [
-        "CX-124"
-      ],
-      "unreviewed": false
-    },
-    {
-      "id": "pr-connexus-483",
-      "number": 483,
-      "title": "add sprint burndown API",
-      "url": "https://github.com/neoito/connexus-platform/pull/483",
+      "id": "pr-connexus-482",
+      "number": 482,
+      "title": "support dark mode tokens",
+      "url": "https://github.com/neoito/connexus-platform/pull/482",
       "repo": "connexus-platform",
       "authorId": "cx-priya",
       "teamKey": "CONNEXUS",
       "sprintId": "36",
-      "openedAt": "2026-08-19T16:30:00.000Z",
-      "firstReviewAt": "2026-08-20T22:45:39.969Z",
-      "mergedAt": "2026-08-23T12:00:00.000Z",
-      "reviewerIds": [
-        "cx-morgan",
-        "cx-samira"
-      ],
-      "additions": 395,
-      "deletions": 133,
-      "attribution": "human_only",
-      "jiraKeys": [
-        "CX-125"
-      ],
-      "unreviewed": false
-    },
-    {
-      "id": "pr-connexus-484",
-      "number": 484,
-      "title": "tighten CORS allowlist",
-      "url": "https://github.com/neoito/connexus-platform/pull/484",
-      "repo": "connexus-platform",
-      "authorId": "cx-alex",
-      "teamKey": "CONNEXUS",
-      "sprintId": "36",
-      "openedAt": "2026-08-17T13:10:00.000Z",
+      "openedAt": "2026-08-16T10:50:00.000Z",
       "firstReviewAt": null,
-      "mergedAt": "2026-08-21T11:34:00.000Z",
+      "mergedAt": "2026-08-20T17:10:00.000Z",
       "reviewerIds": [],
-      "additions": 336,
-      "deletions": 169,
-      "attribution": "human_only",
+      "additions": 315,
+      "deletions": 90,
+      "attribution": "ai_assisted",
       "jiraKeys": [
-        "CX-126"
+        "CX-124"
       ],
       "unreviewed": true
     },
     {
-      "id": "pr-connexus-486",
-      "number": 486,
-      "title": "cleanup dead feature flags",
-      "url": "https://github.com/neoito/connexus-platform/pull/486",
+      "id": "pr-connexus-485",
+      "number": 485,
+      "title": "support dark mode tokens",
+      "url": "https://github.com/neoito/connexus-platform/pull/485",
       "repo": "connexus-platform",
-      "authorId": "cx-priya",
+      "authorId": "cx-alex",
       "teamKey": "CONNEXUS",
       "sprintId": "36",
-      "openedAt": "2026-08-21T11:04:00.000Z",
-      "firstReviewAt": "2026-08-22T14:35:00.000Z",
-      "mergedAt": "2026-08-22T15:35:00.000Z",
+      "openedAt": "2026-08-19T09:49:00.000Z",
+      "firstReviewAt": "2026-08-19T13:14:39.813Z",
+      "mergedAt": "2026-08-21T11:33:00.000Z",
       "reviewerIds": [
-        "cx-morgan"
+        "cx-priya"
       ],
-      "additions": 258,
-      "deletions": 106,
+      "additions": 36,
+      "deletions": 15,
+      "attribution": "human_only",
+      "jiraKeys": [
+        "CX-125",
+        "CX-126"
+      ],
+      "unreviewed": false
+    },
+    {
+      "id": "pr-connexus-486",
+      "number": 486,
+      "title": "wire observability alerts",
+      "url": "https://github.com/neoito/connexus-platform/pull/486",
+      "repo": "connexus-platform",
+      "authorId": "cx-samira",
+      "teamKey": "CONNEXUS",
+      "sprintId": "36",
+      "openedAt": "2026-08-17T11:18:00.000Z",
+      "firstReviewAt": "2026-08-19T12:17:17.042Z",
+      "mergedAt": "2026-08-22T16:16:00.000Z",
+      "reviewerIds": [
+        "cx-priya"
+      ],
+      "additions": 363,
+      "deletions": 141,
       "attribution": "ai_assisted",
       "jiraKeys": [
         "CX-127"
@@ -4090,21 +4448,21 @@ export const CONNEXUS_PRODUCTIVITY_DERIVED = {
     {
       "id": "pr-connexus-489",
       "number": 489,
-      "title": "improve checkout validation",
+      "title": "split large dashboard query",
       "url": "https://github.com/neoito/connexus-platform/pull/489",
       "repo": "connexus-platform",
-      "authorId": "cx-priya",
+      "authorId": "cx-alex",
       "teamKey": "CONNEXUS",
       "sprintId": "36",
-      "openedAt": "2026-08-16T11:48:00.000Z",
-      "firstReviewAt": "2026-08-17T02:33:38.086Z",
-      "mergedAt": "2026-08-21T15:01:00.000Z",
+      "openedAt": "2026-08-14T14:11:00.000Z",
+      "firstReviewAt": "2026-08-15T13:00:44.054Z",
+      "mergedAt": "2026-08-18T13:56:00.000Z",
       "reviewerIds": [
-        "cx-samira"
+        "cx-priya"
       ],
-      "additions": 425,
-      "deletions": 206,
-      "attribution": "ai_generated",
+      "additions": 408,
+      "deletions": 153,
+      "attribution": "human_only",
       "jiraKeys": [
         "CX-128"
       ],
@@ -4113,50 +4471,23 @@ export const CONNEXUS_PRODUCTIVITY_DERIVED = {
     {
       "id": "pr-connexus-492",
       "number": 492,
-      "title": "upgrade prisma client",
+      "title": "align sprint filter chrome",
       "url": "https://github.com/neoito/connexus-platform/pull/492",
       "repo": "connexus-platform",
       "authorId": "cx-morgan",
       "teamKey": "CONNEXUS",
-      "sprintId": "36",
-      "openedAt": "2026-08-17T15:24:00.000Z",
-      "firstReviewAt": "2026-08-18T13:06:05.999Z",
-      "mergedAt": "2026-08-19T17:31:00.000Z",
-      "reviewerIds": [
-        "cx-priya",
-        "cx-jordan"
-      ],
-      "additions": 286,
-      "deletions": 135,
-      "attribution": "ai_assisted",
-      "jiraKeys": [
-        "CX-129",
-        "CX-130"
-      ],
-      "unreviewed": false
-    },
-    {
-      "id": "pr-connexus-493",
-      "number": 493,
-      "title": "batch Jira sync deltas",
-      "url": "https://github.com/neoito/connexus-platform/pull/493",
-      "repo": "connexus-platform",
-      "authorId": "cx-jordan",
-      "teamKey": "CONNEXUS",
       "sprintId": "35",
-      "openedAt": "2026-08-05T10:25:00.000Z",
-      "firstReviewAt": "2026-08-06T10:05:42.207Z",
-      "mergedAt": "2026-08-07T10:12:00.000Z",
-      "reviewerIds": [
-        "cx-morgan"
-      ],
-      "additions": 481,
-      "deletions": 218,
+      "openedAt": "2026-08-03T11:33:00.000Z",
+      "firstReviewAt": null,
+      "mergedAt": "2026-08-06T12:14:00.000Z",
+      "reviewerIds": [],
+      "additions": 436,
+      "deletions": 92,
       "attribution": "human_only",
       "jiraKeys": [
-        "CX-131"
+        "CX-129"
       ],
-      "unreviewed": false
+      "unreviewed": true
     },
     {
       "id": "pr-connexus-494",
@@ -4167,111 +4498,112 @@ export const CONNEXUS_PRODUCTIVITY_DERIVED = {
       "authorId": "cx-priya",
       "teamKey": "CONNEXUS",
       "sprintId": "35",
-      "openedAt": "2026-08-06T14:42:00.000Z",
-      "firstReviewAt": "2026-08-07T00:40:02.910Z",
-      "mergedAt": "2026-08-10T16:35:00.000Z",
+      "openedAt": "2026-07-30T12:47:00.000Z",
+      "firstReviewAt": "2026-07-31T02:26:53.105Z",
+      "mergedAt": "2026-08-01T13:41:00.000Z",
       "reviewerIds": [
         "cx-morgan",
-        "cx-alex"
+        "cx-samira"
       ],
-      "additions": 373,
-      "deletions": 94,
-      "attribution": "ai_generated",
+      "additions": 213,
+      "deletions": 27,
+      "attribution": "ai_assisted",
       "jiraKeys": [
-        "CX-132"
+        "CX-130"
       ],
       "unreviewed": false
     },
     {
       "id": "pr-connexus-496",
       "number": 496,
-      "title": "migrate feature flags",
+      "title": "cache inventory lookups",
       "url": "https://github.com/neoito/connexus-platform/pull/496",
       "repo": "connexus-platform",
       "authorId": "cx-priya",
       "teamKey": "CONNEXUS",
       "sprintId": "35",
-      "openedAt": "2026-08-06T11:48:00.000Z",
-      "firstReviewAt": "2026-08-07T09:16:34.867Z",
-      "mergedAt": "2026-08-09T11:48:00.000Z",
+      "openedAt": "2026-08-06T14:17:00.000Z",
+      "firstReviewAt": "2026-08-07T10:05:00.000Z",
+      "mergedAt": "2026-08-07T11:05:00.000Z",
       "reviewerIds": [
-        "cx-alex"
+        "cx-morgan",
+        "cx-jordan"
       ],
-      "additions": 286,
-      "deletions": 99,
+      "additions": 354,
+      "deletions": 19,
       "attribution": "human_only",
       "jiraKeys": [
-        "CX-133"
+        "CX-131"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-connexus-497",
-      "number": 497,
-      "title": "document release checklist",
-      "url": "https://github.com/neoito/connexus-platform/pull/497",
+      "id": "pr-connexus-499",
+      "number": 499,
+      "title": "add sprint burndown API",
+      "url": "https://github.com/neoito/connexus-platform/pull/499",
       "repo": "connexus-platform",
       "authorId": "cx-priya",
       "teamKey": "CONNEXUS",
       "sprintId": "35",
-      "openedAt": "2026-08-02T11:57:00.000Z",
-      "firstReviewAt": "2026-08-03T20:58:11.470Z",
-      "mergedAt": "2026-08-06T17:10:00.000Z",
+      "openedAt": "2026-08-02T10:37:00.000Z",
+      "firstReviewAt": "2026-08-04T15:40:00.000Z",
+      "mergedAt": "2026-08-04T16:40:00.000Z",
       "reviewerIds": [
-        "cx-samira"
+        "cx-morgan"
       ],
-      "additions": 348,
-      "deletions": 132,
-      "attribution": "human_only",
+      "additions": 311,
+      "deletions": 93,
+      "attribution": "ai_assisted",
       "jiraKeys": [
-        "CX-134"
+        "CX-132"
       ],
       "unreviewed": false
     },
     {
       "id": "pr-connexus-500",
       "number": 500,
-      "title": "reduce flaky e2e waits",
+      "title": "auth session refresh",
       "url": "https://github.com/neoito/connexus-platform/pull/500",
       "repo": "connexus-platform",
-      "authorId": "cx-alex",
+      "authorId": "cx-morgan",
       "teamKey": "CONNEXUS",
       "sprintId": "35",
-      "openedAt": "2026-07-31T12:12:00.000Z",
-      "firstReviewAt": "2026-08-01T10:19:58.427Z",
-      "mergedAt": "2026-08-03T13:22:00.000Z",
+      "openedAt": "2026-08-03T15:17:00.000Z",
+      "firstReviewAt": "2026-08-05T23:32:32.671Z",
+      "mergedAt": "2026-08-06T16:34:00.000Z",
       "reviewerIds": [
-        "cx-morgan"
+        "cx-samira"
       ],
-      "additions": 82,
-      "deletions": 8,
-      "attribution": "human_only",
+      "additions": 151,
+      "deletions": 86,
+      "attribution": "ai_assisted",
       "jiraKeys": [
-        "CX-135",
-        "CX-136"
+        "CX-133"
       ],
       "unreviewed": false
     },
     {
       "id": "pr-connexus-502",
       "number": 502,
-      "title": "support dark mode tokens",
+      "title": "add empty-state illustration",
       "url": "https://github.com/neoito/connexus-platform/pull/502",
       "repo": "connexus-platform",
-      "authorId": "cx-jordan",
+      "authorId": "cx-alex",
       "teamKey": "CONNEXUS",
       "sprintId": "35",
-      "openedAt": "2026-08-04T09:57:00.000Z",
-      "firstReviewAt": "2026-08-06T13:48:00.189Z",
-      "mergedAt": "2026-08-08T10:12:00.000Z",
+      "openedAt": "2026-08-03T14:22:00.000Z",
+      "firstReviewAt": "2026-08-05T04:38:28.836Z",
+      "mergedAt": "2026-08-05T14:00:00.000Z",
       "reviewerIds": [
         "cx-morgan"
       ],
-      "additions": 182,
-      "deletions": 24,
-      "attribution": "ai_assisted",
+      "additions": 157,
+      "deletions": 62,
+      "attribution": "ai_generated",
       "jiraKeys": [
-        "CX-137"
+        "CX-134",
+        "CX-135"
       ],
       "unreviewed": false
     },
@@ -4284,38 +4616,62 @@ export const CONNEXUS_PRODUCTIVITY_DERIVED = {
       "authorId": "cx-priya",
       "teamKey": "CONNEXUS",
       "sprintId": "35",
-      "openedAt": "2026-08-07T16:44:00.000Z",
-      "firstReviewAt": "2026-08-09T18:12:47.362Z",
-      "mergedAt": "2026-08-12T17:36:00.000Z",
+      "openedAt": "2026-08-01T10:26:00.000Z",
+      "firstReviewAt": "2026-08-01T16:46:00.000Z",
+      "mergedAt": "2026-08-01T17:46:00.000Z",
       "reviewerIds": [
         "cx-morgan",
         "cx-alex"
       ],
-      "additions": 245,
-      "deletions": 111,
-      "attribution": "human_only",
+      "additions": 268,
+      "deletions": 29,
+      "attribution": "ai_assisted",
       "jiraKeys": [
+        "CX-136"
+      ],
+      "unreviewed": false
+    },
+    {
+      "id": "pr-connexus-508",
+      "number": 508,
+      "title": "add sprint burndown API",
+      "url": "https://github.com/neoito/connexus-platform/pull/508",
+      "repo": "connexus-platform",
+      "authorId": "cx-priya",
+      "teamKey": "CONNEXUS",
+      "sprintId": "35",
+      "openedAt": "2026-08-06T13:17:00.000Z",
+      "firstReviewAt": "2026-08-09T08:13:30.572Z",
+      "mergedAt": "2026-08-11T14:04:00.000Z",
+      "reviewerIds": [
+        "cx-jordan"
+      ],
+      "additions": 131,
+      "deletions": 60,
+      "attribution": "ai_assisted",
+      "jiraKeys": [
+        "CX-137",
         "CX-138"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-connexus-506",
-      "number": 506,
-      "title": "reduce flaky e2e waits",
-      "url": "https://github.com/neoito/connexus-platform/pull/506",
+      "id": "pr-connexus-509",
+      "number": 509,
+      "title": "fix payment webhook retry",
+      "url": "https://github.com/neoito/connexus-platform/pull/509",
       "repo": "connexus-platform",
-      "authorId": "cx-alex",
+      "authorId": "cx-priya",
       "teamKey": "CONNEXUS",
       "sprintId": "35",
-      "openedAt": "2026-07-31T12:21:00.000Z",
-      "firstReviewAt": "2026-08-01T16:15:03.802Z",
-      "mergedAt": "2026-08-04T12:57:00.000Z",
+      "openedAt": "2026-08-07T09:34:00.000Z",
+      "firstReviewAt": "2026-08-08T04:43:26.788Z",
+      "mergedAt": "2026-08-08T15:45:00.000Z",
       "reviewerIds": [
-        "cx-priya"
+        "cx-samira"
       ],
-      "additions": 263,
-      "deletions": 116,
+      "additions": 326,
+      "deletions": 171,
       "attribution": "human_only",
       "jiraKeys": [
         "CX-139",
@@ -4324,47 +4680,45 @@ export const CONNEXUS_PRODUCTIVITY_DERIVED = {
       "unreviewed": false
     },
     {
-      "id": "pr-connexus-509",
-      "number": 509,
-      "title": "auth session refresh",
-      "url": "https://github.com/neoito/connexus-platform/pull/509",
+      "id": "pr-connexus-512",
+      "number": 512,
+      "title": "document release checklist",
+      "url": "https://github.com/neoito/connexus-platform/pull/512",
       "repo": "connexus-platform",
-      "authorId": "cx-priya",
+      "authorId": "cx-samira",
       "teamKey": "CONNEXUS",
       "sprintId": "35",
-      "openedAt": "2026-08-02T12:11:00.000Z",
-      "firstReviewAt": "2026-08-05T00:42:10.951Z",
-      "mergedAt": "2026-08-05T12:40:00.000Z",
+      "openedAt": "2026-07-30T11:15:00.000Z",
+      "firstReviewAt": "2026-07-31T11:18:00.000Z",
+      "mergedAt": "2026-07-31T12:18:00.000Z",
       "reviewerIds": [
-        "cx-morgan",
-        "cx-jordan"
+        "cx-morgan"
       ],
-      "additions": 144,
-      "deletions": 17,
-      "attribution": "human_only",
+      "additions": 165,
+      "deletions": 86,
+      "attribution": "ai_assisted",
       "jiraKeys": [
         "CX-141"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-connexus-511",
-      "number": 511,
-      "title": "reduce flaky e2e waits",
-      "url": "https://github.com/neoito/connexus-platform/pull/511",
+      "id": "pr-connexus-513",
+      "number": 513,
+      "title": "align sprint filter chrome",
+      "url": "https://github.com/neoito/connexus-platform/pull/513",
       "repo": "connexus-platform",
-      "authorId": "cx-samira",
+      "authorId": "cx-priya",
       "teamKey": "CONNEXUS",
-      "sprintId": "35",
-      "openedAt": "2026-08-05T10:41:00.000Z",
-      "firstReviewAt": "2026-08-07T17:51:34.077Z",
-      "mergedAt": "2026-08-10T17:58:00.000Z",
+      "sprintId": "34",
+      "openedAt": "2026-07-17T11:49:00.000Z",
+      "firstReviewAt": "2026-07-17T12:49:00.000Z",
+      "mergedAt": "2026-07-17T12:54:00.000Z",
       "reviewerIds": [
-        "cx-morgan",
-        "cx-alex"
+        "cx-morgan"
       ],
-      "additions": 459,
-      "deletions": 242,
+      "additions": 263,
+      "deletions": 111,
       "attribution": "ai_assisted",
       "jiraKeys": [
         "CX-142"
@@ -4374,69 +4728,91 @@ export const CONNEXUS_PRODUCTIVITY_DERIVED = {
     {
       "id": "pr-connexus-514",
       "number": 514,
-      "title": "split large dashboard query",
+      "title": "batch Jira sync deltas",
       "url": "https://github.com/neoito/connexus-platform/pull/514",
       "repo": "connexus-platform",
-      "authorId": "cx-jordan",
+      "authorId": "cx-alex",
       "teamKey": "CONNEXUS",
       "sprintId": "34",
-      "openedAt": "2026-07-23T15:55:00.000Z",
-      "firstReviewAt": "2026-07-25T06:16:01.938Z",
-      "mergedAt": "2026-07-27T11:55:00.000Z",
+      "openedAt": "2026-07-20T14:55:00.000Z",
+      "firstReviewAt": "2026-07-22T06:49:19.359Z",
+      "mergedAt": "2026-07-24T11:45:00.000Z",
       "reviewerIds": [
         "cx-morgan"
       ],
-      "additions": 33,
-      "deletions": 19,
-      "attribution": "human_only",
+      "additions": 224,
+      "deletions": 29,
+      "attribution": "ai_assisted",
       "jiraKeys": [
-        "CX-143",
-        "CX-144"
+        "CX-143"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-connexus-515",
-      "number": 515,
-      "title": "split large dashboard query",
-      "url": "https://github.com/neoito/connexus-platform/pull/515",
+      "id": "pr-connexus-517",
+      "number": 517,
+      "title": "cleanup dead feature flags",
+      "url": "https://github.com/neoito/connexus-platform/pull/517",
       "repo": "connexus-platform",
       "authorId": "cx-morgan",
       "teamKey": "CONNEXUS",
       "sprintId": "34",
-      "openedAt": "2026-07-18T14:45:00.000Z",
-      "firstReviewAt": "2026-07-18T20:53:49.881Z",
-      "mergedAt": "2026-07-19T11:34:00.000Z",
+      "openedAt": "2026-07-17T09:06:00.000Z",
+      "firstReviewAt": "2026-07-18T01:50:19.975Z",
+      "mergedAt": "2026-07-22T14:26:00.000Z",
       "reviewerIds": [
-        "cx-alex",
-        "cx-jordan"
+        "cx-jordan",
+        "cx-alex"
       ],
-      "additions": 498,
-      "deletions": 10,
+      "additions": 162,
+      "deletions": 37,
+      "attribution": "ai_assisted",
+      "jiraKeys": [
+        "CX-144",
+        "CX-145"
+      ],
+      "unreviewed": false
+    },
+    {
+      "id": "pr-connexus-519",
+      "number": 519,
+      "title": "tighten CORS allowlist",
+      "url": "https://github.com/neoito/connexus-platform/pull/519",
+      "repo": "connexus-platform",
+      "authorId": "cx-priya",
+      "teamKey": "CONNEXUS",
+      "sprintId": "34",
+      "openedAt": "2026-07-23T11:27:00.000Z",
+      "firstReviewAt": "2026-07-23T15:26:00.000Z",
+      "mergedAt": "2026-07-23T16:26:00.000Z",
+      "reviewerIds": [
+        "cx-morgan"
+      ],
+      "additions": 116,
+      "deletions": 33,
       "attribution": "human_only",
       "jiraKeys": [
-        "CX-145",
         "CX-146"
       ],
       "unreviewed": false
     },
     {
-      "id": "pr-connexus-516",
-      "number": 516,
-      "title": "align sprint filter chrome",
-      "url": "https://github.com/neoito/connexus-platform/pull/516",
+      "id": "pr-connexus-520",
+      "number": 520,
+      "title": "migrate feature flags",
+      "url": "https://github.com/neoito/connexus-platform/pull/520",
       "repo": "connexus-platform",
-      "authorId": "cx-alex",
+      "authorId": "cx-priya",
       "teamKey": "CONNEXUS",
       "sprintId": "34",
-      "openedAt": "2026-07-18T10:18:00.000Z",
-      "firstReviewAt": "2026-07-20T15:42:00.000Z",
-      "mergedAt": "2026-07-20T16:42:00.000Z",
+      "openedAt": "2026-07-22T14:50:00.000Z",
+      "firstReviewAt": "2026-07-23T16:24:32.315Z",
+      "mergedAt": "2026-07-24T10:12:00.000Z",
       "reviewerIds": [
         "cx-morgan"
       ],
-      "additions": 393,
-      "deletions": 73,
+      "additions": 176,
+      "deletions": 47,
       "attribution": "human_only",
       "jiraKeys": [
         "CX-147"
@@ -4444,23 +4820,23 @@ export const CONNEXUS_PRODUCTIVITY_DERIVED = {
       "unreviewed": false
     },
     {
-      "id": "pr-connexus-518",
-      "number": 518,
-      "title": "document release checklist",
-      "url": "https://github.com/neoito/connexus-platform/pull/518",
+      "id": "pr-connexus-521",
+      "number": 521,
+      "title": "improve checkout validation",
+      "url": "https://github.com/neoito/connexus-platform/pull/521",
       "repo": "connexus-platform",
-      "authorId": "cx-jordan",
+      "authorId": "cx-samira",
       "teamKey": "CONNEXUS",
       "sprintId": "34",
-      "openedAt": "2026-07-18T15:02:00.000Z",
-      "firstReviewAt": "2026-07-20T16:12:00.000Z",
-      "mergedAt": "2026-07-20T17:12:00.000Z",
+      "openedAt": "2026-07-16T13:10:00.000Z",
+      "firstReviewAt": "2026-07-18T05:30:07.202Z",
+      "mergedAt": "2026-07-18T10:01:00.000Z",
       "reviewerIds": [
         "cx-morgan",
         "cx-alex"
       ],
-      "additions": 73,
-      "deletions": 13,
+      "additions": 324,
+      "deletions": 158,
       "attribution": "ai_assisted",
       "jiraKeys": [
         "CX-148"
@@ -4468,97 +4844,48 @@ export const CONNEXUS_PRODUCTIVITY_DERIVED = {
       "unreviewed": false
     },
     {
-      "id": "pr-connexus-520",
-      "number": 520,
-      "title": "fix payment webhook retry",
-      "url": "https://github.com/neoito/connexus-platform/pull/520",
-      "repo": "connexus-platform",
-      "authorId": "cx-priya",
-      "teamKey": "CONNEXUS",
-      "sprintId": "34",
-      "openedAt": "2026-07-22T10:45:00.000Z",
-      "firstReviewAt": "2026-07-24T10:12:17.637Z",
-      "mergedAt": "2026-07-25T11:31:00.000Z",
-      "reviewerIds": [
-        "cx-morgan"
-      ],
-      "additions": 336,
-      "deletions": 110,
-      "attribution": "ai_assisted",
-      "jiraKeys": [
-        "CX-149",
-        "CX-150"
-      ],
-      "unreviewed": false
-    },
-    {
-      "id": "pr-connexus-521",
-      "number": 521,
-      "title": "cleanup dead feature flags",
-      "url": "https://github.com/neoito/connexus-platform/pull/521",
+      "id": "pr-connexus-522",
+      "number": 522,
+      "title": "migrate feature flags",
+      "url": "https://github.com/neoito/connexus-platform/pull/522",
       "repo": "connexus-platform",
       "authorId": "cx-jordan",
       "teamKey": "CONNEXUS",
       "sprintId": "34",
-      "openedAt": "2026-07-16T16:31:00.000Z",
-      "firstReviewAt": "2026-07-17T09:15:19.975Z",
-      "mergedAt": "2026-07-18T14:51:00.000Z",
+      "openedAt": "2026-07-19T13:25:00.000Z",
+      "firstReviewAt": "2026-07-20T10:18:00.000Z",
+      "mergedAt": "2026-07-20T11:18:00.000Z",
       "reviewerIds": [
         "cx-morgan"
       ],
-      "additions": 162,
-      "deletions": 37,
-      "attribution": "ai_assisted",
-      "jiraKeys": [
-        "CX-151",
-        "CX-152"
-      ],
-      "unreviewed": false
-    },
-    {
-      "id": "pr-connexus-523",
-      "number": 523,
-      "title": "harden rate limiter",
-      "url": "https://github.com/neoito/connexus-platform/pull/523",
-      "repo": "connexus-platform",
-      "authorId": "cx-alex",
-      "teamKey": "CONNEXUS",
-      "sprintId": "34",
-      "openedAt": "2026-07-17T16:49:00.000Z",
-      "firstReviewAt": "2026-07-19T12:03:00.000Z",
-      "mergedAt": "2026-07-19T13:03:00.000Z",
-      "reviewerIds": [
-        "cx-morgan"
-      ],
-      "additions": 156,
-      "deletions": 39,
+      "additions": 371,
+      "deletions": 12,
       "attribution": "human_only",
       "jiraKeys": [
-        "CX-153"
+        "CX-149"
       ],
       "unreviewed": false
     },
     {
       "id": "pr-connexus-524",
       "number": 524,
-      "title": "add sprint burndown API",
+      "title": "migrate feature flags",
       "url": "https://github.com/neoito/connexus-platform/pull/524",
       "repo": "connexus-platform",
       "authorId": "cx-alex",
       "teamKey": "CONNEXUS",
       "sprintId": "34",
-      "openedAt": "2026-07-22T16:55:00.000Z",
-      "firstReviewAt": "2026-07-25T09:06:23.328Z",
-      "mergedAt": "2026-07-26T15:50:00.000Z",
+      "openedAt": "2026-07-17T15:24:00.000Z",
+      "firstReviewAt": "2026-07-19T11:56:00.000Z",
+      "mergedAt": "2026-07-19T12:56:00.000Z",
       "reviewerIds": [
-        "cx-jordan",
-        "cx-morgan"
+        "cx-samira"
       ],
-      "additions": 181,
-      "deletions": 35,
-      "attribution": "human_only",
+      "additions": 27,
+      "deletions": 14,
+      "attribution": "ai_assisted",
       "jiraKeys": [
-        "CX-154"
+        "CX-150"
       ],
       "unreviewed": false
     }
@@ -4575,607 +4902,758 @@ export const CONNEXUS_PRODUCTIVITY_DERIVED = {
     },
     {
       "id": "rev-connexus-2",
-      "pullRequestId": "pr-connexus-452",
-      "reviewerId": "cx-samira",
+      "pullRequestId": "pr-connexus-449",
+      "reviewerId": "cx-morgan",
       "teamKey": "CONNEXUS",
       "sprintId": "37",
-      "reviewedAt": "2026-09-03T12:46:00.000Z",
-      "turnaroundHours": 25.916666666666668
+      "reviewedAt": "2026-09-05T14:05:00.000Z",
+      "turnaroundHours": 51.46666666666667
     },
     {
       "id": "rev-connexus-3",
-      "pullRequestId": "pr-connexus-453",
-      "reviewerId": "cx-morgan",
+      "pullRequestId": "pr-connexus-449",
+      "reviewerId": "cx-samira",
       "teamKey": "CONNEXUS",
       "sprintId": "37",
-      "reviewedAt": "2026-09-04T17:31:56.401Z",
-      "turnaroundHours": 3.0156669444444444
+      "reviewedAt": "2026-09-05T05:29:10.524Z",
+      "turnaroundHours": 42.86959
     },
     {
       "id": "rev-connexus-4",
-      "pullRequestId": "pr-connexus-453",
+      "pullRequestId": "pr-connexus-452",
       "reviewerId": "cx-priya",
       "teamKey": "CONNEXUS",
       "sprintId": "37",
-      "reviewedAt": "2026-09-06T04:44:32.924Z",
-      "turnaroundHours": 38.225812222222224
+      "reviewedAt": "2026-09-01T00:43:36.704Z",
+      "turnaroundHours": 58.02686222222222
     },
     {
       "id": "rev-connexus-5",
-      "pullRequestId": "pr-connexus-459",
+      "pullRequestId": "pr-connexus-453",
       "reviewerId": "cx-alex",
       "teamKey": "CONNEXUS",
       "sprintId": "37",
-      "reviewedAt": "2026-08-30T14:19:00.000Z",
-      "turnaroundHours": 47.5
+      "reviewedAt": "2026-08-27T14:31:00.000Z",
+      "turnaroundHours": 5.266666666666667
     },
     {
       "id": "rev-connexus-6",
-      "pullRequestId": "pr-connexus-462",
-      "reviewerId": "cx-priya",
+      "pullRequestId": "pr-connexus-453",
+      "reviewerId": "cx-samira",
       "teamKey": "CONNEXUS",
       "sprintId": "37",
-      "reviewedAt": "2026-09-03T10:43:10.429Z",
-      "turnaroundHours": 70.23623027777778
+      "reviewedAt": "2026-08-27T14:31:00.000Z",
+      "turnaroundHours": 5.266666666666667
     },
     {
       "id": "rev-connexus-7",
-      "pullRequestId": "pr-connexus-464",
-      "reviewerId": "cx-jordan",
+      "pullRequestId": "pr-connexus-455",
+      "reviewerId": "cx-morgan",
       "teamKey": "CONNEXUS",
       "sprintId": "37",
-      "reviewedAt": "2026-08-31T03:54:17.897Z",
-      "turnaroundHours": 16.604971388888888
+      "reviewedAt": "2026-09-04T15:36:00.000Z",
+      "turnaroundHours": 1
     },
     {
       "id": "rev-connexus-8",
-      "pullRequestId": "pr-connexus-467",
+      "pullRequestId": "pr-connexus-456",
       "reviewerId": "cx-morgan",
       "teamKey": "CONNEXUS",
       "sprintId": "37",
-      "reviewedAt": "2026-09-04T17:35:26.168Z",
-      "turnaroundHours": 54.39060222222222
+      "reviewedAt": "2026-08-28T19:57:37.891Z",
+      "turnaroundHours": 33.26052527777778
     },
     {
       "id": "rev-connexus-9",
-      "pullRequestId": "pr-connexus-467",
-      "reviewerId": "cx-alex",
+      "pullRequestId": "pr-connexus-456",
+      "reviewerId": "cx-priya",
       "teamKey": "CONNEXUS",
       "sprintId": "37",
-      "reviewedAt": "2026-09-03T02:41:40.301Z",
-      "turnaroundHours": 15.494528055555556
+      "reviewedAt": "2026-08-28T17:24:05.150Z",
+      "turnaroundHours": 30.701430555555554
     },
     {
       "id": "rev-connexus-10",
-      "pullRequestId": "pr-connexus-468",
-      "reviewerId": "cx-alex",
+      "pullRequestId": "pr-connexus-458",
+      "reviewerId": "cx-morgan",
       "teamKey": "CONNEXUS",
       "sprintId": "37",
-      "reviewedAt": "2026-08-30T10:57:11.972Z",
-      "turnaroundHours": 43.003325555555556
+      "reviewedAt": "2026-09-02T09:18:00.000Z",
+      "turnaroundHours": 23
     },
     {
       "id": "rev-connexus-11",
-      "pullRequestId": "pr-connexus-468",
-      "reviewerId": "cx-priya",
+      "pullRequestId": "pr-connexus-460",
+      "reviewerId": "cx-morgan",
       "teamKey": "CONNEXUS",
       "sprintId": "37",
-      "reviewedAt": "2026-08-29T00:42:20.306Z",
-      "turnaroundHours": 8.755640555555555
+      "reviewedAt": "2026-08-30T05:22:19.372Z",
+      "turnaroundHours": 41.222047777777775
     },
     {
       "id": "rev-connexus-12",
-      "pullRequestId": "pr-connexus-472",
-      "reviewerId": "cx-morgan",
+      "pullRequestId": "pr-connexus-460",
+      "reviewerId": "cx-priya",
       "teamKey": "CONNEXUS",
-      "sprintId": "36",
-      "reviewedAt": "2026-08-21T06:40:55.007Z",
-      "turnaroundHours": 20.648613055555554
+      "sprintId": "37",
+      "reviewedAt": "2026-08-30T21:02:57.951Z",
+      "turnaroundHours": 56.899430833333334
     },
     {
       "id": "rev-connexus-13",
-      "pullRequestId": "pr-connexus-475",
+      "pullRequestId": "pr-connexus-461",
       "reviewerId": "cx-morgan",
       "teamKey": "CONNEXUS",
-      "sprintId": "36",
-      "reviewedAt": "2026-08-16T09:27:00.000Z",
-      "turnaroundHours": 65.88333333333334
+      "sprintId": "37",
+      "reviewedAt": "2026-09-05T00:44:39.132Z",
+      "turnaroundHours": 33.59420333333333
     },
     {
       "id": "rev-connexus-14",
-      "pullRequestId": "pr-connexus-475",
-      "reviewerId": "cx-jordan",
+      "pullRequestId": "pr-connexus-464",
+      "reviewerId": "cx-morgan",
       "teamKey": "CONNEXUS",
-      "sprintId": "36",
-      "reviewedAt": "2026-08-14T12:21:04.183Z",
-      "turnaroundHours": 20.78449527777778
+      "sprintId": "37",
+      "reviewedAt": "2026-09-01T06:03:02.215Z",
+      "turnaroundHours": 14.850615277777777
     },
     {
       "id": "rev-connexus-15",
-      "pullRequestId": "pr-connexus-477",
-      "reviewerId": "cx-morgan",
+      "pullRequestId": "pr-connexus-464",
+      "reviewerId": "cx-samira",
       "teamKey": "CONNEXUS",
-      "sprintId": "36",
-      "reviewedAt": "2026-08-16T04:02:54.638Z",
-      "turnaroundHours": 41.63184388888889
+      "sprintId": "37",
+      "reviewedAt": "2026-09-01T11:43:00.000Z",
+      "turnaroundHours": 20.516666666666666
     },
     {
       "id": "rev-connexus-16",
-      "pullRequestId": "pr-connexus-479",
-      "reviewerId": "cx-morgan",
+      "pullRequestId": "pr-connexus-466",
+      "reviewerId": "cx-samira",
       "teamKey": "CONNEXUS",
-      "sprintId": "36",
-      "reviewedAt": "2026-08-22T10:26:00.000Z",
-      "turnaroundHours": 46.36666666666667
+      "sprintId": "37",
+      "reviewedAt": "2026-08-29T14:49:00.000Z",
+      "turnaroundHours": 51.25
     },
     {
       "id": "rev-connexus-17",
-      "pullRequestId": "pr-connexus-480",
-      "reviewerId": "cx-morgan",
+      "pullRequestId": "pr-connexus-466",
+      "reviewerId": "cx-alex",
       "teamKey": "CONNEXUS",
-      "sprintId": "36",
-      "reviewedAt": "2026-08-19T15:32:00.000Z",
-      "turnaroundHours": 22.566666666666666
+      "sprintId": "37",
+      "reviewedAt": "2026-08-28T04:10:09.332Z",
+      "turnaroundHours": 16.60259222222222
     },
     {
       "id": "rev-connexus-18",
-      "pullRequestId": "pr-connexus-480",
+      "pullRequestId": "pr-connexus-467",
       "reviewerId": "cx-jordan",
       "teamKey": "CONNEXUS",
-      "sprintId": "36",
-      "reviewedAt": "2026-08-19T15:32:00.000Z",
-      "turnaroundHours": 22.566666666666666
+      "sprintId": "37",
+      "reviewedAt": "2026-09-02T05:53:52.853Z",
+      "turnaroundHours": 65.94801472222223
     },
     {
       "id": "rev-connexus-19",
-      "pullRequestId": "pr-connexus-483",
+      "pullRequestId": "pr-connexus-469",
       "reviewerId": "cx-morgan",
       "teamKey": "CONNEXUS",
       "sprintId": "36",
-      "reviewedAt": "2026-08-22T01:33:15.627Z",
-      "turnaroundHours": 57.054340833333335
+      "reviewedAt": "2026-08-18T08:48:45.770Z",
+      "turnaroundHours": 70.99604722222222
     },
     {
       "id": "rev-connexus-20",
-      "pullRequestId": "pr-connexus-483",
-      "reviewerId": "cx-samira",
+      "pullRequestId": "pr-connexus-471",
+      "reviewerId": "cx-alex",
       "teamKey": "CONNEXUS",
       "sprintId": "36",
-      "reviewedAt": "2026-08-20T22:45:39.969Z",
-      "turnaroundHours": 30.2611025
+      "reviewedAt": "2026-08-18T10:25:00.000Z",
+      "turnaroundHours": 23.316666666666666
     },
     {
       "id": "rev-connexus-21",
-      "pullRequestId": "pr-connexus-486",
-      "reviewerId": "cx-morgan",
-      "teamKey": "CONNEXUS",
-      "sprintId": "36",
-      "reviewedAt": "2026-08-22T14:35:00.000Z",
-      "turnaroundHours": 27.516666666666666
-    },
-    {
-      "id": "rev-connexus-22",
-      "pullRequestId": "pr-connexus-489",
-      "reviewerId": "cx-samira",
-      "teamKey": "CONNEXUS",
-      "sprintId": "36",
-      "reviewedAt": "2026-08-17T02:33:38.086Z",
-      "turnaroundHours": 14.760579444444444
-    },
-    {
-      "id": "rev-connexus-23",
-      "pullRequestId": "pr-connexus-492",
-      "reviewerId": "cx-priya",
-      "teamKey": "CONNEXUS",
-      "sprintId": "36",
-      "reviewedAt": "2026-08-18T13:06:05.999Z",
-      "turnaroundHours": 21.70166638888889
-    },
-    {
-      "id": "rev-connexus-24",
-      "pullRequestId": "pr-connexus-492",
+      "pullRequestId": "pr-connexus-473",
       "reviewerId": "cx-jordan",
       "teamKey": "CONNEXUS",
       "sprintId": "36",
-      "reviewedAt": "2026-08-19T08:13:42.989Z",
-      "turnaroundHours": 40.828608055555556
+      "reviewedAt": "2026-08-15T16:24:00.000Z",
+      "turnaroundHours": 1
+    },
+    {
+      "id": "rev-connexus-22",
+      "pullRequestId": "pr-connexus-475",
+      "reviewerId": "cx-morgan",
+      "teamKey": "CONNEXUS",
+      "sprintId": "36",
+      "reviewedAt": "2026-08-23T21:40:06.585Z",
+      "turnaroundHours": 58.8351625
+    },
+    {
+      "id": "rev-connexus-23",
+      "pullRequestId": "pr-connexus-477",
+      "reviewerId": "cx-priya",
+      "teamKey": "CONNEXUS",
+      "sprintId": "36",
+      "reviewedAt": "2026-08-23T08:52:04.860Z",
+      "turnaroundHours": 43.068016666666665
+    },
+    {
+      "id": "rev-connexus-24",
+      "pullRequestId": "pr-connexus-477",
+      "reviewerId": "cx-samira",
+      "teamKey": "CONNEXUS",
+      "sprintId": "36",
+      "reviewedAt": "2026-08-23T09:24:00.000Z",
+      "turnaroundHours": 43.6
     },
     {
       "id": "rev-connexus-25",
-      "pullRequestId": "pr-connexus-493",
-      "reviewerId": "cx-morgan",
+      "pullRequestId": "pr-connexus-480",
+      "reviewerId": "cx-priya",
       "teamKey": "CONNEXUS",
-      "sprintId": "35",
-      "reviewedAt": "2026-08-06T10:05:42.207Z",
-      "turnaroundHours": 23.678390833333335
+      "sprintId": "36",
+      "reviewedAt": "2026-08-16T03:47:32.098Z",
+      "turnaroundHours": 37.608916111111114
     },
     {
       "id": "rev-connexus-26",
-      "pullRequestId": "pr-connexus-494",
-      "reviewerId": "cx-morgan",
+      "pullRequestId": "pr-connexus-480",
+      "reviewerId": "cx-samira",
       "teamKey": "CONNEXUS",
-      "sprintId": "35",
-      "reviewedAt": "2026-08-07T00:40:02.910Z",
-      "turnaroundHours": 9.967475
+      "sprintId": "36",
+      "reviewedAt": "2026-08-16T21:03:11.692Z",
+      "turnaroundHours": 54.86991444444445
     },
     {
       "id": "rev-connexus-27",
-      "pullRequestId": "pr-connexus-494",
-      "reviewerId": "cx-alex",
+      "pullRequestId": "pr-connexus-481",
+      "reviewerId": "cx-samira",
       "teamKey": "CONNEXUS",
-      "sprintId": "35",
-      "reviewedAt": "2026-08-07T05:38:46.426Z",
-      "turnaroundHours": 14.946229444444445
+      "sprintId": "36",
+      "reviewedAt": "2026-08-21T13:19:57.611Z",
+      "turnaroundHours": 23.699336388888888
     },
     {
       "id": "rev-connexus-28",
-      "pullRequestId": "pr-connexus-496",
-      "reviewerId": "cx-alex",
+      "pullRequestId": "pr-connexus-485",
+      "reviewerId": "cx-priya",
       "teamKey": "CONNEXUS",
-      "sprintId": "35",
-      "reviewedAt": "2026-08-07T09:16:34.867Z",
-      "turnaroundHours": 21.476351944444446
+      "sprintId": "36",
+      "reviewedAt": "2026-08-19T13:14:39.813Z",
+      "turnaroundHours": 3.427725833333333
     },
     {
       "id": "rev-connexus-29",
-      "pullRequestId": "pr-connexus-497",
-      "reviewerId": "cx-samira",
+      "pullRequestId": "pr-connexus-486",
+      "reviewerId": "cx-priya",
       "teamKey": "CONNEXUS",
-      "sprintId": "35",
-      "reviewedAt": "2026-08-03T20:58:11.470Z",
-      "turnaroundHours": 33.01985277777778
+      "sprintId": "36",
+      "reviewedAt": "2026-08-19T12:17:17.042Z",
+      "turnaroundHours": 48.98806722222222
     },
     {
       "id": "rev-connexus-30",
-      "pullRequestId": "pr-connexus-500",
-      "reviewerId": "cx-morgan",
+      "pullRequestId": "pr-connexus-489",
+      "reviewerId": "cx-priya",
       "teamKey": "CONNEXUS",
-      "sprintId": "35",
-      "reviewedAt": "2026-08-01T10:19:58.427Z",
-      "turnaroundHours": 22.132896388888888
+      "sprintId": "36",
+      "reviewedAt": "2026-08-15T13:00:44.054Z",
+      "turnaroundHours": 22.828903888888888
     },
     {
       "id": "rev-connexus-31",
+      "pullRequestId": "pr-connexus-494",
+      "reviewerId": "cx-morgan",
+      "teamKey": "CONNEXUS",
+      "sprintId": "35",
+      "reviewedAt": "2026-07-31T15:33:12.850Z",
+      "turnaroundHours": 26.77023611111111
+    },
+    {
+      "id": "rev-connexus-32",
+      "pullRequestId": "pr-connexus-494",
+      "reviewerId": "cx-samira",
+      "teamKey": "CONNEXUS",
+      "sprintId": "35",
+      "reviewedAt": "2026-07-31T02:26:53.105Z",
+      "turnaroundHours": 13.664751388888888
+    },
+    {
+      "id": "rev-connexus-33",
+      "pullRequestId": "pr-connexus-496",
+      "reviewerId": "cx-morgan",
+      "teamKey": "CONNEXUS",
+      "sprintId": "35",
+      "reviewedAt": "2026-08-07T10:05:00.000Z",
+      "turnaroundHours": 19.8
+    },
+    {
+      "id": "rev-connexus-34",
+      "pullRequestId": "pr-connexus-496",
+      "reviewerId": "cx-jordan",
+      "teamKey": "CONNEXUS",
+      "sprintId": "35",
+      "reviewedAt": "2026-08-07T10:05:00.000Z",
+      "turnaroundHours": 19.8
+    },
+    {
+      "id": "rev-connexus-35",
+      "pullRequestId": "pr-connexus-499",
+      "reviewerId": "cx-morgan",
+      "teamKey": "CONNEXUS",
+      "sprintId": "35",
+      "reviewedAt": "2026-08-04T15:40:00.000Z",
+      "turnaroundHours": 53.05
+    },
+    {
+      "id": "rev-connexus-36",
+      "pullRequestId": "pr-connexus-500",
+      "reviewerId": "cx-samira",
+      "teamKey": "CONNEXUS",
+      "sprintId": "35",
+      "reviewedAt": "2026-08-05T23:32:32.671Z",
+      "turnaroundHours": 56.259075277777775
+    },
+    {
+      "id": "rev-connexus-37",
       "pullRequestId": "pr-connexus-502",
       "reviewerId": "cx-morgan",
       "teamKey": "CONNEXUS",
       "sprintId": "35",
-      "reviewedAt": "2026-08-06T13:48:00.189Z",
-      "turnaroundHours": 51.8500525
-    },
-    {
-      "id": "rev-connexus-32",
-      "pullRequestId": "pr-connexus-505",
-      "reviewerId": "cx-morgan",
-      "teamKey": "CONNEXUS",
-      "sprintId": "35",
-      "reviewedAt": "2026-08-09T18:12:47.362Z",
-      "turnaroundHours": 49.47982277777778
-    },
-    {
-      "id": "rev-connexus-33",
-      "pullRequestId": "pr-connexus-505",
-      "reviewerId": "cx-alex",
-      "teamKey": "CONNEXUS",
-      "sprintId": "35",
-      "reviewedAt": "2026-08-09T18:53:03.939Z",
-      "turnaroundHours": 50.15109416666667
-    },
-    {
-      "id": "rev-connexus-34",
-      "pullRequestId": "pr-connexus-506",
-      "reviewerId": "cx-priya",
-      "teamKey": "CONNEXUS",
-      "sprintId": "35",
-      "reviewedAt": "2026-08-01T16:15:03.802Z",
-      "turnaroundHours": 27.90105611111111
-    },
-    {
-      "id": "rev-connexus-35",
-      "pullRequestId": "pr-connexus-509",
-      "reviewerId": "cx-morgan",
-      "teamKey": "CONNEXUS",
-      "sprintId": "35",
-      "reviewedAt": "2026-08-05T00:42:10.951Z",
-      "turnaroundHours": 60.51970861111111
-    },
-    {
-      "id": "rev-connexus-36",
-      "pullRequestId": "pr-connexus-509",
-      "reviewerId": "cx-jordan",
-      "teamKey": "CONNEXUS",
-      "sprintId": "35",
-      "reviewedAt": "2026-08-05T10:58:10.570Z",
-      "turnaroundHours": 70.78626944444444
-    },
-    {
-      "id": "rev-connexus-37",
-      "pullRequestId": "pr-connexus-511",
-      "reviewerId": "cx-morgan",
-      "teamKey": "CONNEXUS",
-      "sprintId": "35",
-      "reviewedAt": "2026-08-07T19:24:29.180Z",
-      "turnaroundHours": 56.72477222222222
+      "reviewedAt": "2026-08-05T04:38:28.836Z",
+      "turnaroundHours": 38.274676666666664
     },
     {
       "id": "rev-connexus-38",
-      "pullRequestId": "pr-connexus-511",
-      "reviewerId": "cx-alex",
+      "pullRequestId": "pr-connexus-505",
+      "reviewerId": "cx-morgan",
       "teamKey": "CONNEXUS",
       "sprintId": "35",
-      "reviewedAt": "2026-08-07T17:51:34.077Z",
-      "turnaroundHours": 55.1761325
+      "reviewedAt": "2026-08-01T16:46:00.000Z",
+      "turnaroundHours": 6.333333333333333
     },
     {
       "id": "rev-connexus-39",
+      "pullRequestId": "pr-connexus-505",
+      "reviewerId": "cx-alex",
+      "teamKey": "CONNEXUS",
+      "sprintId": "35",
+      "reviewedAt": "2026-08-01T16:46:00.000Z",
+      "turnaroundHours": 6.333333333333333
+    },
+    {
+      "id": "rev-connexus-40",
+      "pullRequestId": "pr-connexus-508",
+      "reviewerId": "cx-jordan",
+      "teamKey": "CONNEXUS",
+      "sprintId": "35",
+      "reviewedAt": "2026-08-09T08:13:30.572Z",
+      "turnaroundHours": 66.94182555555555
+    },
+    {
+      "id": "rev-connexus-41",
+      "pullRequestId": "pr-connexus-509",
+      "reviewerId": "cx-samira",
+      "teamKey": "CONNEXUS",
+      "sprintId": "35",
+      "reviewedAt": "2026-08-08T04:43:26.788Z",
+      "turnaroundHours": 19.157441111111112
+    },
+    {
+      "id": "rev-connexus-42",
+      "pullRequestId": "pr-connexus-512",
+      "reviewerId": "cx-morgan",
+      "teamKey": "CONNEXUS",
+      "sprintId": "35",
+      "reviewedAt": "2026-07-31T11:18:00.000Z",
+      "turnaroundHours": 24.05
+    },
+    {
+      "id": "rev-connexus-43",
+      "pullRequestId": "pr-connexus-513",
+      "reviewerId": "cx-morgan",
+      "teamKey": "CONNEXUS",
+      "sprintId": "34",
+      "reviewedAt": "2026-07-17T12:49:00.000Z",
+      "turnaroundHours": 1
+    },
+    {
+      "id": "rev-connexus-44",
       "pullRequestId": "pr-connexus-514",
       "reviewerId": "cx-morgan",
       "teamKey": "CONNEXUS",
       "sprintId": "34",
-      "reviewedAt": "2026-07-25T06:16:01.938Z",
-      "turnaroundHours": 38.35053833333333
-    },
-    {
-      "id": "rev-connexus-40",
-      "pullRequestId": "pr-connexus-515",
-      "reviewerId": "cx-alex",
-      "teamKey": "CONNEXUS",
-      "sprintId": "34",
-      "reviewedAt": "2026-07-19T10:34:00.000Z",
-      "turnaroundHours": 19.816666666666666
-    },
-    {
-      "id": "rev-connexus-41",
-      "pullRequestId": "pr-connexus-515",
-      "reviewerId": "cx-jordan",
-      "teamKey": "CONNEXUS",
-      "sprintId": "34",
-      "reviewedAt": "2026-07-18T20:53:49.881Z",
-      "turnaroundHours": 6.147189166666666
-    },
-    {
-      "id": "rev-connexus-42",
-      "pullRequestId": "pr-connexus-516",
-      "reviewerId": "cx-morgan",
-      "teamKey": "CONNEXUS",
-      "sprintId": "34",
-      "reviewedAt": "2026-07-20T15:42:00.000Z",
-      "turnaroundHours": 53.4
-    },
-    {
-      "id": "rev-connexus-43",
-      "pullRequestId": "pr-connexus-518",
-      "reviewerId": "cx-morgan",
-      "teamKey": "CONNEXUS",
-      "sprintId": "34",
-      "reviewedAt": "2026-07-20T16:12:00.000Z",
-      "turnaroundHours": 49.166666666666664
-    },
-    {
-      "id": "rev-connexus-44",
-      "pullRequestId": "pr-connexus-518",
-      "reviewerId": "cx-alex",
-      "teamKey": "CONNEXUS",
-      "sprintId": "34",
-      "reviewedAt": "2026-07-20T16:12:00.000Z",
-      "turnaroundHours": 49.166666666666664
+      "reviewedAt": "2026-07-22T06:49:19.359Z",
+      "turnaroundHours": 39.9053775
     },
     {
       "id": "rev-connexus-45",
-      "pullRequestId": "pr-connexus-520",
-      "reviewerId": "cx-morgan",
+      "pullRequestId": "pr-connexus-517",
+      "reviewerId": "cx-jordan",
       "teamKey": "CONNEXUS",
       "sprintId": "34",
-      "reviewedAt": "2026-07-24T10:12:17.637Z",
-      "turnaroundHours": 47.454899166666664
+      "reviewedAt": "2026-07-18T14:51:20.197Z",
+      "turnaroundHours": 29.755610277777777
     },
     {
       "id": "rev-connexus-46",
-      "pullRequestId": "pr-connexus-521",
-      "reviewerId": "cx-morgan",
+      "pullRequestId": "pr-connexus-517",
+      "reviewerId": "cx-alex",
       "teamKey": "CONNEXUS",
       "sprintId": "34",
-      "reviewedAt": "2026-07-17T09:15:19.975Z",
+      "reviewedAt": "2026-07-18T01:50:19.975Z",
       "turnaroundHours": 16.738881944444444
     },
     {
       "id": "rev-connexus-47",
-      "pullRequestId": "pr-connexus-523",
+      "pullRequestId": "pr-connexus-519",
       "reviewerId": "cx-morgan",
       "teamKey": "CONNEXUS",
       "sprintId": "34",
-      "reviewedAt": "2026-07-19T12:03:00.000Z",
-      "turnaroundHours": 43.233333333333334
+      "reviewedAt": "2026-07-23T15:26:00.000Z",
+      "turnaroundHours": 3.9833333333333334
     },
     {
       "id": "rev-connexus-48",
-      "pullRequestId": "pr-connexus-524",
-      "reviewerId": "cx-jordan",
-      "teamKey": "CONNEXUS",
-      "sprintId": "34",
-      "reviewedAt": "2026-07-25T15:39:15.030Z",
-      "turnaroundHours": 70.73750833333334
-    },
-    {
-      "id": "rev-connexus-49",
-      "pullRequestId": "pr-connexus-524",
+      "pullRequestId": "pr-connexus-520",
       "reviewerId": "cx-morgan",
       "teamKey": "CONNEXUS",
       "sprintId": "34",
-      "reviewedAt": "2026-07-25T09:06:23.328Z",
-      "turnaroundHours": 64.18981333333333
+      "reviewedAt": "2026-07-23T16:24:32.315Z",
+      "turnaroundHours": 25.575643055555556
+    },
+    {
+      "id": "rev-connexus-49",
+      "pullRequestId": "pr-connexus-521",
+      "reviewerId": "cx-morgan",
+      "teamKey": "CONNEXUS",
+      "sprintId": "34",
+      "reviewedAt": "2026-07-18T05:30:07.202Z",
+      "turnaroundHours": 40.33533388888889
+    },
+    {
+      "id": "rev-connexus-50",
+      "pullRequestId": "pr-connexus-521",
+      "reviewerId": "cx-alex",
+      "teamKey": "CONNEXUS",
+      "sprintId": "34",
+      "reviewedAt": "2026-07-18T09:01:00.000Z",
+      "turnaroundHours": 43.85
+    },
+    {
+      "id": "rev-connexus-51",
+      "pullRequestId": "pr-connexus-522",
+      "reviewerId": "cx-morgan",
+      "teamKey": "CONNEXUS",
+      "sprintId": "34",
+      "reviewedAt": "2026-07-20T10:18:00.000Z",
+      "turnaroundHours": 20.883333333333333
+    },
+    {
+      "id": "rev-connexus-52",
+      "pullRequestId": "pr-connexus-524",
+      "reviewerId": "cx-samira",
+      "teamKey": "CONNEXUS",
+      "sprintId": "34",
+      "reviewedAt": "2026-07-19T11:56:00.000Z",
+      "turnaroundHours": 44.53333333333333
     }
   ],
   "issuesResolvedByContributor": {
     "cx-jordan": [
+      "CX-103",
       "CX-104",
       "CX-105",
-      "CX-108",
-      "CX-114",
-      "CX-115",
-      "CX-118",
-      "CX-121",
-      "CX-131",
-      "CX-137",
-      "CX-143",
-      "CX-144",
-      "CX-148",
-      "CX-151",
-      "CX-152"
+      "CX-111",
+      "CX-149"
     ],
     "cx-samira": [
-      "CX-103",
       "CX-106",
-      "CX-107",
-      "CX-110",
-      "CX-111",
-      "CX-120",
-      "CX-142"
+      "CX-127",
+      "CX-141",
+      "CX-148"
     ],
     "cx-alex": [
+      "CX-108",
       "CX-109",
-      "CX-112",
-      "CX-113",
-      "CX-122",
+      "CX-110",
+      "CX-116",
       "CX-123",
-      "CX-124",
+      "CX-125",
       "CX-126",
+      "CX-128",
+      "CX-134",
       "CX-135",
-      "CX-136",
-      "CX-139",
-      "CX-140",
-      "CX-147",
-      "CX-153",
-      "CX-154"
+      "CX-143",
+      "CX-150"
     ],
     "cx-morgan": [
-      "CX-101",
-      "CX-116",
-      "CX-117",
+      "CX-102",
+      "CX-114",
+      "CX-121",
+      "CX-122",
       "CX-129",
-      "CX-130",
-      "CX-145",
-      "CX-146"
+      "CX-133",
+      "CX-144",
+      "CX-145"
     ],
     "cx-priya": [
       "CX-100",
-      "CX-102",
+      "CX-101",
+      "CX-107",
+      "CX-112",
+      "CX-113",
+      "CX-115",
+      "CX-117",
+      "CX-118",
       "CX-119",
-      "CX-125",
-      "CX-127",
-      "CX-128",
+      "CX-120",
+      "CX-124",
+      "CX-130",
+      "CX-131",
       "CX-132",
-      "CX-133",
-      "CX-134",
+      "CX-136",
+      "CX-137",
       "CX-138",
-      "CX-141",
-      "CX-149",
-      "CX-150"
+      "CX-139",
+      "CX-140",
+      "CX-142",
+      "CX-146",
+      "CX-147"
     ]
   },
   "issuesResolvedByContributorSprint": {
     "cx-jordan": {
       "34": [
-        "CX-143",
-        "CX-144",
-        "CX-148",
-        "CX-151",
-        "CX-152"
+        "CX-149"
       ],
-      "35": [
-        "CX-131",
-        "CX-137"
-      ],
-      "36": [
-        "CX-118",
-        "CX-121"
-      ],
+      "35": [],
+      "36": [],
       "37": [
+        "CX-103",
         "CX-104",
         "CX-105",
-        "CX-108",
-        "CX-114",
-        "CX-115"
+        "CX-111"
       ]
     },
     "cx-samira": {
-      "34": [],
+      "34": [
+        "CX-148"
+      ],
       "35": [
-        "CX-142"
+        "CX-141"
       ],
       "36": [
-        "CX-120"
+        "CX-127"
       ],
       "37": [
-        "CX-103",
-        "CX-106",
-        "CX-107",
-        "CX-110",
-        "CX-111"
+        "CX-106"
       ]
     },
     "cx-alex": {
       "34": [
-        "CX-147",
-        "CX-153",
-        "CX-154"
+        "CX-143",
+        "CX-150"
       ],
       "35": [
-        "CX-135",
-        "CX-136",
-        "CX-139",
-        "CX-140"
+        "CX-134",
+        "CX-135"
       ],
       "36": [
-        "CX-122",
+        "CX-116",
         "CX-123",
-        "CX-124",
-        "CX-126"
+        "CX-125",
+        "CX-126",
+        "CX-128"
       ],
       "37": [
+        "CX-108",
         "CX-109",
-        "CX-112",
-        "CX-113"
+        "CX-110"
       ]
     },
     "cx-morgan": {
       "34": [
-        "CX-145",
-        "CX-146"
+        "CX-144",
+        "CX-145"
       ],
-      "35": [],
-      "36": [
+      "35": [
         "CX-129",
-        "CX-130"
+        "CX-133"
+      ],
+      "36": [
+        "CX-121",
+        "CX-122"
       ],
       "37": [
-        "CX-101",
-        "CX-116",
-        "CX-117"
+        "CX-102",
+        "CX-114"
       ]
     },
     "cx-priya": {
       "34": [
-        "CX-149",
-        "CX-150"
+        "CX-142",
+        "CX-146",
+        "CX-147"
       ],
       "35": [
+        "CX-130",
+        "CX-131",
         "CX-132",
-        "CX-133",
-        "CX-134",
+        "CX-136",
+        "CX-137",
         "CX-138",
-        "CX-141"
+        "CX-139",
+        "CX-140"
       ],
       "36": [
+        "CX-117",
+        "CX-118",
         "CX-119",
-        "CX-125",
-        "CX-127",
-        "CX-128"
+        "CX-120",
+        "CX-124"
       ],
       "37": [
         "CX-100",
-        "CX-102"
+        "CX-101",
+        "CX-107",
+        "CX-112",
+        "CX-113",
+        "CX-115"
       ]
+    }
+  },
+  "ticketStatsByContributorSprint": {
+    "cx-jordan": {
+      "34": {
+        "ticketsWorkedOn": 1,
+        "storyPointsCompleted": 8,
+        "ticketsSkipped": 0,
+        "storyPointsSkipped": 0
+      },
+      "35": {
+        "ticketsWorkedOn": 2,
+        "storyPointsCompleted": 10,
+        "ticketsSkipped": 0,
+        "storyPointsSkipped": 0
+      },
+      "36": {
+        "ticketsWorkedOn": 3,
+        "storyPointsCompleted": 4,
+        "ticketsSkipped": 1,
+        "storyPointsSkipped": 3
+      },
+      "37": {
+        "ticketsWorkedOn": 5,
+        "storyPointsCompleted": 21,
+        "ticketsSkipped": 1,
+        "storyPointsSkipped": 1
+      }
+    },
+    "cx-samira": {
+      "34": {
+        "ticketsWorkedOn": 1,
+        "storyPointsCompleted": 2,
+        "ticketsSkipped": 0,
+        "storyPointsSkipped": 0
+      },
+      "35": {
+        "ticketsWorkedOn": 1,
+        "storyPointsCompleted": 1,
+        "ticketsSkipped": 0,
+        "storyPointsSkipped": 0
+      },
+      "36": {
+        "ticketsWorkedOn": 1,
+        "storyPointsCompleted": 1,
+        "ticketsSkipped": 0,
+        "storyPointsSkipped": 0
+      },
+      "37": {
+        "ticketsWorkedOn": 1,
+        "storyPointsCompleted": 2,
+        "ticketsSkipped": 0,
+        "storyPointsSkipped": 0
+      }
+    },
+    "cx-alex": {
+      "34": {
+        "ticketsWorkedOn": 2,
+        "storyPointsCompleted": 2,
+        "ticketsSkipped": 0,
+        "storyPointsSkipped": 0
+      },
+      "35": {
+        "ticketsWorkedOn": 2,
+        "storyPointsCompleted": 10,
+        "ticketsSkipped": 0,
+        "storyPointsSkipped": 0
+      },
+      "36": {
+        "ticketsWorkedOn": 6,
+        "storyPointsCompleted": 13,
+        "ticketsSkipped": 1,
+        "storyPointsSkipped": 5
+      },
+      "37": {
+        "ticketsWorkedOn": 3,
+        "storyPointsCompleted": 12,
+        "ticketsSkipped": 0,
+        "storyPointsSkipped": 0
+      }
+    },
+    "cx-morgan": {
+      "34": {
+        "ticketsWorkedOn": 2,
+        "storyPointsCompleted": 4,
+        "ticketsSkipped": 0,
+        "storyPointsSkipped": 0
+      },
+      "35": {
+        "ticketsWorkedOn": 2,
+        "storyPointsCompleted": 9,
+        "ticketsSkipped": 0,
+        "storyPointsSkipped": 0
+      },
+      "36": {
+        "ticketsWorkedOn": 2,
+        "storyPointsCompleted": 8,
+        "ticketsSkipped": 0,
+        "storyPointsSkipped": 0
+      },
+      "37": {
+        "ticketsWorkedOn": 2,
+        "storyPointsCompleted": 4,
+        "ticketsSkipped": 0,
+        "storyPointsSkipped": 0
+      }
+    },
+    "cx-priya": {
+      "34": {
+        "ticketsWorkedOn": 4,
+        "storyPointsCompleted": 16,
+        "ticketsSkipped": 1,
+        "storyPointsSkipped": 2
+      },
+      "35": {
+        "ticketsWorkedOn": 11,
+        "storyPointsCompleted": 40,
+        "ticketsSkipped": 3,
+        "storyPointsSkipped": 7
+      },
+      "36": {
+        "ticketsWorkedOn": 6,
+        "storyPointsCompleted": 17,
+        "ticketsSkipped": 1,
+        "storyPointsSkipped": 1
+      },
+      "37": {
+        "ticketsWorkedOn": 7,
+        "storyPointsCompleted": 25,
+        "ticketsSkipped": 1,
+        "storyPointsSkipped": 5
+      }
     }
   }
 } as const satisfies ProductivityDerivedPack;

@@ -38,7 +38,7 @@ export function ProductivityThroughputCard({
         <h2 className="text-[16px] font-semibold tracking-[-0.2px] text-ink">
           Throughput trend
         </h2>
-        <span className="text-[11px] text-muted">PRs merged</span>
+        <span className="text-[11px] leading-[15px] text-muted">PRs merged</span>
       </div>
       <div className="px-[12px] pb-3">
         <AreaTrendChart points={chartPoints} target={target} />
@@ -79,17 +79,17 @@ export function ProductivityReviewLoadCard({
         ) : (
           visible.map((row, index) => (
             <div key={row.contributorId} className="flex items-center gap-3">
-              <span className="w-[100px] shrink-0 truncate text-[12px] text-secondary">
+              <span className="w-[100px] shrink-0 truncate text-[13px] text-secondary">
                 {/* Top bar uses full name; others first name — matches mockup. */}
                 {index === 0 ? row.displayName : row.shortName}
               </span>
-              <div className="h-2.5 min-w-0 flex-1 overflow-hidden rounded-full bg-[#EDEFF2]">
+              <div className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-[#EDEFF2]">
                 <div
                   className="h-full rounded-full bg-accent"
                   style={{ width: `${(row.reviewsGiven / max) * 100}%` }}
                 />
               </div>
-              <span className="w-6 shrink-0 text-right text-[12px] font-medium tabular-nums text-ink">
+              <span className="w-6 shrink-0 text-right text-[13px] font-medium tabular-nums text-ink">
                 {row.reviewsGiven}
               </span>
             </div>
