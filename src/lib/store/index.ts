@@ -40,6 +40,7 @@ export {
   selectShellChrome,
   selectAiRiskPct,
   selectDeliveryAnalysisSnapshot,
+  selectProductivitySnapshot,
   type ShellChrome,
 } from "@/lib/store/selectors";
 export { FilterUrlSync } from "@/lib/store/url-sync";

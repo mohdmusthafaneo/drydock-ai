@@ -170,12 +170,6 @@ export async function loadLatestAgentAnalysis(
         governance?.analyzedAt ?? null,
         "/code-health",
       ),
-      freshnessRow(
-        "productivity",
-        "Productivity",
-        productivity?.analyzedAt ?? null,
-        "/productivity",
-      ),
     ],
   };
 }

@@ -333,7 +333,7 @@ const AGENT_TEAM_LINKS: Array<{
     labelKey: "level3",
     title: "Delivery cadence detail",
     fallbackSummary: "Contributor concentration and commit signals",
-    href: "/productivity",
+    href: "/briefing",
   },
 ];
 

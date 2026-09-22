@@ -73,7 +73,7 @@ export const aidosGetProductivityAnalysisTool = createTool({
   execute: async (_input, context) => {
     const { organizationId } = getAidosToolContext(context);
     const run = await loadLatestProductivityRun(organizationId);
-    return withFreshness(run, "productivity", "/productivity");
+    return withFreshness(run, "productivity", "/briefing");
   },
 });
 

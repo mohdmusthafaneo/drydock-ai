@@ -8,6 +8,7 @@ import type { MockBriefing, MockLedger } from "@/lib/drydock/types";
 import type { StandardView } from "@/lib/drydock/standard";
 import type { ObservabilityAnalysisSnapshot } from "@/lib/observability-analysis/types";
 import type { OverviewDashboardModel, OverviewSprintOption } from "@/lib/overview/types";
+import type { ProductivitySnapshot } from "@/lib/productivity/types";
 import type { SuiteHealthSnapshot } from "@/lib/qa/suite-health";
 import type { AppFilters, Dimensioned } from "@/lib/store/dimensions";
 
@@ -98,6 +99,8 @@ export type CodeAnalysisData = {
 };
 
 export type DeliveryAnalysisData = Dimensioned<DeliveryAnalysisSnapshot>;
+
+export type ProductivityData = Dimensioned<ProductivitySnapshot>;
 
 export type ObservabilityData = {
   snapshot: ObservabilityAnalysisSnapshot | null;
@@ -231,6 +234,7 @@ export type AppData = {
   qa: QaData;
   codeAnalysis: CodeAnalysisData;
   deliveryAnalysis: DeliveryAnalysisData;
+  productivity: ProductivityData;
   observability: ObservabilityData;
   governance: GovernanceData;
   releases: ReleasesData;

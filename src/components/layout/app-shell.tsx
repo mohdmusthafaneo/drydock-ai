@@ -32,6 +32,7 @@ function isWizardPath(pathname: string): boolean {
 function usesConnexusChrome(pathname: string): boolean {
   if (pathname === "/dashboard" || pathname.startsWith("/dashboard/")) return true;
   if (pathname === "/delivery-analysis" || pathname.startsWith("/delivery-analysis/")) return true;
+  if (pathname === "/productivity" || pathname.startsWith("/productivity/")) return true;
   if (pathname === "/code-analysis" || pathname.startsWith("/code-analysis/")) return true;
   if (pathname === "/qa" || pathname.startsWith("/qa/")) return true;
   if (pathname === "/governance" || pathname.startsWith("/governance/")) return true;

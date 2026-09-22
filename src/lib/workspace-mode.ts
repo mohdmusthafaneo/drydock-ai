@@ -47,6 +47,7 @@ export function getSectionTabs(): SectionTab[] {
   return [
     { href: "/dashboard", label: "Overview" },
     { href: "/delivery-analysis", label: "Delivery" },
+    { href: "/productivity", label: "Productivity" },
     { href: "/code-analysis", label: "Code" },
     { href: "/qa", label: "QA" },
     { href: "/governance", label: "Compliance" },
@@ -235,6 +236,7 @@ export function isEnterpriseOnlyPath(pathname: string): boolean {
     "/releases",
     "/qa",
     "/delivery-analysis",
+    "/productivity",
     "/code-analysis",
     "/dashboard",
     "/risk",

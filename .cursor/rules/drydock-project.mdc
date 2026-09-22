@@ -16,7 +16,7 @@ alwaysApply: true
 
 ## Hard rules
 
-- **No metric is ever grouped by person.** Author/vendor/individual are never dimensions. **Team/project** filter is allowed on Overview and delivery metrics. Evidence links to files and PRs, never to people.
+- **No metric is ever grouped by person — except on `/productivity`.** Author/vendor/individual are never dimensions on test-trust or Overview. **Team/project** filter is allowed on Overview and delivery metrics. Evidence on those surfaces links to files and PRs, never to people. Productivity may show ranked per-contributor delivery metrics (see `docs/DRYDOCK-CONCEPT.md` §12). No composite person score.
 - **Nothing is silently suppressed.** Every hidden finding is one click away with its reason and originating decision.
 - **The architect can always overrule, on the record.**
 - **DryDock only advises.** Never write to GitHub or Jira, modify tests, disable suites, or block CI.

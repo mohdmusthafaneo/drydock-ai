@@ -5,6 +5,7 @@ import type {
   OverviewSprintOption,
 } from "@/lib/store/types";
 import type { DeliveryAnalysisSnapshot } from "@/lib/delivery-analysis/types";
+import type { ProductivitySnapshot } from "@/lib/productivity/types";
 
 function defaultSprintId(state: AppStoreState): string {
   const { dimensions } = state.data;
@@ -127,6 +128,20 @@ export function selectDeliveryAnalysisSnapshot(
   const { data, filters } = state;
   const sprintId = filters.sprint ?? defaultSprintId(state);
   return pick(data.deliveryAnalysis, {
+    team: filters.team,
+    sprint: sprintId,
+  });
+}
+
+/**
+ * Productivity page snapshot for the selected sprint/team from the store.
+ */
+export function selectProductivitySnapshot(
+  state: AppStoreState,
+): ProductivitySnapshot {
+  const { data, filters } = state;
+  const sprintId = filters.sprint ?? defaultSprintId(state);
+  return pick(data.productivity, {
     team: filters.team,
     sprint: sprintId,
   });

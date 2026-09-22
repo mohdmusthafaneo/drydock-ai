@@ -103,3 +103,5 @@ White, 14px radius, `#E6E8EB` border, soft shadow. Title row with optional ⓘ t
 ## Visual reference
 
 Pixel target: designer static build (`~/Downloads/new-design`) and [`docs/design/overview-mockup.jpg`](design/overview-mockup.jpg).
+
+Productivity (`/productivity`): [`docs/design/productivity-mockup.png`](design/productivity-mockup.png).

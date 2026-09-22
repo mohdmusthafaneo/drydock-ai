@@ -11,6 +11,7 @@ import { mockEscapes } from "@/lib/store/mock/escapes";
 import { mockQa } from "@/lib/store/mock/qa";
 import { mockCodeAnalysis } from "@/lib/store/mock/code-analysis";
 import { buildMockDeliveryAnalysisFromDerived } from "@/lib/store/mock/delivery-analysis";
+import { buildMockProductivityForOrg } from "@/lib/store/mock/productivity";
 import { mockObservability } from "@/lib/store/mock/observability";
 import { mockGovernance } from "@/lib/store/mock/governance";
 import { mockReleases } from "@/lib/store/mock/releases";
@@ -52,6 +53,7 @@ function assembleSeed(input: {
   derived: OverviewDerivedPack;
   dimensions: AppData["dimensions"];
   settings: AppData["settings"];
+  productivityOrg: "tpt" | "connexus";
 }): AppData {
   return {
     meta: {
@@ -71,6 +73,7 @@ function assembleSeed(input: {
     qa: mockQa,
     codeAnalysis: mockCodeAnalysis,
     deliveryAnalysis: buildMockDeliveryAnalysisFromDerived(input.derived),
+    productivity: buildMockProductivityForOrg(input.derived, input.productivityOrg),
     observability: mockObservability,
     governance: mockGovernance,
     releases: mockReleases,
@@ -90,6 +93,7 @@ export function seedTptAppData(): AppData {
     derived: TPT_PACK,
     dimensions: buildMockDimensions(TPT_PACK),
     settings: buildMockSettings(TPT_PACK),
+    productivityOrg: "tpt",
   });
 }
 
@@ -108,6 +112,7 @@ export function seedConnexusAppData(): AppData {
       services: [...CONNEXUS_SERVICES],
     }),
     settings: buildMockSettings(CONNEXUS_PACK, CONNEXUS_SETTINGS_MEMBERS),
+    productivityOrg: "connexus",
   });
 }
 

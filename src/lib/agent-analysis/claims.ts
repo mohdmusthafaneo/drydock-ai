@@ -159,7 +159,7 @@ export function buildAgentAnalysisClaims(
           ? `${top.authorName} owns ${top.sharePct}% of commits across ${prodRepoLabel}`
           : `Latest productivity scan across ${prodRepoLabel}`,
       ),
-      href: "/productivity",
+      href: "/briefing",
     });
   }
 

@@ -51,10 +51,12 @@ Sign-off / Misses) remain available beside Delivery, Code, QA, Risk, Compliance,
 
 These are hard rules. Breaking one is a product defect, not a tradeoff.
 
-1. **No metric is ever grouped by person.** Author, vendor, and individual contributor are
-   never reporting dimensions. **Team / project** (e.g. a Jira project key) may filter
-   Overview and delivery metrics. Evidence still links to files and PRs — never to people.
-   The schema must not aggregate findings to a human.
+1. **No metric is ever grouped by person — except on Productivity.** Author, vendor, and
+   individual contributor are never reporting dimensions on test-trust surfaces or Overview.
+   **Team / project** (e.g. a Jira project key) may filter Overview and delivery metrics.
+   Evidence on those surfaces still links to files and PRs — never to people. The
+   **Productivity** surface (`/productivity`) is the sole carve-out: it shows per-contributor
+   delivery metrics by design. See §12.
 
 2. **Nothing is silently suppressed.** Every issue the system hides is reachable in one
    click, with the reason and the decision that hid it. Discovering that DryDock concealed
@@ -342,12 +344,40 @@ Dated decision: ship a Connexus-style Overview as the landing page and app shell
 | Sunsetted Delivery/Code/Compliance | Re-enabled as top tabs + pillar tiles |
 
 Preserved: advise-only, nothing silently suppressed, evidence traceability, tenancy by
-`organizationId`, no metrics by person.
+`organizationId`. (Person metrics remain forbidden on Overview and test-trust; see §12 for
+the Productivity carve-out.)
 
 Visual system: `docs/DESIGN.md`. Shell: org name in sidebar, section tabs in top bar,
 workspace list = Jira projects.
 
 ---
 
-*Last updated: 2026-09-06. Update this file when the concept evolves; do not fork competing
+## 12. Product redirect — 2026-09 Productivity surface
+
+Dated decision: ship a per-contributor **Productivity** section at `/productivity` for
+Engineering Managers. This narrowly revokes invariant 1 for that surface only.
+
+| Amended | New rule |
+|---------|----------|
+| No metrics by person (global) | Person dimension allowed **only** on `/productivity` |
+| — | No role gate — every signed-in user sees the full page |
+| — | No statement-of-intent banner; no small-N / ranking guardrails in v1 |
+| — | No composite person score — ever |
+| — | Ranked table default-sorted by PRs merged; sortable columns |
+| Agent productivity pipeline | Kept for briefing / executive deck; page reads mock store only |
+
+**Rationale.** Overview answers leadership confidence; test-trust answers “can I trust green?”
+Neither answers the EM weekly question: *is delivery healthy, and who needs support?* The
+person-free rule remains load-bearing for test flagging (§5.5) and for Overview not becoming
+a ranking instrument. Revoking it only on Productivity keeps those protections.
+
+**Preserved elsewhere.** Test-trust and Overview keep the person-free rule. Invariant 5
+(evidence traceability) is untouched — every per-contributor number drills to PRs and issues.
+Advise-only, tenancy, and “nothing silently suppressed” are unchanged.
+
+Visual target: [`docs/design/productivity-mockup.png`](design/productivity-mockup.png).
+
+---
+
+*Last updated: 2026-09-22. Update this file when the concept evolves; do not fork competing
 definitions elsewhere.*

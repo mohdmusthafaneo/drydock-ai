@@ -12,6 +12,7 @@ export type NavFeatureFlagId =
   | "nav.qa"
   | "nav.code_analysis"
   | "nav.delivery_analysis"
+  | "nav.productivity"
   | "nav.observability"
   | "nav.devops"
   | "nav.incidents"
@@ -35,6 +36,7 @@ export const NAV_FEATURE_FLAGS: Record<NavFeatureFlagId, boolean> = {
   "nav.qa": true,
   "nav.code_analysis": true,
   "nav.delivery_analysis": true,
+  "nav.productivity": true,
   "nav.observability": false,
   "nav.devops": false,
   "nav.incidents": false,
@@ -58,6 +60,7 @@ const NAV_HREF_TO_FLAG: Record<string, NavFeatureFlagId> = {
   "/qa": "nav.qa",
   "/code-analysis": "nav.code_analysis",
   "/delivery-analysis": "nav.delivery_analysis",
+  "/productivity": "nav.productivity",
   "/observability": "nav.observability",
   "/devops": "nav.devops",
   "/incidents": "nav.incidents",
