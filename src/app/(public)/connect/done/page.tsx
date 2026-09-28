@@ -21,9 +21,12 @@ export default async function ConnectDonePage({
   const installationId = firstParam(sp.installation_id);
 
   const isJira = provider === "jira";
+  const isGitLab = provider === "gitlab";
   const headline = isJira
     ? `Jira connected to ${org}`
-    : `GitHub App installed for ${org}`;
+    : isGitLab
+      ? `GitLab connected to ${org}`
+      : `GitHub App installed for ${org}`;
 
   return (
     <Card className="border-success/30">
@@ -41,9 +44,14 @@ export default async function ConnectDonePage({
               Site: <span className="font-medium text-primary">{site}</span>
             </p>
           )}
-          {isJira && displayName && (
+          {(isJira || isGitLab) && displayName && (
             <p className="text-secondary">
               Connected as <span className="font-medium text-primary">{displayName}</span>
+            </p>
+          )}
+          {isGitLab && site && (
+            <p className="text-secondary">
+              Host: <span className="font-medium text-primary">{site}</span>
             </p>
           )}
           {!isJira && installationId && (

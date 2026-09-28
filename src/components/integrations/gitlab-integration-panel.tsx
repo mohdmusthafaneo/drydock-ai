@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ExternalConnectLinkPanel } from "@/components/integrations/external-connect-link-panel";
 import {
   DisconnectButton,
   GitLabOAuthConnect,
@@ -11,15 +12,17 @@ export function GitLabIntegrationPanel({
   displayName,
   baseUrl,
   canManage,
+  appUrlConfigured,
 }: {
   connected: boolean;
   configured: boolean;
   displayName?: string | null;
   baseUrl?: string | null;
   canManage: boolean;
+  appUrlConfigured: boolean;
 }) {
   return (
-    <Card>
+    <Card className="md:col-span-2">
       <CardHeader>
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-base">GitLab</CardTitle>
@@ -52,6 +55,14 @@ export function GitLabIntegrationPanel({
             {connected && <DisconnectButton provider="GITLAB" />}
           </div>
         )}
+        <ExternalConnectLinkPanel
+          provider="GITLAB"
+          connected={connected}
+          canManage={canManage}
+          appUrlConfigured={appUrlConfigured}
+          providerConfigured={configured}
+          providerConfigHint="Set GITLAB_CLIENT_ID and GITLAB_CLIENT_SECRET in .env."
+        />
       </CardContent>
     </Card>
   );

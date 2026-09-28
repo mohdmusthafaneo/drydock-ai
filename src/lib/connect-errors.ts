@@ -6,6 +6,7 @@ export type ConnectErrorCode =
   | "already_connected"
   | "jira_denied"
   | "github_denied"
+  | "gitlab_denied"
   | "jira_no_sites"
   | "config_missing"
   | "callback_failed"
@@ -50,6 +51,11 @@ export const CONNECT_ERROR_MESSAGES: Record<
     message: "GitHub installation was cancelled.",
     action: "Retry the link.",
   },
+  gitlab_denied: {
+    title: "Authorization cancelled",
+    message: "GitLab authorization was cancelled or denied.",
+    action: "Retry the link or contact your admin.",
+  },
   jira_no_sites: {
     title: "No Jira sites authorized",
     message: "No Jira sites were authorized.",
@@ -80,5 +86,6 @@ export function resolveConnectError(code: string | null | undefined) {
 export function providerLabel(provider: string | null | undefined): string {
   if (provider === "jira") return "Jira";
   if (provider === "github") return "GitHub";
+  if (provider === "gitlab") return "GitLab";
   return "Integration";
 }

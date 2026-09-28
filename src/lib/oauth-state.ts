@@ -8,7 +8,7 @@ export type OAuthState =
       flow: "external";
       organizationId: string;
       inviteId: string;
-      provider: "GITHUB" | "JIRA" | "SLACK";
+      provider: "GITHUB" | "JIRA" | "SLACK" | "GITLAB";
       createdById: string;
     };
 
@@ -46,8 +46,8 @@ export async function verifyOAuthState(token: string): Promise<OAuthState> {
   };
 }
 
-function isExternalProvider(value: unknown): value is "GITHUB" | "JIRA" | "SLACK" {
-  return value === "GITHUB" || value === "JIRA" || value === "SLACK";
+function isExternalProvider(value: unknown): value is "GITHUB" | "JIRA" | "SLACK" | "GITLAB" {
+  return value === "GITHUB" || value === "JIRA" || value === "SLACK" || value === "GITLAB";
 }
 
 function parseExternalOAuthState(raw: Record<string, unknown>) {

@@ -15,6 +15,7 @@ export type GitLabIntegrationMeta = {
   /** ISO time when the access token expires. Absent when the app does not expire tokens. */
   accessTokenExpiresAt?: string;
   connectedBy?: string;
+  connectedVia?: "session" | "external_link";
 };
 
 export function parseGitLabMeta(metadataJson: unknown): GitLabIntegrationMeta {

@@ -20,6 +20,7 @@ const publicPaths = [
   "/api/auth/logout",
   "/connect/done",
   "/connect/error",
+  "/api/integrations/gitlab/callback",
 ];
 
 /** Bearer-auth routes — no session cookie required */

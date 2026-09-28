@@ -307,6 +307,7 @@ export default async function IntegrationsPage({
               displayName={gitlabIntegration?.displayName}
               baseUrl={gitlabMeta?.baseUrl}
               canManage={canManage}
+              appUrlConfigured={appUrlConfigured}
             />
           </div>
         </section>

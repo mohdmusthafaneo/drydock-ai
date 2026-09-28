@@ -5,7 +5,7 @@ import { Copy, Link2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatFixedLocaleDateTime } from "@/lib/format-date";
 
-type ConnectInviteProvider = "GITHUB" | "JIRA" | "SLACK";
+type ConnectInviteProvider = "GITHUB" | "JIRA" | "SLACK" | "GITLAB";
 
 type ActiveInvite = {
   id: string;
@@ -18,6 +18,7 @@ type ActiveInvite = {
 function providerAdminLabel(provider: ConnectInviteProvider): string {
   if (provider === "JIRA") return "Jira";
   if (provider === "SLACK") return "Slack workspace";
+  if (provider === "GITLAB") return "GitLab";
   return "GitHub";
 }
 
@@ -135,7 +136,9 @@ export function ExternalConnectLinkPanel({
         <p className="text-xs font-medium text-primary">Share setup link</p>
       </div>
       <p className="text-xs text-muted">
-        Send this link to someone with {providerAdminLabel(provider)} admin access.
+        {provider === "GITLAB"
+          ? "Send this link to a GitLab user who can see the repositories. No DryDock login required."
+          : `Send this link to someone with ${providerAdminLabel(provider)} admin access.`}{" "}
         Single-use, expires in 24 hours.
       </p>
 

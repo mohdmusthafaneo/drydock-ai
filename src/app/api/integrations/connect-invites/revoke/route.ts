@@ -8,7 +8,7 @@ import { revokeConnectInvite } from "@/lib/integration-connect-invite";
 import { determineActorType } from "@/lib/audit-helpers";
 const schema = z
   .object({
-    provider: z.enum(["GITHUB", "JIRA", "SLACK"]).optional(),
+    provider: z.enum(["GITHUB", "JIRA", "SLACK", "GITLAB"]).optional(),
     inviteId: z.string().optional(),
   })
   .refine((data) => data.provider || data.inviteId, {

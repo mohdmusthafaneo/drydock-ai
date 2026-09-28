@@ -50,6 +50,9 @@ async function main() {
     console.log(`#   ${project.path_with_namespace}  (${branch})`);
   }
   console.log(
+    "# token is valid now; git fetch refreshes it via scripts/gitlab-git-credential.ts",
+  );
+  console.log(
     '# git clone "https://oauth2:${GITLAB_TOKEN}@${GITLAB_HOST}/group/project.git"',
   );
   console.log(

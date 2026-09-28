@@ -3,10 +3,10 @@ import type { IntegrationConnectInvite, IntegrationProvider } from "@/generated/
 import { prisma } from "@/lib/prisma";
 import { getAppUrl } from "@/lib/app-url";
 
-const CONNECT_PROVIDERS = new Set<IntegrationProvider>(["GITHUB", "JIRA", "SLACK"]);
+const CONNECT_PROVIDERS = new Set<IntegrationProvider>(["GITHUB", "JIRA", "SLACK", "GITLAB"]);
 const INVITE_TTL_MS = 24 * 60 * 60 * 1000;
 
-export type ConnectInviteProvider = "GITHUB" | "JIRA" | "SLACK";
+export type ConnectInviteProvider = "GITHUB" | "JIRA" | "SLACK" | "GITLAB";
 
 export type ConnectInviteErrorCode =
   | "invalid"
@@ -43,7 +43,9 @@ export function buildConnectInviteUrl(
       ? `/connect/github/${token}`
       : provider === "JIRA"
         ? `/connect/jira/${token}`
-        : `/connect/slack/${token}`;
+        : provider === "GITLAB"
+          ? `/connect/gitlab/${token}`
+          : `/connect/slack/${token}`;
   return `${getAppUrl()}${path}`;
 }
 

@@ -11,7 +11,7 @@ import {
 import { determineActorType } from "@/lib/audit-helpers";
 
 const createSchema = z.object({
-  provider: z.enum(["GITHUB", "JIRA", "SLACK"]),
+  provider: z.enum(["GITHUB", "JIRA", "SLACK", "GITLAB"]),
 });
 
 export async function POST(request: Request) {
@@ -80,7 +80,7 @@ export async function GET(request: Request) {
   }
 
   const provider = new URL(request.url).searchParams.get("provider");
-  if (provider !== "GITHUB" && provider !== "JIRA" && provider !== "SLACK") {
+  if (provider !== "GITHUB" && provider !== "JIRA" && provider !== "SLACK" && provider !== "GITLAB") {
     return NextResponse.json({ error: "Invalid provider" }, { status: 400 });
   }
 
