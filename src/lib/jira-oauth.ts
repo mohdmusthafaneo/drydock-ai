@@ -104,10 +104,18 @@ export async function exchangeJiraCode(code: string, flow: JiraOAuthFlow = "sess
 }
 
 export async function refreshJiraAccessToken(refreshToken: string) {
-  return postToken({
+  const tokens = await postToken({
     grant_type: "refresh_token",
     refresh_token: refreshToken,
   });
+  if (!tokens.refreshToken) {
+    throw new Error("Jira refresh did not return a new refresh token — reconnect Jira");
+  }
+  return {
+    accessToken: tokens.accessToken,
+    refreshToken: tokens.refreshToken,
+    scope: tokens.scope,
+  };
 }
 
 export type AtlassianAccessibleResource = {

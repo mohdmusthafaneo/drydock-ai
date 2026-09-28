@@ -320,7 +320,31 @@ export default async function IntegrationsPage({
           />
           <div className="grid gap-4 md:grid-cols-2">
             <JiraConnectSection
-              live={primary.filter((i) => i.provider === "JIRA").map((i) => renderCard(i))}
+              live={
+                jiraIntegration ? (
+                  renderCard(jiraIntegration)
+                ) : (
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-start justify-between gap-2">
+                        <CardTitle className="text-base">Jira</CardTitle>
+                        <Badge variant="muted">Not connected</Badge>
+                      </div>
+                      <CardDescription>
+                        Read-only Jira Cloud OAuth. A share link lets someone connect without a DryDock login.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <JiraIntegrationPanel
+                        connected={false}
+                        configured={jiraOAuthConfigured}
+                        canManage={canManage}
+                        appUrlConfigured={appUrlConfigured}
+                      />
+                    </CardContent>
+                  </Card>
+                )
+              }
             />
           </div>
         </section>

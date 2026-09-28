@@ -60,9 +60,7 @@ async function refreshAndPersistJiraTokens(
     data: {
       metadataJson: mergeJiraMeta(parseJiraMeta(integration.metadataJson), {
         accessTokenEnc: encryptToken(refreshed.accessToken),
-        refreshTokenEnc: refreshed.refreshToken
-          ? encryptToken(refreshed.refreshToken)
-          : parseJiraMeta(integration.metadataJson).refreshTokenEnc,
+        refreshTokenEnc: encryptToken(refreshed.refreshToken),
       }),
       lastError: null,
     },

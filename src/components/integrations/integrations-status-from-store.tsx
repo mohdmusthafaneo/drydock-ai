@@ -40,7 +40,9 @@ function connectorDetail(item: {
 }
 
 export function IntegrationsStatusFromStore() {
-  const items = useAppData((s) => s.data.integrations.items);
+  const items = useAppData((s) => s.data.integrations.items).filter(
+    (item) => !item.mockSession,
+  );
 
   if (items.length === 0) return null;
 
@@ -52,7 +54,6 @@ export function IntegrationsStatusFromStore() {
         <CardTitle className="text-base">Connector status</CardTitle>
         <CardDescription>
           {connected} of {items.length} connectors connected in the current evidence set.
-          Mock Jira sessions show as connected without live OAuth.
         </CardDescription>
       </CardHeader>
       <CardContent>

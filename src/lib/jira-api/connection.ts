@@ -77,7 +77,7 @@ export async function probeJiraConnection(integration: Integration): Promise<{
   }
 
   try {
-    return await probeJiraWithRefresh(integration, accessToken, meta.cloudId, meta.refreshTokenEnc);
+    return await probeJiraWithRefresh(integration, accessToken, meta.cloudId);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Connection probe failed";
     return {
@@ -96,7 +96,6 @@ async function probeJiraWithRefresh(
   integration: Integration,
   accessToken: string,
   cloudId: string,
-  fallbackRefreshTokenEnc: string | undefined,
 ): Promise<{
   ok: boolean;
   error?: string;
@@ -123,9 +122,7 @@ async function probeJiraWithRefresh(
         ok: true,
         metaPatch: {
           accessTokenEnc: encryptToken(refreshed.accessToken),
-          refreshTokenEnc: refreshed.refreshToken
-            ? encryptToken(refreshed.refreshToken)
-            : fallbackRefreshTokenEnc,
+          refreshTokenEnc: encryptToken(refreshed.refreshToken),
           lastConnectionCheckAt: new Date().toISOString(),
           connectionStatus: "ok",
           lastError: undefined,

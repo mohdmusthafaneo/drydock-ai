@@ -25,34 +25,36 @@ export async function GET(request: Request) {
     }
   }
 
-  const external =
-    oauthState?.flow === "external" && oauthState.provider === "GITLAB";
+  const externalGitLab =
+    oauthState?.flow === "external" && oauthState.provider === "GITLAB"
+      ? oauthState
+      : null;
 
   if (error) {
-    if (external) return connectError("gitlab_denied");
+    if (externalGitLab) return connectError("gitlab_denied");
     return NextResponse.redirect(appUrl(`/integrations?error=gitlab_${error}`));
   }
 
   if (!code || !oauthState) {
-    if (external) return connectError("callback_failed");
+    if (externalGitLab) return connectError("callback_failed");
     return NextResponse.redirect(appUrl("/integrations?error=gitlab_missing_params"));
   }
 
-  if (external) {
+  if (externalGitLab) {
     try {
-      const invite = await loadInviteById(oauthState.inviteId);
-      if (invite.organizationId !== oauthState.organizationId) {
+      const invite = await loadInviteById(externalGitLab.inviteId);
+      if (invite.organizationId !== externalGitLab.organizationId) {
         return connectError("invalid");
       }
 
       const org = await prisma.organization.findUnique({
-        where: { id: oauthState.organizationId },
+        where: { id: externalGitLab.organizationId },
         select: { name: true },
       });
 
       const result = await completeGitLabOAuthConnection({
-        organizationId: oauthState.organizationId,
-        userId: oauthState.createdById,
+        organizationId: externalGitLab.organizationId,
+        userId: externalGitLab.createdById,
         code,
         via: "external_link",
         inviteId: invite.id,

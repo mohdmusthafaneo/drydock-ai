@@ -34,6 +34,11 @@ export async function completeJiraOAuthConnection(
     input.code,
     oauthFlow,
   );
+  if (!refreshToken) {
+    throw new Error(
+      "Jira did not return a refresh token. The Atlassian app needs the offline_access scope.",
+    );
+  }
   const resources = await fetchAccessibleResources(accessToken);
 
   if (resources.length === 0) {
