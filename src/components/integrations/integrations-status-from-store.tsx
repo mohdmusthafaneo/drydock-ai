@@ -6,12 +6,14 @@ import { useAppData } from "@/lib/store";
 
 const PROVIDER_LABELS: Record<string, string> = {
   github: "GitHub",
+  gitlab: "GitLab",
   jira: "Jira",
   grafana: "Grafana",
   prometheus: "Prometheus",
   slack: "Slack",
   aws: "Cloud Hygiene",
   GITHUB: "GitHub",
+  GITLAB: "GitLab",
   JIRA: "Jira",
   GRAFANA: "Grafana",
   PROMETHEUS: "Prometheus",

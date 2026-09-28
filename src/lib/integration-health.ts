@@ -105,6 +105,8 @@ export async function checkIntegrationHealth(
     } else {
       message = "Connected — initial sync pending";
     }
+  } else if (integration.provider === "GITLAB" && integration.status === "CONNECTED") {
+    message = "Connected — token available for scripts";
   } else if (integration.provider === "SLACK" && isSlackTrulyConnected(integration)) {
     const meta = parseSlackMeta(integration.metadataJson);
     const requiredScopes = [

@@ -46,9 +46,13 @@ import { decryptToken } from "@/lib/token-crypto";
 import { ConnectorConfigureDisclosure } from "@/components/integrations/connector-configure-disclosure";
 import { IntegrationsStatusFromStore } from "@/components/integrations/integrations-status-from-store";
 import { JiraConnectSection } from "@/components/integrations/jira-connect-section";
+import { GitLabIntegrationPanel } from "@/components/integrations/gitlab-integration-panel";
+import { getGitLabOAuthConfig } from "@/lib/gitlab-oauth";
+import { parseGitLabMeta } from "@/lib/gitlab-meta";
 
 const PROVIDER_LABELS: Record<string, string> = {
   GITHUB: "GitHub",
+  GITLAB: "GitLab",
   JIRA: "Jira",
   GRAFANA: "Grafana",
   PROMETHEUS: "Prometheus",
@@ -227,11 +231,18 @@ export default async function IntegrationsPage({
   const primary = pickByProvider(integrations, PRIMARY_ORDER);
   const observability = pickByProvider(integrations, OBSERVABILITY_ORDER);
   const aws = integrations.find((i) => i.provider === "AWS");
+  const gitlabIntegration = integrations.find((i) => i.provider === "GITLAB");
+  const gitlabConnected = gitlabIntegration?.status === "CONNECTED";
+  const gitlabOAuthConfigured = getGitLabOAuthConfig().configured;
+  const gitlabMeta = gitlabIntegration
+    ? parseGitLabMeta(gitlabIntegration.metadataJson)
+    : null;
   const leftovers = integrations.filter(
     (i) =>
       !PRIMARY_ORDER.includes(i.provider as (typeof PRIMARY_ORDER)[number]) &&
       !OBSERVABILITY_ORDER.includes(i.provider as (typeof OBSERVABILITY_ORDER)[number]) &&
-      i.provider !== "AWS"
+      i.provider !== "AWS" &&
+      i.provider !== "GITLAB"
   );
 
   return (
@@ -284,12 +295,19 @@ export default async function IntegrationsPage({
           <SectionHeading
             step={1}
             title="Source control"
-            description="Start with GitHub so DryDock can read repos, PRs, and test runs."
+            description="GitHub reads repos, pull requests, and test runs. GitLab is a read-only connection for scripts."
           />
           <div className="grid gap-4 md:grid-cols-2">
             {primary
               .filter((i) => i.provider === "GITHUB")
               .map((i) => renderCard(i, { spanWide: true }))}
+            <GitLabIntegrationPanel
+              connected={gitlabConnected}
+              configured={gitlabOAuthConfigured}
+              displayName={gitlabIntegration?.displayName}
+              baseUrl={gitlabMeta?.baseUrl}
+              canManage={canManage}
+            />
           </div>
         </section>
 

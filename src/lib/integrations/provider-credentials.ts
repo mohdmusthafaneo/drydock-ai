@@ -3,6 +3,7 @@ import type {
   ProviderCredentials,
 } from "@/lib/integrations/credentials";
 import { getGitHubCredentialToken } from "@/lib/integrations/github-credentials";
+import { getGitLabCredentialToken } from "@/lib/integrations/gitlab-credentials";
 import { getJiraCredentialToken } from "@/lib/integrations/jira-credentials";
 import { getRotatingRefreshCredentialToken } from "@/lib/integrations/rotating-refresh-credentials";
 
@@ -17,7 +18,7 @@ class DefaultProviderCredentials implements ProviderCredentials {
       case "JIRA":
         return getJiraCredentialToken(organizationId);
       case "GITLAB":
-        return getRotatingRefreshCredentialToken(organizationId, "GITLAB");
+        return getGitLabCredentialToken(organizationId);
       case "BITBUCKET":
         return getRotatingRefreshCredentialToken(organizationId, "BITBUCKET");
       default: {

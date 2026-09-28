@@ -13,6 +13,18 @@ export function GitHubOAuthConnect() {
   );
 }
 
+export function GitLabOAuthConnect({
+  label = "Connect with GitLab",
+}: {
+  label?: string;
+}) {
+  return (
+    <Button size="sm" variant="brown" asChild>
+      <Link href="/api/integrations/gitlab/authorize">{label}</Link>
+    </Button>
+  );
+}
+
 export function JiraOAuthConnect({
   label = "Connect with Jira",
   variant = "brown",
@@ -109,6 +121,7 @@ export function RotateTokenButton({ provider }: { provider: string }) {
     const routes: Record<string, string> = {
       JIRA: "/api/integrations/jira/authorize",
       GITHUB: "/api/integrations/github/authorize",
+      GITLAB: "/api/integrations/gitlab/authorize",
       SLACK: "/api/integrations/slack/authorize",
     };
     router.push(routes[provider] ?? "/integrations");

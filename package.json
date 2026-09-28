@@ -11,6 +11,7 @@
     "lint": "eslint",
     "mastra:studio": "MASTRA_DEV=1 mastra dev -d src/mastra --request-context-presets ./mastra-request-context-presets.json",
     "db:migrate": "prisma migrate dev",
+    "gitlab:token": "tsx scripts/gitlab-env.ts",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate --schema=prisma/schema.prisma",
     "sanitize:landing": "node scripts/sanitize-portkey-html.mjs",

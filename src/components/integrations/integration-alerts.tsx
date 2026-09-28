@@ -35,6 +35,38 @@ const MESSAGES: Record<string, { tone: "success" | "error"; text: string }> = {
     tone: "error",
     text: "Jira OAuth is not configured. Add ATLASSIAN_CLIENT_ID and ATLASSIAN_CLIENT_SECRET to .env.",
   },
+  connected_gitlab: {
+    tone: "success",
+    text: "GitLab connected. Run npx tsx scripts/gitlab-env.ts to print a token for git and the API.",
+  },
+  gitlab_oauth_not_configured: {
+    tone: "error",
+    text: "GitLab OAuth is not configured. Add GITLAB_CLIENT_ID and GITLAB_CLIENT_SECRET to .env.",
+  },
+  gitlab_access_denied: {
+    tone: "error",
+    text: "GitLab authorization was cancelled.",
+  },
+  gitlab_callback_failed: {
+    tone: "error",
+    text: "GitLab connection failed. Check the application redirect URI, scopes, and credentials.",
+  },
+  gitlab_no_refresh_token: {
+    tone: "error",
+    text: "GitLab did not return a refresh token. On the application, enable Expire access tokens, then connect again.",
+  },
+  gitlab_org_mismatch: {
+    tone: "error",
+    text: "Organization mismatch during GitLab callback. Please try again.",
+  },
+  gitlab_missing_params: {
+    tone: "error",
+    text: "Invalid GitLab callback. Missing code or state.",
+  },
+  gitlab_invalid_state: {
+    tone: "error",
+    text: "GitLab authorization state was invalid. Please try again.",
+  },
   github_access_denied: {
     tone: "error",
     text: "GitHub authorization was cancelled.",
@@ -80,7 +112,9 @@ export function IntegrationAlerts() {
         ? "github_app_installed"
         : connected === "jira"
           ? "connected_jira"
-          : error ?? "";
+          : connected === "gitlab"
+            ? "connected_gitlab"
+            : error ?? "";
 
   if (!key || !MESSAGES[key]) return null;
 
