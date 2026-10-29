@@ -35,16 +35,10 @@ async function refreshAndPersistJiraTokens(
   refreshToken: string,
   cloudId: string,
 ): Promise<string> {
+  // Atlassian invalidates the old refresh token as soon as this call succeeds.
+  // Persist the new pair before any follow-up API probe so a network blip
+  // cannot leave the DB holding a dead refresh token.
   const refreshed = await refreshJiraAccessToken(refreshToken);
-  await httpFetch({
-    url: `${JIRA_API}/${cloudId}/rest/api/3/myself`,
-    headers: {
-      Authorization: `Bearer ${refreshed.accessToken}`,
-      Accept: "application/json",
-    },
-    scope: { provider: "jira", organizationId },
-    maxAttempts: 1,
-  });
 
   const integration = await prisma.integration.findUnique({
     where: {
@@ -64,6 +58,16 @@ async function refreshAndPersistJiraTokens(
       }),
       lastError: null,
     },
+  });
+
+  await httpFetch({
+    url: `${JIRA_API}/${cloudId}/rest/api/3/myself`,
+    headers: {
+      Authorization: `Bearer ${refreshed.accessToken}`,
+      Accept: "application/json",
+    },
+    scope: { provider: "jira", organizationId },
+    maxAttempts: 1,
   });
 
   return refreshed.accessToken;
