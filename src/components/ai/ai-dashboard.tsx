@@ -47,19 +47,11 @@ export function AiDashboard({
         </div>
       ) : null}
 
-      <AiKpiStrip kpis={snapshot.kpis} />
+      <AiKpiStrip roi={snapshot.roi} />
 
       <div className="grid gap-3 lg:grid-cols-2">
-        <AiRoiCard roi={snapshot.roi} />
+        <AiRoiCard roi={snapshot.roi} kpis={snapshot.kpis} />
         <AiTokenSpendCard spend={snapshot.tokenSpend} />
-      </div>
-
-      <div className="grid gap-3 lg:grid-cols-2">
-        <AiToolsPanel tools={snapshot.tools} />
-        <div className="grid gap-3">
-          <AiModelsChart models={snapshot.models} />
-          <AiExtensionsChart extensions={snapshot.extensions} />
-        </div>
       </div>
 
       <AiTicketTokensTable tickets={snapshot.tickets} />
@@ -75,12 +67,20 @@ export function AiDashboard({
         — the only surface that groups metrics by person.
       </p>
 
+      <AiCommitsTable commits={snapshot.commits} />
+
       <div className="grid gap-3 lg:grid-cols-2">
         <AiDauChart points={snapshot.dau} />
         <AiAgentEditsChart points={snapshot.agentEdits} />
       </div>
 
-      <AiCommitsTable commits={snapshot.commits} />
+      <div className="grid gap-3 lg:grid-cols-2">
+        <AiToolsPanel tools={snapshot.tools} />
+        <div className="grid gap-3">
+          <AiModelsChart models={snapshot.models} />
+          <AiExtensionsChart extensions={snapshot.extensions} />
+        </div>
+      </div>
 
       <p className="text-[11px] text-faint">
         Source: AppData mock (productivity PRs + sprint window) · synced{" "}
