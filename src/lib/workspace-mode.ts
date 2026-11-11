@@ -49,6 +49,7 @@ export function getSectionTabs(): SectionTab[] {
     { href: "/delivery-analysis", label: "Delivery" },
     { href: "/productivity", label: "Productivity" },
     { href: "/code-analysis", label: "Code" },
+    { href: "/ai", label: "AI" },
     { href: "/qa", label: "QA" },
     { href: "/governance", label: "Compliance" },
   ].filter((tab) => isNavHrefEnabled(tab.href));
@@ -238,6 +239,7 @@ export function isEnterpriseOnlyPath(pathname: string): boolean {
     "/delivery-analysis",
     "/productivity",
     "/code-analysis",
+    "/ai",
     "/dashboard",
     "/risk",
     "/reports",

@@ -8,10 +8,13 @@ import {
   ProductivityReviewLoadCard,
   ProductivityThroughputCard,
 } from "@/components/productivity/productivity-charts";
+import { ProductivityAiTokensTable } from "@/components/productivity/productivity-ai-tokens-table";
 import {
+  selectAiSnapshot,
   selectProductivitySnapshot,
   useAppData,
 } from "@/lib/store";
+import type { CursorAiSnapshot } from "@/lib/cursor-api/types";
 import type { ProductivitySnapshot } from "@/lib/productivity/types";
 import { cn } from "@/lib/utils";
 
@@ -27,8 +30,18 @@ function snapshotEqual(a: ProductivitySnapshot, b: ProductivitySnapshot): boolea
   );
 }
 
+function aiSnapshotEqual(a: CursorAiSnapshot, b: CursorAiSnapshot): boolean {
+  return (
+    a.fetchedAt === b.fetchedAt &&
+    a.contributors.length === b.contributors.length &&
+    a.contributors[0]?.contributorId === b.contributors[0]?.contributorId &&
+    a.contributors[0]?.tokens === b.contributors[0]?.tokens
+  );
+}
+
 export function ProductivityDashboard({ className }: { className?: string }) {
   const snapshot = useAppData(selectProductivitySnapshot, snapshotEqual);
+  const aiSnapshot = useAppData(selectAiSnapshot, aiSnapshotEqual);
   // Avoid SSR/client filter-timing mismatches (URL sync runs after mount).
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -40,7 +53,7 @@ export function ProductivityDashboard({ className }: { className?: string }) {
     >
       <PageHeader
         title="Productivity"
-        description="Per-contributor delivery metrics for this sprint."
+        description="Per-contributor delivery metrics and AI token spend for this sprint."
         className="mb-[18px] [&_p]:mt-[5px]"
       />
 
@@ -51,6 +64,8 @@ export function ProductivityDashboard({ className }: { className?: string }) {
           <ProductivityKpiStrip totals={snapshot.totals} />
 
           <ProductivityContributorTable snapshot={snapshot} />
+
+          <ProductivityAiTokensTable rows={aiSnapshot.contributors} />
 
           <div className="grid gap-3 lg:grid-cols-2">
             <ProductivityThroughputCard points={snapshot.throughputTrend} />

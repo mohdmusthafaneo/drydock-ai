@@ -46,6 +46,10 @@ const envSchema = z.object({
   ANTHROPIC_API_KEY: z.string().optional(),
   ANTHROPIC_MODEL: z.string().optional(),
 
+  /** Cursor mock Admin API base URL for the AI tab. */
+  CURSOR_API_URL: z.string().url().optional(),
+  CURSOR_API_KEY: z.string().optional(),
+
   /** Global LLM kill-switch (`true` disables all metered features). */
   LLM_KILL_SWITCH: optionalBoolean,
   LLM_ORG_DAILY_TOKEN_BUDGET: z.coerce.number().int().positive().optional(),

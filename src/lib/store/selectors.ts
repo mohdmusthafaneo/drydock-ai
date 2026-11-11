@@ -4,8 +4,10 @@ import type {
   OverviewDashboardModel,
   OverviewSprintOption,
 } from "@/lib/store/types";
+import type { CursorAiSnapshot } from "@/lib/cursor-api/types";
 import type { DeliveryAnalysisSnapshot } from "@/lib/delivery-analysis/types";
 import type { ProductivitySnapshot } from "@/lib/productivity/types";
+import { buildCursorAiSnapshotFromProductivity } from "@/lib/store/mock/ai-snapshot";
 
 function defaultSprintId(state: AppStoreState): string {
   const { dimensions } = state.data;
@@ -144,5 +146,17 @@ export function selectProductivitySnapshot(
   return pick(data.productivity, {
     team: filters.team,
     sprint: sprintId,
+  });
+}
+
+/**
+ * AI tab snapshot — Cursor-shaped metrics derived from productivity PRs,
+ * sprint window, and repos in AppData (same world as Overview).
+ */
+export function selectAiSnapshot(state: AppStoreState): CursorAiSnapshot {
+  return buildCursorAiSnapshotFromProductivity({
+    productivity: selectProductivitySnapshot(state),
+    dimensions: state.data.dimensions,
+    lastSyncAt: state.data.meta.lastSyncAt,
   });
 }

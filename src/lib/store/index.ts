@@ -41,6 +41,7 @@ export {
   selectAiRiskPct,
   selectDeliveryAnalysisSnapshot,
   selectProductivitySnapshot,
+  selectAiSnapshot,
   type ShellChrome,
 } from "@/lib/store/selectors";
 export { FilterUrlSync } from "@/lib/store/url-sync";

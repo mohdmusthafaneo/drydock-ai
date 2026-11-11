@@ -34,6 +34,7 @@ function usesConnexusChrome(pathname: string): boolean {
   if (pathname === "/delivery-analysis" || pathname.startsWith("/delivery-analysis/")) return true;
   if (pathname === "/productivity" || pathname.startsWith("/productivity/")) return true;
   if (pathname === "/code-analysis" || pathname.startsWith("/code-analysis/")) return true;
+  if (pathname === "/ai" || pathname.startsWith("/ai/")) return true;
   if (pathname === "/qa" || pathname.startsWith("/qa/")) return true;
   if (pathname === "/governance" || pathname.startsWith("/governance/")) return true;
   if (pathname === "/approvals" || pathname.startsWith("/approvals/")) return true;
