@@ -7,14 +7,22 @@ import type { DeliveryAnalysisSnapshot } from "@/lib/delivery-analysis/types";
 import { formatSprintDay } from "@/lib/format-date";
 import { DeliverySignalsPanel } from "@/components/delivery-analysis/delivery-signals";
 import { JiraIssueLink } from "@/components/delivery-analysis/jira-issue-link";
+import { LifecycleTab } from "@/components/delivery-analysis/lifecycle-tab";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-type TabId = "overview" | "versions" | "sprints" | "signals" | "projects";
+type TabId =
+  | "overview"
+  | "lifecycle"
+  | "versions"
+  | "sprints"
+  | "signals"
+  | "projects";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "overview", label: "Overview" },
+  { id: "lifecycle", label: "Lifecycle" },
   { id: "versions", label: "Versions" },
   { id: "sprints", label: "Sprints" },
   { id: "signals", label: "Signals" },
@@ -30,7 +38,9 @@ export function AnalysisTabs({ snapshot }: { snapshot: DeliveryAnalysisSnapshot 
       <CardHeader className="space-y-4">
         <div>
           <CardTitle className="text-base">Drill-down</CardTitle>
-          <CardDescription>Versions, sprints, signals, and per-project detail</CardDescription>
+          <CardDescription>
+            Lifecycle flow, versions, sprints, signals, and per-project detail
+          </CardDescription>
         </div>
 
         <div className="-mx-1 flex gap-1 overflow-x-auto pb-1">
@@ -54,6 +64,7 @@ export function AnalysisTabs({ snapshot }: { snapshot: DeliveryAnalysisSnapshot 
 
       <CardContent>
         {tab === "overview" && <OverviewTab snapshot={snapshot} />}
+        {tab === "lifecycle" && <LifecycleTab lifecycle={snapshot.lifecycle} />}
         {tab === "versions" && <VersionsTab snapshot={snapshot} />}
         {tab === "sprints" && <SprintsTab snapshot={snapshot} />}
         {tab === "signals" && <DeliverySignalsPanel signals={snapshot.signals} />}

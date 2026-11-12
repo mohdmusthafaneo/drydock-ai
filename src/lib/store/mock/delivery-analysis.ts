@@ -16,6 +16,7 @@ import {
   type OverviewDerivedPack,
 } from "@/lib/store/mock/overview-derived";
 import { resolveMockScheduleRiskFromDerived } from "@/lib/store/mock/schedule-risk";
+import { buildMockLifecycleSnapshot } from "@/lib/store/mock/lifecycle";
 import { computeSprintCardSeverity } from "@/lib/delivery-analysis/sprint-display";
 import { toDateKey } from "@/lib/format-date";
 
@@ -528,6 +529,12 @@ function createDeliveryBuilders(derived: OverviewDerivedPack) {
           : undefined,
       scopeLabel: sprint.name,
       scopeMode: "sprint",
+      lifecycle: buildMockLifecycleSnapshot(derived, {
+        sprintId: sid,
+        teamKey: teamKey ?? null,
+        range: "30d",
+        nowIso: lastSyncAt,
+      }),
     };
   }
 

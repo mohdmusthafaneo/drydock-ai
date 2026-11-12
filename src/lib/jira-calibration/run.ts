@@ -7,6 +7,7 @@ import {
   persistCalibratedToolchainMapping,
   upsertCalibrationProfile,
 } from "@/lib/jira-calibration/persist";
+import { persistLifecycleIssueSample } from "@/lib/delivery-analysis/lifecycle-persist";
 
 export type RunJiraCalibrationResult =
   | { status: "calibrated"; projectKey: string; confidence: string }
@@ -57,6 +58,7 @@ export async function runJiraCalibrationForProject(input: {
       projectKey,
       windowDays: input.windowDays,
     });
+    await persistLifecycleIssueSample({ organizationId, sample });
     const observations = analyzeCalibrationSample(sample);
 
     await upsertCalibrationProfile({

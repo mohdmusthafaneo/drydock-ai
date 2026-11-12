@@ -1,5 +1,8 @@
 import { jqlQuoteLiteral } from "@/lib/jira-jql";
-import type { ScheduleRiskEvidence } from "@/lib/delivery-analysis/types";
+import type {
+  ScheduleRiskEvidence,
+  ScheduleRiskItem,
+} from "@/lib/delivery-analysis/types";
 import { TPT_OVERVIEW_DERIVED } from "@/lib/store/mock/tpt-overview-derived";
 import type { OverviewDerivedPack } from "@/lib/store/mock/overview-derived";
 
@@ -21,6 +24,7 @@ type DerivedScheduleRisk = {
   definition: string;
   total: number;
   byTeam: ReadonlyArray<{ key: string; name: string; count: number }>;
+  items?: ReadonlyArray<ScheduleRiskItem>;
 };
 
 /**
@@ -72,6 +76,7 @@ function withJiraUrls(
       count: t.count,
       jiraUrl: href(t.key),
     })),
+    items: risk.items ? [...risk.items] : undefined,
     jiraUrl: href(),
   };
 }

@@ -24,8 +24,10 @@ function buildCalibrationJql(projectKey: string, windowDays: number): string {
 
 function toIssueSample(issue: {
   key: string;
+  summary?: string;
   status: string;
   issueType: string;
+  priority?: string;
   created?: string;
   resolutionDate?: string;
   labels: string[];
@@ -36,8 +38,10 @@ function toIssueSample(issue: {
 }): CalibrationIssueSample {
   return {
     key: issue.key,
+    summary: issue.summary,
     status: issue.status,
     issueType: issue.issueType,
+    priority: issue.priority,
     created: issue.created,
     resolutionDate: issue.resolutionDate,
     labels: issue.labels,
@@ -77,7 +81,11 @@ async function fetchPageWithBackoff(
   }
 }
 
-/** Pull a capped 90-day issue+changelog sample for calibration (no DB issue storage). */
+/**
+ * Pull a capped 90-day issue+changelog sample for calibration.
+ * Callers may also persist a lifecycle slice on Integration metadata
+ * (see persistLifecycleIssueSample) for Delivery Ticket Lifecycle.
+ */
 export async function fetchJiraCalibrationSample(input: {
   organizationId: string;
   projectKey: string;

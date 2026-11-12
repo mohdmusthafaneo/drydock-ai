@@ -18,6 +18,7 @@ export type StoredJiraDelivery = {
   jiraHygiene?: PortfolioJiraHygiene;
   mapping?: ToolchainMapping;
   calibrationGate?: Awaited<ReturnType<typeof getJiraCalibrationGate>>;
+  lifecycleIssueSample?: import("@/lib/delivery-analysis/lifecycle-types").LifecycleIssueSampleStored;
 };
 
 export async function resolveStoredJiraDelivery(
@@ -58,6 +59,7 @@ export async function resolveStoredJiraDelivery(
     jiraHygiene,
     mapping: mapping ?? undefined,
     calibrationGate,
+    lifecycleIssueSample: meta.lifecycleIssueSample,
   };
 }
 

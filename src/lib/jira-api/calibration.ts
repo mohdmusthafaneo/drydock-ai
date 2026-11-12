@@ -2,8 +2,10 @@ import { jiraFetch } from "@/lib/jira-api/client";
 
 export type JiraCalibrationIssueRaw = {
   key: string;
+  summary?: string;
   status: string;
   issueType: string;
+  priority?: string;
   created?: string;
   resolutionDate?: string;
   labels: string[];
@@ -19,8 +21,10 @@ export type JiraCalibrationIssueSearchResult = {
 };
 
 const CALIBRATION_SEARCH_FIELDS = [
+  "summary",
   "status",
   "issuetype",
+  "priority",
   "created",
   "resolutiondate",
   "labels",
@@ -60,8 +64,10 @@ function parseCalibrationIssue(issue: {
     }>;
   };
   fields?: {
+    summary?: string;
     status?: { name?: string };
     issuetype?: { name?: string };
+    priority?: { name?: string };
     created?: string;
     resolutiondate?: string;
     labels?: string[];
@@ -73,8 +79,10 @@ function parseCalibrationIssue(issue: {
   if (!issue.key) return null;
   return {
     key: issue.key,
+    summary: issue.fields?.summary,
     status: issue.fields?.status?.name ?? "Unknown",
     issueType: issue.fields?.issuetype?.name ?? "Unknown",
+    priority: issue.fields?.priority?.name,
     created: issue.fields?.created,
     resolutionDate: issue.fields?.resolutiondate,
     labels: issue.fields?.labels ?? [],
@@ -108,8 +116,10 @@ export async function searchCalibrationIssuesByJql(
         }>;
       };
       fields?: {
+        summary?: string;
         status?: { name?: string };
         issuetype?: { name?: string };
+        priority?: { name?: string };
         created?: string;
         resolutiondate?: string;
         labels?: string[];

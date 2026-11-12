@@ -51,12 +51,13 @@ Sign-off / Misses) remain available beside Delivery, Code, QA, Risk, Compliance,
 
 These are hard rules. Breaking one is a product defect, not a tradeoff.
 
-1. **No metric is ever grouped by person — except on Productivity.** Author, vendor, and
-   individual contributor are never reporting dimensions on test-trust surfaces or Overview.
-   **Team / project** (e.g. a Jira project key) may filter Overview and delivery metrics.
-   Evidence on those surfaces still links to files and PRs — never to people. The
-   **Productivity** surface (`/productivity`) is the sole carve-out: it shows per-contributor
-   delivery metrics by design. See §12.
+1. **No metric is ever grouped by person — except on Productivity and Delivery Lifecycle.**
+   Author, vendor, and individual contributor are never reporting dimensions on test-trust
+   surfaces or Overview. **Team / project** (e.g. a Jira project key) may filter Overview and
+   delivery metrics. Evidence on those surfaces still links to files and PRs — never to people.
+   Carve-outs: **Productivity** (`/productivity`) for per-contributor delivery metrics (§12),
+   and **Delivery Lifecycle** (`/delivery-analysis` Lifecycle tab) for per-assignee ticket flow
+   metrics (§13). No composite person score on either surface.
 
 2. **Nothing is silently suppressed.** Every issue the system hides is reachable in one
    click, with the reason and the decision that hid it. Discovering that DryDock concealed
@@ -344,8 +345,8 @@ Dated decision: ship a Connexus-style Overview as the landing page and app shell
 | Sunsetted Delivery/Code/Compliance | Re-enabled as top tabs + pillar tiles |
 
 Preserved: advise-only, nothing silently suppressed, evidence traceability, tenancy by
-`organizationId`. (Person metrics remain forbidden on Overview and test-trust; see §12 for
-the Productivity carve-out.)
+`organizationId`. (Person metrics remain forbidden on Overview and test-trust; see §12–§13
+for the Productivity and Delivery Lifecycle carve-outs.)
 
 Visual system: `docs/DESIGN.md`. Shell: org name in sidebar, section tabs in top bar,
 workspace list = Jira projects.
@@ -355,11 +356,11 @@ workspace list = Jira projects.
 ## 12. Product redirect — 2026-09 Productivity surface
 
 Dated decision: ship a per-contributor **Productivity** section at `/productivity` for
-Engineering Managers. This narrowly revokes invariant 1 for that surface only.
+Engineering Managers. This narrowly revokes invariant 1 for that surface (see also §13).
 
 | Amended | New rule |
 |---------|----------|
-| No metrics by person (global) | Person dimension allowed **only** on `/productivity` |
+| No metrics by person (global) | Person dimension allowed on `/productivity` and Delivery Lifecycle (§13) |
 | — | No role gate — every signed-in user sees the full page |
 | — | No statement-of-intent banner; no small-N / ranking guardrails in v1 |
 | — | No composite person score — ever |
@@ -369,7 +370,7 @@ Engineering Managers. This narrowly revokes invariant 1 for that surface only.
 **Rationale.** Overview answers leadership confidence; test-trust answers “can I trust green?”
 Neither answers the EM weekly question: *is delivery healthy, and who needs support?* The
 person-free rule remains load-bearing for test flagging (§5.5) and for Overview not becoming
-a ranking instrument. Revoking it only on Productivity keeps those protections.
+a ranking instrument. Revoking it only on named carve-outs keeps those protections.
 
 **Preserved elsewhere.** Test-trust and Overview keep the person-free rule. Invariant 5
 (evidence traceability) is untouched — every per-contributor number drills to PRs and issues.
@@ -379,5 +380,29 @@ Visual target: [`docs/design/productivity-mockup.png`](design/productivity-mocku
 
 ---
 
-*Last updated: 2026-09-22. Update this file when the concept evolves; do not fork competing
+## 13. Product redirect — Delivery Ticket Lifecycle
+
+Dated decision: ship a **Ticket Lifecycle** drill-down on Delivery (`/delivery-analysis`
+Lifecycle tab) for delivery leads and EMs. This is the second person-dimension carve-out
+alongside §12.
+
+| Amended | New rule |
+|---------|----------|
+| Delivery metrics are team/project only | Per-assignee ticket flow metrics allowed on Lifecycle only |
+| — | Metrics: ticket cycle time, lead time, time-in-status, WIP, aging WIP, throughput |
+| — | No composite person score — ever |
+| — | Ticket cycle/lead time is distinct from Productivity’s PR `medianCycleHours` |
+| — | Evidence links to Jira issues; advise-only (never write transitions) |
+
+**Rationale.** Existing Delivery KPIs answer “is the sprint healthy?” Lifecycle answers
+“how do tickets move through stages, how long do they take, and where do they stall?”
+Person rollups are required for WIP and cycle coaching; they must not leak into Overview
+or test-trust surfaces.
+
+**Preserved elsewhere.** Overview, test-trust, and non-Lifecycle Delivery panels stay
+person-free. Advise-only, tenancy, and evidence traceability are unchanged.
+
+---
+
+*Last updated: 2026-11-12. Update this file when the concept evolves; do not fork competing
 definitions elsewhere.*

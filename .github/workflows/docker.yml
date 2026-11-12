@@ -190,9 +190,10 @@ jobs:
         env:
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_DEPLOY_API_KEY }}
         run: |
-          curl -fsS -X GET \
+          curl -fsS -X POST \
             -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
             -H "Accept: application/json" \
+            --data '' \
             "${{ env.COOLIFY_DEPLOY_WEB }}"
 
   deploy-worker:

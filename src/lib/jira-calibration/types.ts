@@ -1,4 +1,8 @@
-/** Aggregate-only calibration types — no raw issue persistence. */
+/**
+ * Calibration observation types (aggregates persisted on JiraCalibrationProfile).
+ * Raw issue+changelog samples may also be stored on Integration metadata as
+ * `lifecycleIssueSample` for Delivery Ticket Lifecycle.
+ */
 
 import { readJsonField } from "@/lib/json-field";
 
@@ -10,8 +14,10 @@ export type StatusTransition = {
 
 export type CalibrationIssueSample = {
   key: string;
+  summary?: string;
   status: string;
   issueType: string;
+  priority?: string;
   created?: string;
   resolutionDate?: string;
   labels: string[];

@@ -1,5 +1,6 @@
 import type { JiraDeliveryGap, JiraDeliverySignal } from "@/lib/jira-delivery-health";
 import type { JiraHygieneFinding, JiraHygieneResult } from "@/lib/jira-hygiene";
+import type { LifecycleSnapshot } from "@/lib/delivery-analysis/lifecycle-types";
 import type { JiraStatusBreakdown } from "@/lib/jira-meta";
 
 export type TimeRange = "7d" | "30d" | "90d";
@@ -171,6 +172,8 @@ export type DeliveryAnalysisSnapshot = {
   /** Active release scope label when KPIs are methodology-scoped. */
   scopeLabel?: string;
   scopeMode?: "sprint" | "fixVersion";
+  /** Ticket flow metrics (cycle/lead/WIP/person) when sample data is available. */
+  lifecycle?: LifecycleSnapshot;
 };
 
 export const RISK_MIX_COLORS = {

@@ -170,6 +170,11 @@ export type JiraIntegrationMeta = {
   };
   /** Computed Jira board hygiene rollup (Point 5). */
   jiraHygiene?: import("@/lib/jira-hygiene").JiraHygieneSnapshot;
+  /**
+   * Capped issue+changelog sample for Delivery Ticket Lifecycle
+   * (populated from calibration fetch).
+   */
+  lifecycleIssueSample?: import("@/lib/delivery-analysis/lifecycle-types").LifecycleIssueSampleStored;
 };
 
 export function parseJiraMeta(metadataJson: unknown): Partial<JiraIntegrationMeta> {

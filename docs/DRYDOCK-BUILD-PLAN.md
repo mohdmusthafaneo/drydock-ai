@@ -132,6 +132,9 @@ individual tests are not yet automated.
 - Data: `loadOverviewDashboard`, `OverviewSnapshot`, `GET /api/overview`
 - Tabs restored: Delivery, Code, QA, Risk, Compliance, Reports (Risk/Reports placeholders)
 - Concept/rules amended for team filter, composite score, and charts on Overview
+- **Delivery Ticket Lifecycle** (2026-11): Lifecycle drill-down on `/delivery-analysis` with
+  ticket cycle/lead time, time-in-status, WIP, throughput, and per-assignee flow metrics
+  (concept §13 carve-out). Mock-backed first; live issue+changelog sample persistence follows.
 
 ---
 
@@ -152,4 +155,4 @@ Client questions that gate Phase 0. None are design decisions.
 
 ---
 
-*Last updated: 2026-09-06.*
+*Last updated: 2026-11-12.*

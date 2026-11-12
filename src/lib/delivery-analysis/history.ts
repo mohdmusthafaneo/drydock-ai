@@ -7,6 +7,7 @@ import {
   priorKpisFromHistory,
   scopedKpisFromSnapshot,
 } from "@/lib/delivery-analysis/persist";
+import { resolveLifecycleSnapshot } from "@/lib/delivery-analysis/lifecycle-resolve";
 import type {
   DeliveryAnalysisFilters,
   DeliveryAnalysisSnapshot,
@@ -24,6 +25,13 @@ export async function enrichDeliverySnapshot(
   });
   const historyRows = await loadDeliveryAnalysisHistory(organizationId, filters.range);
   const trend = buildTrendFromHistory(historyRows, filters.projectKey);
+  const lifecycle = resolveLifecycleSnapshot({
+    sample: stored.lifecycleIssueSample,
+    range: filters.range,
+    projectKey: filters.projectKey,
+    siteUrl: stored.siteUrl,
+    mapping: stored.mapping,
+  });
 
   if (filters.compare === "previous_sync" && historyRows.length >= 2) {
     const prior = priorKpisFromHistory(historyRows, filters.projectKey);
@@ -34,11 +42,12 @@ export async function enrichDeliverySnapshot(
         ...snapshot,
         trend,
         kpis: { ...snapshot.kpis, ...deltas },
+        lifecycle,
       };
     }
   }
 
-  return { ...snapshot, trend };
+  return { ...snapshot, trend, lifecycle };
 }
 
 export async function getDeliveryAnalysisTrend(
