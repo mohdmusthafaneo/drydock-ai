@@ -36,6 +36,7 @@ export const TENANT_MODELS = new Set([
   "ExecutiveBriefingSnapshot",
   "AgentChatThread",
   "AgentChatMessage",
+  "AgentInstruction",
   "Embedding",
   "TicketSnapshot",
   "CommitSnapshot",

@@ -7,6 +7,8 @@ export const agentKeys = {
   all: ["agents"] as const,
   list: () => [...agentKeys.all, "list"] as const,
   detail: (agentId: string) => [...agentKeys.all, "detail", agentId] as const,
+  instructions: (agentKey: string) =>
+    [...agentKeys.all, "instructions", agentKey] as const,
 };
 
 export const runKeys = {

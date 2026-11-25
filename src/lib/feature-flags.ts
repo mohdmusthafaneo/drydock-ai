@@ -25,6 +25,7 @@ export type NavFeatureFlagId =
   | "nav.integrations"
   | "nav.admin"
   | "nav.settings"
+  | "nav.agents"
   | "nav.mvp_launchpad"
   | "nav.mvp_new";
 
@@ -50,6 +51,7 @@ export const NAV_FEATURE_FLAGS: Record<NavFeatureFlagId, boolean> = {
   "nav.integrations": true,
   "nav.admin": false,
   "nav.settings": true,
+  "nav.agents": true,
   "nav.mvp_launchpad": false,
   "nav.mvp_new": false,
 };
@@ -75,6 +77,7 @@ const NAV_HREF_TO_FLAG: Record<string, NavFeatureFlagId> = {
   "/integrations": "nav.integrations",
   "/admin": "nav.admin",
   "/settings": "nav.settings",
+  "/agents": "nav.agents",
 };
 
 /** Related routes not listed in the sidebar but tied to a nav flag */

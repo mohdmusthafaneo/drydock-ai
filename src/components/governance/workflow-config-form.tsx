@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { WORKFLOW_MODES } from "@/lib/agents";
+import { WORKFLOW_MODES } from "@/lib/agents/workflow-modes";
 import type { AutonomyMode } from "@/generated/prisma/client";
 
 type WorkflowExecutionStatus = "ACTIVE" | "PAUSED" | "COMPLETED";

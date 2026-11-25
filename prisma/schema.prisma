@@ -150,6 +150,7 @@ model Organization {
   problemPredictions       ProblemPrediction[]
   agentChatThreads         AgentChatThread[]
   agentChatMessages        AgentChatMessage[]
+  agentInstructions        AgentInstruction[]
   executiveBriefingSnapshots ExecutiveBriefingSnapshot[]
   jiraCalibrationProfiles JiraCalibrationProfile[]
   embeddings              Embedding[]
@@ -961,6 +962,25 @@ model AgentChatMessage {
 
   @@index([threadId, createdAt])
   @@index([organizationId, threadId])
+}
+
+/// Org-scoped additive system-prompt lines for Mastra agents (appended at runtime).
+model AgentInstruction {
+  id             String   @id @default(cuid())
+  organizationId String
+  /// Catalog key: productivity | qa | governance | devops | drydockAssistant | aidosAssistant
+  agentKey       String
+  title          String?
+  content        String
+  enabled        Boolean  @default(true)
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, agentKey])
+  @@index([organizationId, agentKey, sortOrder])
 }
 
 /// 384-dim embedding row. The `vector` column is pgvector; read/write via raw SQL

@@ -2,10 +2,8 @@ import type { Mastra } from "@mastra/core/mastra";
 import type { RequestContext } from "@mastra/core/request-context";
 import type { ChunkType } from "@mastra/core/stream";
 
-import {
-  AIDOS_ASSISTANT_ID,
-  AIDOS_ASSISTANT_INSTRUCTIONS,
-} from "../agents/aidos-assistant";
+import { resolveAgentSystemPrompt } from "@/lib/agents";
+import { AIDOS_ASSISTANT_ID } from "../agents/aidos-assistant";
 import { getAidosToolsForAssistant } from "../agents/toolsets";
 import type { AidosRequestContextValues } from "../tools/aidos/context";
 
@@ -84,10 +82,17 @@ export async function runAidosAssistant(
   const startedToolCalls = new Set<string>();
   const finishedToolCalls = new Set<string>();
 
+  const instructions =
+    input.systemPrompt ??
+    (await resolveAgentSystemPrompt(
+      input.organizationId,
+      "aidosAssistant",
+    ));
+
   const streamOutput = await agent.stream(
     [{ role: "user" as const, content: input.userMessage }],
     {
-      instructions: input.systemPrompt ?? AIDOS_ASSISTANT_INSTRUCTIONS,
+      instructions,
       requestContext: input.requestContext,
       toolsets,
       toolChoice: "auto",

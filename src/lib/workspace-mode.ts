@@ -52,6 +52,7 @@ export function getSectionTabs(): SectionTab[] {
     { href: "/ai", label: "AI" },
     { href: "/qa", label: "QA" },
     { href: "/governance", label: "Compliance" },
+    { href: "/agents", label: "Agents" },
   ].filter((tab) => isNavHrefEnabled(tab.href));
 }
 

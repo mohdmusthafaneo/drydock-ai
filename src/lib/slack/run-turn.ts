@@ -14,7 +14,7 @@ import {
   createAidosRequestContext,
   createAidosToolContext,
 } from "@/mastra/tools/aidos/context";
-import { AIDOS_ASSISTANT_INSTRUCTIONS } from "@/mastra/agents/aidos-assistant";
+import { resolveAgentSystemPrompt } from "@/lib/agents";
 import { fetchSlackUser } from "@/lib/slack-oauth";
 import { consumeSlackTurnBudget } from "@/lib/slack/budget";
 import { getSlackRequestTenant } from "@/lib/slack/request-context";
@@ -247,8 +247,12 @@ export async function runSlackAssistantTurn(
     threadId,
   });
 
+  const baseInstructions = await resolveAgentSystemPrompt(
+    tenant.organizationId,
+    "aidosAssistant",
+  );
   const systemPrompt = [
-    AIDOS_ASSISTANT_INSTRUCTIONS,
+    baseInstructions,
     "",
     "You are answering via Slack. Keep replies concise and markdown-friendly.",
     "Do not claim you executed changes. DryDock only advises.",

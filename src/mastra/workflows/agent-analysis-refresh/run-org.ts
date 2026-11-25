@@ -4,6 +4,10 @@ import { RequestContext } from "@mastra/core/request-context";
 import { ORGANIZATION_ID_KEY } from "@/mastra/config/request-context";
 import { createLogger } from "@/lib/logger";
 import {
+  agentKeyForDomain,
+  resolveAgentSystemPrompt,
+} from "@/lib/agents";
+import {
   listAgentAnalysisOrganizationIds,
   resolveOrgAgentTargets,
   type OrgAgentTargets,
@@ -113,7 +117,13 @@ async function generateForDomain(
   requestContext.set(ORGANIZATION_ID_KEY, organizationId);
   requestContext.set("organizationId", organizationId);
 
+  const instructions = await resolveAgentSystemPrompt(
+    organizationId,
+    agentKeyForDomain(domain),
+  );
+
   const result = await agent.generate(prompt, {
+    instructions,
     requestContext,
     maxSteps: 48,
   });

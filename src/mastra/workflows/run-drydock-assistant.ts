@@ -2,11 +2,13 @@ import type { Mastra } from "@mastra/core/mastra";
 import type { RequestContext } from "@mastra/core/request-context";
 import type { ChunkType } from "@mastra/core/stream";
 
+import { resolveAgentSystemPrompt } from "@/lib/agents";
+import { DRYDOCK_ASSISTANT_ID } from "../agents/drydock-assistant";
 import {
-  DRYDOCK_ASSISTANT_ID,
-  DRYDOCK_ASSISTANT_INSTRUCTIONS,
-} from "../agents/drydock-assistant";
-import type { DrydockAssistantRequestContextValues } from "../tools/drydock-assistant";
+  DRYDOCK_ASSISTANT_TOOL_CONTEXT_KEY,
+  type DrydockAssistantRequestContextValues,
+  type DrydockAssistantToolContext,
+} from "../tools/drydock-assistant";
 
 export type DrydockAssistantStreamHandlers = {
   onTextDelta?: (text: string) => void | Promise<void>;
@@ -97,8 +99,21 @@ export async function runDrydockAssistant(
     { role: "user" as const, content: input.userMessage },
   ];
 
+  const toolContext = input.requestContext.get(
+    DRYDOCK_ASSISTANT_TOOL_CONTEXT_KEY,
+  ) as DrydockAssistantToolContext | undefined;
+  if (!toolContext?.organizationId) {
+    throw new Error(
+      "DryDock assistant tool context missing organizationId",
+    );
+  }
+  const instructions = await resolveAgentSystemPrompt(
+    toolContext.organizationId,
+    "drydockAssistant",
+  );
+
   const streamOutput = await agent.stream(messages, {
-    instructions: DRYDOCK_ASSISTANT_INSTRUCTIONS,
+    instructions,
     requestContext: input.requestContext,
     toolChoice: "auto",
     maxSteps: input.maxSteps ?? 12,

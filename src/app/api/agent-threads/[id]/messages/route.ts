@@ -15,7 +15,7 @@ import {
   createAidosRequestContext,
   createAidosToolContext,
 } from "@/mastra/tools/aidos";
-import { AIDOS_ASSISTANT_INSTRUCTIONS } from "@/mastra/agents";
+import { resolveAgentSystemPrompt } from "@/lib/agents";
 import { runAidosAssistant } from "@/mastra/workflows/run-assistant";
 
 type RouteParams = { params: Promise<{ id: string }> };
@@ -160,8 +160,12 @@ async function streamAssistant(input: {
     createAidosToolContext({ organizationId: sessionOrgId }),
   );
 
+  const baseInstructions = await resolveAgentSystemPrompt(
+    sessionOrgId,
+    "aidosAssistant",
+  );
   const systemPrompt = [
-    AIDOS_ASSISTANT_INSTRUCTIONS,
+    baseInstructions,
     chatContext ? `\n\n${chatContext}` : "",
   ].join("");
 
